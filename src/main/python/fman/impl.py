@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QApplication, QFileSystemModel, QTreeView, QWidget,\
-	QHBoxLayout, QVBoxLayout, QSplitter, QLineEdit
+from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
+	TextAlignmentRole, AlignVCenter
+from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
+	QLineEdit, QVBoxLayout
 from PyQt5.QtCore import QSortFilterProxyModel
-from PyQt5 import QtCore
 
 def get_main_window(left_path, right_path):
 	result = QSplitter()
@@ -31,11 +32,12 @@ def _get_tree_view(path):
 
 	tree.setAnimated(False)
 	tree.setSortingEnabled(True)
+	tree.sortByColumn(0, AscendingOrder)
 	# Don't display "kind" column:
 	tree.hideColumn(2)
 	# Hide blue glow on Mac when the tree has focus:
-	edit.setAttribute(QtCore.Qt.WA_MacShowFocusRect, 0)
-	tree.setAttribute(QtCore.Qt.WA_MacShowFocusRect, 0)
+	edit.setAttribute(WA_MacShowFocusRect, 0)
+	tree.setAttribute(WA_MacShowFocusRect, 0)
 	tree.setColumnWidth(0, 200)
 	tree.setColumnWidth(1, 75)
 	layout.setContentsMargins(0, 0, 0, 0)
@@ -47,11 +49,11 @@ def _get_tree_view(path):
 class FileSystemModel(QFileSystemModel):
 	def data(self, index, role):
 		value = super(FileSystemModel, self).data(index, role)
-		if role == QtCore.Qt.TextAlignmentRole and value is not None:
+		if role == TextAlignmentRole and value is not None:
 			# The standard QFileSystemModel messes up the vertical alignment of
 			# the "Size" column. Work around this
 			# (http://stackoverflow.com/a/20233442/1839209):
-			value |= QtCore.Qt.AlignVCenter
+			value |= AlignVCenter
 		return value
 	def headerData(self, section, orientation, role):
 		result = super().headerData(section, orientation, role)
@@ -61,8 +63,29 @@ class FileSystemModel(QFileSystemModel):
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def lessThan(self, left, right):
-		leftInfo = self.sourceModel().fileInfo(left)
-		rightInfo = self.sourceModel().fileInfo(right)
-		leftTpl = (not leftInfo.isDir(), leftInfo.fileName())
-		rightTpl = (not rightInfo.isDir(), rightInfo.fileName())
-		return leftTpl < rightTpl
+		left_ = self.sourceModel().fileInfo(left)
+		right_ = self.sourceModel().fileInfo(right)
+		left_is_dir = left_.isDir()
+		right_is_dir = right_.isDir()
+		# Always show directories at the top:
+		if left_is_dir != right_is_dir:
+			return self._always_ascending(left_is_dir < right_is_dir)
+		if left_is_dir and right_is_dir:
+			# Sort directories by name:
+			return self._always_ascending(left_.fileName() > right_.fileName())
+		return self._get_sort_value(left) < self._get_sort_value(right)
+	def _get_sort_value(self, row):
+		file_info = self.sourceModel().fileInfo(row)
+		column = self.sortColumn()
+		# QFileSystemModel hardcodes the columns as follows:
+		if column == 0:
+			return file_info.fileName()
+		elif column == 1:
+			return file_info.size()
+		elif column == 2:
+			return self.sourceModel().type(row)
+		elif column == 3:
+			return file_info.lastModified()
+		raise ValueError('Unknown column: %r' % column)
+	def _always_ascending(self, value):
+		return (self.sortOrder() == AscendingOrder) != bool(value)
