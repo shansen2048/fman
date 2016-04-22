@@ -19,7 +19,7 @@ while [ -h "$SOURCE" ]; do
 done
 THIS_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-SRC_DIR="$THIS_SCRIPT_DIR/../.."
+SRC_DIR="$THIS_SCRIPT_DIR/.."
 
 cd "$SRC_DIR"
 source venv/bin/activate
