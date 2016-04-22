@@ -1,0 +1,45 @@
+QTreeView {
+	background-color: #272822;
+}
+
+QTreeView QHeaderView:section {
+	background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #363731, stop: 1 #272822);
+	color: #8f908a;
+	border: none;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	font-size: 12px;
+}
+
+QTreeView::item {
+	color: #75715e;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	/*
+	 * This definition should actually not be required as the bg color is set
+	 * on QTreeView. However, setting the bg color on `item` results in an
+	 * increased indent of the first column. Since item:hover below sets the bg
+	 * color as well, this leads to an ugly "shifting" effect on hover. So we
+	 * set bg color here as well so the items are always shifted.
+	 */
+	background-color: #272822;
+}
+
+QTreeView::item:first {
+	color: white;
+}
+
+QTreeView::item:hover {
+	background-color: #49483e;
+}
+
+QTreeView::item:selected {
+	color: #f92672;
+}
+
+QLineEdit {
+	color: #9a9a9a;
+	background-color: #303030;
+	padding: 2px;
+	border: 1px solid #2c2c2c;
+}

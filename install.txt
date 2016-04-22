@@ -1,0 +1,15 @@
+Install SIP:
+============
+Download http://sourceforge.net/projects/pyqt/files/sip/sip-4.17/sip-4.17.tar.gz
+Unpack
+python configure.py
+make
+make install
+
+Install PyQT:
+=============
+Download http://sourceforge.net/projects/pyqt/files/PyQt5/PyQt-5.5.1/PyQt-gpl-5.5.1.tar.gz
+Unpack
+python configure.py --qmake /Users/michael/Applications/Qt/5.6/clang_64/bin/qmake
+make
+make install
