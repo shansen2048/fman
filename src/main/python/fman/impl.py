@@ -1,7 +1,7 @@
 from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	TextAlignmentRole, AlignVCenter, ClickFocus
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
-	QLineEdit, QVBoxLayout
+	QLineEdit, QVBoxLayout, QStyle
 from PyQt5.QtCore import QSortFilterProxyModel
 
 def get_main_window(left_path, right_path):
@@ -30,6 +30,17 @@ def _get_tree_view(path):
 	tree.setRootIndex(model_sorted.mapFromSource(model.index(path)))
 	tree.setItemsExpandable(False)
 	tree.setRootIsDecorated(False)
+	tree.setSelectionMode(tree.ExtendedSelection)
+	tree.setAllColumnsShowFocus(True)
+
+	# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
+	# styles the first column. Fix this:
+	origDrawRow = tree.drawRow
+	def drawRow(painter, option, index):
+		if index.row() == tree.currentIndex().row():
+			option.state |= QStyle.State_HasFocus
+		origDrawRow(painter, option, index)
+	tree.drawRow = drawRow
 
 	tree.setAnimated(False)
 	tree.setSortingEnabled(True)

@@ -2,11 +2,11 @@ QTreeView {
 	background-color: #272822;
 }
 
-QTreeView QHeaderView, QTreeView QHeaderView:section {
+QTreeView QHeaderView, QTreeView QHeaderView::section {
 	background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #363731, stop: 1 #272822);
 }
 
-QTreeView QHeaderView:section {
+QTreeView QHeaderView::section {
 	color: #8f908a;
 	border: none;
 	padding-top: 5px;
@@ -21,19 +21,23 @@ QTreeView::item {
 	/*
 	 * This definition should actually not be required as the bg color is set
 	 * on QTreeView. However, setting the bg color on `item` results in an
-	 * increased indent of the first column. Since item:hover below sets the bg
-	 * color as well, this leads to an ugly "shifting" effect on hover. So we
-	 * set bg color here as well so the items are always shifted.
+	 * increased indent of the first column. Since item:focus below sets the bg
+	 * color as well, this leads to an ugly "shifting" effect. So we set bg
+	 * color here as well so the items are always shifted.
 	 */
-	background-color: #272822;
+	background-color: transparent;
 }
 
 QTreeView::item:first {
 	color: white;
 }
 
-QTreeView::item:hover {
+QTreeView::item:focus:active {
 	background-color: #49483e;
+}
+
+QTreeView::item:focus:!active {
+	background-color: transparent;
 }
 
 QTreeView::item:selected {
