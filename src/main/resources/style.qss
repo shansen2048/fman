@@ -2,8 +2,11 @@ QTreeView {
 	background-color: #272822;
 }
 
-QTreeView QHeaderView:section {
+QTreeView QHeaderView, QTreeView QHeaderView:section {
 	background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #363731, stop: 1 #272822);
+}
+
+QTreeView QHeaderView:section {
 	color: #8f908a;
 	border: none;
 	padding-top: 5px;
