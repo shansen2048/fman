@@ -1,5 +1,5 @@
 from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
-	TextAlignmentRole, AlignVCenter
+	TextAlignmentRole, AlignVCenter, ClickFocus
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
 	QLineEdit, QVBoxLayout
 from PyQt5.QtCore import QSortFilterProxyModel
@@ -18,6 +18,7 @@ def _get_tree_view(path):
 
 	edit = QLineEdit()
 	edit.setText(path)
+	edit.setFocusPolicy(ClickFocus)
 	layout.addWidget(edit)
 
 	model = FileSystemModel()
