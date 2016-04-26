@@ -29,6 +29,7 @@ class DirectoryPane(QWidget):
 	def set_path(self, path):
 		self._model.setRootPath(path)
 		index = self._model_sorted.mapFromSource(self._model.index(path))
+		self._path_view.setText(path)
 		self._file_view.setRootIndex(index)
 		self._file_view.hideColumn(2)
 		self._file_view.setColumnWidth(0, 200)
