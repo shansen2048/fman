@@ -36,10 +36,6 @@ QTreeView::item:focus:active {
 	background-color: #49483e;
 }
 
-QTreeView::item:focus:!active {
-	background-color: transparent;
-}
-
 QTreeView::item:selected {
 	color: #f92672;
 }
