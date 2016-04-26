@@ -6,57 +6,57 @@ from PyQt5.QtCore import QSortFilterProxyModel
 
 def get_main_window(left_path, right_path):
 	result = QSplitter()
-	result.addWidget(_get_tree_view(left_path))
-	result.addWidget(_get_tree_view(right_path))
+	left = DirectoryPane()
+	left.set_path(left_path)
+	right = DirectoryPane()
+	right.set_path(right_path)
+	result.addWidget(left)
+	result.addWidget(right)
 	result.setWindowTitle("fman")
 	result.resize(762, 300)
 	return result
 
-def _get_tree_view(path):
-	container = QWidget()
-	layout = QVBoxLayout()
+class DirectoryPane(QWidget):
+	def __init__(self):
+		super().__init__()
+		self._path_view = PathView()
+		self._file_view = FileListView()
+		self._model = FileSystemModel()
+		self._model_sorted = SortDirectoriesBeforeFiles(self)
+		self._model_sorted.setSourceModel(self._model)
+		self._file_view.setModel(self._model_sorted)
+		self.setLayout(Layout(self._path_view, self._file_view))
+	def set_path(self, path):
+		self._model.setRootPath(path)
+		index = self._model_sorted.mapFromSource(self._model.index(path))
+		self._file_view.setRootIndex(index)
+		self._file_view.hideColumn(2)
+		self._file_view.setColumnWidth(0, 200)
+		self._file_view.setColumnWidth(1, 75)
 
-	edit = QLineEdit()
-	edit.setText(path)
-	edit.setFocusPolicy(ClickFocus)
-	layout.addWidget(edit)
+class PathView(QLineEdit):
+	def __init__(self):
+		super().__init__()
+		self.setFocusPolicy(ClickFocus)
+		self.setAttribute(WA_MacShowFocusRect, 0)
 
-	model = FileSystemModel()
-	model.setRootPath(path)
-	model_sorted = SortDirectoriesBeforeFiles(container)
-	model_sorted.setSourceModel(model)
-	tree = QTreeView()
-	tree.setModel(model_sorted)
-	tree.setRootIndex(model_sorted.mapFromSource(model.index(path)))
-	tree.setItemsExpandable(False)
-	tree.setRootIsDecorated(False)
-	tree.setSelectionMode(tree.ExtendedSelection)
-	tree.setAllColumnsShowFocus(True)
-
-	# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
-	# styles the first column. Fix this:
-	origDrawRow = tree.drawRow
-	def drawRow(painter, option, index):
-		if index.row() == tree.currentIndex().row():
+class FileListView(QTreeView):
+	def __init__(self):
+		super().__init__()
+		self.setItemsExpandable(False)
+		self.setRootIsDecorated(False)
+		self.setSelectionMode(self.ExtendedSelection)
+		self.setAllColumnsShowFocus(True)
+		self.setAnimated(False)
+		self.setSortingEnabled(True)
+		self.sortByColumn(0, AscendingOrder)
+		self.setAttribute(WA_MacShowFocusRect, 0)
+	def drawRow(self, painter, option, index):
+		# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
+		# styles the first column. Fix this:
+		if index.row() == self.currentIndex().row():
 			option.state |= QStyle.State_HasFocus
-		origDrawRow(painter, option, index)
-	tree.drawRow = drawRow
-
-	tree.setAnimated(False)
-	tree.setSortingEnabled(True)
-	tree.sortByColumn(0, AscendingOrder)
-	# Don't display "kind" column:
-	tree.hideColumn(2)
-	# Hide blue glow on Mac when the tree has focus:
-	edit.setAttribute(WA_MacShowFocusRect, 0)
-	tree.setAttribute(WA_MacShowFocusRect, 0)
-	tree.setColumnWidth(0, 200)
-	tree.setColumnWidth(1, 75)
-	layout.setContentsMargins(0, 0, 0, 0)
-	layout.setSpacing(0)
-	layout.addWidget(tree)
-	container.setLayout(layout)
-	return container
+		super().drawRow(painter, option, index)
 
 class FileSystemModel(QFileSystemModel):
 	def data(self, index, role):
@@ -101,3 +101,11 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		raise ValueError('Unknown column: %r' % column)
 	def _always_ascending(self, value):
 		return (self.sortOrder() == AscendingOrder) != bool(value)
+
+class Layout(QVBoxLayout):
+	def __init__(self, path_view, file_view):
+		super().__init__()
+		self.addWidget(path_view)
+		self.addWidget(file_view)
+		self.setContentsMargins(0, 0, 0, 0)
+		self.setSpacing(0)
