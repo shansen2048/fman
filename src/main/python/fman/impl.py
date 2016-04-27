@@ -2,8 +2,9 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	TextAlignmentRole, AlignVCenter, ClickFocus, Key_Down, Key_Up, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
-	KeypadModifier, KeyboardModifier
+	KeypadModifier, KeyboardModifier, Key_Backspace
 from fman.util.system import is_osx
+from os.path import abspath, join, pardir
 from PyQt5.QtGui import QKeyEvent, QKeySequence
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
 	QLineEdit, QVBoxLayout, QStyle
@@ -25,21 +26,74 @@ def get_main_window(left_path, right_path):
 class DirectoryPane(QWidget):
 	def __init__(self):
 		super().__init__()
+		self._controller = DirectoryPaneController(self)
 		self._path_view = PathView()
-		self._file_view = FileListView()
 		self._model = FileSystemModel()
+		self._model.directoryLoaded.connect(lambda _: self._reset_cursor())
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
-		self._file_view.setModel(self._model_sorted)
+		self._file_view = FileListView(self._model_sorted, self._controller)
 		self.setLayout(Layout(self._path_view, self._file_view))
 	def set_path(self, path):
 		self._model.setRootPath(path)
-		index = self._model_sorted.mapFromSource(self._model.index(path))
 		self._path_view.setText(path)
-		self._file_view.setRootIndex(index)
+		self._file_view.setRootIndex(self._root_index)
 		self._file_view.hideColumn(2)
 		self._file_view.setColumnWidth(0, 200)
 		self._file_view.setColumnWidth(1, 75)
+	def get_path(self):
+		return self._model.rootPath()
+	def _reset_cursor(self):
+		self._file_view.setCurrentIndex(self._root_index.child(0, 0))
+	@property
+	def _root_index(self):
+		index = self._model.index(self._model.rootPath())
+		return self._model_sorted.mapFromSource(index)
+
+class DirectoryPaneController:
+	def __init__(self, directory_pane):
+		self.directory_pane = directory_pane
+	def key_pressed_in_file_view(self, view, event):
+		shift_pressed = bool(event.modifiers() & ShiftModifier)
+		if shift_pressed:
+			if view.selectionModel().isSelected(view.currentIndex()):
+				selection_flag = QISM.Deselect | QISM.Current
+			else:
+				selection_flag = QISM.Select | QISM.Current
+		else:
+			selection_flag = QISM.NoUpdate
+		if event.key() == Key_Down:
+			if shift_pressed:
+				view.toggle_current()
+			view.move_cursor_down()
+		elif event.key() == Key_Up:
+			if shift_pressed:
+				view.toggle_current()
+			view.move_cursor_up()
+		elif event.key() == Key_Home:
+			view.move_cursor_home(selection_flag)
+		elif event.key() == Key_End:
+			view.move_cursor_end(selection_flag)
+		elif event.key() == Key_PageUp:
+			view.move_cursor_page_up(selection_flag)
+			view.move_cursor_up()
+		elif event.key() == Key_PageDown:
+			view.move_cursor_page_down(selection_flag)
+			view.move_cursor_down()
+		elif event.key() == Key_Insert:
+			view.toggle_current()
+			view.move_cursor_down()
+		elif event.key() == Key_Space:
+			view.toggle_current()
+			if is_osx():
+				view.move_cursor_down()
+		elif event == QKeySequence.SelectAll:
+			view.selectAll()
+		elif event.key() == Key_Backspace:
+			parent_dir = abspath(join(self.directory_pane.get_path(), pardir))
+			self.directory_pane.set_path(parent_dir)
+		else:
+			event.ignore()
 
 class PathView(QLineEdit):
 	def __init__(self):
@@ -88,7 +142,7 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 		evt = QKeyEvent(QEvent.KeyPress, key, modifiers, '', False, 1)
 		super().keyPressEvent(evt)
 	def selectionCommand(self, index, event):
-		if event.type() == QEvent.KeyPress:
+		if event and event.type() == QEvent.KeyPress:
 			result = self._modifier_to_selection_flag(event.modifiers())
 		else:
 			result = QISM.NoUpdate
@@ -107,8 +161,9 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 		return KeyboardModifier(result)
 
 class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
-	def __init__(self):
+	def __init__(self, model, controller):
 		super().__init__()
+		self.setModel(model)
 		self.setItemsExpandable(False)
 		self.setRootIsDecorated(False)
 		self.setAllColumnsShowFocus(True)
@@ -116,55 +171,15 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setSortingEnabled(True)
 		self.sortByColumn(0, AscendingOrder)
 		self.setAttribute(WA_MacShowFocusRect, 0)
-		self.controller = FileListViewController()
+		self._controller = controller
 	def keyPressEvent(self, event):
-		self.controller.key_pressed(self, event)
+		self._controller.key_pressed_in_file_view(self, event)
 	def drawRow(self, painter, option, index):
 		# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
 		# styles the first column. Fix this:
-		if index.row() == self.currentIndex().row():
+		if self.hasFocus() and index.row() == self.currentIndex().row():
 			option.state |= QStyle.State_HasFocus
 		super().drawRow(painter, option, index)
-
-class FileListViewController:
-	def key_pressed(self, view, event):
-		shift_pressed = bool(event.modifiers() & ShiftModifier)
-		if shift_pressed:
-			if view.selectionModel().isSelected(view.currentIndex()):
-				selection_flag = QISM.Deselect | QISM.Current
-			else:
-				selection_flag = QISM.Select | QISM.Current
-		else:
-			selection_flag = QISM.NoUpdate
-		if event.key() == Key_Down:
-			if shift_pressed:
-				view.toggle_current()
-			view.move_cursor_down()
-		elif event.key() == Key_Up:
-			if shift_pressed:
-				view.toggle_current()
-			view.move_cursor_up()
-		elif event.key() == Key_Home:
-			view.move_cursor_home(selection_flag)
-		elif event.key() == Key_End:
-			view.move_cursor_end(selection_flag)
-		elif event.key() == Key_PageUp:
-			view.move_cursor_page_up(selection_flag)
-			view.move_cursor_up()
-		elif event.key() == Key_PageDown:
-			view.move_cursor_page_down(selection_flag)
-			view.move_cursor_down()
-		elif event.key() == Key_Insert:
-			view.toggle_current()
-			view.move_cursor_down()
-		elif event.key() == Key_Space:
-			view.toggle_current()
-			if is_osx():
-				view.move_cursor_down()
-		elif event == QKeySequence.SelectAll:
-			view.selectAll()
-		else:
-			event.ignore()
 
 class FileSystemModel(QFileSystemModel):
 	def data(self, index, role):

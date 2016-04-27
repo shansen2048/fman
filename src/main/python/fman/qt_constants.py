@@ -20,4 +20,5 @@ Key_PageDown = Qt.Key_PageDown
 Key_Space = Qt.Key_Space
 Key_Insert = Qt.Key_Insert
 Key_Help = Qt.Key_Help
+Key_Backspace = Qt.Key_Backspace
 KeyboardModifier = Qt.KeyboardModifier
