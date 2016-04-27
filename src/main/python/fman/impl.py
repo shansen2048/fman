@@ -1,8 +1,14 @@
 from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
-	TextAlignmentRole, AlignVCenter, ClickFocus
+	TextAlignmentRole, AlignVCenter, ClickFocus, Key_Down, Key_Up, \
+	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
+	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
+	KeypadModifier, KeyboardModifier
+from fman.util.system import is_osx
+from PyQt5.QtGui import QKeyEvent, QKeySequence
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
 	QLineEdit, QVBoxLayout, QStyle
-from PyQt5.QtCore import QSortFilterProxyModel
+from PyQt5.QtCore import QSortFilterProxyModel, QEvent, \
+	QItemSelectionModel as QISM
 
 def get_main_window(left_path, right_path):
 	result = QSplitter()
@@ -41,23 +47,124 @@ class PathView(QLineEdit):
 		self.setFocusPolicy(ClickFocus)
 		self.setAttribute(WA_MacShowFocusRect, 0)
 
-class FileListView(QTreeView):
+class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
+	"""
+	QTreeView doesn't offer a clean, separated API for manipulating the cursor
+	position / selection. This class fixes this. Its implementation works by
+	sending fake key events to Qt that have the desired effects of moving the
+	cursor / updating the selection. The various `move_cursor_*` methods take
+	a `selection_flags` parameter which indicates how the selection should be
+	updated as a result of the cursor movement. To get this to work, our
+	implementation encodes each selection flag as a modifier key (eg. Shift)
+	that is set on the fake key event. Qt's internals then call
+	selectionCommand() which decides how the selection should be updated. We
+	override this method to decode the modifier keys and make Qt perform the
+	desired selection action.
+	"""
+	_MODIFIERS_TO_SELECTION_FLAGS = [
+		(NoModifier, QISM.NoUpdate), (ShiftModifier, QISM.Clear),
+		(ControlModifier, QISM.Select), (AltModifier, QISM.Deselect),
+		(MetaModifier, QISM.Toggle), (KeypadModifier, QISM.Current)
+	]
+	def __init__(self):
+		super().__init__()
+		self.setSelectionMode(self.ContiguousSelection)
+	def move_cursor_down(self):
+		self._move_cursor(Key_Down)
+	def move_cursor_up(self):
+		self._move_cursor(Key_Up)
+	def move_cursor_page_up(self, selection_flags):
+		self._move_cursor(Key_PageUp, selection_flags)
+	def move_cursor_page_down(self, selection_flags):
+		self._move_cursor(Key_PageDown, selection_flags)
+	def move_cursor_home(self, selection_flags):
+		self._move_cursor(Key_Home, selection_flags)
+	def move_cursor_end(self, selection_flags):
+		self._move_cursor(Key_End, selection_flags)
+	def toggle_current(self):
+		self.selectionModel().select(self.currentIndex(), QISM.Toggle)
+	def _move_cursor(self, key, selectionFlags=QISM.NoUpdate):
+		modifiers = self._selection_flag_to_modifier(selectionFlags)
+		evt = QKeyEvent(QEvent.KeyPress, key, modifiers, '', False, 1)
+		super().keyPressEvent(evt)
+	def selectionCommand(self, index, event):
+		if event.type() == QEvent.KeyPress:
+			result = self._modifier_to_selection_flag(event.modifiers())
+		else:
+			result = QISM.NoUpdate
+		return QISM.SelectionFlag(result | QISM.Rows)
+	def _modifier_to_selection_flag(self, modifiers):
+		result = 0
+		for modifier, selection_flag in self._MODIFIERS_TO_SELECTION_FLAGS:
+			if modifiers & modifier:
+				result |= selection_flag
+		return QISM.SelectionFlag(result)
+	def _selection_flag_to_modifier(self, selection_flags):
+		result = 0
+		for modifier, selection_flag in self._MODIFIERS_TO_SELECTION_FLAGS:
+			if selection_flags & selection_flag:
+				result |= modifier
+		return KeyboardModifier(result)
+
+class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 	def __init__(self):
 		super().__init__()
 		self.setItemsExpandable(False)
 		self.setRootIsDecorated(False)
-		self.setSelectionMode(self.ExtendedSelection)
 		self.setAllColumnsShowFocus(True)
 		self.setAnimated(False)
 		self.setSortingEnabled(True)
 		self.sortByColumn(0, AscendingOrder)
 		self.setAttribute(WA_MacShowFocusRect, 0)
+		self.controller = FileListViewController()
+	def keyPressEvent(self, event):
+		self.controller.key_pressed(self, event)
 	def drawRow(self, painter, option, index):
 		# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
 		# styles the first column. Fix this:
 		if index.row() == self.currentIndex().row():
 			option.state |= QStyle.State_HasFocus
 		super().drawRow(painter, option, index)
+
+class FileListViewController:
+	def key_pressed(self, view, event):
+		shift_pressed = bool(event.modifiers() & ShiftModifier)
+		if shift_pressed:
+			if view.selectionModel().isSelected(view.currentIndex()):
+				selection_flag = QISM.Deselect | QISM.Current
+			else:
+				selection_flag = QISM.Select | QISM.Current
+		else:
+			selection_flag = QISM.NoUpdate
+		if event.key() == Key_Down:
+			if shift_pressed:
+				view.toggle_current()
+			view.move_cursor_down()
+		elif event.key() == Key_Up:
+			if shift_pressed:
+				view.toggle_current()
+			view.move_cursor_up()
+		elif event.key() == Key_Home:
+			view.move_cursor_home(selection_flag)
+		elif event.key() == Key_End:
+			view.move_cursor_end(selection_flag)
+		elif event.key() == Key_PageUp:
+			view.move_cursor_page_up(selection_flag)
+			view.move_cursor_up()
+		elif event.key() == Key_PageDown:
+			view.move_cursor_page_down(selection_flag)
+			view.move_cursor_down()
+		elif event.key() == Key_Insert:
+			view.toggle_current()
+			view.move_cursor_down()
+		elif event.key() == Key_Space:
+			view.toggle_current()
+			if is_osx():
+				view.move_cursor_down()
+		elif event == QKeySequence.SelectAll:
+			view.selectAll()
+		else:
+			event.ignore()
 
 class FileSystemModel(QFileSystemModel):
 	def data(self, index, role):
