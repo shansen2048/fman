@@ -54,31 +54,24 @@ class DirectoryPaneController:
 	def __init__(self, directory_pane):
 		self.directory_pane = directory_pane
 	def key_pressed_in_file_view(self, view, event):
-		shift_pressed = bool(event.modifiers() & ShiftModifier)
-		if shift_pressed:
-			if view.selectionModel().isSelected(view.currentIndex()):
-				selection_flag = QISM.Deselect | QISM.Current
-			else:
-				selection_flag = QISM.Select | QISM.Current
-		else:
-			selection_flag = QISM.NoUpdate
+		shift = bool(event.modifiers() & ShiftModifier)
 		if event.key() == Key_Down:
-			if shift_pressed:
+			if shift:
 				view.toggle_current()
 			view.move_cursor_down()
 		elif event.key() == Key_Up:
-			if shift_pressed:
+			if shift:
 				view.toggle_current()
 			view.move_cursor_up()
 		elif event.key() == Key_Home:
-			view.move_cursor_home(selection_flag)
+			view.move_cursor_home(self._get_selection_flag(view, shift))
 		elif event.key() == Key_End:
-			view.move_cursor_end(selection_flag)
+			view.move_cursor_end(self._get_selection_flag(view, shift))
 		elif event.key() == Key_PageUp:
-			view.move_cursor_page_up(selection_flag)
+			view.move_cursor_page_up(self._get_selection_flag(view, shift))
 			view.move_cursor_up()
 		elif event.key() == Key_PageDown:
-			view.move_cursor_page_down(selection_flag)
+			view.move_cursor_page_down(self._get_selection_flag(view, shift))
 			view.move_cursor_down()
 		elif event.key() == Key_Insert:
 			view.toggle_current()
@@ -94,6 +87,14 @@ class DirectoryPaneController:
 			self.directory_pane.set_path(parent_dir)
 		else:
 			event.ignore()
+	def _get_selection_flag(self, view, shift_pressed):
+		if shift_pressed:
+			if view.selectionModel().isSelected(view.currentIndex()):
+				return QISM.Deselect | QISM.Current
+			else:
+				return QISM.Select | QISM.Current
+		else:
+			return QISM.NoUpdate
 
 class PathView(QLineEdit):
 	def __init__(self):
