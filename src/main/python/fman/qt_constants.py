@@ -21,4 +21,6 @@ Key_Space = Qt.Key_Space
 Key_Insert = Qt.Key_Insert
 Key_Help = Qt.Key_Help
 Key_Backspace = Qt.Key_Backspace
+Key_Enter = Qt.Key_Enter
+Key_Return = Qt.Key_Return
 KeyboardModifier = Qt.KeyboardModifier

@@ -2,7 +2,7 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	TextAlignmentRole, AlignVCenter, ClickFocus, Key_Down, Key_Up, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
-	KeypadModifier, KeyboardModifier, Key_Backspace
+	KeypadModifier, KeyboardModifier, Key_Backspace, Key_Enter, Key_Return
 from fman.util.system import is_osx
 from os.path import abspath, join, pardir
 from PyQt5.QtGui import QKeyEvent, QKeySequence
@@ -33,6 +33,7 @@ class DirectoryPane(QWidget):
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
 		self._file_view = FileListView(self._model_sorted, self._controller)
+		self._file_view.activated.connect(self._activated)
 		self.setLayout(Layout(self._path_view, self._file_view))
 	def set_path(self, path):
 		self._model.setRootPath(path)
@@ -49,6 +50,9 @@ class DirectoryPane(QWidget):
 	def _root_index(self):
 		index = self._model.index(self._model.rootPath())
 		return self._model_sorted.mapFromSource(index)
+	def _activated(self, index):
+		model_index = self._model_sorted.mapToSource(index)
+		self._controller.activated(model_index)
 
 class DirectoryPaneController:
 	def __init__(self, directory_pane):
@@ -80,13 +84,19 @@ class DirectoryPaneController:
 			view.toggle_current()
 			if is_osx():
 				view.move_cursor_down()
-		elif event == QKeySequence.SelectAll:
-			view.selectAll()
 		elif event.key() == Key_Backspace:
 			parent_dir = abspath(join(self.directory_pane.get_path(), pardir))
 			self.directory_pane.set_path(parent_dir)
+		elif event.key() in (Key_Enter, Key_Return):
+			view.activated.emit(view.currentIndex())
+		elif event == QKeySequence.SelectAll:
+			view.selectAll()
 		else:
 			event.ignore()
+	def activated(self, index):
+		if self.directory_pane._model.isDir(index):
+			file_path = self.directory_pane._model.filePath(index)
+			self.directory_pane.set_path(file_path)
 	def _get_selection_flag(self, view, shift_pressed):
 		if shift_pressed:
 			if view.selectionModel().isSelected(view.currentIndex()):
