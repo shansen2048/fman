@@ -182,6 +182,7 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setSortingEnabled(True)
 		self.sortByColumn(0, AscendingOrder)
 		self.setAttribute(WA_MacShowFocusRect, 0)
+		self.setUniformRowHeights(True)
 		self._controller = controller
 	def keyPressEvent(self, event):
 		self._controller.key_pressed_in_file_view(self, event)
