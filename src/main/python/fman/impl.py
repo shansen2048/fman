@@ -3,6 +3,7 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
 	KeypadModifier, KeyboardModifier, Key_Backspace, Key_Enter, Key_Return
+from fman.util.qt import connect_once
 from fman.util.system import is_osx
 from os.path import abspath, join, pardir
 from PyQt5.QtGui import QKeyEvent, QKeySequence
@@ -29,13 +30,15 @@ class DirectoryPane(QWidget):
 		self._controller = DirectoryPaneController(self)
 		self._path_view = PathView()
 		self._model = FileSystemModel()
-		self._model.directoryLoaded.connect(lambda _: self._reset_cursor())
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
 		self._file_view = FileListView(self._model_sorted, self._controller)
 		self._file_view.activated.connect(self._activated)
 		self.setLayout(Layout(self._path_view, self._file_view))
-	def set_path(self, path):
+	def set_path(self, path, callback=None):
+		if callback is None:
+			callback = self.reset_cursor
+		connect_once(self._model.directoryLoaded, lambda _: callback())
 		self._model.setRootPath(path)
 		self._path_view.setText(path)
 		self._file_view.setRootIndex(self._root_index)
@@ -44,12 +47,15 @@ class DirectoryPane(QWidget):
 		self._file_view.setColumnWidth(1, 75)
 	def get_path(self):
 		return self._model.rootPath()
-	def _reset_cursor(self):
+	def place_cursor_at(self, path):
+		self._file_view.setCurrentIndex(self._path_to_index(path))
+	def reset_cursor(self):
 		self._file_view.setCurrentIndex(self._root_index.child(0, 0))
 	@property
 	def _root_index(self):
-		index = self._model.index(self._model.rootPath())
-		return self._model_sorted.mapFromSource(index)
+		return self._path_to_index(self._model.rootPath())
+	def _path_to_index(self, path):
+		return self._model_sorted.mapFromSource(self._model.index(path))
 	def _activated(self, index):
 		model_index = self._model_sorted.mapToSource(index)
 		self._controller.activated(self._model, self._file_view, model_index)
@@ -85,8 +91,10 @@ class DirectoryPaneController:
 			if is_osx():
 				view.move_cursor_down()
 		elif event.key() == Key_Backspace:
-			parent_dir = abspath(join(self.directory_pane.get_path(), pardir))
-			self.directory_pane.set_path(parent_dir)
+			current_dir = self.directory_pane.get_path()
+			parent_dir = abspath(join(current_dir, pardir))
+			callback = lambda: self.directory_pane.place_cursor_at(current_dir)
+			self.directory_pane.set_path(parent_dir, callback)
 		elif event.key() in (Key_Enter, Key_Return):
 			view.activated.emit(view.currentIndex())
 		elif event == QKeySequence.SelectAll:
