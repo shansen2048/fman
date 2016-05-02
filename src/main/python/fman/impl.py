@@ -2,15 +2,17 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	TextAlignmentRole, AlignVCenter, ClickFocus, Key_Down, Key_Up, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
-	KeypadModifier, KeyboardModifier, Key_Backspace, Key_Enter, Key_Return
+	KeypadModifier, KeyboardModifier, Key_Backspace, Key_Enter, Key_Return, \
+	Key_F2, ItemIsEnabled, ItemIsEditable, Key_F6, EditRole
 from fman.util.qt import connect_once
 from fman.util.system import is_osx
-from os.path import abspath, join, pardir
+from os import rename
+from os.path import abspath, join, pardir, dirname
 from PyQt5.QtGui import QKeyEvent, QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
-	QLineEdit, QVBoxLayout, QStyle
-from PyQt5.QtCore import QSortFilterProxyModel, QEvent, QUrl, \
-	QItemSelectionModel as QISM
+	QLineEdit, QVBoxLayout, QStyle, QStyledItemDelegate
+from PyQt5.QtCore import QSortFilterProxyModel, QEvent, QUrl, pyqtSignal, \
+	QItemSelectionModel as QISM, QModelIndex
 
 def get_main_window(left_path, right_path):
 	result = QSplitter()
@@ -30,6 +32,7 @@ class DirectoryPane(QWidget):
 		self._controller = DirectoryPaneController(self)
 		self._path_view = PathView()
 		self._model = FileSystemModel()
+		self._model.file_renamed.connect(self._controller.file_renamed)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
 		self._file_view = FileListView(self._model_sorted, self._controller)
@@ -38,6 +41,7 @@ class DirectoryPane(QWidget):
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = self.reset_cursor
+		self._file_view.reset()
 		connect_once(self._model.directoryLoaded, lambda _: callback())
 		self._model.setRootPath(path)
 		self._path_view.setText(path)
@@ -97,6 +101,8 @@ class DirectoryPaneController:
 			self.directory_pane.set_path(parent_dir, callback)
 		elif event.key() in (Key_Enter, Key_Return):
 			view.activated.emit(view.currentIndex())
+		elif shift and event.key() == Key_F6:
+			view.edit(view.currentIndex())
 		elif event == QKeySequence.SelectAll:
 			view.selectAll()
 		else:
@@ -107,7 +113,14 @@ class DirectoryPaneController:
 			view.clearSelection()
 			self.directory_pane.set_path(file_path)
 		else:
-			QDesktopServices.openUrl(QUrl('file:///' + file_path))
+			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+	def file_renamed(self, model, index, new_name):
+		if not new_name:
+			return
+		src = model.filePath(index)
+		dest = join(dirname(src), new_name)
+		rename(src, dest)
+		self.directory_pane.place_cursor_at(dest)
 	def _get_selection_flag(self, view, shift_pressed):
 		if shift_pressed:
 			if view.selectionModel().isSelected(view.currentIndex()):
@@ -194,6 +207,7 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.sortByColumn(0, AscendingOrder)
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.setUniformRowHeights(True)
+		self.setItemDelegate(FileListItemDelegate())
 		self._controller = controller
 	def keyPressEvent(self, event):
 		self._controller.key_pressed_in_file_view(self, event)
@@ -204,7 +218,19 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 			option.state |= QStyle.State_HasFocus
 		super().drawRow(painter, option, index)
 
+class FileListItemDelegate(QStyledItemDelegate):
+	def eventFilter(self, editor, event):
+		if event.type() == QEvent.KeyPress and \
+				event.key() in (Key_Enter, Key_Return):
+			self.commitData.emit(editor)
+			self.closeEditor.emit(editor)
+			return True
+		return super().eventFilter(editor, event)
+
 class FileSystemModel(QFileSystemModel):
+
+	file_renamed = pyqtSignal(QFileSystemModel, QModelIndex, str)
+
 	def data(self, index, role):
 		value = super(FileSystemModel, self).data(index, role)
 		if role == TextAlignmentRole and value is not None:
@@ -218,6 +244,13 @@ class FileSystemModel(QFileSystemModel):
 		if result == 'Date Modified':
 			return 'Modified'
 		return result
+	def flags(self, index):
+		return ItemIsEnabled | ItemIsEditable
+	def setData(self, index, value, role):
+		if role == EditRole:
+			self.file_renamed.emit(self, index, value)
+			return True
+		return super().setData(index, value, role)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def lessThan(self, left, right):
