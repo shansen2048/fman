@@ -6,10 +6,10 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 from fman.util.qt import connect_once
 from fman.util.system import is_osx
 from os.path import abspath, join, pardir
-from PyQt5.QtGui import QKeyEvent, QKeySequence
+from PyQt5.QtGui import QKeyEvent, QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
 	QLineEdit, QVBoxLayout, QStyle
-from PyQt5.QtCore import QSortFilterProxyModel, QEvent, \
+from PyQt5.QtCore import QSortFilterProxyModel, QEvent, QUrl, \
 	QItemSelectionModel as QISM
 
 def get_main_window(left_path, right_path):
@@ -102,10 +102,12 @@ class DirectoryPaneController:
 		else:
 			event.ignore()
 	def activated(self, model, view, index):
+		file_path = model.filePath(index)
 		if model.isDir(index):
-			file_path = model.filePath(index)
 			view.clearSelection()
 			self.directory_pane.set_path(file_path)
+		else:
+			QDesktopServices.openUrl(QUrl('file:///' + file_path))
 	def _get_selection_flag(self, view, shift_pressed):
 		if shift_pressed:
 			if view.selectionModel().isSelected(view.currentIndex()):
