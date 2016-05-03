@@ -1,4 +1,4 @@
-QTreeView {
+QTreeView, QInputDialog {
 	background-color: #272822;
 }
 
@@ -40,9 +40,20 @@ QTreeView::item:selected {
 	color: #f92672;
 }
 
+QLabel {
+	color: #8f908a;
+}
+
 QLineEdit {
-	color: #9a9a9a;
+	color: white;
 	background-color: #303030;
-	padding: 2px;
 	border: 1px solid #2c2c2c;
+}
+
+QLineEdit:read-only {
+	color: #9a9a9a;
+}
+
+PathView {
+	padding: 2px;
 }

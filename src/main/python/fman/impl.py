@@ -3,14 +3,14 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
 	KeypadModifier, KeyboardModifier, Key_Backspace, Key_Enter, Key_Return, \
-	Key_F2, ItemIsEnabled, ItemIsEditable, Key_F6, EditRole
+	Key_F2, ItemIsEnabled, ItemIsEditable, Key_F6, EditRole, Key_F7
 from fman.util.qt import connect_once
 from fman.util.system import is_osx
 from os import rename
 from os.path import abspath, join, pardir, dirname
 from PyQt5.QtGui import QKeyEvent, QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
-	QLineEdit, QVBoxLayout, QStyle, QStyledItemDelegate
+	QLineEdit, QVBoxLayout, QStyle, QStyledItemDelegate, QInputDialog
 from PyQt5.QtCore import QSortFilterProxyModel, QEvent, QUrl, pyqtSignal, \
 	QItemSelectionModel as QISM, QModelIndex
 
@@ -103,6 +103,15 @@ class DirectoryPaneController:
 			view.activated.emit(view.currentIndex())
 		elif shift and event.key() == Key_F6:
 			view.edit(view.currentIndex())
+		elif event.key() == Key_F7:
+			name, ok = QInputDialog.getText(
+				self.directory_pane, "fman", "New folder (directory)",
+				QLineEdit.Normal, ""
+			)
+			if name and ok:
+				model = view.model()
+				root_index = model.mapToSource(self.directory_pane._root_index)
+				model.sourceModel().mkdir(root_index, name)
 		elif event == QKeySequence.SelectAll:
 			view.selectAll()
 		else:
@@ -135,6 +144,7 @@ class PathView(QLineEdit):
 		super().__init__()
 		self.setFocusPolicy(ClickFocus)
 		self.setAttribute(WA_MacShowFocusRect, 0)
+		self.setReadOnly(True)
 
 class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 	"""

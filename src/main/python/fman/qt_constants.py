@@ -26,6 +26,7 @@ Key_Enter = Qt.Key_Enter
 Key_Return = Qt.Key_Return
 Key_F2 = Qt.Key_F2
 Key_F6 = Qt.Key_F6
+Key_F7 = Qt.Key_F7
 ItemIsEnabled = Qt.ItemIsEnabled
 ItemIsEditable = Qt.ItemIsEditable
 EditRole = Qt.EditRole
