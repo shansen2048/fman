@@ -47,31 +47,6 @@ static const int VERSION_BUILD = 6;
 
 static BOOL arg_verbose = NO;
 
-
-
-
-static void VerbosePrintf(NSString *aStr, ...)
-{
-    if (!arg_verbose)
-        return;
-    va_list argList;
-    va_start(argList, aStr);
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-nonliteral"
-    NSString *str = [
-        [[NSString alloc]
-            initWithFormat:aStr
-            locale:[[NSUserDefaults standardUserDefaults] dictionaryRepresentation]
-            arguments:argList
-            ] autorelease
-        ];
-#pragma clang diagnostic pop
-    va_end(argList);
-
-    [str writeToFile:@"/dev/stdout" atomically:NO encoding:outputStrEncoding error:NULL];
-}
-
-
 static char promptForChar(const char *acceptableChars)
 {
     const char *acceptableCharsLowercase = @(acceptableChars).lowercaseString.UTF8String;
@@ -386,15 +361,6 @@ static NSString *osStatusToErrorString(OSStatus status)
 }
 
 
-static void verbosePrintPaths(NSArray *arr)
-{
-    for (NSString *path in arr)
-    {
-        VerbosePrintf(@"%@\n", path);
-    }
-}
-
-
 static NSString* versionNumberStr()
 {
     return [NSString stringWithFormat:@"%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD];
@@ -581,8 +547,6 @@ int main(int argc, char *argv[])
                 osStatusToErrorString(status)
                 );
         }
-        else
-            VerbosePrintf(@"%@\n", path);
     }
 
 
@@ -591,8 +555,6 @@ int main(int argc, char *argv[])
         OSStatus status = askFinderToMoveFilesToTrash(nonRestrictedPathsForFinder, NO);
         if (status != noErr)
             exitValue = 1;
-        else
-            verbosePrintPaths(nonRestrictedPathsForFinder);
 
         if (status == kHGNotAllFilesTrashedError)
             PrintfErr(@"trash: some files were not moved to trash\n");
@@ -605,8 +567,6 @@ int main(int argc, char *argv[])
         OSStatus status = askFinderToMoveFilesToTrash(restrictedPathsForFinder, YES);
         if (status != noErr)
             exitValue = 1;
-        else
-            verbosePrintPaths(restrictedPathsForFinder);
 
         if (status == kHGNotAllFilesTrashedError)
             PrintfErr(@"trash: some files were not moved to trash (authentication cancelled?)\n");
