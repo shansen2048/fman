@@ -6,11 +6,11 @@ all: trash
 
 docs: trash.1
 
-trash: $(SOURCE_FILES)
+trash.so: $(SOURCE_FILES)
 	@echo
 	@echo ---- Compiling:
 	@echo ======================================
-	$(CC) -O2 -Wall -Wextra -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -framework AppKit -framework ScriptingBridge -o $@ $(SOURCE_FILES)
+	$(CC) -bundle -O2 -Wall -Wextra -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch x86_64 -framework AppKit -framework ScriptingBridge -o $@ $(SOURCE_FILES)
 
 analyze:
 	@echo
