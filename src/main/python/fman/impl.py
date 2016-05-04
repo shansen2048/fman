@@ -3,7 +3,8 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
 	KeypadModifier, KeyboardModifier, Key_Backspace, Key_Enter, Key_Return, \
-	Key_F2, ItemIsEnabled, ItemIsEditable, Key_F6, EditRole, Key_F7
+	Key_F2, ItemIsEnabled, ItemIsEditable, Key_F6, EditRole, Key_F7, \
+	ItemIsSelectable
 from fman.util.qt import connect_once
 from fman.util.system import is_osx
 from os import rename
@@ -255,7 +256,7 @@ class FileSystemModel(QFileSystemModel):
 			return 'Modified'
 		return result
 	def flags(self, index):
-		return ItemIsEnabled | ItemIsEditable
+		return ItemIsEnabled | ItemIsEditable | ItemIsSelectable
 	def setData(self, index, value, role):
 		if role == EditRole:
 			self.file_renamed.emit(self, index, value)

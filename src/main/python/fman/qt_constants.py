@@ -29,4 +29,5 @@ Key_F6 = Qt.Key_F6
 Key_F7 = Qt.Key_F7
 ItemIsEnabled = Qt.ItemIsEnabled
 ItemIsEditable = Qt.ItemIsEditable
+ItemIsSelectable = Qt.ItemIsSelectable
 EditRole = Qt.EditRole
