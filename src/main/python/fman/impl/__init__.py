@@ -6,28 +6,33 @@ from PyQt5.QtWidgets import QSplitter, QWidget
 
 def get_main_window(left_path, right_path):
 	result = QSplitter()
-	left = DirectoryPane()
-	left.set_path(left_path)
-	right = DirectoryPane()
-	right.set_path(right_path)
-	result.addWidget(left)
-	result.addWidget(right)
+	controller = DirectoryPaneController()
+	controller.left_pane = DirectoryPane(controller)
+	controller.left_pane.set_path(left_path)
+	controller.right_pane = DirectoryPane(controller)
+	controller.right_pane.set_path(right_path)
+	result.addWidget(controller.left_pane)
+	result.addWidget(controller.right_pane)
 	result.setWindowTitle("fman")
 	result.resize(762, 300)
 	return result
 
 class DirectoryPane(QWidget):
-	def __init__(self):
+	def __init__(self, controller):
 		super().__init__()
-		self._controller = DirectoryPaneController(self)
-		self._path_view = PathView()
+		self._path_view = PathView(self)
 		self._model = FileSystemModel()
-		self._model.file_renamed.connect(self._controller.file_renamed)
+		file_renamed = lambda *args: controller.file_renamed(self, *args)
+		self._model.file_renamed.connect(file_renamed)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
-		self._file_view = FileListView(self._model_sorted, self._controller)
+		self._file_view = FileListView(self)
+		self._file_view.setModel(self._model_sorted)
+		self._file_view.keyPressEventFilter = \
+			controller.key_pressed_in_file_view
 		self._file_view.activated.connect(self._activated)
 		self.setLayout(Layout(self._path_view, self._file_view))
+		self._controller = controller
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = self.reset_cursor

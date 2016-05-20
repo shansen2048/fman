@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate
 
 class PathView(QLineEdit):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, parent=None):
+		super().__init__(parent)
 		self.setFocusPolicy(ClickFocus)
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.setReadOnly(True)
@@ -33,8 +33,8 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 		(ControlModifier, QISM.Select), (AltModifier, QISM.Deselect),
 		(MetaModifier, QISM.Toggle), (KeypadModifier, QISM.Current)
 	]
-	def __init__(self):
-		super().__init__()
+	def __init__(self, parent=None):
+		super().__init__(parent)
 		self.setSelectionMode(self.ContiguousSelection)
 	def move_cursor_down(self):
 		self._move_cursor(Key_Down)
@@ -74,9 +74,9 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 		return KeyboardModifier(result)
 
 class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
-	def __init__(self, model, controller):
-		super().__init__()
-		self.setModel(model)
+	def __init__(self, parent):
+		super().__init__(parent)
+		self.keyPressEventFilter = None
 		self.setItemsExpandable(False)
 		self.setRootIsDecorated(False)
 		self.setAllColumnsShowFocus(True)
@@ -86,9 +86,9 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.setUniformRowHeights(True)
 		self.setItemDelegate(FileListItemDelegate())
-		self._controller = controller
 	def keyPressEvent(self, event):
-		if not self._controller.key_pressed_in_file_view(self, event):
+		filter_ = self.keyPressEventFilter
+		if not filter_ or not filter_(self, event):
 			super().keyPressEvent(event)
 	def drawRow(self, painter, option, index):
 		# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
