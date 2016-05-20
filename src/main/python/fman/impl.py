@@ -1,4 +1,4 @@
-from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
+from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, \
 	TextAlignmentRole, AlignVCenter, ClickFocus, Key_Down, Key_Up, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
