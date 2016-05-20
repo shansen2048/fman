@@ -1,4 +1,4 @@
-QTreeView, QInputDialog {
+QTreeView, QInputDialog, QMessageBox {
 	background-color: #272822;
 }
 
@@ -42,6 +42,10 @@ QTreeView::item:selected {
 
 QLabel {
 	color: #8f908a;
+}
+
+QMessageBox QLabel {
+	font-weight: normal;
 }
 
 QLineEdit {

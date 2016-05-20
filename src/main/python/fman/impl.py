@@ -3,17 +3,19 @@ from fman.qt_constants import AscendingOrder, WA_MacShowFocusRect, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, Key_Space, Key_Insert, \
 	NoModifier, ShiftModifier, ControlModifier, AltModifier, MetaModifier, \
 	KeypadModifier, KeyboardModifier, Key_Backspace, Key_Enter, Key_Return, \
-	Key_F2, ItemIsEnabled, ItemIsEditable, Key_F6, EditRole, Key_F7, \
-	ItemIsSelectable
+	ItemIsEnabled, ItemIsEditable, Key_F6, EditRole, Key_F7, ItemIsSelectable, \
+	Key_F8, Key_Delete
 from fman.util.qt import connect_once
 from fman.util.system import is_osx
 from os import rename
 from os.path import abspath, join, pardir, dirname
 from PyQt5.QtGui import QKeyEvent, QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QFileSystemModel, QTreeView, QWidget, QSplitter, \
-	QLineEdit, QVBoxLayout, QStyle, QStyledItemDelegate, QInputDialog
+	QLineEdit, QVBoxLayout, QStyle, QStyledItemDelegate, QInputDialog, \
+	QMessageBox
 from PyQt5.QtCore import QSortFilterProxyModel, QEvent, QUrl, pyqtSignal, \
 	QItemSelectionModel as QISM, QModelIndex
+from osxtrash import move_to_trash
 
 def get_main_window(left_path, right_path):
 	result = QSplitter()
@@ -113,6 +115,27 @@ class DirectoryPaneController:
 				model = view.model()
 				root_index = model.mapToSource(self.directory_pane._root_index)
 				model.sourceModel().mkdir(root_index, name)
+		elif event.key() in (Key_F8, Key_Delete):
+			message_box = QMessageBox()
+			indexes = \
+				view.selectionModel().selectedIndexes() or [view.currentIndex()]
+			model = view.model()
+			to_delete = [
+				model.sourceModel().filePath(model.mapToSource(index))
+				for index in indexes
+			]
+			if len(indexes) > 1:
+				description = 'these %d items' % len(to_delete)
+			else:
+				description = to_delete[0]
+			message_box.setText(
+				"Do you really want to move %s to the recycle bin?" % description
+			)
+			message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+			message_box.setDefaultButton(QMessageBox.Yes)
+			choice = message_box.exec()
+			if choice & QMessageBox.Yes:
+				move_to_trash(*to_delete)
 		elif event == QKeySequence.SelectAll:
 			view.selectAll()
 		else:
