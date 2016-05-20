@@ -71,6 +71,7 @@ class DirectoryPaneController:
 	def __init__(self, directory_pane):
 		self.directory_pane = directory_pane
 	def key_pressed_in_file_view(self, view, event):
+		result = True
 		shift = bool(event.modifiers() & ShiftModifier)
 		if event.key() == Key_Down:
 			if shift:
@@ -140,6 +141,8 @@ class DirectoryPaneController:
 			view.selectAll()
 		else:
 			event.ignore()
+			result = False
+		return result
 	def activated(self, model, view, index):
 		file_path = model.filePath(index)
 		if model.isDir(index):
@@ -244,7 +247,8 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setItemDelegate(FileListItemDelegate())
 		self._controller = controller
 	def keyPressEvent(self, event):
-		self._controller.key_pressed_in_file_view(self, event)
+		if not self._controller.key_pressed_in_file_view(self, event):
+			super().keyPressEvent(event)
 	def drawRow(self, painter, option, index):
 		# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
 		# styles the first column. Fix this:
