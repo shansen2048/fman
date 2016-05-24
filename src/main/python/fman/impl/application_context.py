@@ -1,8 +1,7 @@
 from fman.impl import DirectoryPaneController, DirectoryPane
-from os.path import dirname, join, pardir, exists, expanduser
+from fman.impl.settings import Settings
+from os.path import dirname, join, pardir, expanduser
 from PyQt5.QtWidgets import QApplication, QSplitter
-
-import json
 
 class ApplicationContext:
 	def __init__(self, argv):
@@ -48,14 +47,9 @@ class ApplicationContext:
 	@property
 	def settings(self):
 		if self._settings is None:
-			default_settings_path = self.get_resource('default_settings.json')
-			with open(default_settings_path, 'r') as default_settings_file:
-				self._settings = json.load(default_settings_file)
-			custom_settings_path = \
-				expanduser(join('~', '.fman', 'settings.json'))
-			if exists(custom_settings_path):
-				with open(custom_settings_path, 'r') as custom_settings_file:
-					self._settings.update(json.load(custom_settings_file))
+			default_settings = self.get_resource('default_settings.json')
+			custom_settings = expanduser(join('~', '.fman', 'settings.json'))
+			self._settings = Settings(default_settings, custom_settings)
 		return self._settings
 	def get_resource(self, *rel_path):
 		resources_dir = \
