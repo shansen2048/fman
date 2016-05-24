@@ -1,1 +1,2 @@
 osxtrash==1.2
+https://github.com/pyinstaller/pyinstaller/zipball/6d103e81cfd2ae48b4bc5ca0cca39c11647dbed8

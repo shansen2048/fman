@@ -26,6 +26,9 @@ source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
 
+# git status
+alias status='git status'
+
 # git add
 alias add='git add'
 
@@ -34,3 +37,10 @@ alias commit='git commit'
 
 # git push
 alias push='git push'
+
+compile() {
+	mkdir -p target
+	(cd target ; pyinstaller ../src/main/python/fman/main.py ; cd ..)
+}
+
+alias clean='rm -rf target'

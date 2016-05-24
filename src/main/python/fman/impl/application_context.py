@@ -1,6 +1,6 @@
 from fman.impl import DirectoryPaneController, DirectoryPane
 from fman.impl.settings import Settings
-from os.path import dirname, join, pardir, expanduser
+from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtWidgets import QApplication, QSplitter
 
 class ApplicationContext:
@@ -52,6 +52,7 @@ class ApplicationContext:
 			self._settings = Settings(default_settings, custom_settings)
 		return self._settings
 	def get_resource(self, *rel_path):
-		resources_dir = \
+		resources_dir = normpath(
 			join(dirname(__file__), pardir, pardir, pardir, 'resources')
+		)
 		return join(resources_dir, *rel_path)
