@@ -4,7 +4,8 @@ import sys
 
 def main(argv):
 	appctxt = get_application_context(argv)
-	app = appctxt.qapp
+	# Must have a QApplication before everything else:
+	app = appctxt.app
 	window = appctxt.main_window
 	controller = appctxt.controller
 	appctxt.settings.apply(window, controller.left_pane, controller.right_pane)

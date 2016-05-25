@@ -15,19 +15,19 @@ def get_application_context(argv):
 class ApplicationContext:
 	def __init__(self, argv):
 		self.argv = argv
-		self._qapp = None
+		self._app = None
 		self._main_window = None
 		self._controller = None
 		self._settings = None
 		self._os = None
 	@property
-	def qapp(self):
-		if self._qapp is None:
-			self._qapp = QApplication(self.argv)
+	def app(self):
+		if self._app is None:
+			self._app = QApplication(self.argv)
 			with open(self.get_resource('style.qss'), 'r') as style_file:
 				stylesheet = style_file.read()
-			self._qapp.setStyleSheet(stylesheet)
-		return self._qapp
+			self._app.setStyleSheet(stylesheet)
+		return self._app
 	@property
 	def main_window(self):
 		if self._main_window is None:
@@ -42,7 +42,8 @@ class ApplicationContext:
 	@property
 	def controller(self):
 		if self._controller is None:
-			self._controller = DirectoryPaneController(self.os, self.settings)
+			self._controller = \
+				DirectoryPaneController(self.os, self.settings, self.app)
 			self._controller.left_pane = self._create_pane('left')
 			self._controller.right_pane = self._create_pane('right')
 		return self._controller

@@ -36,6 +36,7 @@ Key_F5 = Qt.Key_F5
 Key_F6 = Qt.Key_F6
 Key_F7 = Qt.Key_F7
 Key_F8 = Qt.Key_F8
+Key_F11 = Qt.Key_F11
 Key_Delete = Qt.Key_Delete
 ItemIsEnabled = Qt.ItemIsEnabled
 ItemIsEditable = Qt.ItemIsEditable
