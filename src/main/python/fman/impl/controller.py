@@ -18,7 +18,9 @@ class DirectoryPaneController:
 		self.app = app
 		self.left_pane = self.right_pane = None
 	def key_pressed_in_file_view(self, view, event):
-		get_pane = lambda: view.parentWidget()
+		source = lambda: view.parentWidget()
+		target = lambda: \
+			self.left_pane if source() is self.right_pane else self.right_pane
 		result = True
 		shift = bool(event.modifiers() & ShiftModifier)
 		if event.key() == Key_Down:
@@ -47,10 +49,10 @@ class DirectoryPaneController:
 			if is_osx():
 				view.move_cursor_down()
 		elif event.key() == Key_Backspace:
-			current_dir = get_pane().get_path()
+			current_dir = source().get_path()
 			parent_dir = abspath(join(current_dir, pardir))
-			callback = lambda: get_pane().place_cursor_at(current_dir)
-			get_pane().set_path(parent_dir, callback)
+			callback = lambda: source().place_cursor_at(current_dir)
+			source().set_path(parent_dir, callback)
 		elif event.key() in (Key_Enter, Key_Return):
 			view.activated.emit(view.currentIndex())
 		elif event.key() == Key_F4:
@@ -64,18 +66,18 @@ class DirectoryPaneController:
 				self.settings['editor'] = editor
 		elif event.key() == Key_F5:
 			to_copy = self._get_selected_files(view)
-			dest_dir = self._get_other_pane(get_pane()).get_path()
+			dest_dir = target().get_path()
 			Thread(target=CopyFiles(to_copy, dest_dir)).start()
 		elif shift and event.key() == Key_F6:
 			view.edit(view.currentIndex())
 		elif event.key() == Key_F7:
 			name, ok = QInputDialog.getText(
-				get_pane(), "fman", "New folder (directory)",
+				source(), "fman", "New folder (directory)",
 				QLineEdit.Normal, ""
 			)
 			if ok and name:
 				model = view.model()
-				pane = get_pane()
+				pane = source()
 				root_index = model.mapToSource(pane._root_index)
 				model.sourceModel().mkdir(root_index, name)
 				pane.place_cursor_at(join(pane.get_path(), name))
@@ -126,8 +128,6 @@ class DirectoryPaneController:
 			model.sourceModel().filePath(model.mapToSource(index))
 			for index in indexes
 		]
-	def _get_other_pane(self, pane):
-		return self.right_pane if pane is self.left_pane else self.left_pane
 	def _get_selection_flag(self, view, shift_pressed):
 		if shift_pressed:
 			if view.selectionModel().isSelected(view.currentIndex()):
