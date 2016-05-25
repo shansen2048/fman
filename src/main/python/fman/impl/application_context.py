@@ -3,6 +3,8 @@ from fman.impl.settings import Settings
 from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtWidgets import QApplication, QSplitter
 
+import sys
+
 class ApplicationContext:
 	def __init__(self, argv):
 		self.argv = argv
@@ -52,7 +54,9 @@ class ApplicationContext:
 			self._settings = Settings(default_settings, custom_settings)
 		return self._settings
 	def get_resource(self, *rel_path):
-		resources_dir = normpath(
-			join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		)
-		return join(resources_dir, *rel_path)
+		if getattr(sys, 'frozen', False):
+			resources_dir = dirname(sys.executable)
+		else:
+			resources_dir = \
+				join(dirname(__file__), pardir, pardir, pardir, 'resources')
+		return normpath(join(resources_dir, *rel_path))

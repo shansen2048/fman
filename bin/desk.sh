@@ -39,8 +39,7 @@ alias commit='git commit'
 alias push='git push'
 
 compile() {
-	mkdir -p target
-	(cd target ; pyinstaller ../src/main/python/fman/main.py ; cd ..)
+	pyinstaller -y --distpath target/dist --workpath target/build src/main/fman.spec
 }
 
 alias clean='rm -rf target'
