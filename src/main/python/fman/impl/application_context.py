@@ -1,4 +1,6 @@
 from fman.impl import DirectoryPaneController, DirectoryPane
+from fman.impl.os_ import OSX
+from fman.util import system
 from fman.impl.settings import Settings
 from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtWidgets import QApplication, QSplitter
@@ -17,6 +19,7 @@ class ApplicationContext:
 		self._main_window = None
 		self._controller = None
 		self._settings = None
+		self._os = None
 	@property
 	def qapp(self):
 		if self._qapp is None:
@@ -39,7 +42,7 @@ class ApplicationContext:
 	@property
 	def controller(self):
 		if self._controller is None:
-			self._controller = DirectoryPaneController()
+			self._controller = DirectoryPaneController(self.os, self.settings)
 			self._controller.left_pane = self._create_pane('left')
 			self._controller.right_pane = self._create_pane('right')
 		return self._controller
@@ -58,6 +61,14 @@ class ApplicationContext:
 			custom_settings = expanduser(join('~', '.fman', 'settings.json'))
 			self._settings = Settings(default_settings, custom_settings)
 		return self._settings
+	@property
+	def os(self):
+		if self._os is None:
+			if system.is_osx():
+				self._os = OSX()
+			else:
+				raise NotImplementedError('This OS is not yet supported.')
+		return self._os
 	def get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
 		return normpath(join(res_dir, *rel_path))

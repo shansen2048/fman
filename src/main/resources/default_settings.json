@@ -8,5 +8,6 @@
 	"right": {
 		"location": "~",
 		"col_widths": [200, 75]
-	}
+	},
+	"editor": ""
 }

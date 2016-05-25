@@ -1,18 +1,19 @@
 from fman.impl.fileoperations import CopyFiles
 from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_PageUp, Key_Space, Key_Insert, ShiftModifier, Key_Backspace, \
-	Key_Enter, Key_Return, Key_F6, Key_F7, Key_F8, Key_Delete, Key_F5
+	Key_Enter, Key_Return, Key_F6, Key_F7, Key_F8, Key_Delete, Key_F5, Key_F4
 from fman.util.system import is_osx
 from os import rename
 from os.path import abspath, join, pardir, dirname
-from osxtrash import move_to_trash
-from PyQt5.QtCore import QUrl, QItemSelectionModel as QISM
-from PyQt5.QtGui import QKeySequence, QDesktopServices
+from PyQt5.QtCore import QItemSelectionModel as QISM
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 from threading import Thread
 
 class DirectoryPaneController:
-	def __init__(self):
+	def __init__(self, os_, settings):
+		self.os = os_
+		self.settings = settings
 		self.left_pane = self.right_pane = None
 	def key_pressed_in_file_view(self, view, event):
 		get_pane = lambda: view.parentWidget()
@@ -50,6 +51,15 @@ class DirectoryPaneController:
 			get_pane().set_path(parent_dir, callback)
 		elif event.key() in (Key_Enter, Key_Return):
 			view.activated.emit(view.currentIndex())
+		elif event.key() == Key_F4:
+			editor = self.settings['editor']
+			if not editor:
+				editor = self.os.prompt_user_to_pick_application(
+					'Please pick an editor.'
+				)
+			if editor:
+				self.os.open(*self._get_selected_files(view), with_app=editor)
+				self.settings['editor'] = editor
 		elif event.key() == Key_F5:
 			to_copy = self._get_selected_files(view)
 			dest_dir = self._get_other_pane(get_pane()).get_path()
@@ -80,7 +90,7 @@ class DirectoryPaneController:
 			message_box.setDefaultButton(QMessageBox.Yes)
 			choice = message_box.exec()
 			if choice & QMessageBox.Yes:
-				move_to_trash(*to_delete)
+				self.os.move_to_trash(*to_delete)
 		elif event == QKeySequence.SelectAll:
 			view.selectAll()
 		else:
@@ -93,7 +103,7 @@ class DirectoryPaneController:
 			file_view.clearSelection()
 			file_view.parentWidget().set_path(file_path)
 		else:
-			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+			self.os.open(file_path)
 	def file_renamed(self, pane, model, index, new_name):
 		if not new_name:
 			return
