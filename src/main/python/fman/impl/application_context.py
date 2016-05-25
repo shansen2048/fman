@@ -5,6 +5,11 @@ from PyQt5.QtWidgets import QApplication, QSplitter
 
 import sys
 
+def get_application_context(argv):
+	if getattr(sys, 'frozen', False):
+		return CompiledApplicationContext(argv)
+	return ApplicationContext(argv)
+
 class ApplicationContext:
 	def __init__(self, argv):
 		self.argv = argv
@@ -54,9 +59,19 @@ class ApplicationContext:
 			self._settings = Settings(default_settings, custom_settings)
 		return self._settings
 	def get_resource(self, *rel_path):
-		if getattr(sys, 'frozen', False):
-			resources_dir = dirname(sys.executable)
-		else:
-			resources_dir = \
-				join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		return normpath(join(resources_dir, *rel_path))
+		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
+		return normpath(join(res_dir, *rel_path))
+
+class CompiledApplicationContext(ApplicationContext):
+	_libraries_inited = False
+	def __init__(self, argv):
+		super().__init__(argv)
+		self._init_libraries()
+	def _init_libraries(self):
+		if not self._libraries_inited:
+			import osxtrash
+			so_path = self.get_resource('osxtrash.impl.cpython-34m.so')
+			osxtrash.initialize(so_path=so_path)
+		self.__class__._libraries_inited = True
+	def get_resource(self, *rel_path):
+		return normpath(join(dirname(sys.executable), *rel_path))

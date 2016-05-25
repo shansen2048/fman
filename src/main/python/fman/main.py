@@ -1,9 +1,9 @@
-from fman.impl.application_context import ApplicationContext
+from fman.impl.application_context import get_application_context
 
 import sys
 
 def main(argv):
-	appctxt = ApplicationContext(argv)
+	appctxt = get_application_context(argv)
 	app = appctxt.qapp
 	window = appctxt.main_window
 	controller = appctxt.controller
