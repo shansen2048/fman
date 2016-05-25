@@ -75,8 +75,10 @@ class DirectoryPaneController:
 			)
 			if ok and name:
 				model = view.model()
-				root_index = model.mapToSource(get_pane()._root_index)
+				pane = get_pane()
+				root_index = model.mapToSource(pane._root_index)
 				model.sourceModel().mkdir(root_index, name)
+				pane.place_cursor_at(join(pane.get_path(), name))
 		elif event.key() in (Key_F8, Key_Delete):
 			message_box = QMessageBox()
 			to_delete = self._get_selected_files(view)
