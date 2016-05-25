@@ -22,3 +22,8 @@ coll = COLLECT(exe,
 	upx=True,
 	name='fman'
 )
+app = BUNDLE(coll,
+	name='fman.app',
+	icon=None,
+	bundle_identifier=None
+)

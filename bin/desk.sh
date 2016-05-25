@@ -19,9 +19,9 @@ while [ -h "$SOURCE" ]; do
 done
 THIS_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-SRC_DIR="$THIS_SCRIPT_DIR/.."
+PROJECT_DIR="$THIS_SCRIPT_DIR/.."
 
-cd "$SRC_DIR"
+cd "$PROJECT_DIR"
 source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
@@ -39,7 +39,10 @@ alias commit='git commit'
 alias push='git push'
 
 compile() {
-	pyinstaller -y --distpath target/dist --workpath target/build src/main/fman.spec
+	pyinstaller -y \
+		--distpath "$PROJECT_DIR/target/dist" \
+		--workpath "$PROJECT_DIR/target/build" \
+		"$PROJECT_DIR/src/main/fman.spec"
 }
 
 alias run='target/dist/fman/fman'
