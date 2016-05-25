@@ -26,6 +26,8 @@ source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
 
+export PYTHONPATH="$PROJECT_DIR/src/main/python"
+
 # git status
 alias status='git status'
 
