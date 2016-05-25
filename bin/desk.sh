@@ -42,4 +42,6 @@ compile() {
 	pyinstaller -y --distpath target/dist --workpath target/build src/main/fman.spec
 }
 
+alias run='target/dist/fman/fman'
+
 alias clean='rm -rf target'
