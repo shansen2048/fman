@@ -11,8 +11,22 @@ class Task:
 		self.fn = fn
 		self.args = args
 		self.kwargs = kwargs
+		self.has_run = False
+		self._result = self._exception = None
 	def __call__(self):
-		self.result = self.fn(*self.args, **self.kwargs)
+		try:
+			self._result = self.fn(*self.args, **self.kwargs)
+		except Exception as e:
+			self._exception = e
+		finally:
+			self.has_run = True
+	@property
+	def result(self):
+		if not self.has_run:
+			raise ValueError("Hasn't run.")
+		if self._exception:
+			raise self._exception
+		return self._result
 
 class CurrentThread(QObject):
 	_execute_signal = pyqtSignal(Task)

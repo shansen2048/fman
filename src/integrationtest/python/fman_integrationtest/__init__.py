@@ -1,0 +1,17 @@
+from PyQt5.QtCore import QCoreApplication, pyqtSignal, Qt
+from unittest import TestCase
+
+class QtIT(TestCase):
+	def run(self, result=None):
+		self.app = Application([])
+		self.app.running.connect(self._run_in_app, Qt.QueuedConnection)
+		self.app.running.emit(result)
+		self.app.exec_()
+	def _run_in_app(self, result):
+		try:
+			super().run(result)
+		finally:
+			self.app.exit()
+
+class Application(QCoreApplication):
+	running = pyqtSignal(object)

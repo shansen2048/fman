@@ -26,7 +26,7 @@ source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
 
-export PYTHONPATH="$PROJECT_DIR/src/main/python"
+export PYTHONPATH="$PROJECT_DIR/src/main/python:$PROJECT_DIR/src/unittest/python:$PROJECT_DIR/src/integrationtest/python"
 
 # git status
 alias status='git status'
@@ -45,6 +45,10 @@ compile() {
 		--distpath "$PROJECT_DIR/target/dist" \
 		--workpath "$PROJECT_DIR/target/build" \
 		"$PROJECT_DIR/src/main/fman.spec"
+}
+
+test() {
+	nosetests -itest_.* -iinttest_.* -P src/unittest/python src/integrationtest/python
 }
 
 alias run='target/dist/fman/fman'
