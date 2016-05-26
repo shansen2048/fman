@@ -1,10 +1,30 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal, QObject
 
 def connect_once(signal, slot):
 	def _connect_once(*args, **kwargs):
 		slot(*args, **kwargs)
 		signal.disconnect(_connect_once)
 	signal.connect(_connect_once)
+
+class Task:
+	def __init__(self, fn, args, kwargs):
+		self.fn = fn
+		self.args = args
+		self.kwargs = kwargs
+	def __call__(self):
+		self.result = self.fn(*self.args, **self.kwargs)
+
+class CurrentThread(QObject):
+	_execute_signal = pyqtSignal(Task)
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self._execute_signal.connect(self._execute, Qt.BlockingQueuedConnection)
+	def execute(self, fn, *args, **kwargs):
+		task = Task(fn, args, kwargs)
+		self._execute_signal.emit(task)
+		return task.result
+	def _execute(self, task):
+		task()
 
 AscendingOrder = Qt.AscendingOrder
 WA_MacShowFocusRect = Qt.WA_MacShowFocusRect

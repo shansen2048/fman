@@ -12,10 +12,11 @@ from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 from threading import Thread
 
 class DirectoryPaneController:
-	def __init__(self, os_, settings, app):
+	def __init__(self, os_, settings, app, gui_thread):
 		self.os = os_
 		self.settings = settings
 		self.app = app
+		self.gui_thread = gui_thread
 		self.left_pane = self.right_pane = None
 	def key_pressed_in_file_view(self, view, event):
 		source = lambda: view.parentWidget()
