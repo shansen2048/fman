@@ -68,7 +68,7 @@ class DirectoryPaneController:
 		elif event.key() == Key_F5:
 			to_copy = self._get_selected_files(view)
 			dest_dir = target().get_path()
-			Thread(target=CopyFiles(to_copy, dest_dir)).start()
+			Thread(target=CopyFiles(self.gui_thread, to_copy, dest_dir)).start()
 		elif shift and event.key() == Key_F6:
 			view.edit(view.currentIndex())
 		elif event.key() == Key_F7:
