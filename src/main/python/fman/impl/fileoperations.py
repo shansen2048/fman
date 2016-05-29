@@ -81,7 +81,7 @@ class CopyFiles(FileOperation):
 	def _get_dest_path(self, src_file):
 		if self.src_dir:
 			rel_path = relpath(src_file, self.src_dir)
-			in_src_dir = not rel_path.startswith(pardir)
-			if in_src_dir:
+			is_in_src_dir = not rel_path.startswith(pardir)
+			if is_in_src_dir:
 				return join(self.dest_dir, rel_path)
 		return join(self.dest_dir, basename(src_file))
