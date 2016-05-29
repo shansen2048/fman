@@ -1,7 +1,10 @@
-from distutils.dir_util import copy_tree
-from distutils.file_util import copy_file
-from os.path import basename, normpath, join, exists, isfile, isdir
+from os import makedirs
+from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
+	dirname
 from PyQt5.QtWidgets import QMessageBox
+from shutil import copy2
+
+import os
 
 Yes = QMessageBox.Yes
 No = QMessageBox.No
@@ -15,7 +18,7 @@ class FileOperation:
 		self.gui_thread = gui_thread
 	def __call__(self):
 		raise NotImplementedError()
-	def show_message_box(self, text, standard_buttons, default_button):
+	def prompt_user(self, text, standard_buttons, default_button):
 		return self.gui_thread.execute(
 			self._show_message_box, text, standard_buttons, default_button
 		)
@@ -27,40 +30,58 @@ class FileOperation:
 		return msgbox.exec()
 
 class CopyFiles(FileOperation):
-	def __init__(self, gui_thread, files, dest_dir):
+	def __init__(self, gui_thread, files, dest_dir, src_dir=None):
 		super().__init__(gui_thread)
 		self.files = files
 		self.dest_dir = dest_dir
+		self.src_dir = src_dir
+		self.cannot_copy_to_self_shown = False
+		self.override_all = None
 	def __call__(self):
-		cannot_copy_to_self_shown = False
-		override_all = None
 		for src in self.files:
-			name = basename(normpath(src))
-			dest = join(self.dest_dir, name)
-			if normpath(src) == normpath(dest):
-				if not cannot_copy_to_self_shown:
-					self.show_message_box(
+			dest = self._get_dest_path(src)
+			if isdir(src):
+				makedirs(dest, exist_ok=True)
+				for (dir_, _, file_names) in os.walk(src):
+					for file_name in file_names:
+						file_path = join(dir_, file_name)
+						dest_ = self._get_dest_path(file_path)
+						if not self.copy_file(file_path, dest_):
+							break
+			else:
+				if not self.copy_file(src, dest):
+					break
+	def copy_file(self, src, dest):
+		if exists(dest):
+			if samefile(src, dest):
+				if not self.cannot_copy_to_self_shown:
+					self.prompt_user(
 						"You cannot copy a file to itself.", Ok, Ok
 					)
-					cannot_copy_to_self_shown = True
-				continue
-			if exists(dest):
-				if override_all is None:
-					choice = self.show_message_box(
-						"%s exists. Do you want to override it?" % name,
-						Yes | No | YesToAll | NoToAll | Abort, Yes
-					)
-					if choice & No:
-						continue
-					elif choice & NoToAll:
-						override_all = False
-					elif choice & YesToAll:
-						override_all = True
-					elif choice & Abort:
-						break
-				if override_all is False:
-					continue
-			if isdir(src):
-				copy_tree(src, dest)
-			elif isfile(src):
-				copy_file(src, dest)
+					self.cannot_copy_to_self_shown = True
+				return True
+			if self.override_all is None:
+				choice = self.prompt_user(
+					"%s exists. Do you want to override it?" % basename(src),
+					Yes | No | YesToAll | NoToAll | Abort, Yes
+				)
+				if choice & No:
+					return True
+				elif choice & NoToAll:
+					self.override_all = False
+				elif choice & YesToAll:
+					self.override_all = True
+				elif choice & Abort:
+					return False
+			if self.override_all is False:
+				return True
+		makedirs(dirname(dest), exist_ok=True)
+		copy2(src, dest)
+		return True
+	def _get_dest_path(self, src_file):
+		if self.src_dir:
+			rel_path = relpath(src_file, self.src_dir)
+			in_src_dir = not rel_path.startswith(pardir)
+			if in_src_dir:
+				return join(self.dest_dir, rel_path)
+		return join(self.dest_dir, basename(src_file))
