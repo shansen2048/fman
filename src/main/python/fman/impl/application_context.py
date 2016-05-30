@@ -3,6 +3,7 @@ from fman.impl.os_ import OSX
 from fman.util import system
 from fman.util.qt import CurrentThread
 from fman.impl.settings import Settings
+from glob import glob
 from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtWidgets import QApplication, QSplitter
 
@@ -90,7 +91,8 @@ class CompiledApplicationContext(ApplicationContext):
 	def _init_libraries(self):
 		if not self._libraries_inited:
 			import osxtrash
-			so_path = self.get_resource('osxtrash.impl.cpython-34m.so')
+			so_name, = glob(self.get_resource('osxtrash.impl*.so'))
+			so_path = self.get_resource(so_name)
 			osxtrash.initialize(so_path=so_path)
 		self.__class__._libraries_inited = True
 	def get_resource(self, *rel_path):
