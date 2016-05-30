@@ -19,7 +19,7 @@ class OSX(OS):
 		panel.setDirectoryURL_(NSURL.fileURLWithPath_('/Applications'))
 		panel.setCanChooseDirectories_(False)
 		panel.setAllowedFileTypes_(['app'])
-		panel.setMessage_(title)
+		panel.setMessage_(message)
 		result = panel.runModal()
 		if result == NSOKButton:
 			return panel.filename()
@@ -29,3 +29,5 @@ class OSX(OS):
 			args += ['-a', with_app]
 		args.extend(files)
 		Popen(args)
+	def open_terminal_in_directory(self, dir_):
+		pass
