@@ -1,5 +1,10 @@
+from fman_unittest import TestLoader
+from os.path import dirname
 from PyQt5.QtCore import QCoreApplication, pyqtSignal, Qt
 from unittest import TestCase
+
+# See https://docs.python.org/3.5/library/unittest.html#load-tests-protocol
+load_tests = TestLoader(dirname(__file__))
 
 class QtIT(TestCase):
 	def run(self, result=None):

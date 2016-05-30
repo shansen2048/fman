@@ -48,7 +48,7 @@ compile() {
 }
 
 test() {
-	nosetests -itest_.* -iinttest_.* -P src/unittest/python src/integrationtest/python
+	python -m unittest fman_unittest fman_integrationtest
 }
 
 alias run='target/dist/fman/fman'

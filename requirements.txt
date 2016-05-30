@@ -1,4 +1,3 @@
 osxtrash==1.3
 https://github.com/pyinstaller/pyinstaller/zipball/6d103e81cfd2ae48b4bc5ca0cca39c11647dbed8
-nose==1.3.7
 pyobjc==3.1.1

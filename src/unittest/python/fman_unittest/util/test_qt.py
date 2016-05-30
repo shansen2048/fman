@@ -9,7 +9,7 @@ class TaskTest(TestCase):
 			return args, kwargs
 		task = Task(f, args, kwargs)
 		task()
-		self.assertEquals((args, kwargs), task.result)
+		self.assertEqual((args, kwargs), task.result)
 	def test_raising_exception(self):
 		exception = Exception()
 		def raise_exception():

@@ -8,7 +8,7 @@ from unittest import TestCase
 import os
 import stat
 
-class FileTreeOperationAT(TestCase):
+class FileTreeOperationAT:
 	def __init__(self, operation, operation_descr_verb, methodName='runTest'):
 		super().__init__(methodName=methodName)
 		self.operation = operation
@@ -18,16 +18,16 @@ class FileTreeOperationAT(TestCase):
 		with open(src_file, 'w') as f:
 			f.write('1234')
 		self._perform_on(src_file)
-		self.assertEquals(['test.txt'], listdir(self.dest))
+		self.assertEqual(['test.txt'], listdir(self.dest))
 		with open(join(self.dest, 'test.txt'), 'r') as f:
-			self.assertEquals('1234', f.read())
+			self.assertEqual('1234', f.read())
 		return src_file
 	def test_empty_directory(self):
 		empty_dir = join(self.src, 'test')
 		mkdir(empty_dir)
 		self._perform_on(empty_dir)
-		self.assertEquals(['test'], listdir(self.dest))
-		self.assertEquals([], listdir(join(self.dest, 'test')))
+		self.assertEqual(['test'], listdir(self.dest))
+		self.assertEqual([], listdir(join(self.dest, 'test')))
 		return empty_dir
 	def test_directory_several_files(self):
 		file_outside_dir = join(self.src, 'file1.txt')
@@ -42,13 +42,13 @@ class FileTreeOperationAT(TestCase):
 		st_mode = os.stat(executable_in_dir).st_mode
 		chmod(executable_in_dir, st_mode | stat.S_IEXEC)
 		self._perform_on(file_outside_dir, dir_)
-		self.assertEquals({'file1.txt', 'dir'}, set(listdir(self.dest)))
-		self.assertEquals(
+		self.assertEqual({'file1.txt', 'dir'}, set(listdir(self.dest)))
+		self.assertEqual(
 			{'executable', 'file.txt'}, set(listdir(join(self.dest, 'dir')))
 		)
 		executable_dst = join(self.dest, 'dir', 'executable')
 		with open(executable_dst, 'r') as f:
-			self.assertEquals('abc', f.read())
+			self.assertEqual('abc', f.read())
 		self.assertTrue(os.stat(executable_dst).st_mode & stat.S_IEXEC)
 		return [file_outside_dir, dir_]
 	def test_overwrite_files(
@@ -80,9 +80,9 @@ class FileTreeOperationAT(TestCase):
 			with open(dest_file, 'r') as f:
 				contents = f.read()
 			if expect_override:
-				self.assertEquals(file_contents(src_files[i]), contents)
+				self.assertEqual(file_contents(src_files[i]), contents)
 			else:
-				self.assertEquals(
+				self.assertEqual(
 					'', contents,
 					'File %s was overwritten, contrary to expectations.' %
 					basename(dest_file)
@@ -122,13 +122,13 @@ class FileTreeOperationAT(TestCase):
 		)
 		self._perform_on(dir_, *files)
 		# Should still have copied c:
-		self.assertEquals({'a', 'b', 'c', 'dir'}, set(listdir(self.dest)))
+		self.assertEqual({'a', 'b', 'c', 'dir'}, set(listdir(self.dest)))
 		return c
 	def test_external_file(self):
 		external_file = join(self.external_dir, 'test.txt')
 		self._touch(external_file)
 		self._perform_on(external_file)
-		self.assertEquals(['test.txt'], listdir(self.dest))
+		self.assertEqual(['test.txt'], listdir(self.dest))
 		return external_file
 	def test_nested_dir(self):
 		parent_dir = join(self.src, 'parent_dir')
@@ -137,11 +137,11 @@ class FileTreeOperationAT(TestCase):
 		makedirs(nested_dir)
 		self._touch(text_file)
 		self._perform_on(parent_dir)
-		self.assertEquals(['parent_dir'], listdir(self.dest))
-		self.assertEquals(
+		self.assertEqual(['parent_dir'], listdir(self.dest))
+		self.assertEqual(
 			['nested_dir'], listdir(join(self.dest, 'parent_dir'))
 		)
-		self.assertEquals(
+		self.assertEqual(
 			['file.txt'], listdir(join(self.dest, 'parent_dir', 'nested_dir'))
 		)
 		return parent_dir
@@ -151,7 +151,7 @@ class FileTreeOperationAT(TestCase):
 		symlink = join(self.src, 'symlink')
 		os.symlink(symlink_source, symlink)
 		self._perform_on(symlink)
-		self.assertEquals(['symlink'], listdir(self.dest))
+		self.assertEqual(['symlink'], listdir(self.dest))
 		symlink_dest = join(self.dest, 'symlink')
 		self.assertTrue(islink(symlink_dest))
 		symlink_dest_source = realpath(readlink(symlink_dest))
@@ -179,23 +179,24 @@ class FileTreeOperationAT(TestCase):
 	def tearDown(self):
 		self._src.cleanup()
 		self._dest.cleanup()
+		self._external_dir.cleanup()
 	def _assert_contents_are_equal(self, f1, f2):
 		with open(f1, 'r') as f:
 			contents_1 = f.read()
 		with open(f2, 'r') as f:
 			contents_2 = f.read()
-		self.assertEquals(contents_1, contents_2)
+		self.assertEqual(contents_1, contents_2)
 	def _touch(self, file_path):
 		with open(file_path, 'w'):
 			pass
 	def _expect_prompt(self, args, answer):
 		self.gui_thread.expect_prompt(args, answer)
 
-class CopyFilesTest(FileTreeOperationAT):
+class CopyFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
 		super().__init__(CopyFiles, 'copy', methodName)
 
-class MoveFilesTest(FileTreeOperationAT):
+class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
 		super().__init__(MoveFiles, 'move', methodName)
 	def test_single_file(self):
@@ -241,10 +242,10 @@ class StubGuiThread:
 				self.test_case.fail('Unexpected prompt: %r' % args[0])
 				return
 			expected_args, answer = self.expected_prompts.pop(0)
-			self.test_case.assertEquals(expected_args, args)
+			self.test_case.assertEqual(expected_args, args)
 			return answer
 		raise ValueError('Unexpected method call: %r' % fn)
 	def expect_prompt(self, args, answer):
 		self.expected_prompts.append((args, answer))
 	def verify_expected_prompts_were_shown(self):
-		self.test_case.assertEquals([], self.expected_prompts)
+		self.test_case.assertEqual([], self.expected_prompts)

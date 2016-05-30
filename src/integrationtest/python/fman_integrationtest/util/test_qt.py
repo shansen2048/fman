@@ -10,10 +10,10 @@ class CurrentThreadIT(QtIT):
 		self.thread.start()
 		self.thread.wait_until_running()
 	def test_execute(self):
-		self.assertEquals(
+		self.assertEqual(
 			self.thread.ident, self.thread.executor.execute(get_ident)
 		)
-		self.assertNotEquals(self.thread.ident, get_ident())
+		self.assertNotEqual(self.thread.ident, get_ident())
 	def test_execute_raises_exception(self):
 		e = Exception()
 		def raise_exc():
