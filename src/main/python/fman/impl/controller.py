@@ -1,4 +1,4 @@
-from fman.impl.fileoperations import CopyFiles
+from fman.impl.fileoperations import CopyFiles, MoveFiles
 from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_PageUp, Key_Space, Key_Insert, ShiftModifier, Key_Backspace, \
 	Key_Enter, Key_Return, Key_F6, Key_F7, Key_F8, Key_Delete, Key_F5, Key_F4, \
@@ -67,10 +67,20 @@ class DirectoryPaneController:
 				self.settings['editor'] = editor
 		elif event.key() == Key_F5:
 			to_copy = self._get_selected_files(view)
+			src_dir = source().get_path()
 			dest_dir = target().get_path()
-			Thread(target=CopyFiles(self.gui_thread, to_copy, dest_dir)).start()
-		elif shift and event.key() == Key_F6:
-			view.edit(view.currentIndex())
+			operation = CopyFiles(self.gui_thread, to_copy, dest_dir, src_dir)
+			Thread(target=operation).start()
+		elif event.key() == Key_F6:
+			if shift:
+				view.edit(view.currentIndex())
+			else:
+				to_move = self._get_selected_files(view)
+				src_dir = source().get_path()
+				dest_dir = target().get_path()
+				operation = \
+					MoveFiles(self.gui_thread, to_move, dest_dir, src_dir)
+				Thread(target=operation).start()
 		elif event.key() == Key_F7:
 			name, ok = QInputDialog.getText(
 				source(), "fman", "New folder (directory)",
