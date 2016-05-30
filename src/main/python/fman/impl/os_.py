@@ -30,4 +30,4 @@ class OSX(OS):
 		args.extend(files)
 		Popen(args)
 	def open_terminal_in_directory(self, dir_):
-		pass
+		self.open(dir_, with_app='Terminal')

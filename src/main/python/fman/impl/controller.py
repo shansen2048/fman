@@ -2,7 +2,7 @@ from fman.impl.fileoperations import CopyFiles, MoveFiles
 from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_PageUp, Key_Space, Key_Insert, ShiftModifier, Key_Backspace, \
 	Key_Enter, Key_Return, Key_F6, Key_F7, Key_F8, Key_Delete, Key_F5, Key_F4, \
-	Key_F11
+	Key_F11, Key_F9
 from fman.util.system import is_osx
 from os import rename
 from os.path import abspath, join, pardir, dirname
@@ -108,6 +108,8 @@ class DirectoryPaneController:
 			choice = message_box.exec()
 			if choice & QMessageBox.Yes:
 				self.os.move_to_trash(*to_delete)
+		elif event.key() == Key_F9:
+			self.os.open_terminal_in_directory(source().get_path())
 		elif event.key() == Key_F11:
 			to_copy = '\n'.join(self._get_selected_files(view))
 			self.app.clipboard().setText(to_copy)
