@@ -84,16 +84,5 @@ class ApplicationContext:
 		return normpath(join(res_dir, *rel_path))
 
 class CompiledApplicationContext(ApplicationContext):
-	_libraries_inited = False
-	def __init__(self, argv):
-		super().__init__(argv)
-		self._init_libraries()
-	def _init_libraries(self):
-		if not self._libraries_inited:
-			import osxtrash
-			so_name, = glob(self.get_resource('osxtrash.impl*.so'))
-			so_path = self.get_resource(so_name)
-			osxtrash.initialize(so_path=so_path)
-		self.__class__._libraries_inited = True
 	def get_resource(self, *rel_path):
 		return normpath(join(dirname(sys.executable), *rel_path))
