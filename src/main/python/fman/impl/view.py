@@ -86,6 +86,8 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.setUniformRowHeights(True)
 		self.setItemDelegate(FileListItemDelegate())
+		# Double click should activate the file, not open its editor:
+		self.setEditTriggers(self.NoEditTriggers)
 	def keyPressEvent(self, event):
 		filter_ = self.keyPressEventFilter
 		if not filter_ or not filter_(self, event):

@@ -1,3 +1,21 @@
+Build Qt:
+=========
+1) Download the 5.6.0 source tarball from the official home page.
+
+2) Edit the sources:
+
+qtbase/src/gui/kernel/qwindow.h, qtbase/src/gui/kernel/qwindow.cpp, qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h:
+	Surround all occurrences of QAccessibleInterface with #ifndef QT_NO_ACCESSIBILITY ... #endif
+qtwebengine/src/core/media_capture_devices_dispatcher.cpp:
+	Add #include <QtCore/QCoreApplication>
+qtwebengine/src/webengine/api/qquickwebengineview_p_p.h:
+	Add #include <QtGui/QColor>
+
+3) Build & install
+	./configure -no-make examples -no-accessibility
+	make -j4
+	sudo make install
+
 Install SIP:
 ============
 Download https://sourceforge.net/projects/pyqt/files/sip/sip-4.18/sip-4.18.tar.gz/download
@@ -10,6 +28,6 @@ Install PyQT:
 =============
 Download https://sourceforge.net/projects/pyqt/files/PyQt5/PyQt-5.6/PyQt5_gpl-5.6.tar.gz/download
 Unpack
-python configure.py --qmake /Users/michael/Applications/Qt/5.6/clang_64/bin/qmake
+python configure.py --qmake /usr/local/Qt-5.6.0/bin/qmake
 make
 make install
