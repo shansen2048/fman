@@ -1,7 +1,7 @@
 from os import makedirs
 from os.path import basename, join, exists, isdir, samefile, relpath, pardir
 from PyQt5.QtWidgets import QMessageBox
-from shutil import copy2, move, rmtree
+from shutil import copy2, move, rmtree, copytree
 
 import os
 
@@ -43,17 +43,21 @@ class FileTreeOperation(FileOperation):
 		for src in self.files:
 			dest = self._get_dest_path(src)
 			if isdir(src):
-				if exists(dest) and samefile(src, dest):
-					continue
-				for (dir_, _, file_names) in os.walk(src):
-					dest_dir = self._get_dest_path(dir_)
-					makedirs(dest_dir, exist_ok=True)
-					for file_name in file_names:
-						file_path = join(dir_, file_name)
-						dest_ = self._get_dest_path(file_path)
-						if not self.perform_on_file(file_path, dest_):
-							return
-				self.postprocess_directory(src)
+				if exists(dest):
+					if samefile(src, dest):
+						continue
+					else:
+						for (dir_, _, file_names) in os.walk(src):
+							dest_dir = self._get_dest_path(dir_)
+							makedirs(dest_dir, exist_ok=True)
+							for file_name in file_names:
+								file_path = join(dir_, file_name)
+								dest_ = self._get_dest_path(file_path)
+								if not self.perform_on_file(file_path, dest_):
+									return
+						self.postprocess_directory(src)
+				else:
+					self._perform_on_dir_dest_doesnt_exist(src, dest)
 			else:
 				if not self.perform_on_file(src, dest):
 					return
@@ -84,6 +88,8 @@ class FileTreeOperation(FileOperation):
 				return True
 		self._perform_on_file(src, dest)
 		return True
+	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
+		raise NotImplementedError()
 	def _perform_on_file(self, src, dest):
 		raise NotImplementedError()
 	def postprocess_directory(self, src_dir_path):
@@ -99,6 +105,8 @@ class FileTreeOperation(FileOperation):
 class CopyFiles(FileTreeOperation):
 	def __init__(self, gui_thread, files, dest_dir, src_dir=None):
 		super().__init__(gui_thread, files, dest_dir, 'copy', src_dir)
+	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
+		copytree(src, dest, symlinks=True)
 	def _perform_on_file(self, src, dest):
 		copy2(src, dest, follow_symlinks=False)
 
@@ -107,5 +115,7 @@ class MoveFiles(FileTreeOperation):
 		super().__init__(gui_thread, files, dest_dir, 'move', src_dir)
 	def postprocess_directory(self, src_dir_path):
 		rmtree(src_dir_path, ignore_errors=True)
+	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
+		move(src, dest)
 	def _perform_on_file(self, src, dest):
 		move(src, dest)
