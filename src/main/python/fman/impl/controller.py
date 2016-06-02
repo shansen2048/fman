@@ -5,7 +5,8 @@ from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_F11, Key_F9
 from fman.util.system import is_osx
 from os import rename
-from os.path import abspath, join, pardir, dirname
+from os.path import abspath, join, pardir, dirname, basename, exists, isdir, \
+	split
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
@@ -66,21 +67,30 @@ class DirectoryPaneController:
 				self.os.open(*self._get_selected_files(view), with_app=editor)
 				self.settings['editor'] = editor
 		elif event.key() == Key_F5:
-			to_copy = self._get_selected_files(view)
-			src_dir = source().get_path()
+			files = self._get_selected_files(view)
 			dest_dir = target().get_path()
-			operation = CopyFiles(self.gui_thread, to_copy, dest_dir, src_dir)
-			Thread(target=operation).start()
+			proceed = self._confirm_tree_operation(files, dest_dir, 'copy')
+			if proceed:
+				dest_dir, dest_name = proceed
+				src_dir = source().get_path()
+				operation = CopyFiles(
+					self.gui_thread, files, dest_dir, src_dir, dest_name
+				)
+				Thread(target=operation).start()
 		elif event.key() == Key_F6:
 			if shift:
 				view.edit(view.currentIndex())
 			else:
-				to_move = self._get_selected_files(view)
-				src_dir = source().get_path()
+				files = self._get_selected_files(view)
 				dest_dir = target().get_path()
-				operation = \
-					MoveFiles(self.gui_thread, to_move, dest_dir, src_dir)
-				Thread(target=operation).start()
+				proceed = self._confirm_tree_operation(files, dest_dir, 'move')
+				if proceed:
+					dest_dir, dest_name = proceed
+					src_dir = source().get_path()
+					operation = MoveFiles(
+						self.gui_thread, files, dest_dir, src_dir, dest_name
+					)
+					Thread(target=operation).start()
 		elif event.key() == Key_F7:
 			name, ok = QInputDialog.getText(
 				source(), "fman", "New folder (directory)",
@@ -111,14 +121,57 @@ class DirectoryPaneController:
 		elif event.key() == Key_F9:
 			self.os.open_terminal_in_directory(source().get_path())
 		elif event.key() == Key_F11:
-			to_copy = '\n'.join(self._get_selected_files(view))
-			self.app.clipboard().setText(to_copy)
+			files = '\n'.join(self._get_selected_files(view))
+			self.app.clipboard().setText(files)
 		elif event == QKeySequence.SelectAll:
 			view.selectAll()
 		else:
 			event.ignore()
 			result = False
 		return result
+	def _confirm_tree_operation(self, files, dest_dir, descr_verb):
+		if len(files) == 1:
+			dest_name = basename(files[0])
+			files_descr = '"%s"' % dest_name
+		else:
+			dest_name = ''
+			files_descr = '%d files' % len(files)
+		message = '%s %s to' % (descr_verb.capitalize(), files_descr)
+		dest, ok = QInputDialog.getText(
+			self.left_pane.parentWidget(), 'fman', message, QLineEdit.Normal,
+			join(dest_dir, dest_name)
+		)
+		if ok:
+			if exists(dest):
+				if isdir(dest):
+					return dest, None
+				else:
+					if len(files) == 1:
+						return split(dest)
+					else:
+						msgbox = QMessageBox()
+						msgbox.setText(
+							'You cannot %s multiple files to a single file!' %
+							descr_verb
+						)
+						msgbox.setStandardButtons(QMessageBox.Ok)
+						msgbox.setDefaultButton(QMessageBox.Ok)
+						msgbox.exec()
+			else:
+				if len(files) == 1:
+					return split(dest)
+				else:
+					msgbox = QMessageBox()
+					msgbox.setText(
+						'%s does not exist. Do you want to create it '
+						'as a directory and %s the files there?' %
+						(dest, descr_verb)
+					)
+					msgbox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+					msgbox.setDefaultButton(QMessageBox.Yes)
+					choice = msgbox.exec()
+					if choice & QMessageBox.Yes:
+						return dest, None
 	def activated(self, model, file_view, index):
 		file_path = model.filePath(index)
 		if model.isDir(index):

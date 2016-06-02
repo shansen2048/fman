@@ -13,15 +13,19 @@ class FileTreeOperationAT:
 		super().__init__(methodName=methodName)
 		self.operation = operation
 		self.operation_descr_verb = operation_descr_verb
-	def test_single_file(self):
+	def test_single_file(self, dest_dir=None):
+		if dest_dir is None:
+			dest_dir = self.dest
 		src_file = join(self.src, 'test.txt')
 		with open(src_file, 'w') as f:
 			f.write('1234')
-		self._perform_on(src_file)
-		self.assertEqual(['test.txt'], listdir(self.dest))
-		with open(join(self.dest, 'test.txt'), 'r') as f:
+		self._perform_on(src_file, dest_dir=dest_dir)
+		self.assertEqual(['test.txt'], listdir(dest_dir))
+		with open(join(dest_dir, 'test.txt'), 'r') as f:
 			self.assertEqual('1234', f.read())
 		return src_file
+	def test_singe_file_dest_dir_does_not_exist(self):
+		self.test_single_file(dest_dir=join(self.dest, 'subdir'))
 	def test_empty_directory(self):
 		empty_dir = join(self.src, 'test')
 		mkdir(empty_dir)
@@ -29,7 +33,9 @@ class FileTreeOperationAT:
 		self.assertEqual(['test'], listdir(self.dest))
 		self.assertEqual([], listdir(join(self.dest, 'test')))
 		return empty_dir
-	def test_directory_several_files(self):
+	def test_directory_several_files(self, dest_dir=None):
+		if dest_dir is None:
+			dest_dir = self.dest
 		file_outside_dir = join(self.src, 'file1.txt')
 		self._touch(file_outside_dir)
 		dir_ = join(self.src, 'dir')
@@ -41,16 +47,18 @@ class FileTreeOperationAT:
 			f.write('abc')
 		st_mode = os.stat(executable_in_dir).st_mode
 		chmod(executable_in_dir, st_mode | stat.S_IEXEC)
-		self._perform_on(file_outside_dir, dir_)
-		self.assertEqual({'file1.txt', 'dir'}, set(listdir(self.dest)))
+		self._perform_on(file_outside_dir, dir_, dest_dir=dest_dir)
+		self.assertEqual({'file1.txt', 'dir'}, set(listdir(dest_dir)))
 		self.assertEqual(
-			{'executable', 'file.txt'}, set(listdir(join(self.dest, 'dir')))
+			{'executable', 'file.txt'}, set(listdir(join(dest_dir, 'dir')))
 		)
-		executable_dst = join(self.dest, 'dir', 'executable')
+		executable_dst = join(dest_dir, 'dir', 'executable')
 		with open(executable_dst, 'r') as f:
 			self.assertEqual('abc', f.read())
 		self.assertTrue(os.stat(executable_dst).st_mode & stat.S_IEXEC)
 		return [file_outside_dir, dir_]
+	def test_directory_several_files_dest_dir_does_not_exist(self):
+		self.test_directory_several_files(dest_dir=join(self.dest, 'subdir'))
 	def test_overwrite_files(
 		self, answers=(Yes, Yes), expect_overrides=(True, True),
 		files=('a.txt', 'b.txt'), perform_on_files=None
@@ -157,6 +165,21 @@ class FileTreeOperationAT:
 		symlink_dest_source = realpath(readlink(symlink_dest))
 		self.assertTrue(samefile(symlink_source, symlink_dest_source))
 		return symlink
+	def test_dest_name(self, src_equals_dest=False, preserves_files=True):
+		src_dir = self.dest if src_equals_dest else self.src
+		foo = join(src_dir, 'foo')
+		with open(foo, 'w') as f:
+			f.write('1234')
+		self._perform_on(foo, dest_name='bar')
+		expected_files = ['bar']
+		if preserves_files and src_equals_dest:
+			expected_files += ['foo']
+		self.assertEqual(expected_files, listdir(self.dest))
+		with open(join(self.dest, 'bar'), 'r') as f:
+			self.assertEqual('1234', f.read())
+		return foo
+	def test_dest_name_same_dir(self):
+		self.test_dest_name(src_equals_dest=True)
 	def setUp(self):
 		self.gui_thread = StubGuiThread(self)
 		self._src = TemporaryDirectory()
@@ -164,8 +187,10 @@ class FileTreeOperationAT:
 		self._external_dir = TemporaryDirectory()
 		# Create a dummy file to test that not _all_ files are copied from src:
 		self._touch(join(self.src, 'dummy'))
-	def _perform_on(self, *files):
-		self.operation(self.gui_thread, files, self.dest, self.src)()
+	def _perform_on(self, *files, dest_dir=None, dest_name=None):
+		if dest_dir is None:
+			dest_dir = self.dest
+		self.operation(self.gui_thread, files, dest_dir, self.src, dest_name)()
 		self.gui_thread.verify_expected_prompts_were_shown()
 	@property
 	def src(self):
@@ -180,12 +205,6 @@ class FileTreeOperationAT:
 		self._src.cleanup()
 		self._dest.cleanup()
 		self._external_dir.cleanup()
-	def _assert_contents_are_equal(self, f1, f2):
-		with open(f1, 'r') as f:
-			contents_1 = f.read()
-		with open(f2, 'r') as f:
-			contents_2 = f.read()
-		self.assertEqual(contents_1, contents_2)
 	def _touch(self, file_path):
 		with open(file_path, 'w'):
 			pass
@@ -199,14 +218,14 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
 		super().__init__(MoveFiles, 'move', methodName)
-	def test_single_file(self):
-		src_file = super().test_single_file()
+	def test_single_file(self, dest_dir=None):
+		src_file = super().test_single_file(dest_dir)
 		self.assertFalse(exists(src_file))
 	def test_empty_directory(self):
 		empty_dir_src = super().test_empty_directory()
 		self.assertFalse(exists(empty_dir_src))
-	def test_directory_several_files(self):
-		src_files = super().test_directory_several_files()
+	def test_directory_several_files(self, dest_dir=None):
+		src_files = super().test_directory_several_files(dest_dir=dest_dir)
 		for file_ in src_files:
 			self.assertFalse(exists(file_))
 	def test_overwrite_files(
@@ -231,6 +250,8 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def test_symlink(self):
 		symlink = super().test_symlink()
 		self.assertFalse(exists(symlink))
+	def test_dest_name(self, src_equals_dest=False):
+		super().test_dest_name(src_equals_dest, preserves_files=False)
 
 class StubGuiThread:
 	def __init__(self, test_case):
