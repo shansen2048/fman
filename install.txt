@@ -1,33 +1,68 @@
-Build Qt:
+Build Qt 5.6.0:
 =========
 1) Download the 5.6.0 source tarball from the official home page.
 
-2) Edit the sources:
+Windows preparation:
+ a) Install Visual Studio 2012 express
+ b) Install http://www.activestate.com/activeperl
+ c) Install Python
+ d) Add gnuwin32/bin from Qt source dir, perl and Python to PATH
+ e) Follow the instructions on http://doc.qt.io/qt-5/windows-building.html
+    - You may have to install the DirectX SDK (9.29.1962.0)
 
-qtbase/src/gui/kernel/qwindow.h, qtbase/src/gui/kernel/qwindow.cpp, qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h:
-	Surround all occurrences of QAccessibleInterface with #ifndef QT_NO_ACCESSIBILITY ... #endif
-qtwebengine/src/core/media_capture_devices_dispatcher.cpp:
-	Add #include <QtCore/QCoreApplication>
-qtwebengine/src/webengine/api/qquickwebengineview_p_p.h:
-	Add #include <QtGui/QColor>
+OS X preparation:
+ a) Edit the sources:
+		qtbase/src/gui/kernel/qwindow.h,
+		qtbase/src/gui/kernel/qwindow.cpp,
+		qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h:
+			Surround all occurrences of QAccessibleInterface with
+			#ifndef QT_NO_ACCESSIBILITY ... #endif
+		qtwebengine/src/core/media_capture_devices_dispatcher.cpp:
+			Add #include <QtCore/QCoreApplication>
+		qtwebengine/src/webengine/api/qquickwebengineview_p_p.h:
+			Add #include <QtGui/QColor>
 
-3) Build & install
-	./configure -no-make examples -no-accessibility
-	make -j4
-	sudo make install
+2) Build & install
+	./configure -release -opensource -no-accessibility -nomake examples -nomake tests -nomake doc
+	make -j4 module-qtbase (on Windows use jom module-qtbase)
+	sudo make module-qtbase-install_subtargets (on Windows use jom ...)
 
 Install SIP:
 ============
-Download https://sourceforge.net/projects/pyqt/files/sip/sip-4.18/sip-4.18.tar.gz/download
-Unpack
-python configure.py
-make
-make install
+ 1) Download SIP 4.18 from https://www.riverbankcomputing.com/software/sip/download
+ 2) Unpack
+
+ 3) python configure.py (while the venv is active!)
+
+On OS X:
+ 3) source venv/bin/activate
+ 4) python configure.py
+ 5) make
+ 6) make install
+
+On Windows:
+ 3) open the Qt5 command console created according to http://doc.qt.io/qt-5/windows-building.html
+ 3) call venv/scripts/activate.bat
+ 4) python configure.py
+ 5) Replace `python34.lib` in siplib/Makefile by the absolute path c:\Python34\libs\python34.lib
+ 6) Replace `copy /y sipconfig.py...` in Makefile by its absolute path `copy /y c:\Users\Michael\Temp\sip-4.18\sipconfig.py ...`
+ 7) jom
+ 8) jom install
 
 Install PyQT:
 =============
-Download https://sourceforge.net/projects/pyqt/files/PyQt5/PyQt-5.6/PyQt5_gpl-5.6.tar.gz/download
-Unpack
-python configure.py --qmake /usr/local/Qt-5.6.0/bin/qmake
-make
-make install
+ 1) Download PyQt 5.6 from ﻿https://www.riverbankcomputing.com/software/pyqt/download5
+ 2) Unpack
+
+OS X:
+ 3) source venv/bin/activate
+ 4) python configure.py --qmake /usr/local/Qt-5.6.0/bin/qmake
+ 5) make
+ 6) make install
+
+Windows:
+ 3) open the Qt5 command console
+ 4) python configure.py --qmake c:\Qt\5.6.0\qtbase\bin\qmake.exe --sip c:\Users\Michael\dev\fman\venv\sip.exe
+ 5) Search for `python34.lib` in all Makefile*'s and replace by absolute path c:\Python34\libs\python34.lib
+ 5) jom
+ 6) jom install
