@@ -1,4 +1,3 @@
-from os import startfile
 from os.path import splitdrive, exists
 from PyQt5.QtWidgets import QFileDialog
 from subprocess import Popen
@@ -55,6 +54,7 @@ class Windows(OS):
 			return result[0]
 	def open(self, file_, with_app=None):
 		if with_app is None:
+			from os import startfile
 			startfile(file_)
 		else:
 			Popen([with_app, file_])
