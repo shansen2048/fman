@@ -1,9 +1,9 @@
 from fman.impl import DirectoryPaneController, DirectoryPane
-from fman.impl.os_ import OSX
+from fman.impl.os_ import OSX, Windows
+from fman.impl.view import Style
 from fman.util import system
 from fman.util.qt import CurrentThread
 from fman.impl.settings import Settings
-from glob import glob
 from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtWidgets import QApplication, QSplitter
 
@@ -23,6 +23,7 @@ class ApplicationContext:
 		self._settings = None
 		self._os = None
 		self._gui_thread = None
+		self._style = None
 	@property
 	def app(self):
 		if self._app is None:
@@ -30,6 +31,7 @@ class ApplicationContext:
 			with open(self.get_resource('style.qss'), 'r') as style_file:
 				stylesheet = style_file.read()
 			self._app.setStyleSheet(stylesheet)
+			self._app.setStyle(self.style)
 		return self._app
 	@property
 	def main_window(self):
@@ -71,6 +73,8 @@ class ApplicationContext:
 		if self._os is None:
 			if system.is_osx():
 				self._os = OSX()
+			elif system.is_windows():
+				self._os = Windows()
 			else:
 				raise NotImplementedError('This OS is not yet supported.')
 		return self._os
@@ -79,6 +83,11 @@ class ApplicationContext:
 		if self._gui_thread is None:
 			self._gui_thread = CurrentThread()
 		return self._gui_thread
+	@property
+	def style(self):
+		if self._style is None:
+			self._style = Style()
+		return self._style
 	def get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
 		return normpath(join(res_dir, *rel_path))

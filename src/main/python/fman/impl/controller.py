@@ -61,10 +61,10 @@ class DirectoryPaneController:
 			editor = self.settings['editor']
 			if not editor:
 				editor = self.os.prompt_user_to_pick_application(
-					'Please pick an editor.'
+					view, 'Please pick an Editor'
 				)
 			if editor:
-				self.os.open(*self._get_selected_files(view), with_app=editor)
+				self.os.open(self._get_file_under_cursor(view), with_app=editor)
 				self.settings['editor'] = editor
 		elif event.key() == Key_F5:
 			files = self._get_selected_files(view)
@@ -194,6 +194,10 @@ class DirectoryPaneController:
 			model.sourceModel().filePath(model.mapToSource(index))
 			for index in indexes
 		]
+	def _get_file_under_cursor(self, view):
+		model = view.model()
+		index = view.currentIndex()
+		return model.sourceModel().filePath(model.mapToSource(index))
 	def _get_selection_flag(self, view, shift_pressed):
 		if shift_pressed:
 			if view.selectionModel().isSelected(view.currentIndex()):

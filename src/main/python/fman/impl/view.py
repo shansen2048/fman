@@ -5,7 +5,7 @@ from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
-	QStyledItemDelegate
+	QStyledItemDelegate, QProxyStyle
 
 class PathView(QLineEdit):
 	def __init__(self, parent=None):
@@ -115,3 +115,10 @@ class Layout(QVBoxLayout):
 		self.addWidget(file_view)
 		self.setContentsMargins(0, 0, 0, 0)
 		self.setSpacing(0)
+
+class Style(QProxyStyle):
+	def drawPrimitive(self, element, option, painter, widget):
+		if element == QStyle.PE_FrameFocusRect:
+			# Prevent the ugly dotted border around focused elements on Windows:
+			return
+		super().drawPrimitive(element, option, painter, widget)
