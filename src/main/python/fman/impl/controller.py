@@ -61,7 +61,7 @@ class DirectoryPaneController:
 			file_under_cursor = self._get_file_under_cursor(view)
 			if not isfile(file_under_cursor):
 				self.gui_thread.show_message_box(
-					"Please select a file!", QMessageBox.Ok, QMessageBox.Ok
+					"No file is selected!", QMessageBox.Ok, QMessageBox.Ok
 				)
 			else:
 				editor = self.settings['editor']
