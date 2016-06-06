@@ -61,7 +61,7 @@ class DirectoryPaneController:
 			file_under_cursor = self._get_file_under_cursor(view)
 			if not isfile(file_under_cursor):
 				msgbox = QMessageBox()
-				msgbox.setText("Please select a file!")
+				msgbox.setText("No file is selected!")
 				msgbox.setStandardButtons(QMessageBox.Ok)
 				msgbox.setDefaultButton(QMessageBox.Ok)
 				msgbox.exec()
