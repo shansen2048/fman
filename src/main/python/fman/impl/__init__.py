@@ -2,6 +2,7 @@ from fman.impl.controller import DirectoryPaneController
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once
+from os.path import normpath
 from PyQt5.QtWidgets import QWidget
 
 class DirectoryPane(QWidget):
@@ -25,7 +26,7 @@ class DirectoryPane(QWidget):
 		self.file_view.reset()
 		connect_once(self._model.directoryLoaded, lambda _: callback())
 		self._model.setRootPath(path)
-		self._path_view.setText(path)
+		self._path_view.setText(normpath(path))
 		self.file_view.setRootIndex(self._root_index)
 		self.file_view.hideColumn(2)
 	def get_path(self):

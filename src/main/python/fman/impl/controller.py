@@ -5,8 +5,8 @@ from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_F11, Key_F9
 from fman.util.system import is_osx
 from os import rename
-from os.path import abspath, join, pardir, dirname, basename, exists, isdir, \
-	split, isfile
+from os.path import join, pardir, dirname, basename, exists, isdir, split, \
+	isfile
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
@@ -52,7 +52,7 @@ class DirectoryPaneController:
 				view.move_cursor_down()
 		elif event.key() == Key_Backspace:
 			current_dir = source().get_path()
-			parent_dir = abspath(join(current_dir, pardir))
+			parent_dir = join(current_dir, pardir)
 			callback = lambda: source().place_cursor_at(current_dir)
 			source().set_path(parent_dir, callback)
 		elif event.key() in (Key_Enter, Key_Return):
