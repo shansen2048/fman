@@ -19,15 +19,9 @@ class FileOperation:
 	def __call__(self):
 		raise NotImplementedError()
 	def prompt_user(self, text, standard_buttons, default_button):
-		return self.gui_thread.execute(
-			self._show_message_box, text, standard_buttons, default_button
+		return self.gui_thread.show_message_box(
+			text, standard_buttons, default_button
 		)
-	def _show_message_box(self, text, standard_buttons, default_button):
-		msgbox = QMessageBox()
-		msgbox.setText(text)
-		msgbox.setStandardButtons(standard_buttons)
-		msgbox.setDefaultButton(default_button)
-		return msgbox.exec()
 
 class FileTreeOperation(FileOperation):
 	def __init__(

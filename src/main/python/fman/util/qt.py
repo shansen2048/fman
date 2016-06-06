@@ -1,4 +1,6 @@
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtWidgets import QMessageBox
+from threading import get_ident
 
 def connect_once(signal, slot):
 	def _connect_once(*args, **kwargs):
@@ -28,15 +30,29 @@ class Task:
 			raise self._exception
 		return self._result
 
-class CurrentThread(QObject):
+class GuiThread(QObject):
 	_execute_signal = pyqtSignal(Task)
 	def __init__(self, parent=None):
 		super().__init__(parent)
+		self.main_thread_id = get_ident()
 		self._execute_signal.connect(self._execute, Qt.BlockingQueuedConnection)
 	def execute(self, fn, *args, **kwargs):
+		if get_ident() == self.main_thread_id:
+			return fn(*args, **kwargs)
 		task = Task(fn, args, kwargs)
 		self._execute_signal.emit(task)
 		return task.result
+	def show_message_box(self, text, standard_buttons, default_button):
+		return self.execute(
+			self._show_message_box, text, standard_buttons, default_button
+		)
+	def _show_message_box(self, text, standard_buttons, default_button):
+		msgbox = QMessageBox()
+		msgbox.setWindowTitle('fman')
+		msgbox.setText(text)
+		msgbox.setStandardButtons(standard_buttons)
+		msgbox.setDefaultButton(default_button)
+		return msgbox.exec()
 	def _execute(self, task):
 		task()
 

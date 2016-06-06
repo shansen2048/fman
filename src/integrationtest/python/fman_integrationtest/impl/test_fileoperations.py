@@ -257,16 +257,16 @@ class StubGuiThread:
 	def __init__(self, test_case):
 		self.expected_prompts = []
 		self.test_case = test_case
-	def execute(self, fn, *args, **kwargs):
-		if fn.__func__ == FileOperation._show_message_box:
-			if not self.expected_prompts:
-				self.test_case.fail('Unexpected prompt: %r' % args[0])
-				return
-			expected_args, answer = self.expected_prompts.pop(0)
-			self.test_case.assertEqual(expected_args, args)
-			return answer
-		raise ValueError('Unexpected method call: %r' % fn)
+	def show_message_box(self, *args):
+		if not self.expected_prompts:
+			self.test_case.fail('Unexpected prompt: %r' % args[0])
+			return
+		expected_args, answer = self.expected_prompts.pop(0)
+		self.test_case.assertEqual(expected_args, args)
+		return answer
 	def expect_prompt(self, args, answer):
 		self.expected_prompts.append((args, answer))
 	def verify_expected_prompts_were_shown(self):
 		self.test_case.assertEqual([], self.expected_prompts)
+	def execute(self, fn, *args, **kwargs):
+		raise NotImplementedError()

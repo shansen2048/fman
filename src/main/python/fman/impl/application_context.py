@@ -2,7 +2,7 @@ from fman.impl import DirectoryPaneController, DirectoryPane
 from fman.impl.os_ import OSX, Windows
 from fman.impl.view import Style
 from fman.util import system
-from fman.util.qt import CurrentThread
+from fman.util.qt import GuiThread
 from fman.impl.settings import Settings
 from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtWidgets import QApplication, QSplitter
@@ -81,7 +81,7 @@ class ApplicationContext:
 	@property
 	def gui_thread(self):
 		if self._gui_thread is None:
-			self._gui_thread = CurrentThread()
+			self._gui_thread = GuiThread()
 		return self._gui_thread
 	@property
 	def style(self):

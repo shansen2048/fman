@@ -60,11 +60,9 @@ class DirectoryPaneController:
 		elif event.key() == Key_F4:
 			file_under_cursor = self._get_file_under_cursor(view)
 			if not isfile(file_under_cursor):
-				msgbox = QMessageBox()
-				msgbox.setText("Please select a file!")
-				msgbox.setStandardButtons(QMessageBox.Ok)
-				msgbox.setDefaultButton(QMessageBox.Ok)
-				msgbox.exec()
+				self.gui_thread.show_message_box(
+					"Please select a file!", QMessageBox.Ok, QMessageBox.Ok
+				)
 			else:
 				editor = self.settings['editor']
 				if not editor:
@@ -111,19 +109,15 @@ class DirectoryPaneController:
 				model.sourceModel().mkdir(root_index, name)
 				pane.place_cursor_at(join(pane.get_path(), name))
 		elif event.key() in (Key_F8, Key_Delete):
-			msgbox = QMessageBox()
 			to_delete = self._get_selected_files(view)
 			if len(to_delete) > 1:
 				description = 'these %d items' % len(to_delete)
 			else:
 				description = to_delete[0]
-			msgbox.setText(
+			choice = self.gui_thread.show_message_box(
 				"Do you really want to move %s to the recycle bin?" %
-				description
+				description, QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
 			)
-			msgbox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-			msgbox.setDefaultButton(QMessageBox.Yes)
-			choice = msgbox.exec()
 			if choice & QMessageBox.Yes:
 				self.os.move_to_trash(*to_delete)
 		elif event.key() == Key_F9:
@@ -157,27 +151,20 @@ class DirectoryPaneController:
 					if len(files) == 1:
 						return split(dest)
 					else:
-						msgbox = QMessageBox()
-						msgbox.setText(
+						self.gui_thread.show_message_box(
 							'You cannot %s multiple files to a single file!' %
-							descr_verb
+							descr_verb, QMessageBox.Ok, QMessageBox.Ok
 						)
-						msgbox.setStandardButtons(QMessageBox.Ok)
-						msgbox.setDefaultButton(QMessageBox.Ok)
-						msgbox.exec()
 			else:
 				if len(files) == 1:
 					return split(dest)
 				else:
-					msgbox = QMessageBox()
-					msgbox.setText(
+					choice = self.gui_thread.show_message_box(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(dest, descr_verb)
+						(dest, descr_verb), QMessageBox.Yes | QMessageBox.No,
+						QMessageBox.Yes
 					)
-					msgbox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-					msgbox.setDefaultButton(QMessageBox.Yes)
-					choice = msgbox.exec()
 					if choice & QMessageBox.Yes:
 						return dest, None
 	def activated(self, model, file_view, index):
