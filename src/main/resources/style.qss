@@ -1,5 +1,6 @@
 QTreeView, QInputDialog, QMessageBox {
 	background-color: #272822;
+	border: none;
 }
 
 QTreeView QHeaderView, QTreeView QHeaderView::section {
@@ -60,4 +61,5 @@ QLineEdit:read-only {
 
 PathView {
 	padding: 2px;
+	border-bottom: 1px solid #262626;
 }
