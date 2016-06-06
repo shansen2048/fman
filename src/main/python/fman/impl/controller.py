@@ -6,7 +6,7 @@ from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 from fman.util.system import is_osx
 from os import rename
 from os.path import abspath, join, pardir, dirname, basename, exists, isdir, \
-	split
+	split, isfile
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
@@ -58,14 +58,22 @@ class DirectoryPaneController:
 		elif event.key() in (Key_Enter, Key_Return):
 			view.activated.emit(view.currentIndex())
 		elif event.key() == Key_F4:
-			editor = self.settings['editor']
-			if not editor:
-				editor = self.os.prompt_user_to_pick_application(
-					view, 'Please pick an Editor'
-				)
-			if editor:
-				self.os.open(self._get_file_under_cursor(view), with_app=editor)
-				self.settings['editor'] = editor
+			file_under_cursor = self._get_file_under_cursor(view)
+			if not isfile(file_under_cursor):
+				msgbox = QMessageBox()
+				msgbox.setText("Please select a file!")
+				msgbox.setStandardButtons(QMessageBox.Ok)
+				msgbox.setDefaultButton(QMessageBox.Ok)
+				msgbox.exec()
+			else:
+				editor = self.settings['editor']
+				if not editor:
+					editor = self.os.prompt_user_to_pick_application(
+						view, 'Please pick an Editor'
+					)
+				if editor:
+					self.os.open(file_under_cursor, with_app=editor)
+					self.settings['editor'] = editor
 		elif event.key() == Key_F5:
 			files = self._get_selected_files(view)
 			dest_dir = target().get_path()
@@ -103,19 +111,19 @@ class DirectoryPaneController:
 				model.sourceModel().mkdir(root_index, name)
 				pane.place_cursor_at(join(pane.get_path(), name))
 		elif event.key() in (Key_F8, Key_Delete):
-			message_box = QMessageBox()
+			msgbox = QMessageBox()
 			to_delete = self._get_selected_files(view)
 			if len(to_delete) > 1:
 				description = 'these %d items' % len(to_delete)
 			else:
 				description = to_delete[0]
-			message_box.setText(
+			msgbox.setText(
 				"Do you really want to move %s to the recycle bin?" %
 				description
 			)
-			message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-			message_box.setDefaultButton(QMessageBox.Yes)
-			choice = message_box.exec()
+			msgbox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+			msgbox.setDefaultButton(QMessageBox.Yes)
+			choice = msgbox.exec()
 			if choice & QMessageBox.Yes:
 				self.os.move_to_trash(*to_delete)
 		elif event.key() == Key_F9:
