@@ -9,6 +9,7 @@ Windows preparation:
  d) Add gnuwin32/bin from Qt source dir, perl and Python to PATH
  e) Follow the instructions on http://doc.qt.io/qt-5/windows-building.html
     - You may have to install the DirectX SDK (9.29.1962.0)
+ f) Add c:\Qt\5.6.0\qtbase\bin to your PATH.
 
 OS X preparation:
  a) Edit the sources:
