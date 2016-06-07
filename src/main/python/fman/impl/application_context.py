@@ -5,6 +5,7 @@ from fman.util import system
 from fman.util.qt import GuiThread
 from fman.impl.settings import Settings
 from os.path import dirname, join, pardir, expanduser, normpath
+from PyQt5.QtCore import QDir
 from PyQt5.QtWidgets import QApplication, QSplitter
 
 import sys
@@ -32,6 +33,7 @@ class ApplicationContext:
 				stylesheet = style_file.read()
 			self._app.setStyleSheet(stylesheet)
 			self._app.setStyle(self.style)
+			QDir.addSearchPath('image', self.get_resource('images'))
 		return self._app
 	@property
 	def main_window(self):
