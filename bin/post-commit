@@ -9,6 +9,8 @@ toplevel_dir=`basename "$toplevel_path"`
 subject=`git log --pretty=format:%s -n1`
 tweet='New fman commit: '$subject
 
+echo 'Posting tweet: '$tweet
+
 # truncate tweets that are longer than 140 characters
 if [ ${#tweet} -gt 140 ]
     then
