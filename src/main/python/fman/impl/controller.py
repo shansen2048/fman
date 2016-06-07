@@ -6,7 +6,7 @@ from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 from fman.util.system import is_osx
 from os import rename
 from os.path import join, pardir, dirname, basename, exists, isdir, split, \
-	isfile
+	isfile, normpath
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
@@ -141,7 +141,7 @@ class DirectoryPaneController:
 		message = '%s %s to' % (descr_verb.capitalize(), files_descr)
 		dest, ok = QInputDialog.getText(
 			self.left_pane.parentWidget(), 'fman', message, QLineEdit.Normal,
-			join(dest_dir, dest_name)
+			normpath(join(dest_dir, dest_name))
 		)
 		if ok:
 			if exists(dest):
