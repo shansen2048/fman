@@ -7,7 +7,7 @@ toplevel_path=`git rev-parse --show-toplevel`
 toplevel_dir=`basename "$toplevel_path"`
 
 subject=`git log --pretty=format:%s -n1`
-tweet='[fman commit] '$subject
+tweet='New fman commit: '$subject
 
 # truncate tweets that are longer than 140 characters
 if [ ${#tweet} -gt 140 ]
