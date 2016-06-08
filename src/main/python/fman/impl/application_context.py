@@ -29,6 +29,7 @@ class ApplicationContext:
 	def app(self):
 		if self._app is None:
 			self._app = QApplication(self.argv)
+			self._app.setApplicationDisplayName('fman')
 			with open(self.get_resource('style.qss'), 'r') as style_file:
 				stylesheet = style_file.read()
 			self._app.setStyleSheet(stylesheet)

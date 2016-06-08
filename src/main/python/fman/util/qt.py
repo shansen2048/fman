@@ -48,7 +48,6 @@ class GuiThread(QObject):
 		)
 	def _show_message_box(self, text, standard_buttons, default_button):
 		msgbox = QMessageBox()
-		msgbox.setWindowTitle('fman')
 		msgbox.setText(text)
 		msgbox.setStandardButtons(standard_buttons)
 		msgbox.setDefaultButton(default_button)
