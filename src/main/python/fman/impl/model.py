@@ -39,14 +39,16 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 			return self._always_ascending(left_is_dir < right_is_dir)
 		if left_is_dir and right_is_dir:
 			# Sort directories by name:
-			return self._always_ascending(left_.fileName() > right_.fileName())
+			return self._always_ascending(
+				left_.fileName().lower() > right_.fileName().lower()
+			)
 		return self._get_sort_value(left) < self._get_sort_value(right)
 	def _get_sort_value(self, row):
 		file_info = self.sourceModel().fileInfo(row)
 		column = self.sortColumn()
 		# QFileSystemModel hardcodes the columns as follows:
 		if column == 0:
-			return file_info.fileName()
+			return file_info.fileName().lower()
 		elif column == 1:
 			return file_info.size()
 		elif column == 2:
