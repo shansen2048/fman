@@ -1,3 +1,7 @@
 * {
 	font-family: "Lucida Sans Unicode";
 }
+
+QTreeView QHeaderView::section {
+	font-size: 11px;
+}
