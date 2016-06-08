@@ -24,15 +24,14 @@ class ApplicationContext:
 		self._settings = None
 		self._os = None
 		self._gui_thread = None
+		self._stylesheet = None
 		self._style = None
 	@property
 	def app(self):
 		if self._app is None:
 			self._app = QApplication(self.argv)
 			self._app.setApplicationDisplayName('fman')
-			with open(self.get_resource('style.qss'), 'r') as style_file:
-				stylesheet = style_file.read()
-			self._app.setStyleSheet(stylesheet)
+			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
 			QDir.addSearchPath('image', self.get_resource('images'))
 		return self._app
@@ -86,6 +85,15 @@ class ApplicationContext:
 		if self._gui_thread is None:
 			self._gui_thread = GuiThread()
 		return self._gui_thread
+	@property
+	def stylesheet(self):
+		if self._stylesheet is None:
+			with open(self.get_resource('styles', 'base.qss'), 'r') as f:
+				self._stylesheet = f.read()
+			if system.is_windows():
+				with open(self.get_resource('styles', 'windows.qss'), 'r') as f:
+					self._stylesheet += '\n' + f.read()
+		return self._stylesheet
 	@property
 	def style(self):
 		if self._style is None:
