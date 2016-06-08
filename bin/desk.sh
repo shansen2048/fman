@@ -26,31 +26,29 @@ source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
 
-export PYTHONPATH="$PROJECT_DIR/src/main/python:$PROJECT_DIR/src/unittest/python:$PROJECT_DIR/src/integrationtest/python"
+MAIN_PYTHON_PATH=$PROJECT_DIR/src/main/python
+TEST_PYTHON_PATH=$MAIN_PYTHON_PATH:$PROJECT_DIR/src/unittest/python:$PROJECT_DIR/src/integrationtest/python
 
-# git status
-alias status='git status'
+alias compile='cx_Freeze build'
 
-# git add
-alias add='git add'
-
-# git commit
-alias commit='git commit'
-
-# git push
-alias push='git push'
-
-compile() {
-	pyinstaller -y \
-		--distpath "$PROJECT_DIR/target/dist" \
-		--workpath "$PROJECT_DIR/target/build" \
-		"$PROJECT_DIR/src/main/fman.spec"
-}
+alias package='cx_Freeze bdist_dmg'
 
 test() {
-	python -m unittest fman_unittest fman_integrationtest
+	PYTHONPATH=$TEST_PYTHON_PATH python -m unittest fman_unittest fman_integrationtest
 }
 
-alias run='target/dist/fman/fman'
+alias run='$PROJECT_DIR/build/exe.macosx-10.6-intel-3.4/fman'
 
-alias clean='rm -rf target'
+alias shell='PYTHONPATH=$MAIN_PYTHON_PATH python'
+
+alias clean='rm -rf "$PROJECT_DIR/build"'
+
+function cx_Freeze {
+	# Because of cx_Freeze bug #128
+	# (https://bitbucket.org/anthony_tuininga/cx_freeze/issues/128), we can't
+	# specify cx_Freeze's output directory via option 'build_exe' wihout
+	# breaking bdist_mac. cx_Freeze thus always produces its output in the
+	# build/ subdirectory of the current directory. Ensure that this directory
+	# is inside $PROJECT_DIR at least by spawning a sub-shell (cd ...; ...):
+	(cd $PROJECT_DIR; PYTHONPATH=$MAIN_PYTHON_PATH python src/main/python/setup.py $1)
+}

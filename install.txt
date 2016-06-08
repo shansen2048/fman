@@ -67,3 +67,14 @@ Windows:
  5) Search for `python34.lib` in all Makefile*'s and replace by absolute path c:\Python34\libs\python34.lib
  5) jom
  6) jom install
+
+cx_Freeze on OS X:
+==================
+Execute the following while in the root project directory:
+
+qt_lib_dir=/usr/local/Qt-5.6.0/lib
+qt_lib_dir_str_len=25
+for fname in $( find ${qt_lib_dir} -iname "*.framework" | cut -c ${qt_lib_dir_str_len}-9999 );
+do
+    ln -s ${qt_lib_dir}/$fname venv/lib/$fname
+done

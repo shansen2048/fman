@@ -1,1 +1,2 @@
+-r base.txt
 Send2Trash==1.3.0
