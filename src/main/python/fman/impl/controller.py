@@ -148,8 +148,9 @@ class DirectoryPaneController:
 		return result
 	def _confirm_tree_operation(self, files, dest_dir, descr_verb):
 		if len(files) == 1:
-			dest_name = basename(files[0])
-			files_descr = '"%s"' % dest_name
+			file_, = files
+			dest_name = basename(file_) if isfile(file_) else ''
+			files_descr = '"%s"' % basename(file_)
 		else:
 			dest_name = ''
 			files_descr = '%d files' % len(files)
