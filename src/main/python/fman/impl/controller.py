@@ -198,8 +198,8 @@ class DirectoryPaneController:
 		rename(src, dest)
 		pane.place_cursor_at(dest)
 	def _get_selected_files(self, view):
-		indexes = \
-			view.selectionModel().selectedIndexes() or [view.currentIndex()]
+		indexes = view.selectionModel().selectedRows(column=0) \
+				  or [view.currentIndex()]
 		model = view.model()
 		return [
 			normpath(model.sourceModel().filePath(model.mapToSource(index)))
