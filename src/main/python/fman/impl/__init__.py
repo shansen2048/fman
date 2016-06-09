@@ -25,9 +25,9 @@ class DirectoryPane(QWidget):
 			callback = self.reset_cursor
 		self.file_view.reset()
 		connect_once(self._model.directoryLoaded, lambda _: callback())
-		self._model.setRootPath(path)
 		self._path_view.setText(normpath(path))
-		self.file_view.setRootIndex(self._root_index)
+		index = self._model_sorted.mapFromSource(self._model.setRootPath(path))
+		self.file_view.setRootIndex(index)
 		self.file_view.hideColumn(2)
 	def get_path(self):
 		return self._model.rootPath()
