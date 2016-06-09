@@ -33,8 +33,6 @@ Install SIP:
  1) Download SIP 4.18 from https://www.riverbankcomputing.com/software/sip/download
  2) Unpack
 
- 3) python configure.py (while the venv is active!)
-
 On OS X:
  3) source venv/bin/activate
  4) python configure.py
