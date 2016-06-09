@@ -9,7 +9,7 @@ from os.path import join, pardir, dirname, basename, exists, isdir, split, \
 	isfile, normpath
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox, QFileDialog
 from threading import Thread
 
 class DirectoryPaneController:
@@ -66,9 +66,18 @@ class DirectoryPaneController:
 			else:
 				editor = self.settings['editor']
 				if not editor:
-					editor = self.os.prompt_user_to_pick_application(
-						view, 'Please pick an Editor'
+					choice = self.gui_thread.show_message_box(
+						'Editor is currently not configured. Please pick one.',
+						QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok
 					)
+					if choice & QMessageBox.Ok:
+						result = QFileDialog.getOpenFileName(
+							view, 'Pick an Editor',
+							self.os.get_applications_directory(),
+							self.os.get_applications_filter()
+						)
+						if result:
+							editor = result[0]
 				if editor:
 					self.os.open(file_under_cursor, with_app=editor)
 					self.settings['editor'] = editor

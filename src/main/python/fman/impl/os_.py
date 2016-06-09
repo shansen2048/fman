@@ -1,5 +1,4 @@
 from os.path import splitdrive, exists
-from PyQt5.QtWidgets import QFileDialog
 from subprocess import Popen
 
 import sys
@@ -7,7 +6,9 @@ import sys
 class OS:
 	def move_to_trash(self, *files):
 		raise NotImplementedError()
-	def prompt_user_to_pick_application(self, qt_parent, message):
+	def get_applications_directory(self):
+		raise NotImplementedError()
+	def get_applications_filter(self):
 		raise NotImplementedError()
 	def open(self, file_, with_app=None):
 		raise NotImplementedError()
@@ -18,17 +19,10 @@ class OSX(OS):
 	def move_to_trash(self, *files):
 		from osxtrash import move_to_trash
 		return move_to_trash(*files)
-	def prompt_user_to_pick_application(self, qt_parent, message):
-		# Note: This import takes 200ms. Don't do it at the top of a file!
-		from Cocoa import NSOpenPanel, NSURL, NSOKButton
-		panel = NSOpenPanel.openPanel()
-		panel.setDirectoryURL_(NSURL.fileURLWithPath_('/Applications'))
-		panel.setCanChooseDirectories_(False)
-		panel.setAllowedFileTypes_(['app'])
-		panel.setMessage_(message)
-		result = panel.runModal()
-		if result == NSOKButton:
-			return panel.filename()
+	def get_applications_directory(self):
+		return '/Applications'
+	def get_applications_filter(self):
+		return "Applications (*.app)"
 	def open(self, file_, with_app=None):
 		args = ['/usr/bin/open']
 		if with_app:
@@ -43,15 +37,13 @@ class Windows(OS):
 		from send2trash import send2trash
 		for file in files:
 			send2trash(file)
-	def prompt_user_to_pick_application(self, qt_parent, message):
-		root_dir = r'c:\Program Files'
-		if not exists(root_dir):
-			root_dir = splitdrive(sys.executable)[0] + '\\'
-		result = QFileDialog.getOpenFileName(
-			qt_parent, message, root_dir, "Applications (*.exe)"
-		)
-		if result:
-			return result[0]
+	def get_applications_directory(self):
+		result = r'c:\Program Files'
+		if not exists(result):
+			result = splitdrive(sys.executable)[0] + '\\'
+		return result
+	def get_applications_filter(self):
+		return "Applications (*.exe)"
 	def open(self, file_, with_app=None):
 		if with_app is None:
 			from os import startfile
