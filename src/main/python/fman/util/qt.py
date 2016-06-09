@@ -92,3 +92,11 @@ ItemIsEnabled = Qt.ItemIsEnabled
 ItemIsEditable = Qt.ItemIsEditable
 ItemIsSelectable = Qt.ItemIsSelectable
 EditRole = Qt.EditRole
+
+Yes = QMessageBox.Yes
+No = QMessageBox.No
+YesToAll = QMessageBox.YesToAll
+NoToAll = QMessageBox.NoToAll
+Abort = QMessageBox.Abort
+Ok = QMessageBox.Ok
+Cancel = QMessageBox.Cancel

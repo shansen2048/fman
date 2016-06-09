@@ -1,38 +1,23 @@
+from fman.impl.gui_operations import show_message_box
+from fman.util.qt import Yes, No, YesToAll, NoToAll, Abort, Ok
 from os import makedirs
 from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
 	dirname
-from PyQt5.QtWidgets import QMessageBox
 from shutil import copy2, move, rmtree, copytree
 
 import os
 
-Yes = QMessageBox.Yes
-No = QMessageBox.No
-YesToAll = QMessageBox.YesToAll
-NoToAll = QMessageBox.NoToAll
-Abort = QMessageBox.Abort
-Ok = QMessageBox.Ok
-
-class FileOperation:
-	def __init__(self, gui_thread):
-		self.gui_thread = gui_thread
-	def __call__(self):
-		raise NotImplementedError()
-	def prompt_user(self, text, standard_buttons, default_button):
-		return self.gui_thread.show_message_box(
-			text, standard_buttons, default_button
-		)
-
-class FileTreeOperation(FileOperation):
+class FileTreeOperation:
 	def __init__(
-		self, gui_thread, files, dest_dir, descr_verb, src_dir=None,
+		self, gui_thread, status_bar, files, dest_dir, descr_verb, src_dir=None,
 		dest_name=None
 	):
 		if dest_name and len(files) > 1:
 			raise ValueError(
 				'Destination name can only be given when there is one file.'
 			)
-		super().__init__(gui_thread)
+		self.gui_thread = gui_thread
+		self.status_bar = status_bar
 		self.files = files
 		self.dest_dir = dest_dir
 		self.descr_verb = descr_verb
@@ -40,8 +25,13 @@ class FileTreeOperation(FileOperation):
 		self.dest_name = dest_name
 		self.cannot_move_to_self_shown = False
 		self.override_all = None
+	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
+		raise NotImplementedError()
+	def _perform_on_file(self, src, dest):
+		raise NotImplementedError()
 	def __call__(self):
 		for src in self.files:
+			self._report_processing_of_file(src)
 			dest = self._get_dest_path(src)
 			if isdir(src):
 				if exists(dest):
@@ -53,8 +43,8 @@ class FileTreeOperation(FileOperation):
 							makedirs(dest_dir, exist_ok=True)
 							for file_name in file_names:
 								file_path = join(dir_, file_name)
-								dest_ = self._get_dest_path(file_path)
-								if not self.perform_on_file(file_path, dest_):
+								dst = self._get_dest_path(file_path)
+								if not self.perform_on_file(file_path, dst):
 									return
 						self.postprocess_directory(src)
 				else:
@@ -62,18 +52,25 @@ class FileTreeOperation(FileOperation):
 			else:
 				if not self.perform_on_file(src, dest):
 					return
+		self._set_status('Ready.')
+	def _report_processing_of_file(self, file_):
+		verbing = self.descr_verb.capitalize() + 'ing'
+		self._set_status('%s %s...' % (verbing, basename(file_)))
+	def _set_status(self, status):
+		self.gui_thread.execute(self.status_bar.showMessage, status)
 	def perform_on_file(self, src, dest):
+		self._report_processing_of_file(src)
 		if exists(dest):
 			if samefile(src, dest):
 				if not self.cannot_move_to_self_shown:
-					self.prompt_user(
+					self._prompt_user(
 						"You cannot %s a file to itself." % self.descr_verb,
 						Ok, Ok
 					)
 					self.cannot_move_to_self_shown = True
 				return True
 			if self.override_all is None:
-				choice = self.prompt_user(
+				choice = self._prompt_user(
 					"%s exists. Do you want to override it?" % basename(src),
 					Yes | No | YesToAll | NoToAll | Abort, Yes
 				)
@@ -90,10 +87,10 @@ class FileTreeOperation(FileOperation):
 		makedirs(dirname(dest), exist_ok=True)
 		self._perform_on_file(src, dest)
 		return True
-	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		raise NotImplementedError()
-	def _perform_on_file(self, src, dest):
-		raise NotImplementedError()
+	def _prompt_user(self, text, standard_buttons, default_button):
+		return self.gui_thread.execute(
+			show_message_box, text, standard_buttons, default_button
+		)
 	def postprocess_directory(self, src_dir_path):
 		pass
 	def _get_dest_path(self, src_file):
@@ -107,10 +104,11 @@ class FileTreeOperation(FileOperation):
 
 class CopyFiles(FileTreeOperation):
 	def __init__(
-		self, gui_thread, files, dest_dir, src_dir=None, dest_name=None
+		self, gui_thread, status_bar, files, dest_dir, src_dir=None,
+		dest_name=None
 	):
 		super().__init__(
-			gui_thread, files, dest_dir, 'copy', src_dir, dest_name
+			gui_thread, status_bar, files, dest_dir, 'copy', src_dir, dest_name
 		)
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
 		copytree(src, dest, symlinks=True)
@@ -119,10 +117,11 @@ class CopyFiles(FileTreeOperation):
 
 class MoveFiles(FileTreeOperation):
 	def __init__(
-		self, gui_thread, files, dest_dir, src_dir=None, dest_name=None
+		self, gui_thread, status_bar, files, dest_dir, src_dir=None,
+		dest_name=None
 	):
 		super().__init__(
-			gui_thread, files, dest_dir, 'move', src_dir, dest_name
+			gui_thread, status_bar, files, dest_dir, 'move', src_dir, dest_name
 		)
 	def postprocess_directory(self, src_dir_path):
 		rmtree(src_dir_path, ignore_errors=True)

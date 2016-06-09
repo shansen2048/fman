@@ -10,6 +10,7 @@ def main(argv):
 	controller = appctxt.controller
 	appctxt.settings.apply(window, controller.left_pane, controller.right_pane)
 	window.show()
+	appctxt.status_bar.showMessage('Ready.')
 	exit_code = app.exec_()
 	appctxt.settings.save(window, controller.left_pane, controller.right_pane)
 	sys.exit(exit_code)

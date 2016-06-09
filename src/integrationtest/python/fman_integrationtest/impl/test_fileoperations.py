@@ -1,5 +1,6 @@
-from fman.impl.fileoperations import CopyFiles, FileOperation, Yes, No, Ok, \
-	YesToAll, NoToAll, Abort, MoveFiles
+from fman.impl.fileoperations import CopyFiles, Yes, No, Ok, YesToAll, \
+	NoToAll, Abort, MoveFiles
+from fman.impl.gui_operations import show_message_box
 from os import listdir, mkdir, chmod, makedirs, readlink
 from os.path import basename, join, dirname, exists, islink, realpath, samefile
 from tempfile import TemporaryDirectory
@@ -182,6 +183,7 @@ class FileTreeOperationAT:
 		self.test_dest_name(src_equals_dest=True)
 	def setUp(self):
 		self.gui_thread = StubGuiThread(self)
+		self.status_bar = StubStatusBar()
 		self._src = TemporaryDirectory()
 		self._dest = TemporaryDirectory()
 		self._external_dir = TemporaryDirectory()
@@ -190,7 +192,10 @@ class FileTreeOperationAT:
 	def _perform_on(self, *files, dest_dir=None, dest_name=None):
 		if dest_dir is None:
 			dest_dir = self.dest
-		self.operation(self.gui_thread, files, dest_dir, self.src, dest_name)()
+		self.operation(
+			self.gui_thread, self.status_bar, files, dest_dir, self.src,
+			dest_name
+		)()
 		self.gui_thread.verify_expected_prompts_were_shown()
 	@property
 	def src(self):
@@ -257,16 +262,22 @@ class StubGuiThread:
 	def __init__(self, test_case):
 		self.expected_prompts = []
 		self.test_case = test_case
-	def show_message_box(self, *args):
-		if not self.expected_prompts:
-			self.test_case.fail('Unexpected prompt: %r' % args[0])
+	def execute(self, fn, *args, **kwargs):
+		if fn == show_message_box:
+			if not self.expected_prompts:
+				self.test_case.fail('Unexpected prompt: %r' % args[0])
+				return
+			expected_args, answer = self.expected_prompts.pop(0)
+			self.test_case.assertEqual(expected_args, args)
+			return answer
+		elif fn.__func__ == StubStatusBar.showMessage:
 			return
-		expected_args, answer = self.expected_prompts.pop(0)
-		self.test_case.assertEqual(expected_args, args)
-		return answer
+		raise ValueError('Unexpected function call: %r' % fn)
 	def expect_prompt(self, args, answer):
 		self.expected_prompts.append((args, answer))
 	def verify_expected_prompts_were_shown(self):
 		self.test_case.assertEqual([], self.expected_prompts)
-	def execute(self, fn, *args, **kwargs):
-		raise NotImplementedError()
+
+class StubStatusBar:
+	def showMessage(self, _):
+		pass

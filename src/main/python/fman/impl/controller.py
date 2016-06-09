@@ -1,23 +1,25 @@
 from fman.impl.fileoperations import CopyFiles, MoveFiles
+from fman.impl.gui_operations import show_message_box
 from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_PageUp, Key_Space, Key_Insert, ShiftModifier, Key_Backspace, \
 	Key_Enter, Key_Return, Key_F6, Key_F7, Key_F8, Key_Delete, Key_F5, Key_F4, \
-	Key_F11, Key_F9
+	Key_F11, Key_F9, Yes, No, Ok, Cancel
 from fman.util.system import is_osx
 from os import rename
 from os.path import join, pardir, dirname, basename, exists, isdir, split, \
 	isfile, normpath
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox, QFileDialog
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog
 from threading import Thread
 
 class DirectoryPaneController:
-	def __init__(self, os_, settings, app, gui_thread):
+	def __init__(self, os_, settings, app, gui_thread, status_bar):
 		self.os = os_
 		self.settings = settings
 		self.app = app
 		self.gui_thread = gui_thread
+		self.status_bar = status_bar
 		self.left_pane = self.right_pane = None
 	def key_pressed_in_file_view(self, view, event):
 		source = lambda: view.parentWidget()
@@ -60,17 +62,18 @@ class DirectoryPaneController:
 		elif event.key() == Key_F4:
 			file_under_cursor = self._get_file_under_cursor(view)
 			if not isfile(file_under_cursor):
-				self.gui_thread.show_message_box(
-					"No file is selected!", QMessageBox.Ok, QMessageBox.Ok
+				self.gui_thread.execute(
+					show_message_box, "No file is selected!", Ok, Ok
 				)
 			else:
 				editor = self.settings['editor']
 				if not editor:
-					choice = self.gui_thread.show_message_box(
+					choice = self.gui_thread.execute(
+						show_message_box,
 						'Editor is currently not configured. Please pick one.',
-						QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok
+						Ok | Cancel, Ok
 					)
-					if choice & QMessageBox.Ok:
+					if choice & Ok:
 						result = QFileDialog.getOpenFileName(
 							view, 'Pick an Editor',
 							self.os.get_applications_directory(),
@@ -89,7 +92,8 @@ class DirectoryPaneController:
 				dest_dir, dest_name = proceed
 				src_dir = source().get_path()
 				operation = CopyFiles(
-					self.gui_thread, files, dest_dir, src_dir, dest_name
+					self.gui_thread, self.status_bar, files, dest_dir, src_dir,
+					dest_name
 				)
 				Thread(target=operation).start()
 		elif event.key() == Key_F6:
@@ -103,7 +107,8 @@ class DirectoryPaneController:
 					dest_dir, dest_name = proceed
 					src_dir = source().get_path()
 					operation = MoveFiles(
-						self.gui_thread, files, dest_dir, src_dir, dest_name
+						self.gui_thread, self.status_bar, files, dest_dir,
+						src_dir, dest_name
 					)
 					Thread(target=operation).start()
 		elif event.key() == Key_F7:
@@ -123,11 +128,12 @@ class DirectoryPaneController:
 				description = 'these %d items' % len(to_delete)
 			else:
 				description = to_delete[0]
-			choice = self.gui_thread.show_message_box(
+			choice = self.gui_thread.execute(
+				show_message_box,
 				"Do you really want to move %s to the recycle bin?" %
-				description, QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
+				description, Yes | No, Yes
 			)
-			if choice & QMessageBox.Yes:
+			if choice & Yes:
 				self.os.move_to_trash(*to_delete)
 		elif event.key() == Key_F9:
 			self.os.open_terminal_in_directory(source().get_path())
@@ -160,21 +166,22 @@ class DirectoryPaneController:
 					if len(files) == 1:
 						return split(dest)
 					else:
-						self.gui_thread.show_message_box(
+						self.gui_thread.execute(
+							show_message_box,
 							'You cannot %s multiple files to a single file!' %
-							descr_verb, QMessageBox.Ok, QMessageBox.Ok
+							descr_verb, Ok, Ok
 						)
 			else:
 				if len(files) == 1:
 					return split(dest)
 				else:
-					choice = self.gui_thread.show_message_box(
+					choice = self.gui_thread.execute(
+						show_message_box,
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(dest, descr_verb), QMessageBox.Yes | QMessageBox.No,
-						QMessageBox.Yes
+						(dest, descr_verb), Yes | No, Yes
 					)
-					if choice & QMessageBox.Yes:
+					if choice & Yes:
 						return dest, None
 	def activated(self, model, file_view, index):
 		file_path = model.filePath(index)

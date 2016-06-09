@@ -6,7 +6,7 @@ from fman.util.qt import GuiThread
 from fman.impl.settings import Settings
 from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtCore import QDir
-from PyQt5.QtWidgets import QApplication, QSplitter
+from PyQt5.QtWidgets import QApplication, QSplitter, QMainWindow, QStatusBar
 
 import sys
 
@@ -20,6 +20,7 @@ class ApplicationContext:
 		self.argv = argv
 		self._app = None
 		self._main_window = None
+		self._status_bar = None
 		self._controller = None
 		self._settings = None
 		self._os = None
@@ -38,19 +39,25 @@ class ApplicationContext:
 	@property
 	def main_window(self):
 		if self._main_window is None:
-			self._main_window = QSplitter()
-			self._main_window.addWidget(self.controller.left_pane)
-			self._main_window.addWidget(self.controller.right_pane)
-			self._main_window.setWindowTitle("fman")
-			window_width = self.settings['window_width']
-			window_height = self.settings['window_height']
-			self._main_window.resize(window_width, window_height)
+			self._main_window = QMainWindow()
+			splitter = QSplitter()
+			splitter.addWidget(self.controller.left_pane)
+			splitter.addWidget(self.controller.right_pane)
+			splitter.setWindowTitle("fman")
+			self._main_window.setCentralWidget(splitter)
+			self._main_window.setStatusBar(self.status_bar)
 		return self._main_window
+	@property
+	def status_bar(self):
+		if self._status_bar is None:
+			self._status_bar = QStatusBar()
+		return self._status_bar
 	@property
 	def controller(self):
 		if self._controller is None:
 			self._controller = DirectoryPaneController(
-				self.os, self.settings, self.app, self.gui_thread
+				self.os, self.settings, self.app, self.gui_thread,
+				self.status_bar
 			)
 			self._controller.left_pane = self._create_pane('left')
 			self._controller.right_pane = self._create_pane('right')

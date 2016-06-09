@@ -75,3 +75,10 @@ PathView {
 	padding: 2px;
 	border-bottom: 1px solid #262626;
 }
+
+QStatusBar {
+	background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #5b5b5b, stop: 1 #545454);
+	color: white;
+	font-size: 11px;
+	border-top: 1px solid #7d7d7d;
+}
