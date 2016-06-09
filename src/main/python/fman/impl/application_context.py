@@ -51,6 +51,7 @@ class ApplicationContext:
 	def status_bar(self):
 		if self._status_bar is None:
 			self._status_bar = QStatusBar()
+			self._status_bar.setSizeGripEnabled(False)
 		return self._status_bar
 	@property
 	def controller(self):
