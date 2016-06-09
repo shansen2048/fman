@@ -195,7 +195,7 @@ class DirectoryPaneController:
 			view.selectionModel().selectedIndexes() or [view.currentIndex()]
 		model = view.model()
 		return [
-			model.sourceModel().filePath(model.mapToSource(index))
+			normpath(model.sourceModel().filePath(model.mapToSource(index)))
 			for index in indexes
 		]
 	def _get_file_under_cursor(self, view):
