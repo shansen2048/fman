@@ -2,7 +2,7 @@ from fman.impl.controller import DirectoryPaneController
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once
-from os.path import normpath
+from os.path import abspath, exists, join, pardir
 from PyQt5.QtWidgets import QWidget
 
 class DirectoryPane(QWidget):
@@ -23,16 +23,25 @@ class DirectoryPane(QWidget):
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = self.file_view.reset_cursor
+		path = self._normalize_path(path)
 		self.file_view.reset()
+		self._path_view.setText(path)
 		connect_once(self._model.directoryLoaded, lambda _: callback())
-		self._path_view.setText(normpath(path))
 		index = self._model_sorted.mapFromSource(self._model.setRootPath(path))
 		self.file_view.setRootIndex(index)
 		self.file_view.hideColumn(2)
 	def get_path(self):
-		return self._model.rootPath()
+		return abspath(self._model.rootPath())
 	def place_cursor_at(self, path):
 		self.file_view.setCurrentIndex(self._path_to_index(path))
+	def _normalize_path(self, path):
+		path = abspath(path)
+		while not exists(path):
+			new_path = abspath(join(path, pardir))
+			if path == new_path:
+				break
+			path = new_path
+		return path
 	def _path_to_index(self, path):
 		return self._model_sorted.mapFromSource(self._model.index(path))
 	def _activated(self, index):
