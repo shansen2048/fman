@@ -119,7 +119,7 @@ class DirectoryPaneController:
 			if ok and name:
 				model = view.model()
 				pane = source()
-				root_index = model.mapToSource(pane._root_index)
+				root_index = model.mapToSource(view.rootIndex())
 				model.sourceModel().mkdir(root_index, name)
 				pane.place_cursor_at(join(pane.get_path(), name))
 		elif event.key() in (Key_F8, Key_Delete):
