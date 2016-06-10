@@ -98,6 +98,12 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		if self.hasFocus() and index.row() == self.currentIndex().row():
 			option.state |= QStyle.State_HasFocus
 		super().drawRow(painter, option, index)
+	def focusInEvent(self, event):
+		if not self.currentIndex().isValid():
+			self.reset_cursor()
+		super().focusInEvent(event)
+	def reset_cursor(self):
+		self.setCurrentIndex(self.rootIndex().child(0, 0))
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):

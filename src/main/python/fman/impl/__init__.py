@@ -22,7 +22,7 @@ class DirectoryPane(QWidget):
 		self._controller = controller
 	def set_path(self, path, callback=None):
 		if callback is None:
-			callback = self.reset_cursor
+			callback = self.file_view.reset_cursor
 		self.file_view.reset()
 		connect_once(self._model.directoryLoaded, lambda _: callback())
 		self._path_view.setText(normpath(path))
@@ -33,11 +33,6 @@ class DirectoryPane(QWidget):
 		return self._model.rootPath()
 	def place_cursor_at(self, path):
 		self.file_view.setCurrentIndex(self._path_to_index(path))
-	def reset_cursor(self):
-		self.file_view.setCurrentIndex(self._root_index.child(0, 0))
-	@property
-	def _root_index(self):
-		return self._path_to_index(self._model.rootPath())
 	def _path_to_index(self, path):
 		return self._model_sorted.mapFromSource(self._model.index(path))
 	def _activated(self, index):
