@@ -1,5 +1,5 @@
 from fman.impl import DirectoryPaneController, DirectoryPane
-from fman.impl.os_ import OSX, Windows
+from fman.impl.os_ import OSX, Windows, Linux
 from fman.impl.view import Style
 from fman.util import system
 from fman.util.qt import GuiThread
@@ -85,6 +85,8 @@ class ApplicationContext:
 				self._os = OSX()
 			elif system.is_windows():
 				self._os = Windows()
+			elif system.is_linux():
+				self._os = Linux()
 			else:
 				raise NotImplementedError('This OS is not yet supported.')
 		return self._os

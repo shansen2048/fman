@@ -8,8 +8,8 @@ from fman.util.system import is_osx
 from os import rename
 from os.path import join, pardir, dirname, basename, exists, isdir, split, \
 	isfile, normpath
-from PyQt5.QtCore import QItemSelectionModel as QISM
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import QItemSelectionModel as QISM, QUrl, QDir
+from PyQt5.QtGui import QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog
 from threading import Thread
 
@@ -62,14 +62,11 @@ class DirectoryPaneController:
 		elif event.key() == Key_F4:
 			file_under_cursor = self._get_file_under_cursor(view)
 			if not isfile(file_under_cursor):
-				self.gui_thread.execute(
-					show_message_box, "No file is selected!", Ok, Ok
-				)
+				show_message_box("No file is selected!", Ok, Ok)
 			else:
 				editor = self.settings['editor']
 				if not editor:
-					choice = self.gui_thread.execute(
-						show_message_box,
+					choice = show_message_box(
 						'Editor is currently not configured. Please pick one.',
 						Ok | Cancel, Ok
 					)
@@ -82,7 +79,7 @@ class DirectoryPaneController:
 						if result:
 							editor = result[0]
 				if editor:
-					self.os.open(file_under_cursor, with_app=editor)
+					self.os.open_file_with_app(file_under_cursor, editor)
 					self.settings['editor'] = editor
 		elif event.key() == Key_F5:
 			files = self._get_selected_files(view)
@@ -128,8 +125,7 @@ class DirectoryPaneController:
 				description = 'these %d items' % len(to_delete)
 			else:
 				description = to_delete[0]
-			choice = self.gui_thread.execute(
-				show_message_box,
+			choice = show_message_box(
 				"Do you really want to move %s to the recycle bin?" %
 				description, Yes | No, Yes
 			)
@@ -167,8 +163,7 @@ class DirectoryPaneController:
 					if len(files) == 1:
 						return split(dest)
 					else:
-						self.gui_thread.execute(
-							show_message_box,
+						show_message_box(
 							'You cannot %s multiple files to a single file!' %
 							descr_verb, Ok, Ok
 						)
@@ -176,8 +171,7 @@ class DirectoryPaneController:
 				if len(files) == 1:
 					return split(dest)
 				else:
-					choice = self.gui_thread.execute(
-						show_message_box,
+					choice = show_message_box(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
 						(dest, descr_verb), Yes | No, Yes
@@ -190,7 +184,7 @@ class DirectoryPaneController:
 			file_view.clearSelection()
 			file_view.parentWidget().set_path(file_path)
 		else:
-			self.os.open(file_path)
+			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 	def file_renamed(self, pane, model, index, new_name):
 		if not new_name:
 			return

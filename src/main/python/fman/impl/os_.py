@@ -10,8 +10,8 @@ class OS:
 		raise NotImplementedError()
 	def get_applications_filter(self):
 		raise NotImplementedError()
-	def open(self, file_, with_app=None):
-		raise NotImplementedError()
+	def open_file_with_app(self, file_, app):
+		Popen([app, file_])
 	def open_terminal_in_directory(self, dir_):
 		raise NotImplementedError()
 
@@ -23,14 +23,10 @@ class OSX(OS):
 		return '/Applications'
 	def get_applications_filter(self):
 		return "Applications (*.app)"
-	def open(self, file_, with_app=None):
-		args = ['/usr/bin/open']
-		if with_app:
-			args += ['-a', with_app]
-		args.append(file_)
-		Popen(args)
+	def open_file_with_app(self, file_, app):
+		Popen(['/usr/bin/open', '-a', app, file_])
 	def open_terminal_in_directory(self, dir_):
-		self.open(dir_, with_app='Terminal')
+		self.open_file_with_app(dir_, 'Terminal')
 
 class Windows(OS):
 	def move_to_trash(self, *files):
@@ -44,11 +40,17 @@ class Windows(OS):
 		return result
 	def get_applications_filter(self):
 		return "Applications (*.exe)"
-	def open(self, file_, with_app=None):
-		if with_app is None:
-			from os import startfile
-			startfile(file_)
-		else:
-			Popen([with_app, file_])
 	def open_terminal_in_directory(self, dir_):
 		Popen('start cmd', shell=True, cwd=dir_)
+
+class Linux(OS):
+	def move_to_trash(self, *files):
+		from send2trash import send2trash
+		for file in files:
+			send2trash(file)
+	def get_applications_directory(self):
+		return r'/usr/bin'
+	def get_applications_filter(self):
+		return "Applications (*)"
+	def open_terminal_in_directory(self, dir_):
+		Popen('gnome-terminal', shell=True, cwd=dir_)
