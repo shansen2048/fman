@@ -23,8 +23,11 @@ OS X preparation:
 		qtwebengine/src/webengine/api/qquickwebengineview_p_p.h:
 			Add #include <QtGui/QColor>
 
+Linux preparation:
+ sudo apt-get install build-essential libxcb1 libxcb1-dev libx11-xcb1 libx11-xcb-dev libxcb-keysyms1 libxcb-keysyms1-dev libxcb-image0 libxcb-image0-dev libxcb-shm0 libxcb-shm0-dev libxcb-icccm4 libxcb-icccm4-dev libxcb-sync1 libxcb-sync-dev libxcb-xfixes0-dev libxrender-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0 libxcb-render-util0-dev libxcb-glx0-dev libxcb-xinerama0-dev
+
 2) Build & install
-	./configure -release -opensource -no-accessibility -nomake examples -nomake tests -nomake doc
+	./configure -release -opensource -no-accessibility -nomake examples -nomake tests
 	make -j4 module-qtbase (on Windows use jom module-qtbase)
 	sudo make module-qtbase-install_subtargets (on Windows use jom ...)
 
@@ -48,9 +51,13 @@ On Windows:
  7) jom
  8) jom install
 
+Linux:
+ ﻿3) sudo apt-get install python3-dev
+  rest as in OS X
+
 Install PyQT:
 =============
- 1) Download PyQt 5.6 from ﻿https://www.riverbankcomputing.com/software/pyqt/download5
+ 1) Download PyQt 5.6 from﻿https://www.riverbankcomputing.com/software/pyqt/download5
  2) Unpack
 
 OS X:
@@ -66,8 +73,11 @@ Windows:
  5) jom
  6) jom install
 
-cx_Freeze on OS X:
-==================
+cx_Freeze:
+==========
+
+OS X:
+-----
 Execute the following while in the root project directory:
 
 qt_lib_dir=/usr/local/Qt-5.6.0/lib
@@ -76,3 +86,10 @@ for fname in $( find ${qt_lib_dir} -iname "*.framework" | cut -c ${qt_lib_dir_st
 do
     ln -s ${qt_lib_dir}/$fname venv/lib/$fname
 done
+
+Linux:
+------
+sudo apt-get install lib32z1-dev
+Download cx_Freeze.tar.gz from PyPI
+source venv/bin/activate
+python setup.py install
