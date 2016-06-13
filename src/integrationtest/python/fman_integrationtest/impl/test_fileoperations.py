@@ -172,10 +172,10 @@ class FileTreeOperationAT:
 		with open(foo, 'w') as f:
 			f.write('1234')
 		self._perform_on(foo, dest_name='bar')
-		expected_files = ['bar']
+		expected_files = {'bar'}
 		if preserves_files and src_equals_dest:
-			expected_files += ['foo']
-		self.assertEqual(expected_files, listdir(self.dest))
+			expected_files.add('foo')
+		self.assertEqual(expected_files, set(listdir(self.dest)))
 		with open(join(self.dest, 'bar'), 'r') as f:
 			self.assertEqual('1234', f.read())
 		return foo
