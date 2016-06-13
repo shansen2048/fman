@@ -7,6 +7,7 @@ from fman.util.qt import GuiThread
 from fman.impl.settings import Settings, SettingsManager
 from os.path import dirname, join, pardir, expanduser, normpath
 from PyQt5.QtCore import QDir, QSettings
+from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication
 
 import sys
@@ -29,6 +30,10 @@ class ApplicationContext:
 		self._gui_thread = None
 		self._stylesheet = None
 		self._style = None
+	def load_fonts(self):
+		if system.is_linux():
+			db = QFontDatabase()
+			db.addApplicationFont(self.get_resource('OpenSans-Semibold.ttf'))
 	@property
 	def app(self):
 		if self._app is None:
@@ -103,8 +108,13 @@ class ApplicationContext:
 		if self._stylesheet is None:
 			with open(self.get_resource('styles', 'base.qss'), 'r') as f:
 				self._stylesheet = f.read()
+			os_styles = None
 			if system.is_windows():
-				with open(self.get_resource('styles', 'windows.qss'), 'r') as f:
+				os_styles = 'windows.qss'
+			elif system.is_linux():
+				os_styles = 'linux.qss'
+			if os_styles:
+				with open(self.get_resource('styles', os_styles), 'r') as f:
 					self._stylesheet += '\n' + f.read()
 		return self._stylesheet
 	@property

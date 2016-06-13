@@ -6,9 +6,9 @@ def main(argv):
 	appctxt = get_application_context(argv)
 	# Must have a QApplication before everything else:
 	app = appctxt.app
+	appctxt.load_fonts()
 	window = appctxt.main_window
-	settings_manager = appctxt.settings_manager
-	settings_manager.on_startup(window)
+	appctxt.settings_manager.on_startup(window)
 	window.status_bar.showMessage('Ready.')
 	window.show()
 	exit_code = app.exec_()
