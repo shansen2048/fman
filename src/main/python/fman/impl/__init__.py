@@ -1,24 +1,42 @@
-from fman.impl.controller import DirectoryPaneController
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once
 from os.path import abspath, exists, join, pardir
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar
+
+class MainWindow(QMainWindow):
+	def __init__(self):
+		super().__init__()
+		splitter = QSplitter(self)
+		self.left_pane = DirectoryPane(splitter)
+		splitter.addWidget(self.left_pane)
+		self.right_pane = DirectoryPane(splitter)
+		splitter.addWidget(self.right_pane)
+		self.setCentralWidget(splitter)
+		self.status_bar = QStatusBar(self)
+		self.status_bar.setSizeGripEnabled(False)
+		self.setStatusBar(self.status_bar)
+		self.setWindowTitle("fman")
+	def set_controller(self, controller):
+		self.left_pane.set_controller(controller)
+		self.right_pane.set_controller(controller)
 
 class DirectoryPane(QWidget):
-	def __init__(self, controller):
-		super().__init__()
+	def __init__(self, parent):
+		super().__init__(parent)
 		self._path_view = PathView(self)
 		self._model = FileSystemModel()
-		file_renamed = lambda *args: controller.file_renamed(self, *args)
-		self._model.file_renamed.connect(file_renamed)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
 		self.file_view = FileListView(self)
 		self.file_view.setModel(self._model_sorted)
-		self.file_view.keyPressEventFilter = controller.key_pressed_in_file_view
 		self.file_view.activated.connect(self._activated)
 		self.setLayout(Layout(self._path_view, self.file_view))
+		self._controller = None
+	def set_controller(self, controller):
+		self.file_view.keyPressEventFilter = controller.key_pressed_in_file_view
+		file_renamed = lambda *args: controller.file_renamed(self, *args)
+		self._model.file_renamed.connect(file_renamed)
 		self._controller = controller
 	def set_path(self, path, callback=None):
 		if callback is None:

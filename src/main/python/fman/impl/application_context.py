@@ -1,12 +1,13 @@
-from fman.impl import DirectoryPaneController, DirectoryPane
+from fman.impl import MainWindow
+from fman.impl.controller import Controller
 from fman.impl.os_ import OSX, Windows, Linux
 from fman.impl.view import Style
 from fman.util import system
 from fman.util.qt import GuiThread
-from fman.impl.settings import Settings
+from fman.impl.settings import Settings, SettingsManager
 from os.path import dirname, join, pardir, expanduser, normpath
-from PyQt5.QtCore import QDir
-from PyQt5.QtWidgets import QApplication, QSplitter, QMainWindow, QStatusBar
+from PyQt5.QtCore import QDir, QSettings
+from PyQt5.QtWidgets import QApplication
 
 import sys
 
@@ -20,9 +21,10 @@ class ApplicationContext:
 		self.argv = argv
 		self._app = None
 		self._main_window = None
-		self._status_bar = None
 		self._controller = None
+		self._settings_manager = None
 		self._settings = None
+		self._qt_settings = None
 		self._os = None
 		self._gui_thread = None
 		self._stylesheet = None
@@ -31,6 +33,9 @@ class ApplicationContext:
 	def app(self):
 		if self._app is None:
 			self._app = QApplication(self.argv)
+			self._app.setOrganizationName('fman.io')
+			self._app.setOrganizationDomain('fman.io')
+			self._app.setApplicationName('fman')
 			self._app.setApplicationDisplayName('fman')
 			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
@@ -38,39 +43,29 @@ class ApplicationContext:
 		return self._app
 	@property
 	def main_window(self):
-		if self._main_window is None:
-			self._main_window = QMainWindow()
-			splitter = QSplitter()
-			splitter.addWidget(self.controller.left_pane)
-			splitter.addWidget(self.controller.right_pane)
-			splitter.setWindowTitle("fman")
-			self._main_window.setCentralWidget(splitter)
-			self._main_window.setStatusBar(self.status_bar)
-		return self._main_window
-	@property
-	def status_bar(self):
-		if self._status_bar is None:
-			self._status_bar = QStatusBar()
-			self._status_bar.setSizeGripEnabled(False)
-		return self._status_bar
+		return self._main_window_and_controller[0]
 	@property
 	def controller(self):
-		if self._controller is None:
-			self._controller = DirectoryPaneController(
-				self.os, self.settings, self.app, self.gui_thread,
-				self.status_bar
+		return self._main_window_and_controller[1]
+	@property
+	def _main_window_and_controller(self):
+		assert (self._main_window is None) == (self._controller is None)
+		if self._main_window is None:
+			self._main_window = MainWindow()
+			self._main_window.closeEvent = \
+				lambda _: self.settings_manager.on_close(self.main_window)
+			self._controller = Controller(
+				self._main_window, self.os, self.settings, self.app,
+				self.gui_thread
 			)
-			self._controller.left_pane = self._create_pane('left')
-			self._controller.right_pane = self._create_pane('right')
-		return self._controller
-	def _create_pane(self, side):
-		result = DirectoryPane(self._controller)
-		settings = self.settings[side]
-		location = expanduser(settings['location'])
-		result.set_path(location)
-		for i, width in enumerate(settings['col_widths']):
-			result.file_view.setColumnWidth(i, width)
-		return result
+			self._main_window.set_controller(self._controller)
+		return self._main_window, self._controller
+	@property
+	def settings_manager(self):
+		if self._settings_manager is None:
+			self._settings_manager = \
+				SettingsManager(self.settings, self.qt_settings)
+		return self._settings_manager
 	@property
 	def settings(self):
 		if self._settings is None:
@@ -78,6 +73,14 @@ class ApplicationContext:
 			custom_settings = expanduser(join('~', '.fman', 'settings.json'))
 			self._settings = Settings(default_settings, custom_settings)
 		return self._settings
+	@property
+	def qt_settings(self):
+		if self._qt_settings is None:
+			self._qt_settings = QSettings(
+				expanduser(join('~', '.fman', 'qt_settings.ini')),
+				QSettings.IniFormat
+			)
+		return self._qt_settings
 	@property
 	def os(self):
 		if self._os is None:

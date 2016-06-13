@@ -13,14 +13,22 @@ from PyQt5.QtGui import QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog
 from threading import Thread
 
-class DirectoryPaneController:
-	def __init__(self, os_, settings, app, gui_thread, status_bar):
+class Controller:
+	def __init__(self, main_window, os_, settings, app, gui_thread):
+		self.main_window = main_window
 		self.os = os_
 		self.settings = settings
 		self.app = app
 		self.gui_thread = gui_thread
-		self.status_bar = status_bar
-		self.left_pane = self.right_pane = None
+	@property
+	def left_pane(self):
+		return self.main_window.left_pane
+	@property
+	def right_pane(self):
+		return self.main_window.right_pane
+	@property
+	def status_bar(self):
+		return self.main_window.status_bar
 	def key_pressed_in_file_view(self, view, event):
 		source = lambda: view.parentWidget()
 		target = lambda: \

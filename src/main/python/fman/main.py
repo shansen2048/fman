@@ -7,12 +7,11 @@ def main(argv):
 	# Must have a QApplication before everything else:
 	app = appctxt.app
 	window = appctxt.main_window
-	controller = appctxt.controller
-	appctxt.settings.apply(window, controller.left_pane, controller.right_pane)
+	settings_manager = appctxt.settings_manager
+	settings_manager.on_startup(window)
+	window.status_bar.showMessage('Ready.')
 	window.show()
-	appctxt.status_bar.showMessage('Ready.')
 	exit_code = app.exec_()
-	appctxt.settings.save(window, controller.left_pane, controller.right_pane)
 	sys.exit(exit_code)
 
 if __name__ == '__main__':
