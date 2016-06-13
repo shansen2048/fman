@@ -5,7 +5,7 @@ from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
-	QStyledItemDelegate, QProxyStyle
+	QStyledItemDelegate, QProxyStyle, QAbstractItemView
 
 class PathView(QLineEdit):
 	def __init__(self, parent=None):
@@ -49,7 +49,9 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 	def move_cursor_end(self, selection_flags):
 		self._move_cursor(Key_End, selection_flags)
 	def toggle_current(self):
-		self.selectionModel().select(self.currentIndex(), QISM.Toggle)
+		self.selectionModel().select(
+			self.currentIndex(), QISM.Toggle | QISM.Rows
+		)
 	def _move_cursor(self, key, selectionFlags=QISM.NoUpdate):
 		modifiers = self._selection_flag_to_modifier(selectionFlags)
 		evt = QKeyEvent(QEvent.KeyPress, key, modifiers, '', False, 1)
@@ -86,6 +88,7 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.setUniformRowHeights(True)
 		self.setItemDelegate(FileListItemDelegate())
+		self.setSelectionBehavior(QAbstractItemView.SelectRows)
 		# Double click should activate the file, not open its editor:
 		self.setEditTriggers(self.NoEditTriggers)
 	def keyPressEvent(self, event):
