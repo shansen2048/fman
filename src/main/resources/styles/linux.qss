@@ -1,0 +1,8 @@
+* {
+	font-family: "Open Sans";
+	font-style: "Semibold";
+}
+
+QStatusBar {
+	font-size: 11px;
+}
