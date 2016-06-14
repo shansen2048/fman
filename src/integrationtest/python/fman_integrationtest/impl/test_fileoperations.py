@@ -1,3 +1,4 @@
+from fman.impl import fileoperations
 from fman.impl.fileoperations import CopyFiles, Yes, No, Ok, YesToAll, \
 	NoToAll, Abort, MoveFiles
 from fman.impl.gui_operations import show_message_box
@@ -6,6 +7,7 @@ from os.path import basename, join, dirname, exists, islink, realpath, samefile
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+import logging
 import os
 import stat
 
@@ -177,6 +179,19 @@ class FileTreeOperationAT:
 		return foo
 	def test_dest_name_same_dir(self):
 		self.test_dest_name(src_equals_dest=True)
+	def test_error_continue(self, do_continue=True):
+		nonexistent_file = join(self.src, 'foo.txt')
+		existent_file = join(self.src, 'bar.txt')
+		self._touch(existent_file)
+		self._expect_prompt(
+			('Could not %s %s. Do you want to continue?' %
+			 (self.operation_descr_verb, nonexistent_file),
+			 Yes | YesToAll | Abort, Yes), answer=Yes if do_continue else Abort
+		)
+		self._perform_on(nonexistent_file, existent_file)
+		self.assertEqual(['bar.txt'] if do_continue else [], listdir(self.dest))
+	def test_error_abort(self):
+		self.test_error_continue(do_continue=False)
 	def setUp(self):
 		self.gui_thread = StubGuiThread(self)
 		self.status_bar = StubStatusBar()
@@ -185,6 +200,9 @@ class FileTreeOperationAT:
 		self._external_dir = TemporaryDirectory()
 		# Create a dummy file to test that not _all_ files are copied from src:
 		self._touch(join(self.src, 'dummy'))
+		self._log_level_before = fileoperations._LOG.getEffectiveLevel()
+		# Suppress log messages on console when running tests:
+		fileoperations._LOG.setLevel(logging.CRITICAL)
 	def _perform_on(self, *files, dest_dir=None, dest_name=None):
 		if dest_dir is None:
 			dest_dir = self.dest
@@ -203,6 +221,7 @@ class FileTreeOperationAT:
 	def external_dir(self):
 		return self._external_dir.name
 	def tearDown(self):
+		fileoperations._LOG.setLevel(self._log_level_before)
 		self._src.cleanup()
 		self._dest.cleanup()
 		self._external_dir.cleanup()
@@ -216,6 +235,30 @@ class FileTreeOperationAT:
 class CopyFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
 		super().__init__(CopyFiles, 'copy', methodName)
+	def test_overwrite_locked_file(self):
+		# Would also like to have this as a test case in MoveFilesTest but the
+		# call to chmod(0o444) which we use to lock the file doesn't prevent the
+		# file from being overwritten by a move. Another solution would be to
+		# chown the file as a different user, but then the test would require
+		# root privileges. So keep it here only for now.
+		dir_ = join(self.src, 'dir')
+		makedirs(dir_)
+		src_file = join(dir_, 'foo.txt')
+		self._touch(src_file, 'dstn')
+		dest_dir = join(self.dest, 'dir')
+		makedirs(dest_dir)
+		locked_dest_file = join(dest_dir, 'foo.txt')
+		self._touch(locked_dest_file)
+		chmod(locked_dest_file, 0o444)
+		self._expect_prompt(
+			('foo.txt exists. Do you want to override it?',
+			 Yes | No | YesToAll | NoToAll | Abort, Yes), answer=Yes
+		)
+		self._expect_prompt(
+			('Could not copy %s. Do you want to continue?' % src_file,
+			 Yes | YesToAll | Abort, Yes), answer=Yes
+		)
+		self._perform_on(dir_)
 
 class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
@@ -273,7 +316,9 @@ class StubGuiThread:
 	def expect_prompt(self, args, answer):
 		self.expected_prompts.append((args, answer))
 	def verify_expected_prompts_were_shown(self):
-		self.test_case.assertEqual([], self.expected_prompts)
+		self.test_case.assertEqual(
+			[], self.expected_prompts, 'Did not receive all expected prompts.'
+		)
 
 class StubStatusBar:
 	def showMessage(self, _):

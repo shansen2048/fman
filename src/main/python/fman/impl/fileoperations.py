@@ -5,7 +5,10 @@ from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
 	dirname
 from shutil import copy2, move, rmtree, copytree
 
+import logging
 import os
+
+_LOG = logging.getLogger(__name__)
 
 class FileTreeOperation:
 	def __init__(
@@ -31,28 +34,45 @@ class FileTreeOperation:
 		raise NotImplementedError()
 	def __call__(self):
 		for src in self.files:
-			self._report_processing_of_file(src)
-			dest = self._get_dest_path(src)
+			if not self._call_on_file(src):
+				break
+		self._set_status('Ready.')
+	def _call_on_file(self, src):
+		self._report_processing_of_file(src)
+		dest = self._get_dest_path(src)
+		try:
 			if isdir(src):
 				if exists(dest):
 					if samefile(src, dest):
-						continue
+						return True
 					else:
 						for (dir_, _, file_names) in os.walk(src):
-							dest_dir = self._get_dest_path(dir_)
-							makedirs(dest_dir, exist_ok=True)
 							for file_name in file_names:
 								file_path = join(dir_, file_name)
 								dst = self._get_dest_path(file_path)
-								if not self.perform_on_file(file_path, dst):
-									return
+								try:
+									if not self.perform_on_file(file_path, dst):
+										return False
+								except (OSError, IOError):
+									return self._handle_exception(file_path)
 						self.postprocess_directory(src)
 				else:
 					self._perform_on_dir_dest_doesnt_exist(src, dest)
 			else:
 				if not self.perform_on_file(src, dest):
-					return
-		self._set_status('Ready.')
+					return False
+		except (OSError, IOError):
+			return self._handle_exception(src)
+		return True
+	def _handle_exception(self, file_path):
+		_LOG.exception(
+			'Exception occurred trying to %s %s.' % (self.descr_verb, file_path)
+		)
+		choice = self._prompt_user(
+			'Could not %s %s. Do you want to continue?'
+			% (self.descr_verb, file_path), Yes | YesToAll | Abort, Yes
+		)
+		return choice & Yes or choice & YesToAll
 	def _report_processing_of_file(self, file_):
 		verbing = self.descr_verb.capitalize() + 'ing'
 		self._set_status('%s %s...' % (verbing, basename(file_)))
