@@ -18,8 +18,7 @@ class FileTreeOperationAT:
 		if dest_dir is None:
 			dest_dir = self.dest
 		src_file = join(self.src, 'test.txt')
-		with open(src_file, 'w') as f:
-			f.write('1234')
+		self._touch(src_file, '1234')
 		self._perform_on(src_file, dest_dir=dest_dir)
 		self.assertEqual(['test.txt'], listdir(dest_dir))
 		with open(join(dest_dir, 'test.txt'), 'r') as f:
@@ -44,8 +43,7 @@ class FileTreeOperationAT:
 		file_in_dir = join(dir_, 'file.txt')
 		self._touch(file_in_dir)
 		executable_in_dir = join(dir_, 'executable')
-		with open(executable_in_dir, 'w') as f:
-			f.write('abc')
+		self._touch(executable_in_dir, 'abc')
 		st_mode = os.stat(executable_in_dir).st_mode
 		chmod(executable_in_dir, st_mode | stat.S_IEXEC)
 		self._perform_on(file_outside_dir, dir_, dest_dir=dest_dir)
@@ -71,8 +69,7 @@ class FileTreeOperationAT:
 		file_contents = lambda src_file_path: basename(src_file_path)
 		for i, src_file_path in enumerate(src_files):
 			makedirs(dirname(src_file_path), exist_ok=True)
-			with open(src_file_path, 'w') as f:
-				f.write(file_contents(src_file_path))
+			self._touch(src_file_path, file_contents(src_file_path))
 			dest_file_path = dest_files[i]
 			makedirs(dirname(dest_file_path), exist_ok=True)
 			self._touch(dest_file_path)
@@ -169,8 +166,7 @@ class FileTreeOperationAT:
 	def test_dest_name(self, src_equals_dest=False, preserves_files=True):
 		src_dir = self.dest if src_equals_dest else self.src
 		foo = join(src_dir, 'foo')
-		with open(foo, 'w') as f:
-			f.write('1234')
+		self._touch(foo, '1234')
 		self._perform_on(foo, dest_name='bar')
 		expected_files = {'bar'}
 		if preserves_files and src_equals_dest:
@@ -210,9 +206,10 @@ class FileTreeOperationAT:
 		self._src.cleanup()
 		self._dest.cleanup()
 		self._external_dir.cleanup()
-	def _touch(self, file_path):
-		with open(file_path, 'w'):
-			pass
+	def _touch(self, file_path, contents=None):
+		with open(file_path, 'w') as f:
+			if contents:
+				f.write(contents)
 	def _expect_prompt(self, args, answer):
 		self.gui_thread.expect_prompt(args, answer)
 
