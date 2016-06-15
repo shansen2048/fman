@@ -47,6 +47,13 @@ make_dmg() {
 	$PROJECT_DIR/bin/osx/yoursway-create-dmg/create-dmg --volname fman --app-drop-link 0 10 --icon fman 200 10 $TARGET_DIR/fman.dmg $TARGET_DIR/fman.app
 }
 
+make_setup() {
+	compile
+	latest_zip=$(find target -iname "fman-*.zip" | sort | tail -1)
+	unzip $latest_zip -d $TARGET_DIR/exploded
+	makensis $PROJECT_DIR/src/main/Setup.nsi
+}
+
 test() {
 	PYTHONPATH=$TEST_PYTHON_PATH python -m unittest fman_unittest fman_integrationtest
 }
