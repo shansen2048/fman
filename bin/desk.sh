@@ -28,9 +28,23 @@ PS1="(fman) \h:\W \u\$ "
 
 MAIN_PYTHON_PATH=$PROJECT_DIR/src/main/python
 TEST_PYTHON_PATH=$MAIN_PYTHON_PATH:$PROJECT_DIR/src/unittest/python:$PROJECT_DIR/src/integrationtest/python
+TARGET_DIR=$PROJECT_DIR/target
 
 compile() {
-	PYTHONPATH=$MAIN_PYTHON_PATH python src/main/python/setup.py bdist_esky
+	PYTHONPATH=$MAIN_PYTHON_PATH python $PROJECT_DIR/src/main/python/setup.py bdist_esky
+}
+
+make_app() {
+	compile
+	mkdir -p $TARGET_DIR/fman.app/Contents/MacOS
+	latest_zip=$(find target -iname "fman-*.zip" | sort | tail -1)
+	unzip $latest_zip -d $TARGET_DIR/fman.app/Contents/MacOS
+	cp $PROJECT_DIR/src/main/resources/osx/Info.plist $TARGET_DIR/fman.app/Contents
+}
+
+make_dmg() {
+	make_app
+	$PROJECT_DIR/bin/osx/yoursway-create-dmg/create-dmg --volname fman --app-drop-link 0 10 --icon fman 200 10 $TARGET_DIR/fman.dmg $TARGET_DIR/fman.app
 }
 
 test() {
@@ -41,4 +55,4 @@ alias run='$PROJECT_DIR/build/exe.macosx-10.6-intel-3.4/fman'
 
 alias shell='PYTHONPATH=$MAIN_PYTHON_PATH python'
 
-alias clean='rm -rf "$PROJECT_DIR/target"'
+alias clean='rm -rf "$TARGET_DIR"'
