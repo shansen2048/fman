@@ -1,43 +1,48 @@
-from os import listdir
+from distutils.core import setup
+from esky.bdist_esky import Executable
+from fman.util import system
+from os.path import dirname, join, pardir, relpath
 
-from cx_Freeze import setup, Executable
-from os.path import dirname, join, pardir
-
-import sys
-
-base = None
-if sys.platform == 'win32':
-	base = 'Win32GUI'
+import os
 
 this_dir = dirname(__file__)
 src_dir = join(this_dir, pardir, pardir)
+proj_dir = join(src_dir, pardir)
+target_dir = join(proj_dir, 'target')
 resources_dir = join(src_dir, 'main', 'resources')
 
-def listdir_absolute_paths(dir_):
-	return [join(dir_, file_) for file_ in listdir(dir_)]
+def get_resource_files(resources_subdir_name):
+	result = []
+	resources_subdir = join(resources_dir, resources_subdir_name)
+	for (dir_, _, files) in os.walk(resources_subdir):
+		result.append((
+			relpath(dir_, resources_subdir),
+			[join(dir_, file_) for file_ in files]
+		))
+	return result
 
-options = {
-	'build_exe': {
-		'include_files': listdir_absolute_paths(resources_dir),
-		'packages': ['PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui'],
-		'silent': True
-	},
-	'bdist_mac': {
-		'bundle_name': 'fman'
-	},
-	'bdist_dmg': {
-		'volume_label': 'fman',
-		'applications_shortcut': True
-	}
-}
-
-executables = [Executable(
-	join(this_dir, 'fman', 'main.py'), base=base, targetName='fman'
-)]
+data_files = get_resource_files('base')
+if system.is_linux():
+	data_files.extend(get_resource_files('linux'))
+elif system.is_windows():
+	data_files.extend(get_resource_files('windows'))
 
 setup(
 	name='fman',
+	data_files=data_files,
 	version='0.0.1',
-	options=options,
-	executables=executables
+	options={
+		'bdist_esky': {
+			"freezer_module": "cxfreeze",
+			'includes': ['PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui'],
+			# Esky's default implementation of appdir_from_executable(...)
+			# treats OS X bundles specially and actually breaks them. Prevent
+			# This special treatment:
+			'bootstrap_code': 'appdir_from_executable = dirname\nbootstrap()',
+			'dist_dir': target_dir
+		}
+	},
+	scripts=[Executable(
+		join(this_dir, 'fman', 'main.py'), name='fman', gui_only=True
+	)]
 )

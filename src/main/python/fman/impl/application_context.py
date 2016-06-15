@@ -3,9 +3,10 @@ from fman.impl.controller import Controller
 from fman.impl.os_ import OSX, Windows, Linux
 from fman.impl.view import Style
 from fman.util import system
+from fman.util.system import get_canonical_os_name
 from fman.util.qt import GuiThread
 from fman.impl.settings import Settings, SettingsManager
-from os.path import dirname, join, pardir, expanduser, normpath
+from os.path import dirname, join, pardir, expanduser, normpath, exists
 from PyQt5.QtCore import QDir, QSettings
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication
@@ -106,15 +107,11 @@ class ApplicationContext:
 	@property
 	def stylesheet(self):
 		if self._stylesheet is None:
-			with open(self.get_resource('styles', 'base.qss'), 'r') as f:
+			with open(self.get_resource('styles.qss'), 'r') as f:
 				self._stylesheet = f.read()
-			os_styles = None
-			if system.is_windows():
-				os_styles = 'windows.qss'
-			elif system.is_linux():
-				os_styles = 'linux.qss'
-			if os_styles:
-				with open(self.get_resource('styles', os_styles), 'r') as f:
+			os_styles = self.get_resource('os_styles.qss')
+			if exists(os_styles):
+				with open(os_styles, 'r') as f:
 					self._stylesheet += '\n' + f.read()
 		return self._stylesheet
 	@property
@@ -124,7 +121,12 @@ class ApplicationContext:
 		return self._style
 	def get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		return normpath(join(res_dir, *rel_path))
+		os_dir = join(res_dir, get_canonical_os_name())
+		os_path = normpath(join(os_dir, *rel_path))
+		if exists(os_path):
+			return os_path
+		base_dir = join(res_dir, 'base')
+		return normpath(join(base_dir, *rel_path))
 
 class CompiledApplicationContext(ApplicationContext):
 	def get_resource(self, *rel_path):

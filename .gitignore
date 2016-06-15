@@ -2,5 +2,5 @@ __pycache__/
 .idea/
 *.py[cod]
 venv/
-build/
+target/
 .DS_Store

@@ -29,9 +29,9 @@ PS1="(fman) \h:\W \u\$ "
 MAIN_PYTHON_PATH=$PROJECT_DIR/src/main/python
 TEST_PYTHON_PATH=$MAIN_PYTHON_PATH:$PROJECT_DIR/src/unittest/python:$PROJECT_DIR/src/integrationtest/python
 
-alias compile='cx_Freeze build'
-
-alias package='cx_Freeze bdist_dmg'
+compile() {
+	PYTHONPATH=$MAIN_PYTHON_PATH python src/main/python/setup.py bdist_esky
+}
 
 test() {
 	PYTHONPATH=$TEST_PYTHON_PATH python -m unittest fman_unittest fman_integrationtest
@@ -41,14 +41,4 @@ alias run='$PROJECT_DIR/build/exe.macosx-10.6-intel-3.4/fman'
 
 alias shell='PYTHONPATH=$MAIN_PYTHON_PATH python'
 
-alias clean='rm -rf "$PROJECT_DIR/build"'
-
-function cx_Freeze {
-	# Because of cx_Freeze bug #128
-	# (https://bitbucket.org/anthony_tuininga/cx_freeze/issues/128), we can't
-	# specify cx_Freeze's output directory via option 'build_exe' wihout
-	# breaking bdist_mac. cx_Freeze thus always produces its output in the
-	# build/ subdirectory of the current directory. Ensure that this directory
-	# is inside $PROJECT_DIR at least by spawning a sub-shell (cd ...; ...):
-	(cd $PROJECT_DIR; PYTHONPATH=$MAIN_PYTHON_PATH python src/main/python/setup.py $1)
-}
+alias clean='rm -rf "$PROJECT_DIR/target"'
