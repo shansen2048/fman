@@ -37,7 +37,7 @@ setup(
 			'includes': ['PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui'],
 			# Esky's default implementation of appdir_from_executable(...)
 			# treats OS X bundles specially and actually breaks them. Prevent
-			# This special treatment:
+			# this special treatment:
 			'bootstrap_code': 'appdir_from_executable = dirname\nbootstrap()',
 			'dist_dir': target_dir
 		}
