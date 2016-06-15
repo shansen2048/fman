@@ -1,5 +1,5 @@
 Build Qt 5.6.0:
-=========
+===============
 1) Download the 5.6.0 source tarball from the official home page.
 
 Windows preparation:
@@ -93,3 +93,8 @@ sudo apt-get install lib32z1-dev
 Download cx_Freeze.tar.gz from PyPI
 source venv/bin/activate
 python setup.py install
+
+NSIS:
+=====
+Install version 2.51 on Windows.
+Add to PATH.
