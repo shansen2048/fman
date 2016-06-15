@@ -10,6 +10,9 @@ def main(argv):
 	window = appctxt.main_window
 	appctxt.settings_manager.on_startup(window)
 	window.status_bar.showMessage('Ready.')
+	updater = appctxt.updater
+	if updater:
+		updater.start()
 	window.show()
 	exit_code = app.exec_()
 	sys.exit(exit_code)
