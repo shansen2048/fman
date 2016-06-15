@@ -1,7 +1,7 @@
 from distutils.core import setup
 from esky.bdist_esky import Executable
 from fman.util import system
-from os.path import dirname, join, pardir, relpath
+from os.path import dirname, join, pardir, relpath, normpath
 
 import os
 
@@ -16,8 +16,8 @@ def get_resource_files(resources_subdir_name):
 	resources_subdir = join(resources_dir, resources_subdir_name)
 	for (dir_, _, files) in os.walk(resources_subdir):
 		result.append((
-			relpath(dir_, resources_subdir),
-			[join(dir_, file_) for file_ in files]
+			normpath(relpath(dir_, resources_subdir)),
+			[normpath(join(dir_, file_)) for file_ in files]
 		))
 	return result
 
