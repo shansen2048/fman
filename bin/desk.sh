@@ -26,40 +26,22 @@ source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
 
-MAIN_PYTHON_PATH=$PROJECT_DIR/src/main/python
-TEST_PYTHON_PATH=$MAIN_PYTHON_PATH:$PROJECT_DIR/src/unittest/python:$PROJECT_DIR/src/integrationtest/python
-TARGET_DIR=$PROJECT_DIR/target
+alias generate_resources='python build.py generate_resources'
 
-compile() {
-	PYTHONPATH=$MAIN_PYTHON_PATH python $PROJECT_DIR/src/main/python/setup.py bdist_esky
-}
+alias esky='python build.py esky'
 
-make_app() {
-	compile
-	mkdir -p $TARGET_DIR/fman.app/Contents/MacOS
-	latest_zip=$(find target -iname "fman-*.zip" | sort | tail -1)
-	unzip $latest_zip -d $TARGET_DIR/fman.app/Contents/MacOS
-	cp $PROJECT_DIR/src/main/resources/osx/Info.plist $TARGET_DIR/fman.app/Contents
-}
+alias app='python build.py app'
 
-make_dmg() {
-	make_app
-	$PROJECT_DIR/bin/osx/yoursway-create-dmg/create-dmg --volname fman --app-drop-link 0 10 --icon fman 200 10 $TARGET_DIR/fman.dmg $TARGET_DIR/fman.app
-}
+alias dmg='python build.py dmg'
 
-make_setup() {
-	compile
-	latest_zip=$(find target -iname "fman-*.zip" | sort | tail -1)
-	unzip $latest_zip -d $TARGET_DIR/exploded
-	makensis $PROJECT_DIR/src/main/Setup.nsi
-}
+alias setup='python build.py setup'
 
-test() {
-	PYTHONPATH=$TEST_PYTHON_PATH python -m unittest fman_unittest fman_integrationtest
-}
+alias test='python build.py test'
 
-alias run='$PROJECT_DIR/build/exe.macosx-10.6-intel-3.4/fman'
+alias release_win='python build.py release_win'
 
-alias shell='PYTHONPATH=$MAIN_PYTHON_PATH python'
+alias release_osx='python build.py release_osx'
 
-alias clean='rm -rf "$TARGET_DIR"'
+alias release_linux='python build.py release_linux'
+
+alias clean='python build.py clean'
