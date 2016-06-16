@@ -2,6 +2,7 @@ from fman.impl import fileoperations
 from fman.impl.fileoperations import CopyFiles, Yes, No, Ok, YesToAll, \
 	NoToAll, Abort, MoveFiles
 from fman.impl.gui_operations import show_message_box
+from fman.util import system
 from os import listdir, mkdir, chmod, makedirs, readlink
 from os.path import basename, join, dirname, exists, islink, realpath, samefile
 from tempfile import TemporaryDirectory
@@ -46,8 +47,9 @@ class FileTreeOperationAT:
 		self._touch(file_in_dir)
 		executable_in_dir = join(dir_, 'executable')
 		self._touch(executable_in_dir, 'abc')
-		st_mode = os.stat(executable_in_dir).st_mode
-		chmod(executable_in_dir, st_mode | stat.S_IEXEC)
+		if not system.is_windows():
+			st_mode = os.stat(executable_in_dir).st_mode
+			chmod(executable_in_dir, st_mode | stat.S_IEXEC)
 		self._perform_on(file_outside_dir, dir_, dest_dir=dest_dir)
 		self.assertEqual({'file1.txt', 'dir'}, set(listdir(dest_dir)))
 		self.assertEqual(
@@ -56,7 +58,8 @@ class FileTreeOperationAT:
 		executable_dst = join(dest_dir, 'dir', 'executable')
 		with open(executable_dst, 'r') as f:
 			self.assertEqual('abc', f.read())
-		self.assertTrue(os.stat(executable_dst).st_mode & stat.S_IEXEC)
+		if not system.is_windows():
+			self.assertTrue(os.stat(executable_dst).st_mode & stat.S_IEXEC)
 		return [file_outside_dir, dir_]
 	def test_directory_several_files_dest_dir_does_not_exist(self):
 		self.test_directory_several_files(dest_dir=join(self.dest, 'subdir'))
@@ -250,15 +253,20 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 		locked_dest_file = join(dest_dir, 'foo.txt')
 		self._touch(locked_dest_file)
 		chmod(locked_dest_file, 0o444)
-		self._expect_prompt(
-			('foo.txt exists. Do you want to override it?',
-			 Yes | No | YesToAll | NoToAll | Abort, Yes), answer=Yes
-		)
-		self._expect_prompt(
-			('Could not copy %s. Do you want to continue?' % src_file,
-			 Yes | YesToAll | Abort, Yes), answer=Yes
-		)
-		self._perform_on(dir_)
+		try:
+			self._expect_prompt(
+				('foo.txt exists. Do you want to override it?',
+				 Yes | No | YesToAll | NoToAll | Abort, Yes), answer=Yes
+			)
+			self._expect_prompt(
+				('Could not copy %s. Do you want to continue?' % src_file,
+				 Yes | YesToAll | Abort, Yes), answer=Yes
+			)
+			self._perform_on(dir_)
+		finally:
+			# Make the file writeable again because on Windows, the temp dir
+			# containing it can't be cleaned up otherwise.
+			chmod(locked_dest_file, 0o777)
 
 class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
