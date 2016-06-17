@@ -21,7 +21,11 @@ setup(
 	options={
 		'bdist_esky': {
 			"freezer_module": "cxfreeze",
-			'includes': ['PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui'],
+			'includes': [
+				'PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui',
+				# Transitive dependencies:
+				'PyQt5.QtDBus', 'PyQt5.QtPrintSupport'
+			],
 			# Esky's default implementation of appdir_from_executable(...)
 			# treats OS X bundles specially and actually breaks them. Prevent
 			# this special treatment:

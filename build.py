@@ -1,8 +1,10 @@
-from build_impl import path, run, copy_with_filtering, unzip
+from build_impl import path, run, copy_with_filtering, unzip, glob_recursive, \
+	get_rpath_references
 from glob import glob
 from os import makedirs
-from os.path import exists
+from os.path import exists, basename
 from shutil import copy, rmtree
+from subprocess import check_call
 
 import platform
 import sys
@@ -44,6 +46,18 @@ def app():
 		path('src/main/resources/darwin/Info.plist'),
 		path('target/fman.app/Contents')
 	)
+	# The shared libraries - in particular those referencing Qt frameworks -
+	# contain @rpath references that don't work on a system where Qt isn't
+	# installed. Update the references so they point to the framework copies
+	# that were actually placed in the distribution dir:
+	for dylib_ext in ('*.so', '*.dylib'):
+		for dylib in glob_recursive(macos_dir, dylib_ext):
+			for rpath in get_rpath_references(dylib):
+				framework = basename(rpath)
+				check_call([
+					'install_name_tool', '-change', rpath,
+					'@executable_path/' + framework, dylib
+				])
 
 def dmg():
 	app()

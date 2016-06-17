@@ -1,8 +1,9 @@
 from os import makedirs
 from os.path import dirname, join, relpath, samefile
 from shutil import copy
-from subprocess import Popen, STDOUT, CalledProcessError
+from subprocess import Popen, STDOUT, CalledProcessError, check_output
 
+import fnmatch
 import json
 import os
 
@@ -60,3 +61,25 @@ def unzip(zip, dest_dir):
 	# preserve file permissions (in particular, executability). See:
 	# https://bugs.python.org/issue15795
 	run(['unzip', '-o', zip, '-d', dest_dir])
+
+def glob_recursive(dir_, pattern):
+	return [
+		join(dirpath, f)
+		for dirpath, _, files in os.walk(dir_)
+		for f in fnmatch.filter(files, pattern)
+	]
+
+def get_rpath_references(so_path):
+	result = []
+	shared_libraries = \
+		check_output(['otool', '-L', so_path], universal_newlines=True)
+	for line in shared_libraries.split('\n'):
+		rpath_prefix = '@rpath/'
+		try:
+			prefix_index = line.index(rpath_prefix)
+		except ValueError:
+			pass
+		else:
+			prefix = line[prefix_index:]
+			result.append(prefix[:prefix.index(' ')])
+	return result
