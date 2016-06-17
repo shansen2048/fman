@@ -2,6 +2,7 @@
 ;Include Modern UI
 
   !include "MUI2.nsh"
+  !include "FileFunc.nsh"
 
 ;--------------------------------
 ;General
@@ -53,8 +54,19 @@ Section
   SetOutPath "$INSTDIR"
   File /r "..\..\target\exploded\*"
   WriteRegStr HKCU "Software\fman" "" $INSTDIR
-  WriteUninstaller "$INSTDIR\Uninstall.exe"
+  WriteUninstaller "$INSTDIR\uninstall.exe"
   CreateShortCut "$SMPROGRAMS\fman.lnk" "$INSTDIR\fman.exe"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
+                   "DisplayName" "fman"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
+                   "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
+                   "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
+                   "Publisher" "Michael Herrmann"
+  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+  IntFmt $0 "0x%08X" $0
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" "EstimatedSize" "$0"
 
 SectionEnd
 
@@ -66,6 +78,7 @@ Section "Uninstall"
   RMDir /r "$INSTDIR"
   Delete "$SMPROGRAMS\fman.lnk"
   DeleteRegKey /ifempty HKCU "Software\fman"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman"
 
 SectionEnd
 
