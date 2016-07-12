@@ -34,8 +34,10 @@ def esky():
 
 def app():
 	run([
-		'pyinstaller', '--name', 'fman', '--windowed',
+		'pyinstaller',
+		'--name', 'fman',
 		'--osx-bundle-identifier', 'io.fman.fman',
+		'--windowed',
 		'--distpath', path('target/dist'),
 		'--workpath', path('target/build'),
 		'--specpath', path('target'),
