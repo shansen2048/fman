@@ -76,17 +76,6 @@ Windows:
 cx_Freeze:
 ==========
 
-OS X:
------
-Execute the following while in the root project directory:
-
-qt_lib_dir=/usr/local/Qt-5.6.0/lib
-qt_lib_dir_str_len=25
-for fname in $( find ${qt_lib_dir} -iname "*.framework" | cut -c ${qt_lib_dir_str_len}-9999 );
-do
-    ln -s ${qt_lib_dir}/$fname venv/lib/$fname
-done
-
 Linux:
 ------
 sudo apt-get install lib32z1-dev
