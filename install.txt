@@ -1,6 +1,6 @@
-Build Qt 5.6.0:
-===============
-1) Download the 5.6.0 source tarball from the official home page.
+Build Qt 5.6.1-1:
+=================
+1) Download the 5.6.1-1 source tarball from the official home page.
 
 Windows preparation:
  a) Install Visual Studio 2012 express
@@ -27,7 +27,7 @@ Linux preparation:
  sudo apt-get install build-essential libxcb1 libxcb1-dev libx11-xcb1 libx11-xcb-dev libxcb-keysyms1 libxcb-keysyms1-dev libxcb-image0 libxcb-image0-dev libxcb-shm0 libxcb-shm0-dev libxcb-icccm4 libxcb-icccm4-dev libxcb-sync1 libxcb-sync-dev libxcb-xfixes0-dev libxrender-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0 libxcb-render-util0-dev libxcb-glx0-dev libxcb-xinerama0-dev
 
 2) Build & install
-	./configure -release -opensource -no-accessibility -nomake examples -nomake tests
+	./configure -prefix ~/dev/fman/lib/darwin/Qt-5.6.1 -release -opensource -no-accessibility -nomake examples -nomake tests
 	make -j4 module-qtbase (on Windows use jom module-qtbase)
 	sudo make module-qtbase-install_subtargets (on Windows use jom ...)
 
