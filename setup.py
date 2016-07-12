@@ -26,10 +26,6 @@ setup(
 				# Transitive dependencies:
 				'PyQt5.QtDBus', 'PyQt5.QtPrintSupport'
 			],
-			# Esky's default implementation of appdir_from_executable(...)
-			# treats OS X bundles specially and actually breaks them. Prevent
-			# this special treatment:
-			'bootstrap_code': 'appdir_from_executable = dirname\nbootstrap()',
 			'dist_dir': path('target')
 		}
 	},

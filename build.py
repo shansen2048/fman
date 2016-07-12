@@ -1,10 +1,7 @@
-from build_impl import path, run, copy_with_filtering, unzip, glob_recursive, \
-	get_rpath_references
+from build_impl import path, run, copy_with_filtering, unzip
 from glob import glob
-from os import makedirs
-from os.path import exists, basename
-from shutil import copy, rmtree
-from subprocess import check_call
+from os.path import exists
+from shutil import rmtree
 
 import platform
 import sys
@@ -14,11 +11,10 @@ TEST_PYTHON_PATH = ':'.join(map(path,
 	['src/main/python', 'src/unittest/python', 'src/integrationtest/python']
 ))
 
-EXCLUDE_RESOURCES = ['src/main/resources/darwin/Info.plist']
+EXCLUDE_RESOURCES = []
 FILTER_FILES = ['src/main/resources/base/default_settings.json']
 
-def generate_resources():
-	dest_dir = path('target/resources')
+def generate_resources(dest_dir=path('target/resources')):
 	def copy_resources(src_dir):
 		filter_path = OPTIONS.get('filter', None)
 		copy_with_filtering(
@@ -37,27 +33,15 @@ def esky():
 	)
 
 def app():
-	esky()
-	macos_dir = path('target/fman.app/Contents/MacOS')
-	makedirs(macos_dir, exist_ok=True)
-	latest_zip = sorted(glob(path('target/fman-*.zip')))[-1]
-	unzip(latest_zip, macos_dir)
-	copy(
-		path('src/main/resources/darwin/Info.plist'),
-		path('target/fman.app/Contents')
-	)
-	# The shared libraries - in particular those referencing Qt frameworks -
-	# contain @rpath references that don't work on a system where Qt isn't
-	# installed. Update the references so they point to the framework copies
-	# that were actually placed in the distribution dir:
-	for dylib_ext in ('*.so', '*.dylib'):
-		for dylib in glob_recursive(macos_dir, dylib_ext):
-			for rpath in get_rpath_references(dylib):
-				framework = basename(rpath)
-				check_call([
-					'install_name_tool', '-change', rpath,
-					'@executable_path/' + framework, dylib
-				])
+	run([
+		'pyinstaller', '--name', 'fman', '--windowed',
+		'--osx-bundle-identifier', 'io.fman.fman',
+		'--distpath', path('target/dist'),
+		'--workpath', path('target/build'),
+		'--specpath', path('target'),
+		path('src/main/python/fman/main.py')
+	])
+	generate_resources(dest_dir=path('target/dist/fman.app/Contents/Resources'))
 
 def dmg():
 	app()

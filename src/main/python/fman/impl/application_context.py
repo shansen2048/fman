@@ -2,7 +2,7 @@ from fman.impl import MainWindow
 from fman.impl.controller import Controller
 from fman.impl.os_ import OSX, Windows, Linux
 from fman.impl.view import Style
-from fman.updater import Updater
+from fman.updater import EskyUpdater, OSXUpdater
 from fman.util import system
 from fman.util.qt import GuiThread
 from fman.impl.settings import Settings, SettingsManager
@@ -139,7 +139,13 @@ class CompiledApplicationContext(ApplicationContext):
 	@property
 	def updater(self):
 		if self._updater is None:
-			self._updater = Updater(sys.executable, self.settings['update_url'])
+			if system.is_osx():
+				self._updater = OSXUpdater()
+			else:
+				self._updater = \
+					EskyUpdater(sys.executable, self.settings['update_url'])
 		return self._updater
 	def get_resource(self, *rel_path):
+		if system.is_osx():
+			rel_path = (pardir, 'Resources') + rel_path
 		return normpath(join(dirname(sys.executable), *rel_path))
