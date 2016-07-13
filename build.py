@@ -1,7 +1,7 @@
-from build_impl import path, run, copy_with_filtering, unzip
+from build_impl import path, run, copy_with_filtering, unzip, copy_framework
 from glob import glob
 from os.path import exists
-from shutil import rmtree
+from shutil import rmtree, copy
 
 import platform
 import sys
@@ -11,7 +11,7 @@ TEST_PYTHON_PATH = ':'.join(map(path,
 	['src/main/python', 'src/unittest/python', 'src/integrationtest/python']
 ))
 
-EXCLUDE_RESOURCES = []
+EXCLUDE_RESOURCES = ['src/main/resources/darwin/Info.plist']
 FILTER_FILES = ['src/main/resources/base/default_settings.json']
 
 def generate_resources(dest_dir=path('target/resources')):
@@ -44,6 +44,14 @@ def app():
 		path('src/main/python/fman/main.py')
 	])
 	generate_resources(dest_dir=path('target/dist/fman.app/Contents/Resources'))
+	copy(
+		path('src/main/resources/darwin/Info.plist'),
+		path('target/dist/fman.app/Contents')
+	)
+	copy_framework(
+		path('lib/darwin/Sparkle-1.14.0/Sparkle.framework'),
+		path('target/dist/fman.app/Contents/Frameworks/Sparkle.framework')
+	)
 
 def dmg():
 	app()

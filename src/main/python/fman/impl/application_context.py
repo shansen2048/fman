@@ -140,7 +140,7 @@ class CompiledApplicationContext(ApplicationContext):
 	def updater(self):
 		if self._updater is None:
 			if system.is_osx():
-				self._updater = OSXUpdater()
+				self._updater = OSXUpdater(self.app)
 			else:
 				self._updater = \
 					EskyUpdater(sys.executable, self.settings['update_url'])
