@@ -1,5 +1,5 @@
 from build_impl import path, run, copy_with_filtering, unzip, copy_framework, \
-	get_canonical_os_name
+	get_canonical_os_name, is_windows, is_osx, is_linux
 from glob import glob
 from os.path import exists
 from shutil import rmtree, copy
@@ -86,20 +86,19 @@ def test():
 		extra_env={'PYTHONPATH': TEST_PYTHON_PATH}
 	)
 
-def release_win():
-	_use_release_filter()
-	setup()
-
-def release_osx():
-	_use_release_filter()
-	dmg()
-
-def release_linux():
-	_use_release_filter()
-	esky()
-
-def _use_release_filter():
+def release():
 	OPTIONS['filter'] = 'src/main/filters/filter-release.json'
+	if is_windows():
+		setup()
+	elif is_osx():
+		app()
+		sign_app()
+		dmg()
+		sign_dmg()
+	elif is_linux():
+		esky()
+	else:
+		raise ValueError('Unknown operating system.')
 
 def clean():
 	rmtree(path('target'), ignore_errors=True)

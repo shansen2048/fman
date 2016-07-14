@@ -42,10 +42,6 @@ alias setup='python build.py setup'
 
 alias test='python build.py test'
 
-alias release_win='python build.py release_win'
-
-alias release_osx='python build.py release_osx'
-
-alias release_linux='python build.py release_linux'
+alias release='python build.py release'
 
 alias clean='python build.py clean'
