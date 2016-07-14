@@ -1,9 +1,9 @@
-from build_impl import path, run, copy_with_filtering, unzip, copy_framework
+from build_impl import path, run, copy_with_filtering, unzip, copy_framework, \
+	get_canonical_os_name
 from glob import glob
 from os.path import exists
 from shutil import rmtree, copy
 
-import platform
 import sys
 
 MAIN_PYTHON_PATH = path('src/main/python')
@@ -11,7 +11,7 @@ TEST_PYTHON_PATH = ':'.join(map(path,
 	['src/main/python', 'src/unittest/python', 'src/integrationtest/python']
 ))
 
-EXCLUDE_RESOURCES = ['src/main/resources/darwin/Info.plist']
+EXCLUDE_RESOURCES = ['src/main/resources/osx/Info.plist']
 FILTER_FILES = ['src/main/resources/base/default_settings.json']
 
 def generate_resources(dest_dir=path('target/resources')):
@@ -21,7 +21,7 @@ def generate_resources(dest_dir=path('target/resources')):
 			src_dir, dest_dir, EXCLUDE_RESOURCES, FILTER_FILES, filter_path
 		)
 	copy_resources(path('src/main/resources/base'))
-	os_resources_dir = path('src/main/resources/' + platform.system().lower())
+	os_resources_dir = path('src/main/resources/' + get_canonical_os_name())
 	if exists(os_resources_dir):
 		copy_resources(os_resources_dir)
 
@@ -45,11 +45,11 @@ def app():
 	])
 	generate_resources(dest_dir=path('target/dist/fman.app/Contents/Resources'))
 	copy(
-		path('src/main/resources/darwin/Info.plist'),
+		path('src/main/resources/osx/Info.plist'),
 		path('target/dist/fman.app/Contents')
 	)
 	copy_framework(
-		path('lib/darwin/Sparkle-1.14.0/Sparkle.framework'),
+		path('lib/osx/Sparkle-1.14.0/Sparkle.framework'),
 		path('target/dist/fman.app/Contents/Frameworks/Sparkle.framework')
 	)
 

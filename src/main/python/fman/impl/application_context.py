@@ -5,13 +5,13 @@ from fman.impl.view import Style
 from fman.updater import EskyUpdater, OSXUpdater
 from fman.util import system
 from fman.util.qt import GuiThread
+from fman.util.system import get_canonical_os_name
 from fman.impl.settings import Settings, SettingsManager
 from os.path import dirname, join, pardir, expanduser, normpath, exists
 from PyQt5.QtCore import QDir, QSettings
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication
 
-import platform
 import sys
 
 def get_application_context(argv):
@@ -125,7 +125,7 @@ class ApplicationContext:
 		return None
 	def get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		os_dir = join(res_dir, platform.system().lower())
+		os_dir = join(res_dir, get_canonical_os_name())
 		os_path = normpath(join(os_dir, *rel_path))
 		if exists(os_path):
 			return os_path
