@@ -32,7 +32,11 @@ alias esky='python build.py esky'
 
 alias app='python build.py app'
 
+alias sign_app='python build.py sign_app'
+
 alias dmg='python build.py dmg'
+
+alias sign_dmg='python build.py sign_dmg'
 
 alias setup='python build.py setup'
 

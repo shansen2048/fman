@@ -53,12 +53,25 @@ def app():
 		path('target/dist/fman.app/Contents/Frameworks/Sparkle.framework')
 	)
 
+def sign_app():
+	run([
+		'codesign', '--deep', '--verbose',
+		'-s', "Developer ID Application: Michael Herrmann",
+		path('target/dist/fman.app')
+	])
+
 def dmg():
-	app()
 	run([
 		path('bin/osx/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
 		'--app-drop-link', '0', '10', '--icon', 'fman', '200', '10',
-		 path('target/fman.dmg'), path('target/fman.app')
+		 path('target/fman.dmg'), path('target/dist/fman.app')
+	])
+
+def sign_dmg():
+	run([
+		'codesign', '--verbose',
+		'-s', "Developer ID Application: Michael Herrmann",
+		path('target/fman.dmg')
 	])
 
 def setup():
