@@ -4,3 +4,4 @@ __pycache__/
 venv/
 target/
 .DS_Store
+lib/darwin/Qt-5.6.1
