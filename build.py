@@ -2,23 +2,27 @@ from build_impl import path, run, copy_with_filtering, unzip, copy_framework, \
 	get_canonical_os_name, is_windows, is_osx, is_linux
 from glob import glob
 from os.path import exists
-from shutil import rmtree, copy
+from shutil import rmtree
 
 import sys
+
+OPTIONS = {
+	'filter': path('src/main/filters/filter-local.json')
+}
 
 MAIN_PYTHON_PATH = path('src/main/python')
 TEST_PYTHON_PATH = ':'.join(map(path,
 	['src/main/python', 'src/unittest/python', 'src/integrationtest/python']
 ))
 
-EXCLUDE_RESOURCES = ['src/main/resources/osx/Info.plist']
-FILTER_FILES = ['src/main/resources/base/default_settings.json']
+FILES_TO_FILTER = [path('src/main/resources/base/default_settings.json')]
+EXCLUDE_RESOURCES = [path('src/main/resources/osx/Info.plist')]
 
 def generate_resources(dest_dir=path('target/resources')):
 	def copy_resources(src_dir):
-		filter_path = OPTIONS.get('filter', None)
+		filter_ = OPTIONS['filter']
 		copy_with_filtering(
-			src_dir, dest_dir, EXCLUDE_RESOURCES, FILTER_FILES, filter_path
+			src_dir, dest_dir, filter_, FILES_TO_FILTER, EXCLUDE_RESOURCES
 		)
 	copy_resources(path('src/main/resources/base'))
 	os_resources_dir = path('src/main/resources/' + get_canonical_os_name())
@@ -44,9 +48,9 @@ def app():
 		path('src/main/python/fman/main.py')
 	])
 	generate_resources(dest_dir=path('target/dist/fman.app/Contents/Resources'))
-	copy(
-		path('src/main/resources/osx/Info.plist'),
-		path('target/dist/fman.app/Contents')
+	info_plist = path('src/main/resources/osx/Info.plist')
+	copy_with_filtering(
+		info_plist, path('target/dist/fman.app/Contents'), OPTIONS['filter']
 	)
 	copy_framework(
 		path('lib/osx/Sparkle-1.14.0/Sparkle.framework'),
@@ -87,7 +91,7 @@ def test():
 	)
 
 def release():
-	OPTIONS['filter'] = 'src/main/filters/filter-release.json'
+	OPTIONS['filter'] = path('src/main/filters/filter-release.json')
 	if is_windows():
 		setup()
 	elif is_osx():
@@ -102,8 +106,6 @@ def release():
 
 def clean():
 	rmtree(path('target'), ignore_errors=True)
-
-OPTIONS = {}
 
 if __name__ == '__main__':
 	globals()[sys.argv[1]](*sys.argv[2:])

@@ -139,11 +139,12 @@ class CompiledApplicationContext(ApplicationContext):
 	@property
 	def updater(self):
 		if self._updater is None:
+			update_url = self.settings['update_url']
 			if system.is_osx():
-				self._updater = OSXUpdater(self.app)
+				appcast_url = update_url + '/Appcast.xml'
+				self._updater = OSXUpdater(self.app, appcast_url)
 			else:
-				self._updater = \
-					EskyUpdater(sys.executable, self.settings['update_url'])
+				self._updater = EskyUpdater(sys.executable, update_url)
 		return self._updater
 	def get_resource(self, *rel_path):
 		if system.is_osx():

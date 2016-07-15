@@ -12,8 +12,9 @@ class EskyUpdater(Thread):
 		self.esky.auto_update()
 
 class OSXUpdater:
-	def __init__(self, app):
+	def __init__(self, app, appcast_url):
 		self.app = app
+		self.appcast_url = appcast_url
 		self._objc_namespace = dict()
 		self._sparkle = None
 	def start(self):
@@ -26,6 +27,8 @@ class OSXUpdater:
 		self._sparkle = SUUpdater.sharedUpdater()
 		self._sparkle.setAutomaticallyChecksForUpdates_(True)
 		self._sparkle.setAutomaticallyDownloadsUpdates_(True)
+		NSURL = self._objc_namespace['NSURL']
+		self._sparkle.setFeedURL_(NSURL.URLWithString_(self.appcast_url))
 		self._sparkle.checkForUpdatesInBackground()
 	def _about_to_quit(self):
 		if self._sparkle.updateInProgress():

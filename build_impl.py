@@ -1,5 +1,6 @@
 from os import makedirs, readlink, symlink
-from os.path import dirname, join, relpath, samefile, islink, isdir, basename
+from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
+	isfile
 from shutil import copy, copytree
 from subprocess import Popen, STDOUT, CalledProcessError, check_output
 
@@ -14,37 +15,57 @@ def path(relpath):
 	return join(PROJECT_DIR, *relpath.split('/'))
 
 def copy_with_filtering(
-	src_dir, dest_dir, exclude_files, filter_files, filter_path
+	src_dir_or_file, dest_dir, filter_path, files_to_filter=None,
+	files_to_exclude=None
 ):
-	if filter_path:
-		filter_path = path(filter_path)
-	for (subdir, _, files) in os.walk(src_dir):
-		dest_subdir = join(dest_dir, relpath(subdir, src_dir))
-		makedirs(dest_subdir, exist_ok=True)
-		for file_ in files:
-			file_path = join(subdir, file_)
-			if file_path in _paths(exclude_files):
-				continue
-			dest_path = join(dest_subdir, file_)
-			if filter_path and file_path in _paths(filter_files):
-				_copy_json_with_filtering(file_path, filter_path, dest_path)
-			else:
-				copy(file_path, dest_path)
+	if files_to_exclude is None:
+		files_to_exclude = []
+	with open(filter_path, 'r') as f:
+		filter_ = json.load(f)
+	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, files_to_exclude)
+	to_filter = _paths(files_to_filter)
+	for src, dest in to_copy:
+		makedirs(dirname(dest), exist_ok=True)
+		if filter_ and (files_to_filter is None or src in to_filter):
+			_copy_with_filtering(src, dest, filter_)
+		else:
+			copy(src, dest)
+
+def _get_files_to_copy(src_dir_or_file, dest_dir, files_to_exclude):
+	excludes = _paths(files_to_exclude)
+	if isfile(src_dir_or_file) and src_dir_or_file not in excludes:
+		yield src_dir_or_file, join(dest_dir, basename(src_dir_or_file))
+	else:
+		for (subdir, _, files) in os.walk(src_dir_or_file):
+			dest_subdir = join(dest_dir, relpath(subdir, src_dir_or_file))
+			for file_ in files:
+				file_path = join(subdir, file_)
+				if file_path in excludes:
+					continue
+				dest_path = join(dest_subdir, file_)
+				yield file_path, dest_path
+
+def _copy_with_filtering(
+	src_file, dest_file, dict_, place_holder='${%s}', encoding='utf-8'
+):
+	replacements = []
+	for key, value in dict_.items():
+		old = (place_holder % key).encode(encoding)
+		new = value.encode(encoding)
+		replacements.append((old, new))
+	with open(src_file, 'rb') as open_src_file:
+		with open(dest_file, 'wb') as open_dest_file:
+			for line in open_src_file:
+				new_line = line
+				for old, new in replacements:
+					new_line = new_line.replace(old, new)
+				open_dest_file.write(new_line)
 
 class _paths:
 	def __init__(self, paths):
 		self.paths = paths
 	def __contains__(self, item):
-		return any(samefile(item, path(p)) for p in self.paths)
-
-def _copy_json_with_filtering(json_file, filter_path, dest_path):
-	with open(json_file, 'r') as f:
-		data = json.load(f)
-	with open(filter_path, 'r') as f:
-		filter_ = json.load(f)
-	data.update(filter_)
-	with open(dest_path, 'w') as f:
-		json.dump(data, f, indent='\t')
+		return any(samefile(item, p) for p in self.paths)
 
 def copy_framework(src_dir, dest_dir):
 	assert basename(src_dir).endswith('.framework')

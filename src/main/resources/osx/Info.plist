@@ -22,12 +22,6 @@
 	<string>1.0.0</string>
 	<key>CFBundleName</key>
 	<string>fman</string>
-	<key>SUFeedURL</key>
-	<string>http://127.0.0.1:8000/SampleAppcast.xml</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
+	${info_plist_extra}
 </dict>
 </plist>

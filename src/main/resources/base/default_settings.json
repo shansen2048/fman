@@ -8,5 +8,5 @@
 		"col_widths": [200, 75]
 	},
 	"editor": "",
-	"update_url": "http://localhost:8000/updates"
+	"update_url": "${update_url}"
 }
