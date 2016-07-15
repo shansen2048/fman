@@ -5,7 +5,6 @@ from shutil import copy, copytree
 from subprocess import Popen, STDOUT, CalledProcessError, check_output
 
 import fnmatch
-import json
 import os
 import sys
 
@@ -15,19 +14,16 @@ def path(relpath):
 	return join(PROJECT_DIR, *relpath.split('/'))
 
 def copy_with_filtering(
-	src_dir_or_file, dest_dir, filter_path, files_to_filter=None,
-	files_to_exclude=None
+	src_dir_or_file, dest_dir, dict_, files_to_filter=None, exclude_files=None
 ):
-	if files_to_exclude is None:
-		files_to_exclude = []
-	with open(filter_path, 'r') as f:
-		filter_ = json.load(f)
-	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, files_to_exclude)
+	if exclude_files is None:
+		exclude_files = []
+	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, exclude_files)
 	to_filter = _paths(files_to_filter)
 	for src, dest in to_copy:
 		makedirs(dirname(dest), exist_ok=True)
-		if filter_ and (files_to_filter is None or src in to_filter):
-			_copy_with_filtering(src, dest, filter_)
+		if files_to_filter is None or src in to_filter:
+			_copy_with_filtering(src, dest, dict_)
 		else:
 			copy(src, dest)
 

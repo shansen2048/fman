@@ -2,13 +2,17 @@ from build_impl import path, run, copy_with_filtering, unzip, copy_framework, \
 	get_canonical_os_name, is_windows, is_osx, is_linux
 from glob import glob
 from os.path import exists
-from shutil import rmtree
+from shutil import rmtree, copy
 
+import json
 import sys
 
-OPTIONS = {
-	'filter': path('src/main/filters/filter-local.json')
-}
+VERSION = '0.0.1'
+
+RELEASE = False
+
+LOCAL_STATICFILES_DIR = '/Users/michael/dev/fman.io/static'
+SERVER_STATICFILES_DIR = 'fman@fman.io:/home/fman/src/static'
 
 MAIN_PYTHON_PATH = path('src/main/python')
 TEST_PYTHON_PATH = ':'.join(map(path,
@@ -20,14 +24,21 @@ EXCLUDE_RESOURCES = [path('src/main/resources/osx/Info.plist')]
 
 def generate_resources(dest_dir=path('target/resources')):
 	def copy_resources(src_dir):
-		filter_ = OPTIONS['filter']
 		copy_with_filtering(
-			src_dir, dest_dir, filter_, FILES_TO_FILTER, EXCLUDE_RESOURCES
+			src_dir, dest_dir, _get_filter(), FILES_TO_FILTER, EXCLUDE_RESOURCES
 		)
 	copy_resources(path('src/main/resources/base'))
 	os_resources_dir = path('src/main/resources/' + get_canonical_os_name())
 	if exists(os_resources_dir):
 		copy_resources(os_resources_dir)
+
+def _get_filter():
+	filter_type = 'release' if RELEASE else 'local'
+	filter_path = path('src/main/filters/filter-%s.json' % filter_type)
+	with open(filter_path, 'r') as f:
+		result = json.load(f)
+	result['version'] = VERSION
+	return result
 
 def esky():
 	generate_resources()
@@ -50,7 +61,7 @@ def app():
 	generate_resources(dest_dir=path('target/dist/fman.app/Contents/Resources'))
 	info_plist = path('src/main/resources/osx/Info.plist')
 	copy_with_filtering(
-		info_plist, path('target/dist/fman.app/Contents'), OPTIONS['filter']
+		info_plist, path('target/dist/fman.app/Contents'), _get_filter()
 	)
 	copy_framework(
 		path('lib/osx/Sparkle-1.14.0/Sparkle.framework'),
@@ -90,8 +101,7 @@ def test():
 		extra_env={'PYTHONPATH': TEST_PYTHON_PATH}
 	)
 
-def release():
-	OPTIONS['filter'] = path('src/main/filters/filter-release.json')
+def publish():
 	if is_windows():
 		setup()
 	elif is_osx():
@@ -99,10 +109,37 @@ def release():
 		sign_app()
 		dmg()
 		sign_dmg()
+		pack_update()
+		upload()
 	elif is_linux():
 		esky()
 	else:
 		raise ValueError('Unknown operating system.')
+
+def pack_update():
+	run([
+		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
+		path('target/dist/fman.app'), path('target/fman-%s.zip' % VERSION)
+	])
+
+def upload():
+	updates_dir = '/updates/' + get_canonical_os_name()
+	downloads_dir = '/downloads/'
+	if RELEASE:
+		run([
+			'scp', path('target/fman.dmg'),
+			SERVER_STATICFILES_DIR + downloads_dir
+		])
+		run([
+			'scp', path('target/fman-%s.zip' % VERSION),
+			SERVER_STATICFILES_DIR + updates_dir
+		])
+	else:
+		copy(path('target/fman.dmg'), LOCAL_STATICFILES_DIR + downloads_dir)
+		copy(
+			path('target/fman-%s.zip' % VERSION),
+			LOCAL_STATICFILES_DIR + updates_dir
+		)
 
 def clean():
 	rmtree(path('target'), ignore_errors=True)

@@ -17,9 +17,9 @@
 	<key>LSBackgroundOnly</key>
 	<string>0</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>${version}</string>
 	<key>CFBundleVersion</key>
-	<string>1.0.0</string>
+	<string>${version}</string>
 	<key>CFBundleName</key>
 	<string>fman</string>
 	${info_plist_extra}
