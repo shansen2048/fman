@@ -134,12 +134,27 @@ def upload():
 			'scp', path('target/fman-%s.zip' % VERSION),
 			SERVER_STATICFILES_DIR + updates_dir
 		])
+		# The server serves its static files from static-collected/. The
+		# "Appcast.xml" view looks inside static/. So we need the files in both
+		# locations. Run `collectstatic` to have Django copy them from static/
+		# to static-collected/.
+		run([
+			'ssh', 'fman@fman.io',
+			'cd src/ ; '
+			'source venv/bin/activate ; '
+			'python manage.py collectstatic --noinput'
+		])
 	else:
 		copy(path('target/fman.dmg'), LOCAL_STATICFILES_DIR + downloads_dir)
 		copy(
 			path('target/fman-%s.zip' % VERSION),
 			LOCAL_STATICFILES_DIR + updates_dir
 		)
+
+def release():
+	global RELEASE
+	RELEASE = True
+	publish()
 
 def clean():
 	rmtree(path('target'), ignore_errors=True)
