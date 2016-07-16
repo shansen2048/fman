@@ -22,6 +22,9 @@
 	<string>${version}</string>
 	<key>CFBundleName</key>
 	<string>fman</string>
+	<!-- Enable Retina support on OS X: -->
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
 	${info_plist_extra}
 </dict>
 </plist>
