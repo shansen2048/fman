@@ -2,7 +2,7 @@ from os import makedirs, readlink, symlink
 from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
 	isfile
 from shutil import copy, copytree
-from subprocess import Popen, STDOUT, CalledProcessError, check_output
+from subprocess import Popen, STDOUT, CalledProcessError
 
 import fnmatch
 import os
@@ -108,21 +108,6 @@ def glob_recursive(dir_, pattern):
 		for dirpath, _, files in os.walk(dir_)
 		for f in fnmatch.filter(files, pattern)
 	]
-
-def get_rpath_references(so_path):
-	result = []
-	shared_libraries = \
-		check_output(['otool', '-L', so_path], universal_newlines=True)
-	for line in shared_libraries.split('\n'):
-		rpath_prefix = '@rpath/'
-		try:
-			prefix_index = line.index(rpath_prefix)
-		except ValueError:
-			pass
-		else:
-			prefix = line[prefix_index:]
-			result.append(prefix[:prefix.index(' ')])
-	return result
 
 def is_windows():
 	return sys.platform in ('win32', 'cygwin')
