@@ -102,13 +102,6 @@ def unzip(zip, dest_dir):
 	# https://bugs.python.org/issue15795
 	run(['unzip', '-o', zip, '-d', dest_dir])
 
-def glob_recursive(dir_, pattern):
-	return [
-		join(dirpath, f)
-		for dirpath, _, files in os.walk(dir_)
-		for f in fnmatch.filter(files, pattern)
-	]
-
 def is_windows():
 	return sys.platform in ('win32', 'cygwin')
 
