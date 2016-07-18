@@ -4,7 +4,6 @@ from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
 from shutil import copy, copytree
 from subprocess import Popen, STDOUT, CalledProcessError
 
-import fnmatch
 import os
 import sys
 
