@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import json
 import sys
 
-VERSION = '0.0.3'
+VERSION = '0.0.1'
 
 LOCAL_STATICFILES_DIR = '/Users/michael/dev/fman.io/static'
 SERVER_STATICFILES_DIR = '/home/fman/src/static'
