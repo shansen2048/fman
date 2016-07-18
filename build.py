@@ -1,8 +1,8 @@
 from build_impl import path, run, copy_with_filtering, unzip, copy_framework, \
 	get_canonical_os_name, is_windows, is_osx, is_linux
 from glob import glob
-from os import rename, symlink, listdir, unlink
-from os.path import exists, join, basename, splitext
+from os import rename, symlink, unlink, makedirs, listdir, remove
+from os.path import exists, join, basename, splitext, isdir, isfile, islink
 from shutil import rmtree, copy
 from subprocess import check_output
 from tempfile import TemporaryDirectory
@@ -10,18 +10,11 @@ from tempfile import TemporaryDirectory
 import json
 import sys
 
-VERSION = '0.0.1'
-
-RELEASE = False
+VERSION = '0.0.3'
 
 LOCAL_STATICFILES_DIR = '/Users/michael/dev/fman.io/static'
 SERVER_STATICFILES_DIR = '/home/fman/src/static'
 SERVER_USER = 'fman@fman.io'
-
-MAIN_PYTHON_PATH = path('src/main/python')
-TEST_PYTHON_PATH = ':'.join(map(path,
-	['src/main/python', 'src/unittest/python', 'src/integrationtest/python']
-))
 
 FILES_TO_FILTER = [path('src/main/resources/base/default_settings.json')]
 EXCLUDE_RESOURCES = [path('src/main/resources/osx/Info.plist')]
@@ -48,7 +41,7 @@ def esky():
 	generate_resources()
 	run(
 		['python', path('setup.py'), 'bdist_esky'],
-		extra_env={'PYTHONPATH': MAIN_PYTHON_PATH}
+		extra_env={'PYTHONPATH': path('src/main/python')}
 	)
 
 def app():
@@ -123,9 +116,12 @@ def setup():
 	run(['makensis', path('src/main/Setup.nsi')])
 
 def test():
+	pythonpath = ':'.join(map(path, [
+		'src/main/python', 'src/unittest/python', 'src/integrationtest/python'
+	]))
 	run(
 		['python', '-m', 'unittest', 'fman_unittest', 'fman_integrationtest'],
-		extra_env={'PYTHONPATH': TEST_PYTHON_PATH}
+		extra_env={'PYTHONPATH': pythonpath}
 	)
 
 def publish():
@@ -151,61 +147,92 @@ def create_autoupdate_files():
 	_create_autoupdate_patches()
 
 def _create_autoupdate_patches():
-	latest_version = _get_latest_version_on_server()
-	if latest_version:
-		old_version_tpl, old_version_zip = latest_version
-		old_version = _version_tuple_to_str(old_version_tpl)
-		new_version = VERSION
-		new_version_tpl = _version_str_to_tuple(new_version)
-		if new_version_tpl <= old_version_tpl:
-			raise ValueError(
-				"Version being built (%s) is <= latest version on server (%s)."
-				% (new_version, old_version)
-			)
-		print('Creating patch %s -> %s.' % (old_version, new_version))
+	version_files = _sync_cache_with_server()
+	if not version_files:
+		return
+	get_version = lambda version_file: splitext(basename(version_file))[0]
+	get_version_tpl = lambda vf: _version_str_to_tuple(get_version(vf))
+	latest_version = sorted(version_files, key=get_version_tpl)[-1]
+	if _version_str_to_tuple(VERSION) <= get_version_tpl(latest_version):
+		raise ValueError(
+			"Version being built (%s) is <= latest version on server (%s)."
+			% (VERSION, get_version(latest_version))
+		)
+	for version_file in version_files:
+		version = get_version(version_file)
+		print('Creating patch %s -> %s.' % (version, VERSION))
 		with TemporaryDirectory() as tmp_dir:
-			if RELEASE:
-				run(['scp', SERVER_USER + ':' + old_version_zip, tmp_dir])
-				old_version_zip = join(tmp_dir, basename(old_version_zip))
 			# Use ditto instead of Python's ZipFile because the latter does not
 			# give 100% the same result, making Sparkle's hash check fail:
-			run(['ditto', '-x', '-k', old_version_zip, tmp_dir])
+			run(['ditto', '-x', '-k', version_file, tmp_dir])
 			run([
 				path('lib/osx/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
 				join(tmp_dir, 'fman.app'), path('target/fman.app'),
-				path(
-					'target/autoupdate/%s-%s.delta' % (old_version, new_version)
-				)
+				path('target/autoupdate/%s-%s.delta' % (version, VERSION))
 			])
 
-def _get_latest_version_on_server():
+def _sync_cache_with_server():
+	result = []
+	if RELEASE:
+		cache_dir = path('target/cache/server')
+	else:
+		cache_dir = path('target/cache/local')
+	makedirs(cache_dir, exist_ok=True)
+	versions_on_server = _get_versions_on_server()
+	for version_file, shasum in versions_on_server:
+		cached_version = join(cache_dir, basename(version_file))
+		if not exists(cached_version):
+			_download_from_server(version_file, cache_dir)
+		else:
+			if _shasum(cached_version) != shasum:
+				print(
+					'Warning: shasum of %s differs on server.' % cached_version
+				)
+				_download_from_server(version_file, cache_dir)
+		result.append(cached_version)
+	return result
+
+def _get_versions_on_server():
 	if RELEASE:
 		updates_dir = _get_updates_dir(SERVER_STATICFILES_DIR)
-		files = _listdir_remote(SERVER_USER, updates_dir)
 	else:
 		updates_dir = _get_updates_dir(LOCAL_STATICFILES_DIR)
-		files = _listdir_absolute(updates_dir)
-	versions = []
-	for f in files:
-		version_str, ext = splitext(basename(f))
-		if ext != '.zip':
-			continue
-		try:
-			version_tpl = _version_str_to_tuple(version_str)
-		except ValueError:
-			continue
-		versions.append((version_tpl, f))
-	if versions:
-		return sorted(versions)[-1]
+	hash_cmd = ' ; '.join([
+		# Prevent literal string ".../*.zip" from being passed to for loop below
+		# when there is no .zip file:
+		'shopt -s nullglob',
+		'for f in %s/*.zip'  % updates_dir,
+			'do shasum -a 256 $f',
+		'done'
+	])
+	if RELEASE:
+		shasums_lines = _run_on_server(SERVER_USER, hash_cmd)
+	else:
+		shasums_lines = _check_output_decode(hash_cmd, shell=True)
+	lines = [line for line in shasums_lines.split('\n')[:-1]]
+	result = []
+	for line in lines:
+		shasum, version_path = line.split(maxsplit=1)
+		result.append((version_path, shasum))
+	return result
 
-def _listdir_remote(user_server, dir_):
-	files_lines = check_output([
-		'ssh', user_server, 'for n in %s/*; do echo $n; done' % dir_
-	]).decode(sys.stdout.encoding)
-	return [line.rstrip() for line in files_lines.split('\n')][:-1]
+def _shasum(path_):
+	return _check_output_decode(
+		'shasum -a 256 %s | cut -c 1-64' % path_, shell=True
+	)[:-1]
 
-def _listdir_absolute(dir_):
-	return [join(dir_, f) for f in listdir(dir_)]
+def _download_from_server(file_path, dest_dir):
+	print('Downloading %s.' % file_path)
+	if RELEASE:
+		run(['scp', SERVER_USER + ':' + file_path, dest_dir])
+	else:
+		copy(file_path, dest_dir)
+
+def _run_on_server(user_server, command):
+	return _check_output_decode(['ssh', user_server, command])
+
+def _check_output_decode(*args, **kwargs):
+	return check_output(*args, **kwargs).decode(sys.stdout.encoding)
 
 def _version_str_to_tuple(version_str):
 	return tuple(map(int, version_str.split('.')))
@@ -254,9 +281,27 @@ def release():
 	publish()
 
 def clean():
-	rmtree(path('target'), ignore_errors=True)
+	for f in listdir(path('target')):
+		if f != 'cache':
+			fpath = join(path('target'), f)
+			if isdir(fpath):
+				rmtree(fpath, ignore_errors=True)
+			elif isfile(fpath):
+				remove(fpath)
+			elif islink(fpath):
+				unlink(fpath)
 
+from argparse import ArgumentParser
 if __name__ == '__main__':
-	result = globals()[sys.argv[1]](*sys.argv[2:])
+	parser = ArgumentParser(description='Build fman.')
+	parser.add_argument('cmd')
+	parser.add_argument('args', metavar='arg', nargs='*')
+	parser.add_argument(
+		'--release', dest='release', action='store_const', const=True,
+		default=False
+	)
+	args = parser.parse_args()
+	RELEASE = args.release
+	result = globals()[args.cmd](*args.args)
 	if result:
 		print(result)
