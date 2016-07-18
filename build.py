@@ -281,7 +281,11 @@ def release():
 	publish()
 
 def clean():
-	for f in listdir(path('target')):
+	try:
+		target_files = listdir(path('target'))
+	except FileNotFoundError:
+		return
+	for f in target_files:
 		if f != 'cache':
 			fpath = join(path('target'), f)
 			if isdir(fpath):
