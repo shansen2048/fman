@@ -5,3 +5,4 @@ venv/
 target/
 .DS_Store
 lib/osx/Qt-5.6.1
+lib/windows/Qt-5.6.1-1
