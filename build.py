@@ -1,4 +1,4 @@
-from build_impl import path, run, copy_with_filtering, unzip, copy_framework, \
+from build_impl import path, run, copy_with_filtering, copy_framework, \
 	get_canonical_os_name, is_windows, is_osx, is_linux
 from glob import glob
 from os import rename, symlink, unlink, makedirs, listdir, remove
@@ -6,6 +6,7 @@ from os.path import exists, join, basename, splitext, isdir, isfile, islink
 from shutil import rmtree, copy
 from subprocess import check_output
 from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 import json
 import sys
@@ -112,7 +113,8 @@ def sign_dmg():
 def setup():
 	esky()
 	latest_zip = sorted(glob(path('target/fman-*.zip')))[-1]
-	unzip(latest_zip, path('target/exploded'))
+	with ZipFile(latest_zip) as zip:
+		zip.extractall(path('target/exploded'))
 	run(['makensis', path('src/main/Setup.nsi')])
 
 def test():

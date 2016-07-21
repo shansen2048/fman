@@ -95,12 +95,6 @@ def run(cmd, extra_env=None):
 	if process.returncode:
 		raise CalledProcessError(process.returncode, cmd)
 
-def unzip(zip, dest_dir):
-	# Would actually prefer to use Python's ZipFile here, but it doesn't
-	# preserve file permissions (in particular, executability). See:
-	# https://bugs.python.org/issue15795
-	run(['unzip', '-o', zip, '-d', dest_dir])
-
 def is_windows():
 	return sys.platform in ('win32', 'cygwin')
 
