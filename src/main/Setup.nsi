@@ -52,7 +52,7 @@
 Section
 
   SetOutPath "$INSTDIR"
-  File /r "..\..\target\exploded\*"
+  File /r "..\..\target\fman\*"
   WriteRegStr HKCU "Software\fman" "" $INSTDIR
   WriteUninstaller "$INSTDIR\uninstall.exe"
   CreateShortCut "$SMPROGRAMS\fman.lnk" "$INSTDIR\fman.exe"

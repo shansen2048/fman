@@ -1,42 +1,61 @@
 from os import makedirs, readlink, symlink
 from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
-	isfile
+	isfile, pardir, exists
 from shutil import copy, copytree
 from subprocess import Popen, STDOUT, CalledProcessError
 
+import json
 import os
 import sys
 
-PROJECT_DIR = dirname(__file__)
+PROJECT_DIR = join(dirname(__file__), pardir)
+
+def get_option(key):
+	# Import late to avoid cyclic import build <-> build_impl:
+	from build import OPTIONS
+	return OPTIONS[key]
 
 def path(relpath):
 	return join(PROJECT_DIR, *relpath.split('/'))
 
+def generate_resources(dest_dir=path('target/resources')):
+	copy_with_filtering(path('src/main/resources/base'), dest_dir)
+	os_resources_dir = path('src/main/resources/' + get_canonical_os_name())
+	if exists(os_resources_dir):
+		copy_with_filtering(os_resources_dir, dest_dir)
+
 def copy_with_filtering(
-	src_dir_or_file, dest_dir, dict_, files_to_filter=None, exclude_files=None
+	src_dir_or_file, dest_dir, replacements=None, files_to_filter=None
 ):
-	if exclude_files is None:
-		exclude_files = []
-	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, exclude_files)
+	if replacements is None:
+		replacements = _read_filter()
+	if files_to_filter is None:
+		files_to_filter = get_option('files_to_filter')
+	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir)
 	to_filter = _paths(files_to_filter)
 	for src, dest in to_copy:
 		makedirs(dirname(dest), exist_ok=True)
 		if files_to_filter is None or src in to_filter:
-			_copy_with_filtering(src, dest, dict_)
+			_copy_with_filtering(src, dest, replacements)
 		else:
 			copy(src, dest)
 
-def _get_files_to_copy(src_dir_or_file, dest_dir, files_to_exclude):
-	excludes = _paths(files_to_exclude)
-	if isfile(src_dir_or_file) and src_dir_or_file not in excludes:
+def _read_filter():
+	filter_type = 'release' if get_option('release') else 'local'
+	filter_path = path('src/main/filters/filter-%s.json' % filter_type)
+	with open(filter_path, 'r') as f:
+		result = json.load(f)
+	result['version'] = get_option('version')
+	return result
+
+def _get_files_to_copy(src_dir_or_file, dest_dir):
+	if isfile(src_dir_or_file):
 		yield src_dir_or_file, join(dest_dir, basename(src_dir_or_file))
 	else:
 		for (subdir, _, files) in os.walk(src_dir_or_file):
 			dest_subdir = join(dest_dir, relpath(subdir, src_dir_or_file))
 			for file_ in files:
 				file_path = join(subdir, file_)
-				if file_path in excludes:
-					continue
 				dest_path = join(dest_subdir, file_)
 				yield file_path, dest_path
 
