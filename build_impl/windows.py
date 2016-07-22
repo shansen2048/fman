@@ -1,6 +1,9 @@
 from build_impl import run, path, generate_resources
-from os.path import join
+from os.path import join, relpath
 from shutil import copy
+from zipfile import ZipFile, ZIP_DEFLATED
+
+import os
 
 def exe():
 	run([
@@ -18,3 +21,11 @@ def exe():
 
 def setup():
 	run(['makensis', path('src/main/Setup.nsi')])
+
+def zip():
+	with ZipFile(path('target/fman.zip'), 'w', ZIP_DEFLATED) as zip:
+		for subdir, dirnames, filenames in os.walk(path('target/fman')):
+			for filename in filenames:
+				filepath = join(subdir, filename)
+				arcname = relpath(filepath, path('target'))
+				zip.write(filepath, arcname)
