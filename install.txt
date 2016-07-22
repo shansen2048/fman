@@ -9,7 +9,7 @@ Windows preparation:
  d) Add gnuwin32/bin from Qt source dir, perl and Python to PATH
  e) Follow the instructions on http://doc.qt.io/qt-5/windows-building.html
     - You may have to install the DirectX SDK (9.29.1962.0)
- f) Add c:\Qt\5.6.0\qtbase\bin to your PATH.
+ f) Add c:\Qt\5.6.1-1\qtbase\bin to your PATH.
 
 OS X preparation:
  a) Edit the sources:
@@ -57,7 +57,7 @@ Linux:
 
 Install PyQT:
 =============
- 1) Download PyQt 5.6 from﻿https://www.riverbankcomputing.com/software/pyqt/download5
+ 1) Download PyQt 5.6 from https://www.riverbankcomputing.com/software/pyqt/download5
  2) Unpack
 
 OS X:
@@ -68,10 +68,11 @@ OS X:
 
 Windows:
  3) open the Qt5 command console
- 4) python configure.py --qmake c:\Qt\5.6.0\qtbase\bin\qmake.exe --sip c:\Users\Michael\dev\fman\venv\sip.exe
- 5) Search for `python34.lib` in all Makefile*'s and replace by absolute path c:\Python34\libs\python34.lib
- 5) jom
- 6) jom install
+ 4) ensure c:\Users\Michael\dev\fman\lib\windows\Qt-5.6.1-1\bin is on the PATH
+ 5) python configure.py --qmake c:\Users\Michael\dev\fman\lib\windows\Qt-5.6.1-1\bin\qmake.exe --sip c:\Users\Michael\dev\fman\venv\sip.exe
+ 6) Search for `python34.lib` in all Makefile's and replace by absolute path c:\Python34\libs\python34.lib
+ 7) jom
+ 8) jom install
 
 cx_Freeze:
 ==========
