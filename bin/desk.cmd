@@ -2,3 +2,6 @@ SET ROOT=c:\Users\Michael\dev\fman
 SET PATH=%ROOT%\lib\windows\Qt-5.6.1-1\bin;%PATH%
 CD %ROOT%
 CALL venv\scripts\activate.bat
+DOSKEY clean=python build.py clean
+DOSKEY exe=python build.py exe $*
+DOSKEY setup=python build.py setup $*
