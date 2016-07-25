@@ -3,10 +3,6 @@
 	font-size: 9pt;
 }
 
-PathView {
-	padding: 0.25ex;
-}
-
 QTreeView QHeaderView::section {
 	font-size: 8pt;
 }
