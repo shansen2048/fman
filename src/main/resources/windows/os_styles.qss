@@ -1,7 +1,21 @@
 * {
-	font-family: "Lucida Sans Unicode", sans-serif;
+	font-family: "Roboto Bold";
+	font-size: 9pt;
+}
+
+PathView {
+	padding: 0.25ex;
 }
 
 QTreeView QHeaderView::section {
-	font-size: 11px;
+	font-size: 8pt;
+}
+
+QTreeView::item::first {
+	padding-left: 1ex;
+}
+
+QStatusBar {
+	font-size: 8pt;
+	min-height: 1.25em;
 }

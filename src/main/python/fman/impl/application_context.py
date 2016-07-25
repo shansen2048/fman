@@ -36,6 +36,9 @@ class ApplicationContext:
 		if system.is_linux():
 			db = QFontDatabase()
 			db.addApplicationFont(self.get_resource('OpenSans-Semibold.ttf'))
+		elif system.is_windows():
+			db = QFontDatabase()
+			db.addApplicationFont(self.get_resource('Roboto-Bold.ttf'))
 	@property
 	def app(self):
 		if self._app is None:
