@@ -3,10 +3,6 @@ from threading import Thread
 
 import sys
 
-class Updater:
-	def start(self):
-		pass
-
 class EskyUpdater(Thread):
 	def __init__(self, executable, update_url):
 		super().__init__()

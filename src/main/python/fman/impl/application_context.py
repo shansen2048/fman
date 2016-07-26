@@ -2,7 +2,7 @@ from fman.impl import MainWindow
 from fman.impl.controller import Controller
 from fman.impl.os_ import OSX, Windows, Linux
 from fman.impl.view import Style
-from fman.updater import EskyUpdater, OSXUpdater, Updater
+from fman.updater import EskyUpdater, OSXUpdater
 from fman.util import system
 from fman.util.qt import GuiThread
 from fman.util.system import get_canonical_os_name
@@ -148,10 +148,8 @@ class CompiledApplicationContext(ApplicationContext):
 			if system.is_osx():
 				appcast_url = update_url + '/Appcast.xml'
 				self._updater = OSXUpdater(self.app, appcast_url)
-			elif system.is_linux():
-				self._updater = EskyUpdater(sys.executable, update_url)
 			else:
-				self._updater = Updater()
+				self._updater = EskyUpdater(sys.executable, update_url)
 		return self._updater
 	def get_resource(self, *rel_path):
 		if system.is_osx():
