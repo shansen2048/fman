@@ -8,9 +8,9 @@ from fman.util.qt import GuiThread
 from fman.util.system import get_canonical_os_name
 from fman.impl.settings import Settings, SettingsManager
 from os.path import dirname, join, pardir, expanduser, normpath, exists
-from PyQt5.QtCore import QDir, QSettings
+from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QFontDatabase
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 import sys
 
@@ -49,7 +49,6 @@ class ApplicationContext:
 			self._app.setApplicationDisplayName('fman')
 			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
-			QDir.addSearchPath('image', self.get_resource('images'))
 		return self._app
 	def _get_qapplication_argv(self):
 		return [self.argv[0]]
@@ -123,7 +122,7 @@ class ApplicationContext:
 	@property
 	def style(self):
 		if self._style is None:
-			self._style = Style()
+			self._style = Style(QStyleFactory.create('Fusion'))
 		return self._style
 	@property
 	def updater(self):
