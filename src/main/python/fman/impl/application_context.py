@@ -42,7 +42,7 @@ class ApplicationContext:
 	@property
 	def app(self):
 		if self._app is None:
-			self._app = QApplication(self.argv)
+			self._app = QApplication(self._get_qapplication_argv())
 			self._app.setOrganizationName('fman.io')
 			self._app.setOrganizationDomain('fman.io')
 			self._app.setApplicationName('fman')
@@ -51,6 +51,8 @@ class ApplicationContext:
 			self._app.setStyle(self.style)
 			QDir.addSearchPath('image', self.get_resource('images'))
 		return self._app
+	def _get_qapplication_argv(self):
+		return [self.argv[0]]
 	@property
 	def main_window(self):
 		return self._main_window_and_controller[0]
@@ -155,3 +157,12 @@ class CompiledApplicationContext(ApplicationContext):
 		if system.is_osx():
 			rel_path = (pardir, 'Resources') + rel_path
 		return normpath(join(dirname(sys.executable), *rel_path))
+	def _get_qapplication_argv(self):
+		if system.is_windows():
+			# Qt searches for qwindows.dll in the platforms/ dir next to the
+			# executable. When fman is run via Esky's launcher, the executable
+			# is one directory up from the platforms/ dir, so Qt fails to load.
+			# Tell Qt where the dir can be found:
+			platf_plugin_path = join(dirname(sys.executable), 'platforms')
+			return [self.argv[0], "-platformpluginpath", platf_plugin_path]
+		return super()._get_qapplication_argv()

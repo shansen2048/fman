@@ -16,7 +16,7 @@ OPTIONS = {
 }
 
 if is_windows():
-	from build_impl.windows import exe, setup, zip
+	from build_impl.windows import exe, setup, zip, esky
 elif is_osx():
 	from build_impl.osx import app, sign_app, dmg, sign_dmg,\
 		create_autoupdate_files, upload

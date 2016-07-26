@@ -1,9 +1,21 @@
-from build_impl import run, path, generate_resources
+from build_impl import run, path, generate_resources, get_option
 from os.path import join, relpath
 from shutil import copy
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import os
+
+def esky():
+	generate_resources()
+	run(
+		['python', path('setup.py'), 'bdist_esky'],
+		extra_env={'PYTHONPATH': path('src/main/python')}
+	)
+	esky_name = 'fman-%s.win-amd64' % get_option('version')
+	with ZipFile(path('target/%s.zip' % esky_name), 'a', ZIP_DEFLATED) as zip:
+		zip.write(r'c:\Windows\System32\msvcr100.dll', r'msvcr100.dll')
+		for dll in ('msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll'):
+			zip.write(join(r'c:\Windows\System32', dll), join(esky_name, dll))
 
 def exe():
 	run([
