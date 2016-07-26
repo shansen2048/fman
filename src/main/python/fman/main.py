@@ -9,7 +9,7 @@ def main(argv):
 	appctxt.load_fonts()
 	window = appctxt.main_window
 	appctxt.settings_manager.on_startup(window)
-	window.status_bar.showMessage('Ready.')
+	window.status_bar.showMessage('v%s Ready.' % appctxt.settings['version'])
 	updater = appctxt.updater
 	if updater:
 		updater.start()
