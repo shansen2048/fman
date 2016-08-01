@@ -49,8 +49,7 @@ def publish():
 		raise ValueError('Unknown operating system.')
 
 def release():
-	global RELEASE
-	RELEASE = True
+	OPTIONS['release'] = True
 	publish()
 
 def clean():
