@@ -3,7 +3,7 @@ from fman.impl.gui_operations import show_message_box
 from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_PageUp, Key_Space, Key_Insert, ShiftModifier, Key_Backspace, \
 	Key_Enter, Key_Return, Key_F6, Key_F7, Key_F8, Key_Delete, Key_F5, Key_F4, \
-	Key_F11, Key_F9, Yes, No, Ok, Cancel
+	Key_F11, Key_F9, Yes, No, Ok, Cancel, Key_F10
 from fman.util.system import is_osx
 from os import rename
 from os.path import join, pardir, dirname, basename, exists, isdir, split, \
@@ -141,6 +141,8 @@ class Controller:
 				self.os.move_to_trash(*to_delete)
 		elif event.key() == Key_F9:
 			self.os.open_terminal_in_directory(source().get_path())
+		elif event.key() == Key_F10:
+			self.os.open_native_file_manager(source().get_path())
 		elif event.key() == Key_F11:
 			files = '\n'.join(self._get_selected_files(view))
 			self.app.clipboard().setText(files)

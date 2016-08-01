@@ -14,6 +14,8 @@ class OS:
 		Popen([app, file_])
 	def open_terminal_in_directory(self, dir_):
 		raise NotImplementedError()
+	def open_native_file_manager(self, dir_):
+		raise NotImplementedError()
 
 class OSX(OS):
 	def move_to_trash(self, *files):
@@ -27,6 +29,8 @@ class OSX(OS):
 		Popen(['/usr/bin/open', '-a', app, file_])
 	def open_terminal_in_directory(self, dir_):
 		self.open_file_with_app(dir_, 'Terminal')
+	def open_native_file_manager(self, dir_):
+		self.open_file_with_app(dir_, 'Finder')
 
 class Windows(OS):
 	def move_to_trash(self, *files):
@@ -42,6 +46,8 @@ class Windows(OS):
 		return "Applications (*.exe)"
 	def open_terminal_in_directory(self, dir_):
 		Popen('start cmd', shell=True, cwd=dir_)
+	def open_native_file_manager(self, dir_):
+		Popen(['start cmd', dir_], shell=True)
 
 class Linux(OS):
 	def move_to_trash(self, *files):
@@ -54,3 +60,5 @@ class Linux(OS):
 		return "Applications (*)"
 	def open_terminal_in_directory(self, dir_):
 		Popen('gnome-terminal', shell=True, cwd=dir_)
+	def open_native_file_manager(self, dir_):
+		Popen(['gnome-open', dir_], shell=True)
