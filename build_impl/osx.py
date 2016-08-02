@@ -23,6 +23,10 @@ def app():
 	_remove_unwanted_pyinstaller_files()
 	_fix_sparkle_delta_updates()
 	generate_resources(dest_dir=path('target/fman.app/Contents/Resources'))
+	rename(
+		path('target/fman.app/Contents/Resources/Info.plist'),
+		path('target/fman.app/Contents/Info.plist')
+	)
 	copy_framework(
 		path('lib/osx/Sparkle-1.14.0/Sparkle.framework'),
 		path('target/fman.app/Contents/Frameworks/Sparkle.framework')
