@@ -16,12 +16,12 @@ OPTIONS.update({
 })
 
 if is_windows():
-	from build_impl.windows import exe, installer, zip, esky
+	from build_impl.windows import exe, installer, zip, sign_exe, sign_installer
 elif is_osx():
 	from build_impl.osx import app, sign_app, dmg, sign_dmg,\
 		create_autoupdate_files, upload
 elif is_linux():
-	from build_impl.windows import setup
+	from build_impl.linux import esky
 
 def test():
 	pythonpath = pathsep.join(map(path, [
@@ -35,7 +35,9 @@ def test():
 def publish():
 	if is_windows():
 		exe()
-		setup()
+		sign_exe()
+		installer()
+		sign_installer()
 	elif is_osx():
 		app()
 		sign_app()

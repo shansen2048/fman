@@ -147,19 +147,10 @@ class CompiledApplicationContext(ApplicationContext):
 			if system.is_osx():
 				appcast_url = update_url + '/Appcast.xml'
 				self._updater = OSXUpdater(self.app, appcast_url)
-			else:
+			elif system.is_linux():
 				self._updater = EskyUpdater(sys.executable, update_url)
 		return self._updater
 	def get_resource(self, *rel_path):
 		if system.is_osx():
 			rel_path = (pardir, 'Resources') + rel_path
 		return normpath(join(dirname(sys.executable), *rel_path))
-	def _get_qapplication_argv(self):
-		if system.is_windows():
-			# Qt searches for qwindows.dll in the platforms/ dir next to the
-			# executable. When fman is run via Esky's launcher, the executable
-			# is one directory up from the platforms/ dir, so Qt fails to load.
-			# Tell Qt where the dir can be found:
-			platf_plugin_path = join(dirname(sys.executable), 'platforms')
-			return [self.argv[0], "-platformpluginpath", platf_plugin_path]
-		return super()._get_qapplication_argv()
