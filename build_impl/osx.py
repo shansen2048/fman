@@ -1,5 +1,5 @@
 from build_impl import run, path, copy_framework, get_canonical_os_name, \
-	generate_resources, get_option
+	generate_resources, OPTIONS
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
@@ -73,7 +73,7 @@ def create_autoupdate_files():
 	run([
 		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
 		path('target/fman.app'),
-		path('target/autoupdate/%s.zip' % get_option('version'))
+		path('target/autoupdate/%s.zip' % OPTIONS['version'])
 	])
 	_create_autoupdate_patches()
 
@@ -84,7 +84,7 @@ def _create_autoupdate_patches():
 	get_version = lambda version_file: splitext(basename(version_file))[0]
 	get_version_tpl = lambda vf: _version_str_to_tuple(get_version(vf))
 	latest_version = sorted(version_files, key=get_version_tpl)[-1]
-	new_version = get_option('version')
+	new_version = OPTIONS['version']
 	if _version_str_to_tuple(new_version) <= get_version_tpl(latest_version):
 		raise ValueError(
 			"Version being built (%s) is <= latest version on server (%s)."
@@ -105,7 +105,7 @@ def _create_autoupdate_patches():
 
 def _sync_cache_with_server():
 	result = []
-	if get_option('release'):
+	if OPTIONS['release']:
 		cache_dir = path('target/cache/server')
 	else:
 		cache_dir = path('target/cache/local')
@@ -134,8 +134,8 @@ def _get_versions_on_server():
 			'do shasum -a 256 $f',
 		'done'
 	])
-	if get_option('release'):
-		shasums_lines = _run_on_server(get_option('server_user'), hash_cmd)
+	if OPTIONS['release']:
+		shasums_lines = _run_on_server(OPTIONS['server_user'], hash_cmd)
 	else:
 		shasums_lines = _check_output_decode(hash_cmd, shell=True)
 	lines = [line for line in shasums_lines.split('\n')[:-1]]
@@ -152,8 +152,8 @@ def _shasum(path_):
 
 def _download_from_server(file_path, dest_dir):
 	print('Downloading %s.' % file_path)
-	if get_option('release'):
-		run(['scp', get_option('server_user') + ':' + file_path, dest_dir])
+	if OPTIONS['release']:
+		run(['scp', OPTIONS['server_user'] + ':' + file_path, dest_dir])
 	else:
 		copy(file_path, dest_dir)
 
@@ -172,18 +172,18 @@ def _version_tuple_to_str(version_tuple):
 def upload():
 	_upload_file(path('target/fman.dmg'), _get_downloads_dir())
 	_upload_file(
-		path('target/autoupdate/%s.zip' % get_option('version')),
+		path('target/autoupdate/%s.zip' % OPTIONS['version']),
 		_get_updates_dir()
 	)
 	for patch_file in glob(path('target/autoupdate/*.delta')):
 		_upload_file(patch_file, _get_updates_dir())
-	if get_option('release'):
+	if OPTIONS['release']:
 		# The server serves its static files from static-collected/. The
 		# "Appcast.xml" view looks inside static/. So we need the files in both
 		# locations. Run `collectstatic` to have Django copy them from static/
 		# to static-collected/.
 		run([
-			'ssh', get_option('server_user'),
+			'ssh', OPTIONS['server_user'],
 			'cd src/ ; '
 			'source venv/bin/activate ; '
 			'python manage.py collectstatic --noinput'
@@ -191,8 +191,8 @@ def upload():
 
 def _upload_file(f, dest_dir):
 	print('Uploading %s...' % basename(f))
-	if get_option('release'):
-		run(['scp', f, get_option('server_user') + ':' + dest_dir])
+	if OPTIONS['release']:
+		run(['scp', f, OPTIONS['server_user'] + ':' + dest_dir])
 	else:
 		copy(f, dest_dir)
 
@@ -203,8 +203,8 @@ def _get_downloads_dir():
 	return _get_staticfiles_dir() + '/downloads/'
 
 def _get_staticfiles_dir():
-	if get_option('release'):
-		staticfiles_dir = get_option('server_staticfiles_dir')
+	if OPTIONS['release']:
+		staticfiles_dir = OPTIONS['server_staticfiles_dir']
 	else:
-		staticfiles_dir = get_option('local_staticfiles_dir')
+		staticfiles_dir = OPTIONS['local_staticfiles_dir']
 	return staticfiles_dir

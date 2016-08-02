@@ -1,9 +1,9 @@
-from build_impl import path, run, is_windows, is_osx, is_linux
+from build_impl import path, run, is_windows, is_osx, is_linux, OPTIONS
 from os import unlink, listdir, remove, pathsep
 from os.path import join, isdir, isfile, islink
 from shutil import rmtree
 
-OPTIONS = {
+OPTIONS.update({
 	'version': '0.0.2',
 	'local_staticfiles_dir': '/Users/michael/dev/fman.io/static',
 	'server_staticfiles_dir': '/home/fman/src/static',
@@ -13,7 +13,7 @@ OPTIONS = {
 		path('src/main/resources/base/default_settings.json'),
 		path('src/main/resources/osx/Info.plist')
 	]
-}
+})
 
 if is_windows():
 	from build_impl.windows import exe, installer, zip, esky

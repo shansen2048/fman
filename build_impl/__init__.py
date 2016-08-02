@@ -10,10 +10,9 @@ import sys
 
 PROJECT_DIR = join(dirname(__file__), pardir)
 
-def get_option(key):
-	# Import late to avoid cyclic import build <-> build_impl:
-	from build import OPTIONS
-	return OPTIONS[key]
+# We cannot have this dict in the same file as __main__.
+# See: http://stackoverflow.com/q/38702175/1839209
+OPTIONS = {}
 
 def path(relpath):
 	return join(PROJECT_DIR, *relpath.split('/'))
@@ -30,7 +29,7 @@ def copy_with_filtering(
 	if replacements is None:
 		replacements = _read_filter()
 	if files_to_filter is None:
-		files_to_filter = get_option('files_to_filter')
+		files_to_filter = OPTIONS['files_to_filter']
 	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir)
 	to_filter = _paths(files_to_filter)
 	for src, dest in to_copy:
@@ -41,11 +40,11 @@ def copy_with_filtering(
 			copy(src, dest)
 
 def _read_filter():
-	filter_type = 'release' if get_option('release') else 'local'
+	filter_type = 'release' if OPTIONS['release'] else 'local'
 	filter_path = path('src/main/filters/filter-%s.json' % filter_type)
 	with open(filter_path, 'r') as f:
 		result = json.load(f)
-	result['version'] = get_option('version')
+	result['version'] = OPTIONS['version']
 	return result
 
 def _get_files_to_copy(src_dir_or_file, dest_dir):

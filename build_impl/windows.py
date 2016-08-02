@@ -1,4 +1,4 @@
-from build_impl import run, path, generate_resources, get_option
+from build_impl import run, path, generate_resources, OPTIONS
 from distutils.core import setup
 from esky.bdist_esky import Executable
 from os.path import join, relpath, normpath, basename
@@ -11,7 +11,7 @@ import sys
 def esky():
 	generate_resources()
 	_run_esky()
-	esky_name = 'fman-%s.win-amd64' % get_option('version')
+	esky_name = 'fman-%s.win-amd64' % OPTIONS['version']
 	with ZipFile(path('target/%s.zip' % esky_name), 'a', ZIP_DEFLATED) as zip:
 		zip.write(r'c:\Windows\System32\msvcr100.dll', r'msvcr100.dll')
 		for dll in ('msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll'):
@@ -25,7 +25,7 @@ def _run_esky():
 			script_args=['bdist_esky'],
 			name='fman',
 			data_files=_get_data_files(path('target/resources')),
-			version=get_option('version'),
+			version=OPTIONS['version'],
 			options={
 				'bdist_esky': {
 					"freezer_module": "cxfreeze",
