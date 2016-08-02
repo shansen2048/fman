@@ -52,7 +52,7 @@ On Windows:
  8) jom install
 
 Linux:
- ﻿3) sudo apt-get install python3-dev
+  3) sudo apt-get install python3-dev
   rest as in OS X
 
 Install PyQT:
@@ -88,3 +88,8 @@ NSIS:
 =====
 Install version 2.51 on Windows.
 Add to PATH.
+
+Windows extra
+=============
+Add c:\Program Files (x86)\Windows Kits\8.0\bin\x64 to your PATH. This contains
+signtool, which is used for codesigning.
