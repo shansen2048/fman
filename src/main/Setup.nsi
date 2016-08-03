@@ -1,23 +1,37 @@
-;--------------------------------
-;Include Modern UI
+!include MUI2.nsh
+!include FileFunc.nsh
 
-  !include "MUI2.nsh"
-  !include "FileFunc.nsh"
+;--------------------------------
+;Perform Machine-level install, if possible
+
+!define MULTIUSER_EXECUTIONLEVEL Highest
+;Add support for command-line args that let uninstaller know whether to
+;uninstall machine- or user installation:
+!define MULTIUSER_INSTALLMODE_COMMANDLINE
+!include MultiUser.nsh
+!include LogicLib.nsh
+
+Function .onInit
+  !insertmacro MULTIUSER_INIT
+  ;Do not use InstallDir at all so we can detect empty $InstDir!
+  ${If} $InstDir == "" ; /D not used
+      ${If} $MultiUser.InstallMode == "AllUsers"
+          StrCpy $InstDir "$PROGRAMFILES\fman"
+      ${Else}
+          StrCpy $InstDir "$LOCALAPPDATA\fman"
+      ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Function un.onInit
+  !insertmacro MULTIUSER_UNINIT
+FunctionEnd
 
 ;--------------------------------
 ;General
 
   Name "fman"
-  OutFile "..\..\target\fman Setup.exe"
-
-  ;Default installation folder
-  InstallDir "$PROGRAMFILES64\fman"
-  
-  ;Get installation folder from registry if available
-  InstallDirRegKey HKCU "Software\fman" ""
-
-  ;Request application privileges for Windows Vista
-  RequestExecutionLevel user
+  OutFile "..\..\target\fmanSetup.exe"
 
 ;--------------------------------
 ;Interface Settings
@@ -49,24 +63,23 @@
 ;--------------------------------
 ;Installer Sections
 
+!define UNINST_KEY \
+  "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman"
 Section
-
-  SetOutPath "$INSTDIR"
+  SetOutPath "$InstDir"
   File /r "..\..\target\fman\*"
-  WriteRegStr HKCU "Software\fman" "" $INSTDIR
-  WriteUninstaller "$INSTDIR\uninstall.exe"
-  CreateShortCut "$SMPROGRAMS\fman.lnk" "$INSTDIR\fman.exe"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
-                   "DisplayName" "fman"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
-                   "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
-                   "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" \
-                   "Publisher" "Michael Herrmann"
-  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+  WriteRegStr SHCTX "Software\fman" "" $InstDir
+  WriteUninstaller "$InstDir\uninstall.exe"
+  CreateShortCut "$SMPROGRAMS\fman.lnk" "$InstDir\fman.exe"
+  WriteRegStr SHCTX "${UNINST_KEY}" "DisplayName" "fman"
+  WriteRegStr SHCTX "${UNINST_KEY}" "UninstallString" \
+    "$\"$InstDir\uninstall.exe$\" /$MultiUser.InstallMode"
+  WriteRegStr SHCTX "${UNINST_KEY}" "QuietUninstallString" \
+    "$\"$InstDir\uninstall.exe$\" /$MultiUser.InstallMode /S"
+  WriteRegStr SHCTX "${UNINST_KEY}" "Publisher" "Michael Herrmann"
+  ${GetSize} "$InstDir" "/S=0K" $0 $1 $2
   IntFmt $0 "0x%08X" $0
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman" "EstimatedSize" "$0"
+  WriteRegDWORD SHCTX "${UNINST_KEY}" "EstimatedSize" "$0"
 
 SectionEnd
 
@@ -75,10 +88,10 @@ SectionEnd
 
 Section "Uninstall"
 
-  RMDir /r "$INSTDIR"
+  RMDir /r "$InstDir"
   Delete "$SMPROGRAMS\fman.lnk"
-  DeleteRegKey /ifempty HKCU "Software\fman"
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\fman"
+  DeleteRegKey /ifempty SHCTX "Software\fman"
+  DeleteRegKey SHCTX "${UNINST_KEY}"
 
 SectionEnd
 

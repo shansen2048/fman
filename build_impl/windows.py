@@ -26,7 +26,7 @@ def installer():
 	run(['makensis', path('src/main/Setup.nsi')])
 
 def sign_installer():
-	_sign(path('target/fman Setup.exe'), 'fman Setup')
+	_sign(path('target/fmanSetup.exe'), 'fman Setup')
 
 def _sign(file_path, description):
 	run([
