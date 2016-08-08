@@ -1,0 +1,11 @@
+{
+	"ImportPath": "installer",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/jteeuwen/go-bindata",
+			"Rev": "a0ff2567cfb70903282db057e799fd826784d41d"
+		}
+	]
+}

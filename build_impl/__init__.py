@@ -1,6 +1,6 @@
 from os import makedirs, readlink, symlink
 from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
-	isfile, pardir, exists
+	isfile, pardir, exists, normpath
 from shutil import copy, copytree
 from subprocess import Popen, STDOUT, CalledProcessError
 
@@ -15,7 +15,7 @@ PROJECT_DIR = join(dirname(__file__), pardir)
 OPTIONS = {}
 
 def path(relpath):
-	return join(PROJECT_DIR, *relpath.split('/'))
+	return normpath(join(PROJECT_DIR, *relpath.split('/')))
 
 def generate_resources(dest_dir=path('target/resources')):
 	copy_with_filtering(path('src/main/resources/base'), dest_dir)
