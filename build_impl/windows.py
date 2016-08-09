@@ -42,7 +42,7 @@ def _build_launcher(dest):
 		path('src/main/go/src/launcher/launcher.go')
 	])
 
-def sign_exe_files():
+def sign_exe():
 	for subdir, _, files in os.walk(path('target/fman')):
 		for file_ in files:
 			extension = splitext(file_)[1]
