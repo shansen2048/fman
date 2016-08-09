@@ -14,18 +14,27 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"syscall"
+	"flag"
 )
 
 const Version = "${version}"
 const ProductId = `{91F6D922-553C-4E18-8991-53B3A925ACDA}`
 
 func main() {
-	installDir := getInstallDir()
-	extractAssets(installDir)
-	userInstall := isUserInstall()
-	createRegistryKeys(installDir, userInstall)
-	createStartMenuShortcut(installDir, userInstall)
-	launchFman(installDir)
+	doInstallPtr := flag.Bool("install", false, "Install fman")
+	doUpdatePtr := flag.Bool("update", false, "Update fman")
+	flag.Parse()
+
+	if *doInstallPtr {
+		extractAssets()
+		createRegistryKeysForUninstaller()
+		updateVersionInRegistry()
+		createStartMenuShortcut()
+		launchFman()
+	} else if *doUpdatePtr {
+		extractAssets()
+		updateVersionInRegistry()
+	}
 }
 
 func getInstallDir() string {
@@ -42,11 +51,11 @@ func getInstallDir() string {
 	return result
 }
 
-func extractAssets(installDir string) {
+func extractAssets() {
 	for _, relPath := range data.AssetNames() {
 		bytes, err := data.Asset(relPath)
 		check(err)
-		absPath := filepath.Join(installDir, relPath)
+		absPath := filepath.Join(getInstallDir(), relPath)
 		check(os.MkdirAll(filepath.Dir(absPath), 0755))
 		f, err := os.OpenFile(absPath, os.O_CREATE, 0755)
 		check(err)
@@ -62,27 +71,32 @@ func isUserInstall() bool {
 	return strings.HasPrefix(os.Args[0], os.Getenv("LOCALAPPDATA"))
 }
 
-func createRegistryKeys(installDir string, userInstall bool) {
-	regRoot := getRegistryRoot(userInstall)
+func createRegistryKeysForUninstaller() {
+	regRoot := getRegistryRoot()
 	uninstKey := `Software\Microsoft\Windows\CurrentVersion\Uninstall\fman`
+	installDir := getInstallDir()
 	writeRegStr(regRoot, uninstKey, "", installDir)
 	writeRegStr(regRoot, uninstKey, "DisplayName", "fman")
 	writeRegStr(regRoot, uninstKey, "Publisher", "Michael Herrmann")
 	uninstaller := filepath.Join(installDir, "uninstall.exe")
 	uninstString := `"` + uninstaller + `"`
-	if userInstall {
+	if isUserInstall() {
 		uninstString += " /CurrentUser"
 	} else {
 		uninstString += " /AllUsers"
 	}
 	writeRegStr(regRoot, uninstKey, "UninstallString", uninstString)
+}
+
+func updateVersionInRegistry() {
+	regRoot := getRegistryRoot()
 	updateKey := `Software\fman\Update\Clients\` + ProductId
 	writeRegStr(regRoot, updateKey, "pv", Version + ".0")
 	writeRegStr(regRoot, updateKey, "name", "fman")
 }
 
-func getRegistryRoot(userInstall bool) registry.Key {
-	if userInstall {
+func getRegistryRoot() registry.Key {
+	if isUserInstall() {
 		return registry.CURRENT_USER
 	}
 	return registry.LOCAL_MACHINE
@@ -96,15 +110,15 @@ func writeRegStr(regRoot registry.Key, keyPath string, valueName string, value s
 	check(key.SetStringValue(valueName, value))
 }
 
-func createStartMenuShortcut(installDir string, userInstall bool) {
-	startMenuDir := getStartMenuDir(userInstall)
+func createStartMenuShortcut() {
+	startMenuDir := getStartMenuDir()
 	linkPath := filepath.Join(startMenuDir, "Programs", "fman.lnk")
-	targetPath := filepath.Join(installDir, "fman.exe")
+	targetPath := filepath.Join(getInstallDir(), "fman.exe")
 	createShortcut(linkPath, targetPath)
 }
 
-func getStartMenuDir(userInstall bool) string {
-	if userInstall {
+func getStartMenuDir() string {
+	if isUserInstall() {
 		usr, err := user.Current()
 		check(err)
 		return usr.HomeDir + `\AppData\Roaming\Microsoft\Windows\Start Menu`
@@ -143,8 +157,8 @@ WScript.Quit 0`)
 	check(cmd.Run())
 }
 
-func launchFman(installDir string) {
-	cmd := exec.Command(filepath.Join(installDir, "fman.exe"))
+func launchFman() {
+	cmd := exec.Command(filepath.Join(getInstallDir(), "fman.exe"))
 	check(cmd.Start())
 }
 
