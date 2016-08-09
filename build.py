@@ -16,7 +16,7 @@ OPTIONS.update({
 })
 
 if is_windows():
-	from build_impl.windows import exe, installer, zip, sign_exe, \
+	from build_impl.windows import exe, installer, zip, sign_exe_files, \
 		sign_installer
 elif is_osx():
 	from build_impl.osx import app, sign_app, dmg, sign_dmg,\
@@ -36,7 +36,7 @@ def test():
 def publish():
 	if is_windows():
 		exe()
-		sign_exe()
+		sign_exe_files()
 		installer()
 		sign_installer()
 	elif is_osx():

@@ -1,7 +1,7 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
 	copy_with_filtering
 from os import rename, makedirs
-from os.path import join, relpath
+from os.path import join, relpath, splitext
 from shutil import copy
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -42,8 +42,12 @@ def _build_launcher(dest):
 		path('src/main/go/src/launcher/launcher.go')
 	])
 
-def sign_exe():
-	_sign(path('target/fman/fman.exe'), 'fman')
+def sign_exe_files():
+	for subdir, _, files in os.walk(path('target/fman')):
+		for file_ in files:
+			extension = splitext(file_)[1]
+			if extension in ('.exe', '.cab', '.dll', '.ocx', '.msi', '.xpi'):
+				_sign(join(subdir, file_))
 
 def _generate_uninstaller():
 	uninstaller_nsi = path('src/main/Uninstaller.nsi')
@@ -112,14 +116,19 @@ class StateMachine:
 		return self.i == len(self.bytes) - 1
 
 def sign_installer():
-	_sign(path('target/fmanSetup.exe'), 'fman Setup')
+	_sign(path('target/fmanSetup.exe'), 'fman Setup', 'https://fman.io')
 
-def _sign(file_path, description):
-	run([
+def _sign(file_path, description='', url=''):
+	args = [
 		'signtool', 'sign', '/f', path('conf/windows/michaelherrmann.pfx'),
-		'/p', 'Tu4suttmdpn!', '/tr', 'http://tsa.startssl.com/rfc3161',
-		'/d', description, '/du', 'https://fman.io', file_path
-	])
+		'/p', 'Tu4suttmdpn!', '/tr', 'http://tsa.startssl.com/rfc3161'
+	]
+	if description:
+		args.extend(['/d', description])
+	if url:
+		args.extend(['/du', url])
+	args.append(file_path)
+	run(args)
 
 def zip():
 	with ZipFile(path('target/fman.zip'), 'w', ZIP_DEFLATED) as zip:
