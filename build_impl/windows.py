@@ -70,7 +70,7 @@ def installer():
 	prefix = path('target/fman').replace('\\', '/')
 	data_go = path('target/go/src/installer/data/data.go')
 	run([
-		'go-bindata', '-nocompress', '-prefix', prefix, '-o', data_go,
+		'go-bindata', '-prefix', prefix, '-o', data_go,
 		prefix + '/...'
 	])
 	_repl_in_file(data_go, b'package main', b'package data')
