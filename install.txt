@@ -3,7 +3,7 @@ Build Qt 5.6.1-1:
 1) Download the 5.6.1-1 source tarball from the official home page.
 
 Windows preparation:
- a) Install Visual Studio 2012 express
+ a) Install Visual Studio 2012 express (actually, 2015 works too. But then you need to correctly set QMAKESPEC and call 2015's vcvarsall.bat in qtvars.cmd. Also, you then need SIP 4.18.1 not just 4.18 below.)
  b) Install http://www.activestate.com/activeperl
  c) Install Python
  d) Add gnuwin32/bin from Qt source dir, perl and Python to PATH
@@ -71,7 +71,7 @@ Windows:
  4) ensure c:\Users\Michael\dev\fman\lib\windows\Qt-5.6.1-1\bin is on the PATH
  5) python configure.py --qmake c:\Users\Michael\dev\fman\lib\windows\Qt-5.6.1-1\bin\qmake.exe --sip c:\Users\Michael\dev\fman\venv\sip.exe
  6) Search for `python34.lib` in all Makefile's and replace by absolute path c:\Python34\libs\python34.lib
- 7) jom
+ 7) jom - when you get a compiler error on VS 2015, you need to install version 14.0.25425.01 (KB3165756)
  8) jom install
 
 cx_Freeze:
@@ -93,3 +93,5 @@ Windows extra
 =============
 Add c:\Program Files (x86)\Windows Kits\8.0\bin\x64 to your PATH. This contains
 signtool, which is used for codesigning.
+
+Install Go 1.6.3 *32 bit*.
