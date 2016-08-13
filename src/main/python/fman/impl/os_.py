@@ -47,7 +47,7 @@ class Windows(OS):
 	def open_terminal_in_directory(self, dir_):
 		Popen('start cmd', shell=True, cwd=dir_)
 	def open_native_file_manager(self, dir_):
-		Popen(['start cmd', dir_], shell=True)
+		Popen(['start', 'explorer', dir_], shell=True)
 
 class Linux(OS):
 	def move_to_trash(self, *files):
