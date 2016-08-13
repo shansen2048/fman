@@ -27,7 +27,10 @@ def _run_pyinstaller():
 	generate_resources(dest_dir=path('target/fman'))
 
 def _add_missing_dlls():
-	for dll in ('msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll'):
+	for dll in (
+		'msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll', 'vcruntime140.dll',
+		'msvcp140.dll'
+	):
 		copy(join(r'c:\Windows\System32', dll), path('target/fman'))
 
 def _move_pyinstaller_output_to_version_subdir():
