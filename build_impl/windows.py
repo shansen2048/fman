@@ -3,6 +3,7 @@ from build_impl import run, path, generate_resources, OPTIONS, \
 from os import rename, makedirs
 from os.path import join, relpath, splitext
 from shutil import copy
+from subprocess import call, DEVNULL
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import os
@@ -50,7 +51,9 @@ def sign_exe():
 		for file_ in files:
 			extension = splitext(file_)[1]
 			if extension in ('.exe', '.cab', '.dll', '.ocx', '.msi', '.xpi'):
-				_sign(join(subdir, file_))
+				file_path = join(subdir, file_)
+				if not _is_signed(file_path):
+					_sign(file_path)
 
 def _generate_uninstaller():
 	uninstaller_nsi = path('src/main/Uninstaller.nsi')
@@ -130,6 +133,11 @@ def add_installer_manifest():
 
 def sign_installer():
 	_sign(path('target/fmanSetup.exe'), 'fman Setup', 'https://fman.io')
+
+def _is_signed(file_path):
+	return not call(
+		['signtool', 'verify', '/pa', file_path], stdout=DEVNULL, stderr=DEVNULL
+	)
 
 def _sign(file_path, description='', url=''):
 	args = [
