@@ -84,7 +84,6 @@ def installer():
 			'GOPATH': path('target/go') + ';' + os.environ['GOPATH']
 		}
 	)
-	run(['upx', setup])
 
 def _repl_in_file(file_path, bytes_, replacement):
 	if len(bytes_) != len(replacement):
@@ -115,6 +114,17 @@ class StateMachine:
 			self.i = 0
 		return self.i == len(self.bytes) - 1
 
+def add_installer_manifest():
+	"""
+	If an .exe name contains "installer", "setup" etc., then at least Windows 10
+	automatically opens a UAC prompt upon opening it. This can be avoided by
+	adding a compatibility manifest to the .exe.
+	"""
+	run([
+		'mt.exe', '-manifest', path('src/main/fmanSetup.exe.manifest'),
+		'-outputresource:%s;1' % path('target/fmanSetup.exe')
+	])
+
 def sign_installer():
 	_sign(path('target/fmanSetup.exe'), 'fman Setup', 'https://fman.io')
 
@@ -129,6 +139,9 @@ def _sign(file_path, description='', url=''):
 		args.extend(['/du', url])
 	args.append(file_path)
 	run(args)
+	args_sha256 = \
+		args[:-1] + ['/as', '/fd', 'sha256', '/td', 'sha256'] + args[-1:]
+	run(args_sha256)
 
 def zip():
 	with ZipFile(path('target/fman.zip'), 'w', ZIP_DEFLATED) as zip:

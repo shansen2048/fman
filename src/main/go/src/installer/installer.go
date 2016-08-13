@@ -41,10 +41,15 @@ func getInstallDir() string {
 	executablePath, err := winutil.GetExecutablePath()
 	check(err)
 	result := executablePath
-	for filepath.Base(result) != "fman" && result != "." {
+	prevResult := ""
+	for filepath.Base(result) != "fman" {
+		prevResult = result
 		result = filepath.Dir(result)
+		if result == prevResult {
+			break
+		}
 	}
-	if result == "." {
+	if result == prevResult {
 		msg := "Could not find parent directory 'fman' above " + executablePath
 		check(errors.New(msg))
 	}
@@ -52,10 +57,11 @@ func getInstallDir() string {
 }
 
 func extractAssets() {
+	installDir := getInstallDir()
 	for _, relPath := range data.AssetNames() {
 		bytes, err := data.Asset(relPath)
 		check(err)
-		absPath := filepath.Join(getInstallDir(), relPath)
+		absPath := filepath.Join(installDir, relPath)
 		check(os.MkdirAll(filepath.Dir(absPath), 0755))
 		f, err := os.OpenFile(absPath, os.O_CREATE, 0755)
 		check(err)
