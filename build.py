@@ -38,6 +38,7 @@ def publish():
 		exe()
 		sign_exe()
 		installer()
+		add_installer_manifest()
 		sign_installer()
 	elif is_osx():
 		app()
