@@ -8,7 +8,7 @@ from fman.util.system import is_osx
 from os import rename
 from os.path import join, pardir, dirname, basename, exists, isdir, split, \
 	isfile, normpath
-from PyQt5.QtCore import QItemSelectionModel as QISM, QUrl
+from PyQt5.QtCore import QItemSelectionModel as QISM, QUrl, QMimeData
 from PyQt5.QtGui import QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog
 from threading import Thread
@@ -33,6 +33,7 @@ class Controller:
 		source = lambda: view.parentWidget()
 		target = lambda: \
 			self.left_pane if source() is self.right_pane else self.right_pane
+		get_selected_files = lambda: self._get_selected_files(view)
 		result = True
 		shift = bool(event.modifiers() & ShiftModifier)
 		if event.key() == Key_Down:
@@ -90,32 +91,24 @@ class Controller:
 					self.os.open_file_with_app(file_under_cursor, editor)
 					self.settings['editor'] = editor
 		elif event.key() == Key_F5:
-			files = self._get_selected_files(view)
+			files = get_selected_files()
 			dest_dir = target().get_path()
 			proceed = self._confirm_tree_operation(files, dest_dir, 'copy')
 			if proceed:
 				dest_dir, dest_name = proceed
 				src_dir = source().get_path()
-				operation = CopyFiles(
-					self.gui_thread, self.status_bar, files, dest_dir, src_dir,
-					dest_name
-				)
-				Thread(target=operation).start()
+				self._copy(files, dest_dir, src_dir, dest_name)
 		elif event.key() == Key_F6:
 			if shift:
 				view.edit(view.currentIndex())
 			else:
-				files = self._get_selected_files(view)
+				files = get_selected_files()
 				dest_dir = target().get_path()
 				proceed = self._confirm_tree_operation(files, dest_dir, 'move')
 				if proceed:
 					dest_dir, dest_name = proceed
 					src_dir = source().get_path()
-					operation = MoveFiles(
-						self.gui_thread, self.status_bar, files, dest_dir,
-						src_dir, dest_name
-					)
-					Thread(target=operation).start()
+					self._move(files, dest_dir, src_dir, dest_name)
 		elif event.key() == Key_F7:
 			name, ok = QInputDialog.getText(
 				source(), "fman", "New folder (directory)",
@@ -128,7 +121,7 @@ class Controller:
 				model.sourceModel().mkdir(root_index, name)
 				pane.place_cursor_at(join(pane.get_path(), name))
 		elif event.key() in (Key_F8, Key_Delete):
-			to_delete = self._get_selected_files(view)
+			to_delete = get_selected_files()
 			if len(to_delete) > 1:
 				description = 'these %d items' % len(to_delete)
 			else:
@@ -144,8 +137,29 @@ class Controller:
 		elif event.key() == Key_F10:
 			self.os.open_native_file_manager(source().get_path())
 		elif event.key() == Key_F11:
-			files = '\n'.join(self._get_selected_files(view))
+			files = '\n'.join(get_selected_files())
 			self.app.clipboard().setText(files)
+		elif event == QKeySequence.Copy:
+			files = get_selected_files()
+			urls = [QUrl.fromLocalFile(file_) for file_ in files]
+			new_clipboard_data = QMimeData()
+			new_clipboard_data.setUrls(urls)
+			new_clipboard_data.setText('\n'.join(map(basename, files)))
+			self.app.clipboard().setMimeData(new_clipboard_data)
+		elif event == QKeySequence.Paste:
+			clipboard_urls = self.app.clipboard().mimeData().urls()
+			files = [
+				url.toLocalFile() for url in clipboard_urls if url.isLocalFile()
+			]
+			self._copy(files, source().get_path())
+		elif QKeySequence('Ctrl+Alt+V').matches(
+			QKeySequence(event.modifiers() | event.key())
+		):
+			clipboard_urls = self.app.clipboard().mimeData().urls()
+			files = [
+				url.toLocalFile() for url in clipboard_urls if url.isLocalFile()
+			]
+			self._move(files, source().get_path())
 		elif event == QKeySequence.SelectAll:
 			view.selectAll()
 		else:
@@ -188,6 +202,18 @@ class Controller:
 					)
 					if choice & Yes:
 						return dest, None
+	def _copy(self, files, dest_dir, src_dir=None, dest_name=None):
+		copy = CopyFiles(
+			self.gui_thread, self.status_bar, files, dest_dir, src_dir,
+			dest_name
+		)
+		Thread(target=copy).start()
+	def _move(self, files, dest_dir, src_dir=None, dest_name=None):
+		move = MoveFiles(
+			self.gui_thread, self.status_bar, files, dest_dir,
+			src_dir, dest_name
+		)
+		Thread(target=move).start()
 	def activated(self, model, file_view, index):
 		file_path = model.filePath(index)
 		if model.isDir(index):
