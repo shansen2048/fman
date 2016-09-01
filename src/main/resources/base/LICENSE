@@ -568,7 +568,7 @@ bound by the terms and conditions of this License Agreement.
 Esky
 ====
 URL: https://github.com/cloudmatrix/esky
-Version: 4.3.4
+Version: 0.9.9
 
 Copyright (c) 2009, Cloud Matrix Pty. Ltd.
 All rights reserved.
@@ -632,7 +632,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 osxtrash (OS X version of fman only)
 ====================================
 URL: https://github.com/mherrmann/osxtrash
-Version: 1.6.0
+Version: 1.6
 
 The MIT License
 
