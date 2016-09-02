@@ -23,6 +23,7 @@ class ApplicationContext:
 	def __init__(self, argv):
 		self.argv = argv
 		self._app = None
+		self._clipboard = None
 		self._main_window = None
 		self._controller = None
 		self._settings_manager = None
@@ -50,6 +51,11 @@ class ApplicationContext:
 			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
 		return self._app
+	@property
+	def clipboard(self):
+		if self._clipboard is None:
+			self._clipboard = self.app.clipboard()
+		return self._clipboard
 	def _get_qapplication_argv(self):
 		return [self.argv[0]]
 	@property
@@ -66,7 +72,7 @@ class ApplicationContext:
 			self._main_window.closeEvent = \
 				lambda _: self.settings_manager.on_close(self.main_window)
 			self._controller = Controller(
-				self._main_window, self.os, self.settings, self.app,
+				self._main_window, self.os, self.settings, self.clipboard,
 				self.gui_thread
 			)
 			self._main_window.set_controller(self._controller)
@@ -96,11 +102,11 @@ class ApplicationContext:
 	def os(self):
 		if self._os is None:
 			if system.is_osx():
-				self._os = OSX()
+				self._os = OSX(self.clipboard)
 			elif system.is_windows():
-				self._os = Windows()
+				self._os = Windows(self.clipboard)
 			elif system.is_linux():
-				self._os = Linux()
+				self._os = Linux(self.clipboard)
 			else:
 				raise NotImplementedError('This OS is not yet supported.')
 		return self._os

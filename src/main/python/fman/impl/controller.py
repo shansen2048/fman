@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog
 from threading import Thread
 
 class Controller:
-	def __init__(self, main_window, os_, settings, app, gui_thread):
+	def __init__(self, main_window, os_, settings, clipboard, gui_thread):
 		self.main_window = main_window
 		self.os = os_
 		self.settings = settings
-		self.app = app
+		self.clipboard = clipboard
 		self.gui_thread = gui_thread
 	@property
 	def left_pane(self):
@@ -138,27 +138,28 @@ class Controller:
 			self.os.open_native_file_manager(source().get_path())
 		elif event.key() == Key_F11:
 			files = '\n'.join(get_selected_files())
-			self.app.clipboard().setText(files)
+			self.clipboard.clear()
+			self.clipboard.setText(files)
 		elif event == QKeySequence.Copy:
-			files = get_selected_files()
-			urls = [QUrl.fromLocalFile(file_) for file_ in files]
-			new_clipboard_data = QMimeData()
-			new_clipboard_data.setUrls(urls)
-			new_clipboard_data.setText('\n'.join(map(basename, files)))
-			self.app.clipboard().setMimeData(new_clipboard_data)
+			self.os.copy_files_to_clipboard(get_selected_files())
+		elif event == QKeySequence.Cut:
+			try:
+				self.os.cut_files_to_clipboard(get_selected_files())
+			except NotImplementedError:
+				pass
 		elif event == QKeySequence.Paste:
-			clipboard_urls = self.app.clipboard().mimeData().urls()
-			files = [
-				url.toLocalFile() for url in clipboard_urls if url.isLocalFile()
-			]
-			self._copy(files, source().get_path())
+			files = self.os.get_files_in_clipboard()
+			if self.os.files_in_clipboard_were_cut():
+				self._move(files, source().get_path())
+				# The file has been cut; Clear the clipboard so the user doesn't
+				# get an error when he accidentally pastes again:
+				self.clipboard.clear()
+			else:
+				self._copy(files, source().get_path())
 		elif QKeySequence('Ctrl+Alt+V').matches(
 			QKeySequence(event.modifiers() | event.key())
 		):
-			clipboard_urls = self.app.clipboard().mimeData().urls()
-			files = [
-				url.toLocalFile() for url in clipboard_urls if url.isLocalFile()
-			]
+			files = self.os.get_files_in_clipboard()
 			self._move(files, source().get_path())
 		elif event == QKeySequence.SelectAll:
 			view.selectAll()
