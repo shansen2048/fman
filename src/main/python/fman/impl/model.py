@@ -30,31 +30,58 @@ class FileSystemModel(QFileSystemModel):
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def lessThan(self, left, right):
-		left_ = self.sourceModel().fileInfo(left)
-		right_ = self.sourceModel().fileInfo(right)
-		left_is_dir = left_.isDir()
-		right_is_dir = right_.isDir()
-		# Always show directories at the top:
-		if left_is_dir != right_is_dir:
-			return self._always_ascending(left_is_dir < right_is_dir)
-		if left_is_dir and right_is_dir:
-			# Sort directories by name:
-			return self._always_ascending(
-				left_.fileName().lower() > right_.fileName().lower()
-			)
-		return self._get_sort_value(left) < self._get_sort_value(right)
-	def _get_sort_value(self, row):
-		file_info = self.sourceModel().fileInfo(row)
-		column = self.sortColumn()
-		# QFileSystemModel hardcodes the columns as follows:
-		if column == 0:
-			return file_info.fileName().lower()
-		elif column == 1:
-			return file_info.size()
-		elif column == 2:
-			return self.sourceModel().type(row)
-		elif column == 3:
-			return file_info.lastModified()
-		raise ValueError('Unknown column: %r' % column)
-	def _always_ascending(self, value):
-		return (self.sortOrder() == AscendingOrder) != bool(value)
+		column = _COLUMNS[self.sortColumn()]
+		is_ascending = self.sortOrder() == AscendingOrder
+		left_info = self.sourceModel().fileInfo(left)
+		right_info = self.sourceModel().fileInfo(right)
+		return column.less_than(left_info, right_info, is_ascending)
+
+class Column:
+	@classmethod
+	def less_than(cls, left, right, is_ascending=True):
+		"""
+		less_than(...) should generally be independent of is_ascending.
+		When is_ascending is False, Qt simply reverses the sort order.
+		However, we may sometimes want to change the sort order in a way other
+		than a simple reversal when is_ascending is False. That's why this
+		method receives is_ascending as a parameter.
+		"""
+		raise NotImplementedError()
+
+class ValueComparingColumn(Column):
+	@classmethod
+	def less_than(cls, left, right, is_ascending=True):
+		if left.isDir() != right.isDir():
+			return (left.isDir() > right.isDir()) == is_ascending
+		left_value, right_value = map(cls._get_value, (left, right))
+		return left_value < right_value
+	@classmethod
+	def _get_value(cls, left_or_right):
+		raise NotImplementedError()
+
+class NameColumn(ValueComparingColumn):
+	@classmethod
+	def _get_value(cls, left_or_right):
+		return left_or_right.fileName().lower()
+
+class SizeColumn(Column):
+	@classmethod
+	def less_than(cls, left, right, is_ascending=True):
+		if left.isDir() != right.isDir():
+			return (left.isDir() > right.isDir()) == is_ascending
+		if left.isDir():
+			assert right.isDir()
+			return NameColumn().less_than(left, right, True) == is_ascending
+		return left.size() < right.size()
+
+class TypeColumn(Column):
+	@classmethod
+	def less_than(cls, left, right, is_ascending=True):
+		raise NotImplementedError()
+
+class LastModifiedColumn(ValueComparingColumn):
+	@classmethod
+	def _get_value(cls, left_or_right):
+		return left_or_right.lastModified()
+
+_COLUMNS = (NameColumn, SizeColumn, TypeColumn, LastModifiedColumn)
