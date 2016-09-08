@@ -8,7 +8,7 @@ from fman.util.system import is_osx
 from os import rename
 from os.path import join, pardir, dirname, basename, exists, isdir, split, \
 	isfile, normpath
-from PyQt5.QtCore import QItemSelectionModel as QISM, QUrl, QMimeData
+from PyQt5.QtCore import QItemSelectionModel as QISM, QUrl
 from PyQt5.QtGui import QKeySequence, QDesktopServices
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog
 from threading import Thread
