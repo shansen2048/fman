@@ -4,7 +4,7 @@ from os.path import join, isdir, isfile, islink
 from shutil import rmtree
 
 OPTIONS.update({
-	'version': '0.0.3',
+	'version': '0.0.4',
 	'local_staticfiles_dir': '/Users/michael/dev/fman.io/static',
 	'server_staticfiles_dir': '/home/fman/src/static',
 	'server_user': 'fman@fman.io',
