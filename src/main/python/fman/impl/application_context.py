@@ -6,7 +6,7 @@ from fman.updater import EskyUpdater, OSXUpdater
 from fman.util import system
 from fman.util.qt import GuiThread
 from fman.util.system import get_canonical_os_name
-from fman.impl.settings import Settings, SettingsManager
+from fman.impl.settings import Settings, SessionManager
 from os.path import dirname, join, pardir, expanduser, normpath, exists
 from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QFontDatabase
@@ -26,7 +26,7 @@ class ApplicationContext:
 		self._clipboard = None
 		self._main_window = None
 		self._controller = None
-		self._settings_manager = None
+		self._session_manager = None
 		self._settings = None
 		self._qt_settings = None
 		self._os = None
@@ -70,7 +70,7 @@ class ApplicationContext:
 		if self._main_window is None:
 			self._main_window = MainWindow()
 			self._main_window.closeEvent = \
-				lambda _: self.settings_manager.on_close(self.main_window)
+				lambda _: self.session_manager.on_close(self.main_window)
 			self._controller = Controller(
 				self._main_window, self.os, self.settings, self.clipboard,
 				self.gui_thread
@@ -78,11 +78,11 @@ class ApplicationContext:
 			self._main_window.set_controller(self._controller)
 		return self._main_window, self._controller
 	@property
-	def settings_manager(self):
-		if self._settings_manager is None:
-			self._settings_manager = \
-				SettingsManager(self.settings, self.qt_settings)
-		return self._settings_manager
+	def session_manager(self):
+		if self._session_manager is None:
+			self._session_manager = \
+				SessionManager(self.settings, self.qt_settings)
+		return self._session_manager
 	@property
 	def settings(self):
 		if self._settings is None:

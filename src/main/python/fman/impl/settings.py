@@ -3,7 +3,7 @@ from os.path import exists, expanduser, dirname
 
 import json
 
-class SettingsManager:
+class SessionManager:
 	def __init__(self, settings, qt_settings):
 		self.settings = settings
 		self.qt_settings = qt_settings
