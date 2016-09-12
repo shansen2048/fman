@@ -34,6 +34,7 @@ func main() {
 	} else if *doUpdatePtr {
 		extractAssets()
 		updateVersionInRegistry()
+		removeOldVersions()
 	}
 }
 
@@ -166,6 +167,26 @@ WScript.Quit 0`)
 func launchFman() {
 	cmd := exec.Command(filepath.Join(getInstallDir(), "fman.exe"))
 	check(cmd.Start())
+}
+
+func removeOldVersions() {
+	versionsDir := filepath.Join(getInstallDir(), "Versions")
+	versions, err := ioutil.ReadDir(versionsDir)
+	check(err)
+	for _, version := range versions {
+		if version.Name() == Version {
+			continue
+		}
+		versionPath := filepath.Join(versionsDir, version.Name())
+		// Try deleting the main executable first. We do this to prevent a
+		// version that is still running from being deleted.
+		mainExecutable := filepath.Join(versionPath, "fman.exe")
+		err = os.Remove(mainExecutable)
+		if err == nil {
+			// Remove the rest:
+			check(os.RemoveAll(versionPath))
+		}
+	}
 }
 
 func check(e error) {
