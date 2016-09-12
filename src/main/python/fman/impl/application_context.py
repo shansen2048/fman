@@ -7,8 +7,7 @@ from fman.util import system
 from fman.util.qt import GuiThread
 from fman.util.system import get_canonical_os_name
 from fman.impl.settings import Settings, SessionManager
-from os.path import dirname, join, pardir, expanduser, normpath, exists
-from PyQt5.QtCore import QSettings
+from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
@@ -28,7 +27,7 @@ class ApplicationContext:
 		self._controller = None
 		self._session_manager = None
 		self._settings = None
-		self._qt_settings = None
+		self._session_settings = None
 		self._os = None
 		self._gui_thread = None
 		self._stylesheet = None
@@ -80,24 +79,22 @@ class ApplicationContext:
 	@property
 	def session_manager(self):
 		if self._session_manager is None:
-			self._session_manager = \
-				SessionManager(self.settings, self.qt_settings)
+			self._session_manager = SessionManager(self.session_settings)
 		return self._session_manager
 	@property
 	def settings(self):
 		if self._settings is None:
-			default_settings = self.get_resource('default_settings.json')
-			custom_settings = expanduser(join('~', '.fman', 'settings.json'))
-			self._settings = Settings(default_settings, custom_settings)
+			default_settings = self.get_resource('Settings.json')
+			custom_settings = \
+				join(self.os.get_data_dir(), 'Plugins', 'User', 'Settings.json')
+			self._settings = Settings([custom_settings, default_settings])
 		return self._settings
 	@property
-	def qt_settings(self):
-		if self._qt_settings is None:
-			self._qt_settings = QSettings(
-				expanduser(join('~', '.fman', 'qt_settings.ini')),
-				QSettings.IniFormat
-			)
-		return self._qt_settings
+	def session_settings(self):
+		if self._session_settings is None:
+			json_path = join(self.os.get_data_dir(), 'Cache', 'Session.json')
+			return Settings([json_path])
+		return self._session_settings
 	@property
 	def os(self):
 		if self._os is None:

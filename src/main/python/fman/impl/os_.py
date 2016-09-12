@@ -1,5 +1,6 @@
 from ctypes import sizeof
-from os.path import splitdrive, exists, basename
+from os import getenv
+from os.path import splitdrive, exists, basename, expanduser, join
 from PyQt5.QtCore import QUrl, QMimeData
 from subprocess import Popen
 
@@ -12,6 +13,8 @@ class OS:
 	def move_to_trash(self, *files):
 		raise NotImplementedError()
 	def get_applications_directory(self):
+		raise NotImplementedError()
+	def get_data_dir(self):
 		raise NotImplementedError()
 	def get_applications_filter(self):
 		raise NotImplementedError()
@@ -43,6 +46,8 @@ class OSX(OS):
 		return move_to_trash(*files)
 	def get_applications_directory(self):
 		return '/Applications'
+	def get_data_dir(self):
+		return expanduser('~/Library/Application Support/fman')
 	def get_applications_filter(self):
 		return "Applications (*.app)"
 	def open_file_with_app(self, file_, app):
@@ -62,6 +67,8 @@ class Windows(OS):
 		if not exists(result):
 			result = splitdrive(sys.executable)[0] + '\\'
 		return result
+	def get_data_dir(self):
+		return join(getenv('APPDATA'), 'fman')
 	def get_applications_filter(self):
 		return "Applications (*.exe)"
 	def open_terminal_in_directory(self, dir_):
@@ -104,6 +111,8 @@ class Linux(OS):
 			send2trash(file)
 	def get_applications_directory(self):
 		return r'/usr/bin'
+	def get_data_dir(self):
+		return expanduser('~/.config/fman')
 	def get_applications_filter(self):
 		return "Applications (*)"
 	def open_terminal_in_directory(self, dir_):

@@ -88,7 +88,7 @@ class Controller:
 			if not isfile(file_under_cursor):
 				show_message_box("No file is selected!", Ok, Ok)
 			else:
-				editor = self.settings['editor']
+				editor = self.settings.get('editor', None)
 				if not editor:
 					choice = show_message_box(
 						'Editor is currently not configured. Please pick one.',
