@@ -7,10 +7,13 @@ from fman.util import system
 from fman.util.qt import GuiThread
 from fman.util.system import get_canonical_os_name
 from fman.impl.settings import Settings, SessionManager
-from os.path import dirname, join, pardir, normpath, exists
+from os import makedirs
+from os.path import dirname, join, pardir, normpath, exists, expanduser
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication, QStyleFactory
+from shutil import rmtree
 
+import json
 import sys
 
 def get_application_context(argv):
@@ -84,11 +87,33 @@ class ApplicationContext:
 	@property
 	def settings(self):
 		if self._settings is None:
-			default_settings = self.get_resource('Settings.json')
-			custom_settings = \
+			custom_settings_path = \
 				join(self.os.get_data_dir(), 'Plugins', 'User', 'Settings.json')
-			self._settings = Settings([custom_settings, default_settings])
+			# TODO: Remove this migration some time after mid October 2016:
+			self._migrate_versions_lte_0_0_4(custom_settings_path)
+			default_settings = self.get_resource('Settings.json')
+			self._settings = Settings([custom_settings_path, default_settings])
 		return self._settings
+	def _migrate_versions_lte_0_0_4(self, new_settings_path):
+		old_settings_dir = expanduser('~/.fman')
+		if not exists(old_settings_dir):
+			return
+		try:
+			with open(join(old_settings_dir, 'settings.json'), 'r') as f:
+				old_settings = json.load(f)
+		except IOError:
+			pass
+		else:
+			try:
+				editor = old_settings['editor']
+			except KeyError:
+				pass
+			else:
+				if not exists(new_settings_path):
+					makedirs(dirname(new_settings_path), exist_ok=True)
+					with open(new_settings_path, 'w') as f:
+						json.dump({'editor': editor}, f)
+		rmtree(old_settings_dir)
 	@property
 	def session_settings(self):
 		if self._session_settings is None:
