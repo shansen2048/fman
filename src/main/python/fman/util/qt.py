@@ -42,16 +42,6 @@ class GuiThread(QObject):
 		task = Task(fn, args, kwargs)
 		self._execute_signal.emit(task)
 		return task.result
-	def show_message_box(self, text, standard_buttons, default_button):
-		return self.execute(
-			self._show_message_box, text, standard_buttons, default_button
-		)
-	def _show_message_box(self, text, standard_buttons, default_button):
-		msgbox = QMessageBox()
-		msgbox.setText(text)
-		msgbox.setStandardButtons(standard_buttons)
-		msgbox.setDefaultButton(default_button)
-		return msgbox.exec()
 	def _execute(self, task):
 		task()
 
