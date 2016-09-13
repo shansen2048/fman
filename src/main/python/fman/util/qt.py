@@ -1,12 +1,31 @@
-from PyQt5.QtCore import Qt, pyqtSignal, QObject
-from PyQt5.QtWidgets import QMessageBox
-from threading import get_ident
+from functools import wraps
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread
+from PyQt5.QtWidgets import QMessageBox, QApplication
 
 def connect_once(signal, slot):
 	def _connect_once(*args, **kwargs):
 		slot(*args, **kwargs)
 		signal.disconnect(_connect_once)
 	signal.connect(_connect_once)
+
+def run_in_thread(thread_fn):
+	def decorator(f):
+		@wraps(f)
+		def result(*args, **kwargs):
+			thread = thread_fn()
+			if QThread.currentThread() == thread:
+				return f(*args, **kwargs)
+			task = Task(f, args, kwargs)
+			receiver = Receiver(task)
+			receiver.moveToThread(thread)
+			sender = Sender()
+			sender.signal.connect(receiver.slot, Qt.BlockingQueuedConnection)
+			sender.signal.emit()
+			return task.result
+		return result
+	return decorator
+
+run_in_main_thread = run_in_thread(lambda: QApplication.instance().thread())
 
 class Task:
 	def __init__(self, fn, args, kwargs):
@@ -30,20 +49,15 @@ class Task:
 			raise self._exception
 		return self._result
 
-class GuiThread(QObject):
-	_execute_signal = pyqtSignal(Task)
-	def __init__(self, parent=None):
+class Sender(QObject):
+	signal = pyqtSignal()
+
+class Receiver(QObject):
+	def __init__(self, callback, parent=None):
 		super().__init__(parent)
-		self.main_thread_id = get_ident()
-		self._execute_signal.connect(self._execute, Qt.BlockingQueuedConnection)
-	def execute(self, fn, *args, **kwargs):
-		if get_ident() == self.main_thread_id:
-			return fn(*args, **kwargs)
-		task = Task(fn, args, kwargs)
-		self._execute_signal.emit(task)
-		return task.result
-	def _execute(self, task):
-		task()
+		self.callback = callback
+	def slot(self):
+		self.callback()
 
 AscendingOrder = Qt.AscendingOrder
 WA_MacShowFocusRect = Qt.WA_MacShowFocusRect

@@ -1,5 +1,4 @@
 from fman.impl.fileoperations import CopyFiles, MoveFiles
-from fman.impl.gui_operations import show_message_box
 from fman.util.qt import Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, \
 	Key_PageUp, Key_Space, Key_Insert, ShiftModifier, Key_Backspace, \
 	Key_Enter, Key_Return, Key_F6, Key_F7, Key_F8, Key_Delete, Key_F5, Key_F4, \
@@ -14,21 +13,17 @@ from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog
 from threading import Thread
 
 class Controller:
-	def __init__(self, main_window, os_, settings, clipboard, gui_thread):
+	def __init__(self, main_window, os_, settings, clipboard):
 		self.main_window = main_window
 		self.os = os_
 		self.settings = settings
 		self.clipboard = clipboard
-		self.gui_thread = gui_thread
 	@property
 	def left_pane(self):
 		return self.main_window.left_pane
 	@property
 	def right_pane(self):
 		return self.main_window.right_pane
-	@property
-	def status_bar(self):
-		return self.main_window.status_bar
 	def key_pressed_in_file_view(self, view, event):
 		source = lambda: view.parentWidget()
 		target = lambda: \
@@ -70,7 +65,7 @@ class Controller:
 				description = 'these %d items' % len(to_delete)
 			else:
 				description = to_delete[0]
-			choice = show_message_box(
+			choice = self.main_window.show_message_box(
 				"Do you really want to move %s to the recycle bin?" %
 				description, Yes | No, Yes
 			)
@@ -86,11 +81,13 @@ class Controller:
 		elif event.key() == Key_F4:
 			file_under_cursor = self._get_file_under_cursor(view)
 			if not isfile(file_under_cursor):
-				show_message_box("No file is selected!", Ok, Ok)
+				self.main_window.show_message_box(
+					"No file is selected!", Ok, Ok
+				)
 			else:
 				editor = self.settings.get('editor', None)
 				if not editor:
-					choice = show_message_box(
+					choice = self.main_window.show_message_box(
 						'Editor is currently not configured. Please pick one.',
 						Ok | Cancel, Ok
 					)
@@ -191,7 +188,7 @@ class Controller:
 					if len(files) == 1:
 						return split(dest)
 					else:
-						show_message_box(
+						self.main_window.show_message_box(
 							'You cannot %s multiple files to a single file!' %
 							descr_verb, Ok, Ok
 						)
@@ -199,7 +196,7 @@ class Controller:
 				if len(files) == 1:
 					return split(dest)
 				else:
-					choice = show_message_box(
+					choice = self.main_window.show_message_box(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
 						(dest, descr_verb), Yes | No, Yes
@@ -207,16 +204,10 @@ class Controller:
 					if choice & Yes:
 						return dest, None
 	def _copy(self, files, dest_dir, src_dir=None, dest_name=None):
-		copy = CopyFiles(
-			self.gui_thread, self.status_bar, files, dest_dir, src_dir,
-			dest_name
-		)
+		copy = CopyFiles(self.main_window, files, dest_dir, src_dir, dest_name)
 		Thread(target=copy).start()
 	def _move(self, files, dest_dir, src_dir=None, dest_name=None):
-		move = MoveFiles(
-			self.gui_thread, self.status_bar, files, dest_dir,
-			src_dir, dest_name
-		)
+		move = MoveFiles(self.main_window, files, dest_dir, src_dir, dest_name)
 		Thread(target=move).start()
 	def activated(self, model, file_view, index):
 		file_path = model.filePath(index)

@@ -1,8 +1,9 @@
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
-from fman.util.qt import connect_once
+from fman.util.qt import connect_once, run_in_main_thread
 from os.path import abspath, exists, join, pardir
-from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar
+from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
+	QMessageBox
 
 class MainWindow(QMainWindow):
 	def __init__(self):
@@ -17,6 +18,16 @@ class MainWindow(QMainWindow):
 		self.status_bar.setSizeGripEnabled(False)
 		self.setStatusBar(self.status_bar)
 		self.setWindowTitle("fman")
+	@run_in_main_thread
+	def show_message_box(self, text, standard_buttons, default_button):
+		msgbox = QMessageBox(self)
+		msgbox.setText(text)
+		msgbox.setStandardButtons(standard_buttons)
+		msgbox.setDefaultButton(default_button)
+		return msgbox.exec()
+	@run_in_main_thread
+	def show_status_message(self, text):
+		self.status_bar.showMessage(text)
 	def set_controller(self, controller):
 		self.left_pane.set_controller(controller)
 		self.right_pane.set_controller(controller)

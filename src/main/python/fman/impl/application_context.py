@@ -4,7 +4,6 @@ from fman.impl.os_ import OSX, Windows, Linux
 from fman.impl.view import Style
 from fman.updater import EskyUpdater, OSXUpdater
 from fman.util import system
-from fman.util.qt import GuiThread
 from fman.util.system import get_canonical_os_name
 from fman.impl.settings import Settings, SessionManager
 from os import makedirs
@@ -32,7 +31,6 @@ class ApplicationContext:
 		self._settings = None
 		self._session_settings = None
 		self._os = None
-		self._gui_thread = None
 		self._stylesheet = None
 		self._style = None
 	def load_fonts(self):
@@ -74,8 +72,7 @@ class ApplicationContext:
 			self._main_window.closeEvent = \
 				lambda _: self.session_manager.on_close(self.main_window)
 			self._controller = Controller(
-				self._main_window, self.os, self.settings, self.clipboard,
-				self.gui_thread
+				self._main_window, self.os, self.settings, self.clipboard
 			)
 			self._main_window.set_controller(self._controller)
 		return self._main_window, self._controller
@@ -132,11 +129,6 @@ class ApplicationContext:
 			else:
 				raise NotImplementedError('This OS is not yet supported.')
 		return self._os
-	@property
-	def gui_thread(self):
-		if self._gui_thread is None:
-			self._gui_thread = GuiThread()
-		return self._gui_thread
 	@property
 	def stylesheet(self):
 		if self._stylesheet is None:

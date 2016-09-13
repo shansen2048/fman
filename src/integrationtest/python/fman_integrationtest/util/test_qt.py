@@ -1,50 +1,38 @@
-from fman.util.qt import GuiThread
+from fman.util.qt import run_in_thread
 from fman_integrationtest import QtIT
 from PyQt5.QtCore import QThread
-from threading import get_ident, Condition
+from threading import get_ident
 
-class GuiThreadIT(QtIT):
-	def setUp(self):
-		super().setUp()
-		self.thread = TestThread()
-		self.thread.start()
-		self.thread.wait_until_running()
-	def test_execute(self):
-		self.assertEqual(
-			self.thread.ident, self.thread.gui_thread.execute(get_ident)
-		)
-		self.assertNotEqual(self.thread.ident, get_ident())
-	def test_execute_raises_exception(self):
+class RunInThreadIT(QtIT):
+	def test_same_thread(self):
+		@run_in_thread(QThread.currentThread)
+		def f():
+			return 3
+		self.assertEqual(3, f())
+	def test_other_thread(self):
+		this_thread_id = get_ident()
+		@run_in_thread(lambda: self.other_thread)
+		def f():
+			return get_ident()
+		other_thread_id = f()
+		self.assertNotEqual(this_thread_id, other_thread_id)
+	def test_same_thread_raises_exc(self):
+		self._test_thread_raises_exc(QThread.currentThread)
+	def test_other_thread_raises_exc(self):
+		self._test_thread_raises_exc(lambda: self.other_thread)
+	def _test_thread_raises_exc(self, thread):
 		e = Exception()
+		@run_in_thread(thread)
 		def raise_exc():
 			raise e
 		with self.assertRaises(Exception) as cm:
-			self.thread.gui_thread.execute(raise_exc)
+			raise_exc()
 		self.assertIs(e, cm.exception)
-	def test_execute_in_current_thread(self):
-		is_running = []
-		def f():
-			is_running.append(True)
-			return 3
-		current_thread = GuiThread()
-		self.assertEqual(3, current_thread.execute(f))
-		self.assertTrue(is_running)
+	def setUp(self):
+		super().setUp()
+		self.other_thread = QThread()
+		self.other_thread.start()
 	def tearDown(self):
-		self.thread.exit()
-		self.thread.wait()
-
-class TestThread(QThread):
-	def __init__(self):
-		super().__init__()
-		self.ident = None
-		self.gui_thread = None
-		self._running = Condition()
-	def wait_until_running(self):
-		with self._running:
-			self._running.wait_for(lambda: self.ident and self.gui_thread)
-	def run(self):
-		with self._running:
-			self.ident = get_ident()
-			self.gui_thread = GuiThread()
-			self._running.notify()
-		self.exec_()
+		self.other_thread.exit()
+		self.other_thread.wait()
+		super().tearDown()
