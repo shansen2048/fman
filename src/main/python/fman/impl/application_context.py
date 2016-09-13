@@ -36,10 +36,10 @@ class ApplicationContext:
 	def load_fonts(self):
 		if system.is_linux():
 			db = QFontDatabase()
-			db.addApplicationFont(self.get_resource('OpenSans-Semibold.ttf'))
+			db.addApplicationFont(get_resource('OpenSans-Semibold.ttf'))
 		elif system.is_windows():
 			db = QFontDatabase()
-			db.addApplicationFont(self.get_resource('Roboto-Bold.ttf'))
+			db.addApplicationFont(get_resource('Roboto-Bold.ttf'))
 	@property
 	def app(self):
 		if self._app is None:
@@ -88,7 +88,7 @@ class ApplicationContext:
 				join(self.os.get_data_dir(), 'Plugins', 'User', 'Settings.json')
 			# TODO: Remove this migration some time after mid October 2016:
 			self._migrate_versions_lte_0_0_4(custom_settings_path)
-			default_settings = self.get_resource('Settings.json')
+			default_settings = get_resource('Settings.json')
 			self._settings = Settings([custom_settings_path, default_settings])
 		return self._settings
 	def _migrate_versions_lte_0_0_4(self, new_settings_path):
@@ -132,9 +132,9 @@ class ApplicationContext:
 	@property
 	def stylesheet(self):
 		if self._stylesheet is None:
-			with open(self.get_resource('styles.qss'), 'r') as f:
+			with open(get_resource('styles.qss'), 'r') as f:
 				self._stylesheet = f.read()
-			os_styles = self.get_resource('os_styles.qss')
+			os_styles = get_resource('os_styles.qss')
 			if exists(os_styles):
 				with open(os_styles, 'r') as f:
 					self._stylesheet += '\n' + f.read()
@@ -147,14 +147,15 @@ class ApplicationContext:
 	@property
 	def updater(self):
 		return None
-	def get_resource(self, *rel_path):
-		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		os_dir = join(res_dir, get_canonical_os_name())
-		os_path = normpath(join(os_dir, *rel_path))
-		if exists(os_path):
-			return os_path
-		base_dir = join(res_dir, 'base')
-		return normpath(join(base_dir, *rel_path))
+
+def get_resource(*rel_path):
+	res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
+	os_dir = join(res_dir, get_canonical_os_name())
+	os_path = normpath(join(os_dir, *rel_path))
+	if exists(os_path):
+		return os_path
+	base_dir = join(res_dir, 'base')
+	return normpath(join(base_dir, *rel_path))
 
 class CompiledApplicationContext(ApplicationContext):
 	def __init__(self, argv):
