@@ -1,6 +1,6 @@
 from functools import wraps
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread
-from PyQt5.QtWidgets import QMessageBox, QApplication
+from PyQt5.QtWidgets import QApplication
 
 def connect_once(signal, slot):
 	def _connect_once(*args, **kwargs):
@@ -73,6 +73,8 @@ MetaModifier = Qt.MetaModifier
 KeypadModifier = Qt.KeypadModifier
 Key_Down = Qt.Key_Down
 Key_Up = Qt.Key_Up
+Key_Left = Qt.Key_Left
+Key_Right = Qt.Key_Right
 Key_Home = Qt.Key_Home
 Key_End = Qt.Key_End
 Key_PageUp = Qt.Key_PageUp
@@ -97,11 +99,3 @@ ItemIsEnabled = Qt.ItemIsEnabled
 ItemIsEditable = Qt.ItemIsEditable
 ItemIsSelectable = Qt.ItemIsSelectable
 EditRole = Qt.EditRole
-
-Yes = QMessageBox.Yes
-No = QMessageBox.No
-YesToAll = QMessageBox.YesToAll
-NoToAll = QMessageBox.NoToAll
-Abort = QMessageBox.Abort
-Ok = QMessageBox.Ok
-Cancel = QMessageBox.Cancel

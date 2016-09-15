@@ -3,7 +3,7 @@ from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import abspath, exists, join, pardir
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
-	QMessageBox
+	QMessageBox, QInputDialog, QLineEdit, QFileDialog
 
 class MainWindow(QMainWindow):
 	def __init__(self):
@@ -19,12 +19,20 @@ class MainWindow(QMainWindow):
 		self.setStatusBar(self.status_bar)
 		self.setWindowTitle("fman")
 	@run_in_main_thread
-	def show_message_box(self, text, standard_buttons, default_button):
+	def show_alert(self, text, standard_buttons, default_button):
 		msgbox = QMessageBox(self)
 		msgbox.setText(text)
 		msgbox.setStandardButtons(standard_buttons)
 		msgbox.setDefaultButton(default_button)
 		return msgbox.exec()
+	@run_in_main_thread
+	def show_file_open_dialog(self, caption, directory, filter_):
+		return QFileDialog.getOpenFileName(self, caption, directory, filter_)
+	@run_in_main_thread
+	def show_prompt(self, title, label, default=''):
+		return QInputDialog.getText(
+			self, title, label, QLineEdit.Normal, default
+		)
 	@run_in_main_thread
 	def show_status_message(self, text):
 		self.status_bar.showMessage(text)
@@ -49,6 +57,28 @@ class DirectoryPane(QWidget):
 		file_renamed = lambda *args: controller.file_renamed(self, *args)
 		self._model.file_renamed.connect(file_renamed)
 		self._controller = controller
+	def move_cursor_up(self, toggle_current=False):
+		self.file_view.move_cursor_up(toggle_current)
+	def move_cursor_down(self, toggle_current=False):
+		self.file_view.move_cursor_down(toggle_current)
+	def move_cursor_home(self, toggle_current=False):
+		self.file_view.move_cursor_home(toggle_current)
+	def move_cursor_end(self, toggle_current=False):
+		self.file_view.move_cursor_end(toggle_current)
+	def move_cursor_page_up(self, toggle_current=False):
+		self.file_view.move_cursor_page_up(toggle_current)
+	def move_cursor_page_down(self, toggle_current=False):
+		self.file_view.move_cursor_page_down(toggle_current)
+	def toggle_selection(self, file_path):
+		self.file_view.toggle_selection(file_path)
+	def select_all(self):
+		self.file_view.selectAll()
+	def get_selected_files(self):
+		return self.file_view.get_selected_files()
+	def get_file_under_cursor(self):
+		return self.file_view.get_file_under_cursor()
+	def get_path(self):
+		return abspath(self._model.rootPath())
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = self.file_view.reset_cursor
@@ -59,10 +89,12 @@ class DirectoryPane(QWidget):
 		index = self._model_sorted.mapFromSource(self._model.setRootPath(path))
 		self.file_view.setRootIndex(index)
 		self.file_view.hideColumn(2)
-	def get_path(self):
-		return abspath(self._model.rootPath())
-	def place_cursor_at(self, path):
-		self.file_view.setCurrentIndex(self._path_to_index(path))
+	def place_cursor_at(self, file_path):
+		self.file_view.place_cursor_at(file_path)
+	def rename(self, file_path):
+		self.file_view.rename(file_path)
+	def open(self, file_path):
+		self.file_view.open(file_path)
 	def _normalize_path(self, path):
 		path = abspath(path)
 		while not exists(path):
@@ -71,8 +103,6 @@ class DirectoryPane(QWidget):
 				break
 			path = new_path
 		return path
-	def _path_to_index(self, path):
-		return self._model_sorted.mapFromSource(self._model.index(path))
 	def _activated(self, index):
 		model_index = self._model_sorted.mapToSource(index)
 		self._controller.activated(self._model, self.file_view, model_index)

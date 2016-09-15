@@ -1,0 +1,6 @@
+[
+	{ "keys": ["Space"], "command": "move_cursor_down", "args": {"toggle_current": true} },
+	{ "keys": ["Ctrl+Backspace"], "command": "move_to_trash" },
+	{ "keys": ["Ctrl+X"], "command": "do_nothing" },
+	{ "keys": ["Ctrl+Alt+V"], "command": "paste_cut" }
+]

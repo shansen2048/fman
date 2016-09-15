@@ -2,6 +2,7 @@ from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
 	Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, \
 	ShiftModifier, ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
 	KeyboardModifier, Key_Enter, Key_Return
+from os.path import normpath
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM
 from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
@@ -19,9 +20,7 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 	QTreeView doesn't offer a clean, separated API for manipulating the cursor
 	position / selection. This class fixes this. Its implementation works by
 	sending fake key events to Qt that have the desired effects of moving the
-	cursor / updating the selection. The various `move_cursor_*` methods take
-	a `selection_flags` parameter which indicates how the selection should be
-	updated as a result of the cursor movement. To get this to work, our
+	cursor / updating the selection. When updating a selection, the
 	implementation encodes each selection flag as a modifier key (eg. Shift)
 	that is set on the fake key event. Qt's internals then call
 	selectionCommand() which decides how the selection should be updated. We
@@ -36,26 +35,31 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setSelectionMode(self.ContiguousSelection)
-	def move_cursor_down(self):
-		self._move_cursor(Key_Down)
-	def move_cursor_up(self):
-		self._move_cursor(Key_Up)
-	def move_cursor_page_up(self, selection_flags):
-		self._move_cursor(Key_PageUp, selection_flags)
-	def move_cursor_page_down(self, selection_flags):
-		self._move_cursor(Key_PageDown, selection_flags)
-	def move_cursor_home(self, selection_flags):
-		self._move_cursor(Key_Home, selection_flags)
-	def move_cursor_end(self, selection_flags):
-		self._move_cursor(Key_End, selection_flags)
-	def toggle_current(self):
-		self.selectionModel().select(
-			self.currentIndex(), QISM.Toggle | QISM.Rows
-		)
-	def _move_cursor(self, key, selectionFlags=QISM.NoUpdate):
-		modifiers = self._selection_flag_to_modifier(selectionFlags)
+	def move_cursor_down(self, toggle_current=False):
+		self._move_cursor(Key_Down, toggle_current)
+	def move_cursor_up(self, toggle_current=False):
+		self._move_cursor(Key_Up, toggle_current)
+	def move_cursor_page_up(self, toggle_current=False):
+		self._move_cursor(Key_PageUp, toggle_current)
+	def move_cursor_page_down(self, toggle_current=False):
+		self._move_cursor(Key_PageDown, toggle_current)
+	def move_cursor_home(self, toggle_current=False):
+		self._move_cursor(Key_Home, toggle_current)
+	def move_cursor_end(self, toggle_current=False):
+		self._move_cursor(Key_End, toggle_current)
+	def _move_cursor(self, key, toggle_current=False):
+		selection_flags = self._get_selection_flags(toggle_current)
+		modifiers = self._selection_flag_to_modifier(selection_flags)
 		evt = QKeyEvent(QEvent.KeyPress, key, modifiers, '', False, 1)
 		super().keyPressEvent(evt)
+	def _get_selection_flags(self, toggle_current):
+		if toggle_current:
+			if self.selectionModel().isSelected(self.currentIndex()):
+				return QISM.Deselect | QISM.Current
+			else:
+				return QISM.Select | QISM.Current
+		else:
+			return QISM.NoUpdate
 	def selectionCommand(self, index, event):
 		if event and event.type() == QEvent.KeyPress:
 			result = self._modifier_to_selection_flag(event.modifiers())
@@ -91,6 +95,27 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setSelectionBehavior(QAbstractItemView.SelectRows)
 		# Double click should activate the file, not open its editor:
 		self.setEditTriggers(self.NoEditTriggers)
+	def get_selected_files(self):
+		indexes = self.selectionModel().selectedRows(column=0)
+		model = self.model()
+		return [
+			normpath(model.sourceModel().filePath(model.mapToSource(index)))
+			for index in indexes
+		]
+	def get_file_under_cursor(self):
+		model = self.model()
+		index = self.currentIndex()
+		return model.sourceModel().filePath(model.mapToSource(index))
+	def place_cursor_at(self, file_path):
+		self.setCurrentIndex(self._get_index(file_path))
+	def toggle_selection(self, file_path):
+		self.selectionModel().select(
+			self._get_index(file_path), QISM.Toggle | QISM.Rows
+		)
+	def rename(self, file_path):
+		self.edit(self._get_index(file_path))
+	def open(self, file_path):
+		self.activated.emit(self._get_index(file_path))
 	def keyPressEvent(self, event):
 		filter_ = self.keyPressEventFilter
 		if not filter_ or not filter_(self, event):
@@ -107,6 +132,9 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		super().focusInEvent(event)
 	def reset_cursor(self):
 		self.setCurrentIndex(self.rootIndex().child(0, 0))
+	def _get_index(self, file_path):
+		model = self.model()
+		return model.mapFromSource(model.sourceModel().index(file_path))
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):

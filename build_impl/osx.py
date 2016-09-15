@@ -1,5 +1,5 @@
 from build_impl import run, path, copy_framework, get_canonical_os_name, \
-	generate_resources, OPTIONS
+	generate_resources, OPTIONS, copy_python_library
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
@@ -30,6 +30,9 @@ def app():
 	copy_framework(
 		path('lib/osx/Sparkle-1.14.0/Sparkle.framework'),
 		path('target/fman.app/Contents/Frameworks/Sparkle.framework')
+	)
+	copy_python_library(
+		'osxtrash', path('target/fman.app/Contents/Resources/Plugins/Core')
 	)
 
 def _remove_unwanted_pyinstaller_files():

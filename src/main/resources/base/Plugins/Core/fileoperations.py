@@ -1,24 +1,20 @@
-from fman.util.qt import Yes, No, YesToAll, NoToAll, Abort, Ok
+from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
 from os import makedirs
 from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
 	dirname
 from shutil import copy2, move, rmtree, copytree
 
-import logging
 import os
-
-_LOG = logging.getLogger(__name__)
 
 class FileTreeOperation:
 	def __init__(
-		self, main_window, files, dest_dir, descr_verb, src_dir=None,
-		dest_name=None
+		self, ui, files, dest_dir, descr_verb, src_dir=None, dest_name=None
 	):
 		if dest_name and len(files) > 1:
 			raise ValueError(
 				'Destination name can only be given when there is one file.'
 			)
-		self.main_window = main_window
+		self.ui = ui
 		self.files = files
 		self.dest_dir = dest_dir
 		self.descr_verb = descr_verb
@@ -34,7 +30,7 @@ class FileTreeOperation:
 		for src in self.files:
 			if not self._call_on_file(src):
 				break
-		self.main_window.show_status_message('Ready.')
+		self.ui.show_status_message('Ready.')
 	def _call_on_file(self, src):
 		self._report_processing_of_file(src)
 		dest = self._get_dest_path(src)
@@ -63,17 +59,14 @@ class FileTreeOperation:
 			return self._handle_exception(src)
 		return True
 	def _handle_exception(self, file_path):
-		_LOG.exception(
-			'Exception occurred trying to %s %s.' % (self.descr_verb, file_path)
-		)
-		choice = self.main_window.show_message_box(
+		choice = self.ui.show_alert(
 			'Could not %s %s. Do you want to continue?'
-			% (self.descr_verb, file_path), Yes | YesToAll | Abort, Yes
+			% (self.descr_verb, file_path), YES | YES_TO_ALL | ABORT, YES
 		)
-		return choice & Yes or choice & YesToAll
+		return choice & YES or choice & YES_TO_ALL
 	def _report_processing_of_file(self, file_):
 		verbing = self.descr_verb.capitalize() + 'ing'
-		self.main_window.show_status_message(
+		self.ui.show_status_message(
 			'%s %s...' % (verbing, basename(file_))
 		)
 	def perform_on_file(self, src, dest):
@@ -81,24 +74,24 @@ class FileTreeOperation:
 		if exists(dest):
 			if samefile(src, dest):
 				if not self.cannot_move_to_self_shown:
-					self.main_window.show_message_box(
+					self.ui.show_alert(
 						"You cannot %s a file to itself." % self.descr_verb,
-						Ok, Ok
+						OK, OK
 					)
 					self.cannot_move_to_self_shown = True
 				return True
 			if self.override_all is None:
-				choice = self.main_window.show_message_box(
+				choice = self.ui.show_alert(
 					"%s exists. Do you want to override it?" % basename(src),
-					Yes | No | YesToAll | NoToAll | Abort, Yes
+					YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
 				)
-				if choice & No:
+				if choice & NO:
 					return True
-				elif choice & NoToAll:
+				elif choice & NO_TO_ALL:
 					self.override_all = False
-				elif choice & YesToAll:
+				elif choice & YES_TO_ALL:
 					self.override_all = True
-				elif choice & Abort:
+				elif choice & ABORT:
 					return False
 			if self.override_all is False:
 				return True
@@ -118,11 +111,9 @@ class FileTreeOperation:
 
 class CopyFiles(FileTreeOperation):
 	def __init__(
-		self, main_window, files, dest_dir, src_dir=None, dest_name=None
+		self, ui, files, dest_dir, src_dir=None, dest_name=None
 	):
-		super().__init__(
-			main_window, files, dest_dir, 'copy', src_dir, dest_name
-		)
+		super().__init__(ui, files, dest_dir, 'copy', src_dir, dest_name)
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
 		copytree(src, dest, symlinks=True)
 	def _perform_on_file(self, src, dest):
@@ -130,11 +121,9 @@ class CopyFiles(FileTreeOperation):
 
 class MoveFiles(FileTreeOperation):
 	def __init__(
-		self, main_window, files, dest_dir, src_dir=None, dest_name=None
+		self, ui, files, dest_dir, src_dir=None, dest_name=None
 	):
-		super().__init__(
-			main_window, files, dest_dir, 'move', src_dir, dest_name
-		)
+		super().__init__(ui, files, dest_dir, 'move', src_dir, dest_name)
 	def postprocess_directory(self, src_dir_path):
 		rmtree(src_dir_path, ignore_errors=True)
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):

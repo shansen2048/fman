@@ -1,3 +1,4 @@
+from importlib import import_module
 from os import makedirs, readlink, symlink
 from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
 	isfile, pardir, exists, normpath
@@ -6,6 +7,7 @@ from subprocess import Popen, STDOUT, CalledProcessError
 
 import json
 import os
+import re
 import sys
 
 PROJECT_DIR = join(dirname(__file__), pardir)
@@ -101,6 +103,14 @@ def _copy_files(src_dir, dest_dir, files):
 			copytree(src, dst, symlinks=True)
 		else:
 			copy(src, dst, follow_symlinks=False)
+
+def copy_python_library(name, dest_dir):
+	library = import_module(name)
+	is_package = re.match(r'^__init__\.pyc?$', basename(library.__file__))
+	if is_package:
+		copytree(dirname(library.__file__), dest_dir)
+	else:
+		copy(library.__file__, dest_dir)
 
 def run(cmd, extra_env=None):
 	if extra_env:

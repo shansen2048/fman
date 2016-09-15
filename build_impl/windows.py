@@ -1,5 +1,5 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
-	copy_with_filtering
+	copy_with_filtering, copy_python_library
 from os import rename, makedirs
 from os.path import join, relpath, splitext
 from shutil import copy
@@ -11,6 +11,7 @@ import os
 def exe():
 	_run_pyinstaller()
 	_add_missing_dlls()
+	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('target/fman/fman.exe'))
 	_generate_uninstaller()

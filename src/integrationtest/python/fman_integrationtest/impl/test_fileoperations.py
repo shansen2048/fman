@@ -1,13 +1,11 @@
-from fman.impl import fileoperations
-from fman.impl.fileoperations import CopyFiles, Yes, No, Ok, YesToAll, \
-	NoToAll, Abort, MoveFiles
+from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT
+from fileoperations import CopyFiles, MoveFiles
 from fman.util import system
 from os import listdir, mkdir, chmod, makedirs, readlink
 from os.path import basename, join, dirname, exists, islink, realpath, samefile
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-import logging
 import os
 import stat
 
@@ -63,7 +61,7 @@ class FileTreeOperationAT:
 	def test_directory_several_files_dest_dir_does_not_exist(self):
 		self.test_directory_several_files(dest_dir=join(self.dest, 'subdir'))
 	def test_overwrite_files(
-		self, answers=(Yes, Yes), expect_overrides=(True, True),
+		self, answers=(YES, YES), expect_overrides=(True, True),
 		files=('a.txt', 'b.txt'), perform_on_files=None
 	):
 		if perform_on_files is None:
@@ -79,9 +77,9 @@ class FileTreeOperationAT:
 			self._touch(dest_file_path)
 		for i, answer in enumerate(answers):
 			file_name = basename(files[i])
-			self._expect_prompt(
+			self._expect_alert(
 				('%s exists. Do you want to override it?' % file_name,
-				 Yes | No | YesToAll | NoToAll | Abort, Yes),
+				 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES),
 				answer=answer
 			)
 		self._perform_on(*[join(self.src, fname) for fname in perform_on_files])
@@ -99,22 +97,22 @@ class FileTreeOperationAT:
 				)
 		return src_files
 	def test_overwrite_files_no_yes(self):
-		self.test_overwrite_files((No, Yes), (False, True))
+		self.test_overwrite_files((NO, YES), (False, True))
 	def test_overwrite_files_yes_all(self):
-		self.test_overwrite_files((YesToAll,), (True, True))
+		self.test_overwrite_files((YES_TO_ALL,), (True, True))
 	def test_overwrite_files_no_all(self):
-		self.test_overwrite_files((NoToAll,), (False, False))
+		self.test_overwrite_files((NO_TO_ALL,), (False, False))
 	def test_overwrite_files_yes_no_all(self):
-		self.test_overwrite_files((Yes, NoToAll), (True, False))
+		self.test_overwrite_files((YES, NO_TO_ALL), (True, False))
 	def test_overwrite_files_abort(self):
-		self.test_overwrite_files((Abort,), (False, False))
+		self.test_overwrite_files((ABORT,), (False, False))
 	def test_overwrite_files_in_directory(self):
 		self.test_overwrite_files(
 			files=('dir/a.txt', 'b.txt'), perform_on_files=('dir', 'b.txt')
 		)
 	def test_overwrite_directory_abort(self):
 		self.test_overwrite_files(
-			(Abort,), (False, False), files=('dir/a.txt', 'b.txt'),
+			(ABORT,), (False, False), files=('dir/a.txt', 'b.txt'),
 			perform_on_files=('dir', 'b.txt')
 		)
 	def test_move_to_self(self):
@@ -125,10 +123,10 @@ class FileTreeOperationAT:
 		files = [a, b, c]
 		for file_ in files:
 			self._touch(file_)
-		# Expect prompt only once:
-		self._expect_prompt(
+		# Expect alert only once:
+		self._expect_alert(
 			('You cannot %s a file to itself.' % self.operation_descr_verb,
-			 Ok, Ok), answer=Ok
+			 OK, OK), answer=OK
 		)
 		self._perform_on(dir_, *files)
 		# Should still have copied c:
@@ -185,10 +183,10 @@ class FileTreeOperationAT:
 		nonexistent_file = join(self.src, 'foo.txt')
 		existent_file = join(self.src, 'bar.txt')
 		self._touch(existent_file)
-		self._expect_prompt(
+		self._expect_alert(
 			('Could not %s %s. Do you want to continue?' %
 			 (self.operation_descr_verb, nonexistent_file),
-			 Yes | YesToAll | Abort, Yes), answer=Yes if do_continue else Abort
+			 YES | YES_TO_ALL | ABORT, YES), answer=YES if do_continue else ABORT
 		)
 		self._perform_on(nonexistent_file, existent_file)
 		self.assertEqual(['bar.txt'] if do_continue else [], listdir(self.dest))
@@ -201,14 +199,11 @@ class FileTreeOperationAT:
 		self._external_dir = TemporaryDirectory()
 		# Create a dummy file to test that not _all_ files are copied from src:
 		self._touch(join(self.src, 'dummy'))
-		self._log_level_before = fileoperations._LOG.getEffectiveLevel()
-		# Suppress log messages on console when running tests:
-		fileoperations._LOG.setLevel(logging.CRITICAL)
 	def _perform_on(self, *files, dest_dir=None, dest_name=None):
 		if dest_dir is None:
 			dest_dir = self.dest
 		self.operation(self.main_window, files, dest_dir, self.src, dest_name)()
-		self.main_window.verify_expected_prompts_were_shown()
+		self.main_window.verify_expected_alerts_were_shown()
 	@property
 	def src(self):
 		return self._src.name
@@ -219,7 +214,6 @@ class FileTreeOperationAT:
 	def external_dir(self):
 		return self._external_dir.name
 	def tearDown(self):
-		fileoperations._LOG.setLevel(self._log_level_before)
 		self._src.cleanup()
 		self._dest.cleanup()
 		self._external_dir.cleanup()
@@ -227,8 +221,8 @@ class FileTreeOperationAT:
 		with open(file_path, 'w') as f:
 			if contents:
 				f.write(contents)
-	def _expect_prompt(self, args, answer):
-		self.main_window.expect_prompt(args, answer)
+	def _expect_alert(self, args, answer):
+		self.main_window.expect_alert(args, answer)
 
 class CopyFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
@@ -249,13 +243,13 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 		self._touch(locked_dest_file)
 		chmod(locked_dest_file, 0o444)
 		try:
-			self._expect_prompt(
+			self._expect_alert(
 				('foo.txt exists. Do you want to override it?',
-				 Yes | No | YesToAll | NoToAll | Abort, Yes), answer=Yes
+				 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES), answer=YES
 			)
-			self._expect_prompt(
+			self._expect_alert(
 				('Could not copy %s. Do you want to continue?' % src_file,
-				 Yes | YesToAll | Abort, Yes), answer=Yes
+				 YES | YES_TO_ALL | ABORT, YES), answer=YES
 			)
 			self._perform_on(dir_)
 		finally:
@@ -277,7 +271,7 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		for file_ in src_files:
 			self.assertFalse(exists(file_))
 	def test_overwrite_files(
-		self, answers=(Yes, Yes), expect_overrides=(True, True),
+		self, answers=(YES, YES), expect_overrides=(True, True),
 		files=('a.txt', 'b.txt'), perform_on_files=None
 	):
 		src_files = super().test_overwrite_files(
@@ -303,19 +297,19 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 
 class StubMainWindow:
 	def __init__(self, test_case):
-		self.expected_prompts = []
+		self.expected_alerts = []
 		self.test_case = test_case
-	def expect_prompt(self, args, answer):
-		self.expected_prompts.append((args, answer))
-	def verify_expected_prompts_were_shown(self):
+	def expect_alert(self, args, answer):
+		self.expected_alerts.append((args, answer))
+	def verify_expected_alerts_were_shown(self):
 		self.test_case.assertEqual(
-			[], self.expected_prompts, 'Did not receive all expected prompts.'
+			[], self.expected_alerts, 'Did not receive all expected alerts.'
 		)
-	def show_message_box(self, *args, **_):
-		if not self.expected_prompts:
-			self.test_case.fail('Unexpected prompt: %r' % args[0])
+	def show_alert(self, *args, **_):
+		if not self.expected_alerts:
+			self.test_case.fail('Unexpected alert: %r' % args[0])
 			return
-		expected_args, answer = self.expected_prompts.pop(0)
+		expected_args, answer = self.expected_alerts.pop(0)
 		self.test_case.assertEqual(expected_args, args)
 		return answer
 	def show_status_message(self, _):

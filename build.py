@@ -10,7 +10,7 @@ OPTIONS.update({
 	'server_user': 'fman@fman.io',
 	'release': False,
 	'files_to_filter': [
-		path('src/main/resources/base/default_settings.json'),
+		path('src/main/resources/base/constants.json'),
 		path('src/main/resources/osx/Info.plist')
 	]
 })
@@ -26,7 +26,8 @@ elif is_linux():
 
 def test():
 	pythonpath = pathsep.join(map(path, [
-		'src/main/python', 'src/unittest/python', 'src/integrationtest/python'
+		'src/main/python', 'src/unittest/python', 'src/integrationtest/python',
+		'src/main/resources/base/Plugins/Core'
 	]))
 	run(
 		['python', '-m', 'unittest', 'fman_unittest', 'fman_integrationtest'],
