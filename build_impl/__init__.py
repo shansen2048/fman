@@ -108,7 +108,8 @@ def copy_python_library(name, dest_dir):
 	library = import_module(name)
 	is_package = re.match(r'^__init__\.pyc?$', basename(library.__file__))
 	if is_package:
-		copytree(dirname(library.__file__), dest_dir)
+		package_dir = dirname(library.__file__)
+		copytree(package_dir, join(dest_dir, basename(package_dir)))
 	else:
 		copy(library.__file__, dest_dir)
 
