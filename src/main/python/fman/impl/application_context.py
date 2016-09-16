@@ -44,9 +44,7 @@ class ApplicationContext:
 			self.updater.start()
 		self.plugin_support.initialize()
 		# TODO: Remove this migration some time after mid October 2016:
-		self._migrate_versions_lte_0_0_4(
-			self.plugin_support.get_user_plugin().path
-		)
+		self._migrate_versions_lte_0_0_4()
 	def load_fonts(self):
 		if system.is_linux():
 			db = QFontDatabase()
@@ -101,27 +99,22 @@ class ApplicationContext:
 			json_path = join(get_local_data_dir(), 'Session.json')
 			self._session_manager = SessionManager(json_path)
 		return self._session_manager
-	def _migrate_versions_lte_0_0_4(self, new_settings_dir):
-		new_settings_path = join(new_settings_dir, 'Core Settings.json')
+	def _migrate_versions_lte_0_0_4(self):
 		old_settings_dir = expanduser('~/.fman')
-		if not exists(old_settings_dir):
-			return
 		try:
 			with open(join(old_settings_dir, 'settings.json'), 'r') as f:
 				old_settings = json.load(f)
-		except IOError:
+		except FileNotFoundError:
+			return
+		try:
+			editor = old_settings['editor']
+			self.plugin_support.write_json(
+				{'editor': editor}, 'Core Settings.json'
+			)
+		except KeyError:
 			pass
-		else:
-			try:
-				editor = old_settings['editor']
-			except KeyError:
-				pass
-			else:
-				if not exists(new_settings_path):
-					makedirs(dirname(new_settings_path), exist_ok=True)
-					with open(new_settings_path, 'w') as f:
-						json.dump({'editor': editor}, f)
-		rmtree(old_settings_dir)
+		finally:
+			rmtree(old_settings_dir)
 	@property
 	def stylesheet(self):
 		if self._stylesheet is None:
