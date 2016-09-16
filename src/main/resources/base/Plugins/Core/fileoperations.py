@@ -32,6 +32,12 @@ class FileTreeOperation:
 				break
 		self.ui.show_status_message('Ready.')
 	def _call_on_file(self, src):
+		if src.endswith('/'):
+			# File paths ending in '/' screw up os.path.basename(...):
+			raise ValueError(
+				"Please ensure file paths don't end in '/', eg. by calling "
+				"normpath(...)."
+			)
 		self._report_processing_of_file(src)
 		dest = self._get_dest_path(src)
 		try:

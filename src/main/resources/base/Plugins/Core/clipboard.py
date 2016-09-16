@@ -1,5 +1,5 @@
 from fman import platform
-from os.path import basename
+from os.path import basename, normpath
 from PyQt5.QtCore import QMimeData
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QApplication
@@ -11,9 +11,6 @@ _GMEM_MOVEABLE = 0x0002
 
 def clear():
 	_clipboard().clear()
-
-def _clipboard():
-	return QApplication.instance().clipboard()
 
 def set_text(text):
 	_clipboard().setText(text)
@@ -49,10 +46,15 @@ def cut_files(files):
 		raise NotImplementedError(platform())
 
 def get_files():
-	return [
-		url.toLocalFile() for url in _clipboard().mimeData().urls()
-		if url.isLocalFile()
-	]
+	result = []
+	for url in _clipboard().mimeData().urls():
+		if url.isLocalFile():
+			# On (at least) OS X, url.toLocalFile() returns paths of the form
+			# '/foo/bar/' for directories. But os.path.basename('/foo/bar/')
+			# returns '' instead of 'bar', which has lead to bugs in the past.
+			# We use normpath(...) here to get rid of the trailing slash:
+			result.append(normpath(url.toLocalFile()))
+	return result
 
 def files_were_cut():
 	if platform() == 'windows':
@@ -62,3 +64,6 @@ def files_were_cut():
 		data = _clipboard().mimeData().data(key)
 		return data == struct.pack('i', _DROPEFFECT_MOVE)
 	return False
+
+def _clipboard():
+	return QApplication.instance().clipboard()
