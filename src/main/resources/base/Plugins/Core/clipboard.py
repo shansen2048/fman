@@ -45,7 +45,8 @@ def cut_files(files):
 			RegisterClipboardFormat(shellcon.CFSTR_PREFERREDDROPEFFECT)
 		SetClipboardData(CF_PREFERREDDROPEFECT, hData)
 		CloseClipboard()
-	raise NotImplementedError(platform())
+	else:
+		raise NotImplementedError(platform())
 
 def get_files():
 	return [
