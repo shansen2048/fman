@@ -5,8 +5,8 @@ from fman.impl.session import SessionManager
 from fman.impl.view import Style
 from fman.updater import EskyUpdater, OSXUpdater
 from fman.util import system
-from fman.util.system import get_canonical_os_name, is_windows
-from os import makedirs, getenv
+from fman.util.system import get_canonical_os_name
+from os import getenv
 from os.path import dirname, join, pardir, normpath, exists, expanduser
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication, QStyleFactory
@@ -96,7 +96,7 @@ class ApplicationContext:
 	@property
 	def session_manager(self):
 		if self._session_manager is None:
-			json_path = join(get_local_data_dir(), 'Session.json')
+			json_path = join(get_data_dir(), 'Local', 'Session.json')
 			self._session_manager = SessionManager(json_path)
 		return self._session_manager
 	def _migrate_versions_lte_0_0_4(self):
@@ -151,11 +151,6 @@ def get_data_dir():
 	if platform == 'linux':
 		return expanduser('~/.config/fman')
 	raise NotImplementedError(platform)
-
-def get_local_data_dir():
-	if is_windows():
-		return join(getenv('LOCALAPPDATA'), 'fman')
-	return join(get_data_dir(), 'Local')
 
 class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
