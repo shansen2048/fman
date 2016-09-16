@@ -21,8 +21,7 @@ class FileTreeOperationAT:
 		self._touch(src_file, '1234')
 		self._perform_on(src_file, dest_dir=dest_dir)
 		self.assertEqual(['test.txt'], listdir(dest_dir))
-		with open(join(dest_dir, 'test.txt'), 'r') as f:
-			self.assertEqual('1234', f.read())
+		self._assert_file_contents_equal(join(dest_dir, 'test.txt'), '1234')
 		return src_file
 	def test_singe_file_dest_dir_does_not_exist(self):
 		self.test_single_file(dest_dir=join(self.dest, 'subdir'))
@@ -53,8 +52,7 @@ class FileTreeOperationAT:
 			{'executable', 'file.txt'}, set(listdir(join(dest_dir, 'dir')))
 		)
 		executable_dst = join(dest_dir, 'dir', 'executable')
-		with open(executable_dst, 'r') as f:
-			self.assertEqual('abc', f.read())
+		self._assert_file_contents_equal(executable_dst, 'abc')
 		if not system.is_windows():
 			self.assertTrue(os.stat(executable_dst).st_mode & stat.S_IEXEC)
 		return [file_outside_dir, dir_]
@@ -174,8 +172,7 @@ class FileTreeOperationAT:
 		if preserves_files and src_equals_dest:
 			expected_files.add('foo')
 		self.assertEqual(expected_files, set(listdir(self.dest)))
-		with open(join(self.dest, 'bar'), 'r') as f:
-			self.assertEqual('1234', f.read())
+		self._assert_file_contents_equal(join(self.dest, 'bar'), '1234')
 		return foo
 	def test_dest_name_same_dir(self):
 		self.test_dest_name(src_equals_dest=True)
@@ -204,6 +201,9 @@ class FileTreeOperationAT:
 			dest_dir = self.dest
 		self.operation(self.main_window, files, dest_dir, self.src, dest_name)()
 		self.main_window.verify_expected_alerts_were_shown()
+	def _assert_file_contents_equal(self, file_path, expected_contents):
+		with open(file_path, 'r') as f:
+			self.assertEqual(expected_contents, f.read())
 	@property
 	def src(self):
 		return self._src.name
@@ -294,6 +294,27 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		self.assertFalse(exists(symlink))
 	def test_dest_name(self, src_equals_dest=False):
 		super().test_dest_name(src_equals_dest, preserves_files=False)
+	def test_overwrite_dir_skip_file(self):
+		src_dir = join(self.src, 'dir')
+		makedirs(src_dir)
+		src_file = join(src_dir, 'test.txt')
+		self._touch(src_file, 'src contents')
+		dest_dir = join(self.dest, 'dir')
+		makedirs(dest_dir)
+		dest_file = join(dest_dir, 'test.txt')
+		self._touch(dest_file, 'dest contents')
+		self._expect_alert(
+			('test.txt exists. Do you want to override it?',
+			 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES),
+			answer=NO
+		)
+		self._perform_on(src_dir)
+		self.assertTrue(
+			exists(src_file),
+			"Source file was skipped and should not have been deleted."
+		)
+		self._assert_file_contents_equal(src_file, 'src contents')
+		self._assert_file_contents_equal(dest_file, 'dest contents')
 
 class StubMainWindow:
 	def __init__(self, test_case):

@@ -1,5 +1,5 @@
 from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
-from os import makedirs
+from os import makedirs, listdir
 from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
 	dirname
 from shutil import copy2, move, rmtree, copytree
@@ -131,7 +131,8 @@ class MoveFiles(FileTreeOperation):
 	):
 		super().__init__(ui, files, dest_dir, 'move', src_dir, dest_name)
 	def postprocess_directory(self, src_dir_path):
-		rmtree(src_dir_path, ignore_errors=True)
+		if not listdir(src_dir_path):
+			rmtree(src_dir_path, ignore_errors=True)
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
 		move(src, dest)
 	def _perform_on_file(self, src, dest):
