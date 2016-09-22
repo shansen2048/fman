@@ -8,6 +8,7 @@ import struct
 
 _DROPEFFECT_MOVE = 2
 _GMEM_MOVEABLE = 0x0002
+_CFSTR_PREFERREDDROPEFFECT = 'Preferred DropEffect'
 
 def clear():
 	_clipboard().clear()
@@ -28,7 +29,6 @@ def cut_files(files):
 		from ctypes.wintypes import DWORD
 		from win32clipboard import OpenClipboard, RegisterClipboardFormat, \
 			SetClipboardData, CloseClipboard
-		from win32com.shell import shellcon
 
 		copy_files(files)
 
@@ -39,7 +39,7 @@ def cut_files(files):
 		kernel32.GlobalUnlock(hData)
 		OpenClipboard(None)
 		CF_PREFERREDDROPEFECT = \
-			RegisterClipboardFormat(shellcon.CFSTR_PREFERREDDROPEFFECT)
+			RegisterClipboardFormat(_CFSTR_PREFERREDDROPEFFECT)
 		SetClipboardData(CF_PREFERREDDROPEFECT, hData)
 		CloseClipboard()
 	else:
@@ -58,9 +58,8 @@ def get_files():
 
 def files_were_cut():
 	if platform() == 'windows':
-		from win32com.shell import shellcon
 		key = 'application/x-qt-windows-mime;value="%s"' % \
-			  shellcon.CFSTR_PREFERREDDROPEFFECT
+			  _CFSTR_PREFERREDDROPEFFECT
 		data = _clipboard().mimeData().data(key)
 		return data == struct.pack('i', _DROPEFFECT_MOVE)
 	return False
