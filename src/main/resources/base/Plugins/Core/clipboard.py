@@ -1,14 +1,14 @@
 from fman import platform
 from os.path import basename, normpath
-from PyQt5.QtCore import QMimeData
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QMimeData, QUrl
 from PyQt5.QtWidgets import QApplication
 
 import struct
 
-_DROPEFFECT_MOVE = 2
-_GMEM_MOVEABLE = 0x0002
 _CFSTR_PREFERREDDROPEFFECT = 'Preferred DropEffect'
+_CF_PREFERREDDROPEFFECT = \
+	'application/x-qt-windows-mime;value="%s"' % _CFSTR_PREFERREDDROPEFFECT
+_DROPEFFECT_MOVE = struct.pack('i', 2)
 
 def clear():
 	_clipboard().clear()
@@ -16,32 +16,25 @@ def clear():
 def set_text(text):
 	_clipboard().setText(text)
 
-def copy_files(files):
+def copy_files(files, extra_data=None):
+	if extra_data is None:
+		extra_data = {}
 	urls = [QUrl.fromLocalFile(file_) for file_ in files]
 	new_clipboard_data = QMimeData()
 	new_clipboard_data.setUrls(urls)
 	new_clipboard_data.setText('\n'.join(map(basename, files)))
+	for key, value in extra_data.items():
+		new_clipboard_data.setData(key, value)
 	_clipboard().setMimeData(new_clipboard_data)
 
 def cut_files(files):
 	if platform() == 'windows':
-		from ctypes import windll, sizeof
-		from ctypes.wintypes import DWORD
-		from win32clipboard import OpenClipboard, RegisterClipboardFormat, \
-			SetClipboardData, CloseClipboard
-
-		copy_files(files)
-
-		kernel32 = windll.kernel32
-		hData = kernel32.GlobalAlloc(_GMEM_MOVEABLE, sizeof(DWORD))
-		pData = kernel32.GlobalLock(hData)
-		DWORD.from_address(pData).value = _DROPEFFECT_MOVE
-		kernel32.GlobalUnlock(hData)
-		OpenClipboard(None)
-		CF_PREFERREDDROPEFECT = \
-			RegisterClipboardFormat(_CFSTR_PREFERREDDROPEFFECT)
-		SetClipboardData(CF_PREFERREDDROPEFECT, hData)
-		CloseClipboard()
+		copy_files(files, {
+			# Make pasting work in Explorer:
+			_CFSTR_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE,
+			# Make pasting work in Qt:
+			_CF_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE
+		})
 	else:
 		raise NotImplementedError(platform())
 
@@ -58,10 +51,8 @@ def get_files():
 
 def files_were_cut():
 	if platform() == 'windows':
-		key = 'application/x-qt-windows-mime;value="%s"' % \
-			  _CFSTR_PREFERREDDROPEFFECT
-		data = _clipboard().mimeData().data(key)
-		return data == struct.pack('i', _DROPEFFECT_MOVE)
+		data = _clipboard().mimeData().data(_CF_PREFERREDDROPEFFECT)
+		return data == _DROPEFFECT_MOVE
 	return False
 
 def _clipboard():
