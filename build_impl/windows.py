@@ -1,17 +1,23 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
 	copy_with_filtering, copy_python_library
+from ctypes import windll
 from os import rename, makedirs
 from os.path import join, relpath, splitext
 from shutil import copy
 from subprocess import call, DEVNULL
 from zipfile import ZipFile, ZIP_DEFLATED
+from win32api import GetModuleFileName
 
 import os
 
 def exe():
 	_run_pyinstaller()
 	_add_missing_dlls()
-	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
+	core_plugin_dir = path('target/fman/Plugins/Core')
+	for library in ('send2trash', 'win32clipboard'):
+		copy_python_library(library, core_plugin_dir)
+	# win32clipboard requires another file:
+	copy(GetModuleFileName(windll.pywintypes34._handle), core_plugin_dir)
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('target/fman/fman.exe'))
 	_generate_uninstaller()
