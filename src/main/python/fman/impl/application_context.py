@@ -143,14 +143,13 @@ class ApplicationContext:
 		return normpath(join(base_dir, *rel_path))
 
 def get_data_dir():
-	platform = get_canonical_os_name()
-	if platform == 'osx':
+	if system.is_osx():
 		return expanduser('~/Library/Application Support/fman')
-	if platform == 'windows':
+	if system.is_windows():
 		return join(getenv('APPDATA'), 'fman')
-	if platform == 'linux':
+	if system.is_linux():
 		return expanduser('~/.config/fman')
-	raise NotImplementedError(platform)
+	raise NotImplementedError('Your operating system is not supported.')
 
 class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
