@@ -16,15 +16,15 @@ class DirectoryPaneCommand:
 		self.other_pane = other_pane
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
-	def get_selected_files(self):
+	def get_chosen_files(self):
 		return self.pane.get_selected_files() or \
 			   [self.pane.get_file_under_cursor()]
 
 def load_json(name):
 	return _get_plugin_support().load_json(name)
 
-def write_json(obj, name):
-	return _get_plugin_support().write_json(obj, name)
+def write_json(value, name):
+	return _get_plugin_support().write_json(value, name)
 
 def _get_plugin_support():
 	from fman.impl.application_context import get_application_context

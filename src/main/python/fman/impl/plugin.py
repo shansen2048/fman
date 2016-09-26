@@ -29,8 +29,8 @@ class PluginSupport:
 		return self.plugins[0]
 	def load_json(self, name):
 		return load_json(*self._get_json_paths(name))
-	def write_json(self, obj, name):
-		return write_differential_json(obj, *self._get_json_paths(name))
+	def write_json(self, value, name):
+		return write_differential_json(value, *self._get_json_paths(name))
 	def _get_json_paths(self, name):
 		plugin_dirs = [plugin.path for plugin in self.plugins]
 		base, ext = splitext(name)

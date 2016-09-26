@@ -56,7 +56,7 @@ class ToggleCurrent(CorePaneCommand):
 
 class MoveToTrash(CorePaneCommand):
 	def __call__(self):
-		to_delete = self.get_selected_files()
+		to_delete = self.get_chosen_files()
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
@@ -88,7 +88,7 @@ class OpenWithEditor(CorePaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if not isfile(file_under_cursor):
-			self.ui.show_alert("No file is selected!", OK, OK)
+			self.ui.show_alert("No file is selected!")
 		else:
 			settings = load_json('Core Settings.json') or {}
 			editor = settings.get('editor', None)
@@ -131,7 +131,7 @@ class TreeCommand(CorePaneCommand):
 			files_descr = '%d files' % len(files)
 		message = '%s %s to' % (descr_verb.capitalize(), files_descr)
 		dest = normpath(join(dest_dir, dest_name))
-		dest, ok = self.ui.show_prompt('fman', message, dest)
+		dest, ok = self.ui.show_prompt(message, dest)
 		if ok:
 			if exists(dest):
 				if isdir(dest):
@@ -142,7 +142,7 @@ class TreeCommand(CorePaneCommand):
 					else:
 						self.ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
-							descr_verb, OK, OK
+							descr_verb
 						)
 			else:
 				if len(files) == 1:
@@ -164,7 +164,7 @@ class TreeCommand(CorePaneCommand):
 
 class Copy(TreeCommand):
 	def __call__(self):
-		files = self.get_selected_files()
+		files = self.get_chosen_files()
 		dest_dir = self.other_pane.get_path()
 		proceed = self._confirm_tree_operation(files, dest_dir, 'copy')
 		if proceed:
@@ -174,7 +174,7 @@ class Copy(TreeCommand):
 
 class Move(TreeCommand):
 	def __call__(self):
-		files = self.get_selected_files()
+		files = self.get_chosen_files()
 		dest_dir = self.other_pane.get_path()
 		proceed = self._confirm_tree_operation(files, dest_dir, 'move')
 		if proceed:
@@ -188,7 +188,7 @@ class Rename(CorePaneCommand):
 
 class CreateDirectory(CorePaneCommand):
 	def __call__(self):
-		name, ok = self.ui.show_prompt("fman", "New folder (directory)")
+		name, ok = self.ui.show_prompt("New folder (directory)")
 		if ok and name:
 			dir_path = join(self.pane.get_path(), name)
 			mkdir(dir_path)
@@ -204,17 +204,17 @@ class OpenNativeFileManager(CorePaneCommand):
 
 class CopyPathsToClipboard(CorePaneCommand):
 	def __call__(self):
-		files = '\n'.join(self.get_selected_files())
+		files = '\n'.join(self.get_chosen_files())
 		clipboard.clear()
 		clipboard.set_text(files)
 
 class CopyToClipboard(CorePaneCommand):
 	def __call__(self):
-		clipboard.copy_files(self.get_selected_files())
+		clipboard.copy_files(self.get_chosen_files())
 
 class Cut(CorePaneCommand):
 	def __call__(self):
-		clipboard.cut_files(self.get_selected_files())
+		clipboard.cut_files(self.get_chosen_files())
 
 class Paste(TreeCommand):
 	def __call__(self):

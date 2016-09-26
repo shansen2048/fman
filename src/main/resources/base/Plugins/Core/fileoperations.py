@@ -81,8 +81,7 @@ class FileTreeOperation:
 			if samefile(src, dest):
 				if not self.cannot_move_to_self_shown:
 					self.ui.show_alert(
-						"You cannot %s a file to itself." % self.descr_verb,
-						OK, OK
+						"You cannot %s a file to itself." % self.descr_verb
 					)
 					self.cannot_move_to_self_shown = True
 				return True

@@ -123,8 +123,8 @@ class FileTreeOperationAT:
 			self._touch(file_)
 		# Expect alert only once:
 		self._expect_alert(
-			('You cannot %s a file to itself.' % self.operation_descr_verb,
-			 OK, OK), answer=OK
+			('You cannot %s a file to itself.' % self.operation_descr_verb,),
+			answer=OK
 		)
 		self._perform_on(dir_, *files)
 		# Should still have copied c:

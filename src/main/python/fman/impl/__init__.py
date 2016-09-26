@@ -1,3 +1,4 @@
+from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once, run_in_main_thread
@@ -19,19 +20,19 @@ class MainWindow(QMainWindow):
 		self.setStatusBar(self.status_bar)
 		self.setWindowTitle("fman")
 	@run_in_main_thread
-	def show_alert(self, text, standard_buttons, default_button):
+	def show_alert(self, text, buttons=OK, default_button=OK):
 		msgbox = QMessageBox(self)
 		msgbox.setText(text)
-		msgbox.setStandardButtons(standard_buttons)
+		msgbox.setStandardButtons(buttons)
 		msgbox.setDefaultButton(default_button)
 		return msgbox.exec()
 	@run_in_main_thread
-	def show_file_open_dialog(self, caption, directory, filter_):
-		return QFileDialog.getOpenFileName(self, caption, directory, filter_)
+	def show_file_open_dialog(self, caption, dir_path, filter_text):
+		return QFileDialog.getOpenFileName(self, caption, dir_path, filter_text)
 	@run_in_main_thread
-	def show_prompt(self, title, label, default=''):
+	def show_prompt(self, text, default=''):
 		return QInputDialog.getText(
-			self, title, label, QLineEdit.Normal, default
+			self, 'fman', text, QLineEdit.Normal, default
 		)
 	@run_in_main_thread
 	def show_status_message(self, text):
