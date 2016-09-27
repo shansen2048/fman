@@ -1,9 +1,10 @@
 from fman import DirectoryPaneCommand, platform
 from fman.impl.controller import KeyBinding
+from fman.util import listdir_absolute
 from glob import glob
 from importlib import import_module
 from inspect import getmro
-from os import listdir, makedirs
+from os import makedirs
 from os.path import join, isdir, splitext, basename, dirname
 from PyQt5.QtGui import QKeySequence
 
@@ -15,15 +16,15 @@ class PluginSupport:
 
 	USER_PLUGIN_NAME = 'User'
 
-	def __init__(self, user_plugins_dir, shipped_plugins_dir, controller):
-		self.user_plugins_dir = user_plugins_dir
+	def __init__(self, shipped_plugins_dir, installed_plugins_dir, controller):
 		self.shipped_plugins_dir = shipped_plugins_dir
+		self.installed_plugins_dir = installed_plugins_dir
 		self.controller = controller
 		self.plugins = []
 		self.commands = {}
 	def initialize(self):
 		self._load_plugins()
-		self.controller.key_bindings.extend(self._parse_key_bindings())
+		self.controller.key_bindings.extend(self._load_key_bindings())
 	def get_user_plugin(self):
 		return self.plugins[0]
 	def load_json(self, name):
@@ -46,23 +47,21 @@ class PluginSupport:
 			self.plugins.append(plugin)
 			self.commands.update(plugin.commands)
 	def _find_plugins(self):
-		result = [join(self.user_plugins_dir, self.USER_PLUGIN_NAME)]
+		shipped_plugins = self._list_plugins(self.shipped_plugins_dir)
+		installed_plugins = [
+			plugin for plugin in self._list_plugins(self.installed_plugins_dir)
+		 	if basename(plugin) != self.USER_PLUGIN_NAME
+		]
+		user_plugin = join(self.installed_plugins_dir, self.USER_PLUGIN_NAME)
+		return shipped_plugins + installed_plugins + [user_plugin]
+	def _list_plugins(self, dir_path):
 		try:
-			user_plugins = listdir(self.user_plugins_dir)
+			return list(filter(isdir, listdir_absolute(dir_path)))
 		except FileNotFoundError:
-			user_plugins = []
-		for plugin in user_plugins:
-			plugin_path = join(self.user_plugins_dir, plugin)
-			if plugin != self.USER_PLUGIN_NAME and isdir(plugin_path):
-				result.append(plugin_path)
-		for plugin in listdir(self.shipped_plugins_dir):
-			plugin_path = join(self.shipped_plugins_dir, plugin)
-			if isdir(plugin_path):
-				result.append(plugin_path)
-		return result
-	def _parse_key_bindings(self):
+			return []
+	def _load_key_bindings(self):
 		result = []
-		key_bindings = self.load_json('Key Bindings.json')
+		key_bindings = self.load_json('Key Bindings.json') or []
 		for binding in key_bindings:
 			result.append(self._parse_key_binding(binding))
 		return result
@@ -114,15 +113,14 @@ def load_json(*paths):
 				(type(next_value).__name__, type(result).__name__)
 			)
 		if isinstance(next_value, dict):
-			for k, v in next_value.items():
-				if k not in result:
-					result[k] = v
+			result.update(next_value)
 		elif isinstance(next_value, list):
-			result.extend(next_value)
+			result = next_value + result
 	return result
 
-def write_differential_json(obj, path, *paths):
-	old_obj = load_json(path, *paths)
+def write_differential_json(obj, *paths):
+	dest_path = paths[-1]
+	old_obj = load_json(*paths)
 	if old_obj is None:
 		difference = obj
 	else:
@@ -135,25 +133,25 @@ def write_differential_json(obj, path, *paths):
 			deleted = [key for key in old_obj if key not in obj]
 			if deleted:
 				raise ValueError('Deleting keys %r is not supported.' % deleted)
-			base = load_json(*paths) or {}
+			base = load_json(*paths[:-1]) or {}
 			difference = {
 				key: value for key, value in obj.items()
 				if key not in base or base[key] != value
 			}
 		elif isinstance(obj, list):
-			changeable = load_json(path) or []
+			changeable = load_json(dest_path) or []
 			remainder = old_obj[len(changeable):]
 			if remainder:
 				if obj[-len(remainder):] != remainder:
 					raise ValueError(
 						"It's not possible to update list items in paths %r." %
-						((path,) + paths,)
+						(paths,)
 					)
 				difference = obj[:-len(remainder)]
 			else:
 				difference = obj
 		else:
 			difference = obj
-	makedirs(dirname(path), exist_ok=True)
-	with open(path, 'w') as f:
+	makedirs(dirname(dest_path), exist_ok=True)
+	with open(dest_path, 'w') as f:
 		json.dump(difference, f)

@@ -88,10 +88,11 @@ class ApplicationContext:
 	@property
 	def plugin_support(self):
 		if self._plugin_support is None:
-			user_plugins = join(get_data_dir(), 'Plugins')
 			shipped_plugins = self.get_resource('Plugins')
-			self._plugin_support = \
-				PluginSupport(user_plugins, shipped_plugins, self.controller)
+			installed_plugins = join(get_data_dir(), 'Plugins')
+			self._plugin_support = PluginSupport(
+				shipped_plugins, installed_plugins, self.controller
+			)
 		return self._plugin_support
 	@property
 	def session_manager(self):
