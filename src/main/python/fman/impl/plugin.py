@@ -1,6 +1,5 @@
-from fman import DirectoryPaneCommand
+from fman import DirectoryPaneCommand, platform
 from fman.impl.controller import KeyBinding
-from fman.util.system import get_canonical_os_name
 from glob import glob
 from importlib import import_module
 from inspect import getmro
@@ -34,8 +33,7 @@ class PluginSupport:
 	def _get_json_paths(self, name):
 		plugin_dirs = [plugin.path for plugin in self.plugins]
 		base, ext = splitext(name)
-		platform_title = self._get_platform_title()
-		platform_specific_name = '%s (%s)%s' % (base, platform_title, ext)
+		platform_specific_name = '%s (%s)%s' % (base, platform(), ext)
 		result = []
 		for plugin_dir in plugin_dirs:
 			result.append(join(plugin_dir, platform_specific_name))
@@ -73,11 +71,6 @@ class PluginSupport:
 		command = self.commands[json_obj['command']]
 		args = json_obj.get('args', {})
 		return KeyBinding(key_sequence, command, args)
-	def _get_platform_title(self):
-		result = get_canonical_os_name().title()
-		if result == 'Osx':
-			result = 'OSX'
-		return result
 
 class Plugin:
 	def __init__(self, dir_path):

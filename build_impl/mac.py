@@ -28,7 +28,7 @@ def app():
 		path('target/fman.app/Contents/Info.plist')
 	)
 	copy_framework(
-		path('lib/osx/Sparkle-1.14.0/Sparkle.framework'),
+		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),
 		path('target/fman.app/Contents/Frameworks/Sparkle.framework')
 	)
 	copy_python_library(
@@ -64,7 +64,7 @@ def sign_app():
 
 def dmg():
 	run([
-		path('bin/osx/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
+		path('bin/mac/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
 		'--app-drop-link', '0', '10', '--icon', 'fman', '200', '10',
 		 path('target/fman.dmg'), path('target/fman.app')
 	])
@@ -105,7 +105,7 @@ def _create_autoupdate_patches():
 			# give 100% the same result, making Sparkle's hash check fail:
 			run(['ditto', '-x', '-k', version_file, tmp_dir])
 			run([
-				path('lib/osx/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
+				path('lib/mac/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
 				join(tmp_dir, 'fman.app'), path('target/fman.app'),
 				path('target/autoupdate/%s-%s.delta' % (version, new_version))
 			])

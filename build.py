@@ -1,4 +1,4 @@
-from build_impl import path, run, is_windows, is_osx, is_linux, OPTIONS
+from build_impl import path, run, is_windows, is_mac, is_linux, OPTIONS
 from os import unlink, listdir, remove, pathsep
 from os.path import join, isdir, isfile, islink
 from shutil import rmtree
@@ -11,15 +11,15 @@ OPTIONS.update({
 	'release': False,
 	'files_to_filter': [
 		path('src/main/resources/base/constants.json'),
-		path('src/main/resources/osx/Info.plist')
+		path('src/main/resources/mac/Info.plist')
 	]
 })
 
 if is_windows():
 	from build_impl.windows import exe, installer, zip, sign_exe, \
 		sign_installer, add_installer_manifest
-elif is_osx():
-	from build_impl.osx import app, sign_app, dmg, sign_dmg,\
+elif is_mac():
+	from build_impl.mac import app, sign_app, dmg, sign_dmg,\
 		create_autoupdate_files, upload
 elif is_linux():
 	from build_impl.linux import esky
@@ -41,7 +41,7 @@ def publish():
 		installer()
 		add_installer_manifest()
 		sign_installer()
-	elif is_osx():
+	elif is_mac():
 		app()
 		sign_app()
 		dmg()

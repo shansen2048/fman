@@ -28,7 +28,7 @@ def copy_files(files, extra_data=None):
 	_clipboard().setMimeData(new_clipboard_data)
 
 def cut_files(files):
-	if platform() == 'windows':
+	if platform() == 'Windows':
 		copy_files(files, {
 			# Make pasting work in Explorer:
 			_CFSTR_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE,
@@ -50,7 +50,7 @@ def get_files():
 	return result
 
 def files_were_cut():
-	if platform() == 'windows':
+	if platform() == 'Windows':
 		data = _clipboard().mimeData().data(_CF_PREFERREDDROPEFFECT)
 		return data == _DROPEFFECT_MOVE
 	return False

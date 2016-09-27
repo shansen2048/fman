@@ -1,11 +1,11 @@
+from fman import platform
 from fman.impl import MainWindow
 from fman.impl.controller import Controller
 from fman.impl.plugin import PluginSupport
 from fman.impl.session import SessionManager
 from fman.impl.view import Style
-from fman.updater import EskyUpdater, OSXUpdater
+from fman.updater import EskyUpdater, MacUpdater
 from fman.util import system
-from fman.util.system import get_canonical_os_name
 from os import getenv
 from os.path import dirname, join, pardir, normpath, exists, expanduser
 from PyQt5.QtGui import QFontDatabase
@@ -135,7 +135,7 @@ class ApplicationContext:
 		return None
 	def get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		os_dir = join(res_dir, get_canonical_os_name())
+		os_dir = join(res_dir, platform().lower())
 		os_path = normpath(join(os_dir, *rel_path))
 		if exists(os_path):
 			return os_path
@@ -143,7 +143,7 @@ class ApplicationContext:
 		return normpath(join(base_dir, *rel_path))
 
 def get_data_dir():
-	if system.is_osx():
+	if system.is_mac():
 		return expanduser('~/Library/Application Support/fman')
 	if system.is_windows():
 		return join(getenv('APPDATA'), 'fman')
@@ -159,13 +159,13 @@ class FrozenApplicationContext(ApplicationContext):
 	def updater(self):
 		if self._updater is None:
 			update_url = self.constants['update_url']
-			if system.is_osx():
+			if system.is_mac():
 				appcast_url = update_url + '/Appcast.xml'
-				self._updater = OSXUpdater(self.app, appcast_url)
+				self._updater = MacUpdater(self.app, appcast_url)
 			elif system.is_linux():
 				self._updater = EskyUpdater(sys.executable, update_url)
 		return self._updater
 	def get_resource(self, *rel_path):
-		if system.is_osx():
+		if system.is_mac():
 			rel_path = (pardir, 'Resources') + rel_path
 		return normpath(join(dirname(sys.executable), *rel_path))

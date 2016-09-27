@@ -11,7 +11,7 @@ class EskyUpdater(Thread):
 	def run(self):
 		self.esky.auto_update()
 
-class OSXUpdater:
+class MacUpdater:
 	def __init__(self, app, appcast_url):
 		self.app = app
 		self.appcast_url = appcast_url

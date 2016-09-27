@@ -81,9 +81,9 @@ class Open(CorePaneCommand):
 
 class OpenWithEditor(CorePaneCommand):
 	_PLATFORM_APPLICATIONS_FILTER = {
-		'osx': 'Applications (*.app)',
-		'windows': 'Applications (*.exe)',
-		'linux': 'Applications (*)'
+		'Mac': 'Applications (*.app)',
+		'Windows': 'Applications (*.exe)',
+		'Linux': 'Applications (*)'
 	}
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
@@ -109,14 +109,14 @@ class OpenWithEditor(CorePaneCommand):
 			if editor:
 				open_file_with_app(file_under_cursor, editor)
 	def _get_applications_directory(self):
-		if platform() == 'osx':
+		if platform() == 'Mac':
 			return '/Applications'
-		elif platform() == 'windows':
+		elif platform() == 'Windows':
 			result = r'c:\Program Files'
 			if not exists(result):
 				result = splitdrive(sys.executable)[0] + '\\'
 			return result
-		elif platform() == 'linux':
+		elif platform() == 'Linux':
 			return '/usr/bin'
 		raise NotImplementedError(platform())
 

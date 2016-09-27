@@ -1,6 +1,6 @@
 from collections import namedtuple
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, Key_Right
-from fman.util.system import is_osx
+from fman.util.system import is_mac
 from os import rename
 from os.path import join, dirname
 from PyQt5.QtCore import QUrl
@@ -21,7 +21,7 @@ class Controller:
 	def key_pressed_in_file_view(self, view, event):
 		key = event.key()
 		modifiers = event.modifiers()
-		if is_osx() and key in (Key_Down, Key_Up, Key_Left, Key_Right):
+		if is_mac() and key in (Key_Down, Key_Up, Key_Left, Key_Right):
 			# According to the Qt documentation ([1]), the KeypadModifier flag
 			# is set when an arrow key is pressed on OS X because the arrow keys
 			# are part of the keypad. We don't want our users to have to specify

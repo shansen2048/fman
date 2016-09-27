@@ -1,4 +1,4 @@
-from fman.util.system import get_canonical_os_name as platform
+from fman.util.system import is_mac, is_linux, is_windows
 from PyQt5.QtWidgets import QMessageBox
 
 YES = QMessageBox.Yes
@@ -8,6 +8,15 @@ NO_TO_ALL = QMessageBox.NoToAll
 ABORT = QMessageBox.Abort
 OK = QMessageBox.Ok
 CANCEL = QMessageBox.Cancel
+
+def platform():
+	if is_windows():
+		return 'Windows'
+	if is_mac():
+		return 'Mac'
+	if is_linux():
+		return 'Linux'
+	raise ValueError('Unknown operating system.')
 
 class DirectoryPaneCommand:
 	def __init__(self, ui, pane, other_pane):
