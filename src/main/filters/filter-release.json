@@ -1,4 +1,5 @@
 {
 	"update_url": "https://fman.io/updates",
-	"info_plist_extra": ""
+	"info_plist_extra": "",
+	"mixpanel_token": "8bfd63d62acf705893664da396d1abdb"
 }

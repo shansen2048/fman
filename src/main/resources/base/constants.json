@@ -1,4 +1,5 @@
 {
 	"update_url": "${update_url}",
-	"version": "${version}"
+	"version": "${version}",
+	"mixpanel_token": "${mixpanel_token}"
 }

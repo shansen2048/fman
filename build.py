@@ -1,14 +1,14 @@
-from build_impl import path, run, is_windows, is_mac, is_linux, OPTIONS
+from build_impl import path, run, is_windows, is_mac, is_linux, OPTIONS, \
+	read_filter
 from os import unlink, listdir, remove, pathsep
 from os.path import join, isdir, isfile, islink
 from shutil import rmtree
 
 OPTIONS.update({
-	'version': '0.0.6',
+	'version': read_filter()['version'],
 	'local_staticfiles_dir': '/Users/michael/dev/fman.io/static',
 	'server_staticfiles_dir': '/home/fman/src/static',
 	'server_user': 'fman@fman.io',
-	'release': False,
 	'files_to_filter': [
 		path('src/main/resources/base/constants.json'),
 		path('src/main/resources/mac/Info.plist')

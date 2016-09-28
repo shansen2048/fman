@@ -1,5 +1,6 @@
 from fman import platform
 from fman.impl import MainWindow
+from fman.impl.analytics import Tracker
 from fman.impl.controller import Controller
 from fman.impl.plugin import PluginSupport
 from fman.impl.session import SessionManager
@@ -35,8 +36,14 @@ class ApplicationContext:
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
+		self._tracker = None
 	def initialize(self):
-		# Ensure QApplication is initialized before anything else:
+		self.tracker.initialize()
+		self.tracker.super_properties.update({
+			'$os': platform(), '$app_version': self.constants['version']
+		})
+		self.tracker.track('Started fman')
+		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
 		self.load_fonts()
 		self.session_manager.on_startup(self.main_window)
@@ -68,7 +75,19 @@ class ApplicationContext:
 		if self._constants is None:
 			with open(self.get_resource('constants.json'), 'r') as f:
 				self._constants = json.load(f)
+			self._postprocess_constants()
 		return self._constants
+	def _postprocess_constants(self):
+		filter_path = join(
+			self.get_resource(), pardir, pardir, 'filters', 'filter-local.json'
+		)
+		with open(filter_path, 'r') as f:
+			filter_ = json.load(f)
+		for key, value in self._constants.items():
+			if isinstance(value, str):
+				for filter_key, filter_value in filter_.items():
+					value = value.replace('${%s}' % filter_key, filter_value)
+				self._constants[key] = value
 	@property
 	def main_window(self):
 		return self._main_window_and_controller[0]
@@ -82,7 +101,7 @@ class ApplicationContext:
 			self._main_window = MainWindow()
 			self._main_window.closeEvent = \
 				lambda _: self.session_manager.on_close(self.main_window)
-			self._controller = Controller(self._main_window)
+			self._controller = Controller(self._main_window, self.tracker)
 			self._main_window.set_controller(self._controller)
 		return self._main_window, self._controller
 	@property
@@ -132,6 +151,12 @@ class ApplicationContext:
 			self._style = Style(QStyleFactory.create('Fusion'))
 		return self._style
 	@property
+	def tracker(self):
+		if self._tracker is None:
+			json_path = join(get_data_dir(), 'Local', 'Installation.json')
+			self._tracker = Tracker(self.constants['mixpanel_token'], json_path)
+		return self._tracker
+	@property
 	def updater(self):
 		return None
 	def get_resource(self, *rel_path):
@@ -170,3 +195,5 @@ class FrozenApplicationContext(ApplicationContext):
 		if system.is_mac():
 			rel_path = (pardir, 'Resources') + rel_path
 		return normpath(join(dirname(sys.executable), *rel_path))
+	def _postprocess_constants(self):
+		pass

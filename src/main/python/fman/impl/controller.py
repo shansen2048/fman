@@ -9,8 +9,9 @@ from PyQt5.QtGui import QKeySequence, QDesktopServices
 KeyBinding = namedtuple('KeyBinding', ('key_sequence', 'command', 'args'))
 
 class Controller:
-	def __init__(self, main_window):
+	def __init__(self, main_window, tracker):
 		self.main_window = main_window
+		self.tracker = tracker
 		self.key_bindings = []
 	@property
 	def left_pane(self):
@@ -38,6 +39,9 @@ class Controller:
 				else:
 					other_pane = self.right_pane
 				command = binding.command(self.main_window, pane, other_pane)
+				self.tracker.track('Ran command', {
+					'Command': command.__class__.__name__
+				})
 				if command(**binding.args) is False:
 					break
 				return True
