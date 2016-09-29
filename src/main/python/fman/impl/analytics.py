@@ -12,7 +12,8 @@ class Tracker:
 		self.mp = Mixpanel(mixpanel_token)
 		self.json_path = json_path
 		self.super_properties = {}
-		self.collect_statistics = self.user_id = None
+		self.collect_statistics = True
+		self.user_id = None
 		self._executor = ThreadPoolExecutor(max_workers=1)
 	def initialize(self):
 		try:
