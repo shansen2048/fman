@@ -1,6 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from getpass import getuser
 from mixpanel import Mixpanel
+from os import makedirs
+from os.path import dirname
 from uuid import uuid4
 
 import json
@@ -21,6 +23,7 @@ class Tracker:
 			self._executor.submit(
 				self.mp.people_set, self.user_id, {'$name': getuser()}
 			)
+			makedirs(dirname(self.json_path), exist_ok=True)
 			with open(self.json_path, 'w') as f:
 				json.dump({'uuid': self.user_id}, f)
 		else:
