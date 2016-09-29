@@ -1,3 +1,4 @@
+from fman import platform
 from fman.impl.plugin import PluginSupport, load_json, write_differential_json
 from os import mkdir
 from os.path import join
@@ -32,6 +33,16 @@ class PluginSupportTest(TestCase):
 			json.dump(['user'], f)
 		self.assertEqual(
 			['user', 'installed', 'shipped'],
+			self.plugin_support.load_json('Test.json')
+		)
+	def test_load_json_platform_overwrites(self):
+		with open(join(self.shipped_plugin, 'Test.json'), 'w') as f:
+			json.dump({'a': 1, 'b': 2}, f)
+		json_platform = 'Test (%s).json' % platform()
+		with open(join(self.shipped_plugin, json_platform), 'w') as f:
+			json.dump({'b': 'overwritten'}, f)
+		self.assertEqual(
+			{'a': 1, 'b': 'overwritten'},
 			self.plugin_support.load_json('Test.json')
 		)
 	def test_find_plugins(self):

@@ -37,8 +37,8 @@ class PluginSupport:
 		platform_specific_name = '%s (%s)%s' % (base, platform(), ext)
 		result = []
 		for plugin_dir in plugin_dirs:
-			result.append(join(plugin_dir, platform_specific_name))
 			result.append(join(plugin_dir, name))
+			result.append(join(plugin_dir, platform_specific_name))
 		return result
 	def _load_plugins(self):
 		for plugin_dir in self._find_plugins():
