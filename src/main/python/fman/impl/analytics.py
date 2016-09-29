@@ -12,7 +12,7 @@ class Tracker:
 		self.mp = Mixpanel(mixpanel_token)
 		self.json_path = json_path
 		self.super_properties = {}
-		self.user_id = None
+		self.collect_statistics = self.user_id = None
 		self._executor = ThreadPoolExecutor(max_workers=1)
 	def initialize(self):
 		try:
@@ -27,8 +27,12 @@ class Tracker:
 			with open(self.json_path, 'w') as f:
 				json.dump({'uuid': self.user_id}, f)
 		else:
-			self.user_id = json_dict['uuid']
+			self.collect_statistics = json_dict.get('collect_statistics', True)
+			if self.collect_statistics:
+				self.user_id = json_dict['uuid']
 	def track(self, event_name, properties=None):
+		if not self.collect_statistics:
+			return
 		props = dict(self.super_properties)
 		if properties:
 			props.update(properties)

@@ -7,7 +7,7 @@ from fman.impl.session import SessionManager
 from fman.impl.view import Style
 from fman.updater import EskyUpdater, MacUpdater
 from fman.util import system
-from os import getenv
+from os import getenv, rename
 from os.path import dirname, join, pardir, normpath, exists, expanduser
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtWidgets import QApplication, QStyleFactory
@@ -153,7 +153,11 @@ class ApplicationContext:
 	@property
 	def tracker(self):
 		if self._tracker is None:
-			json_path = join(get_data_dir(), 'Local', 'Installation.json')
+			json_path = join(get_data_dir(), 'Local', 'Usage.json')
+			old_json_path = join(get_data_dir(), 'Local', 'Installation.json')
+			# TODO: Remove this migration some time after November 2016
+			if exists(old_json_path) and not exists(json_path):
+				rename(old_json_path, json_path)
 			self._tracker = Tracker(self.constants['mixpanel_token'], json_path)
 		return self._tracker
 	@property
