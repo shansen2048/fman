@@ -1,5 +1,12 @@
 from fman.util.system import is_mac, is_linux, is_windows
+from PyQt5.QtCore import QDir
 from PyQt5.QtWidgets import QMessageBox
+
+__all__ = [
+	'DirectoryPaneCommand', 'platform', 'load_json', 'write_json',
+	'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT', 'OK', 'CANCEL',
+	'HIDDEN_FILES', 'SYSTEM_FILES'
+]
 
 YES = QMessageBox.Yes
 NO = QMessageBox.No
@@ -8,6 +15,9 @@ NO_TO_ALL = QMessageBox.NoToAll
 ABORT = QMessageBox.Abort
 OK = QMessageBox.Ok
 CANCEL = QMessageBox.Cancel
+
+HIDDEN_FILES = QDir.Hidden
+SYSTEM_FILES = QDir.System
 
 def platform():
 	if is_windows():

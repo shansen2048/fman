@@ -1,6 +1,6 @@
 from fileoperations import CopyFiles, MoveFiles
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	platform, write_json
+	platform, write_json, HIDDEN_FILES, SYSTEM_FILES
 from os import mkdir
 from os.path import join, pardir, isfile, exists, splitdrive, basename, \
 	normpath, isdir, split
@@ -19,6 +19,11 @@ class CorePaneCommand(DirectoryPaneCommand):
 class DoNothing(CorePaneCommand):
 	def __call__(self):
 		return False
+
+class ToggleHiddenFiles(CorePaneCommand):
+	def __call__(self):
+		mask = HIDDEN_FILES | SYSTEM_FILES
+		self.pane.set_filter_flags(self.pane.get_filter_flags() ^ mask)
 
 class MoveCursorDown(CorePaneCommand):
 	def __call__(self, toggle_current=False):

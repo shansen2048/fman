@@ -96,6 +96,10 @@ class DirectoryPane(QWidget):
 		self.file_view.rename(file_path)
 	def open(self, file_path):
 		self.file_view.open(file_path)
+	def set_filter_flags(self, flags):
+		self._model.setFilter(flags)
+	def get_filter_flags(self):
+		return self._model.filter()
 	def _normalize_path(self, path):
 		path = abspath(path)
 		while not exists(path):
