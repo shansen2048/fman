@@ -1,4 +1,4 @@
-from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
+from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT
 from os import makedirs, listdir
 from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
 	dirname
