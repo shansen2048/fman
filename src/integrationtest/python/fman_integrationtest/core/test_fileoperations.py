@@ -190,7 +190,7 @@ class FileTreeOperationAT:
 	def test_error_abort(self):
 		self.test_error_continue(do_continue=False)
 	def setUp(self):
-		self.main_window = StubMainWindow(self)
+		self.ui = StubUI(self)
 		self._src = TemporaryDirectory()
 		self._dest = TemporaryDirectory()
 		self._external_dir = TemporaryDirectory()
@@ -199,8 +199,8 @@ class FileTreeOperationAT:
 	def _perform_on(self, *files, dest_dir=None, dest_name=None):
 		if dest_dir is None:
 			dest_dir = self.dest
-		self.operation(self.main_window, files, dest_dir, self.src, dest_name)()
-		self.main_window.verify_expected_alerts_were_shown()
+		self.operation(self.ui, files, dest_dir, self.src, dest_name)()
+		self.ui.verify_expected_alerts_were_shown()
 	def _assert_file_contents_equal(self, file_path, expected_contents):
 		with open(file_path, 'r') as f:
 			self.assertEqual(expected_contents, f.read())
@@ -222,7 +222,7 @@ class FileTreeOperationAT:
 			if contents:
 				f.write(contents)
 	def _expect_alert(self, args, answer):
-		self.main_window.expect_alert(args, answer)
+		self.ui.expect_alert(args, answer)
 
 class CopyFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
@@ -316,7 +316,7 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		self._assert_file_contents_equal(src_file, 'src contents')
 		self._assert_file_contents_equal(dest_file, 'dest contents')
 
-class StubMainWindow:
+class StubUI:
 	def __init__(self, test_case):
 		self.expected_alerts = []
 		self.test_case = test_case
