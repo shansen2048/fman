@@ -1,5 +1,6 @@
 from fman.util.qt import TextAlignmentRole, AlignVCenter, ItemIsEnabled, \
 	ItemIsEditable, ItemIsSelectable, EditRole, AscendingOrder
+from os.path import commonprefix
 from PyQt5.QtCore import pyqtSignal, QModelIndex, QSortFilterProxyModel
 from PyQt5.QtWidgets import QFileSystemModel
 
@@ -29,12 +30,31 @@ class FileSystemModel(QFileSystemModel):
 		return super().setData(index, value, role)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.filters = []
 	def lessThan(self, left, right):
 		column = _COLUMNS[self.sortColumn()]
 		is_ascending = self.sortOrder() == AscendingOrder
 		left_info = self.sourceModel().fileInfo(left)
 		right_info = self.sourceModel().fileInfo(right)
 		return column.less_than(left_info, right_info, is_ascending)
+	def filterAcceptsRow(self, source_row, source_parent):
+		source = self.sourceModel()
+		file_path = source.filePath(source.index(source_row, 0, source_parent))
+		# When rootPath() is /Users, Qt calls filterAcceptsRow(...) with
+		# '/' and '/Users' before the actual contents of /Users. If we return
+		# False for any of these parent directories, then Qt doesn't display any
+		# entries in a subdirectory. So make sure we return True:
+		is_pardir = file_path == commonprefix([file_path, source.rootPath()])
+		if is_pardir:
+			return True
+		for filter_ in self.filters:
+			if not filter_(file_path):
+				return False
+		return True
+	def add_filter(self, filter_):
+		self.filters.append(filter_)
 
 class Column:
 	@classmethod

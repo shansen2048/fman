@@ -1,4 +1,3 @@
-from collections import namedtuple
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, Key_Right
 from fman.util.system import is_mac
 from os import rename
@@ -6,13 +5,11 @@ from os.path import join, dirname
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QKeySequence, QDesktopServices
 
-KeyBinding = namedtuple('KeyBinding', ('key_sequence', 'command', 'args'))
-
 class Controller:
-	def __init__(self, main_window, tracker):
+	def __init__(self, main_window, plugin_support, tracker):
 		self.main_window = main_window
+		self.plugin_support = plugin_support
 		self.tracker = tracker
-		self.key_bindings = []
 	@property
 	def left_pane(self):
 		return self.main_window.left_pane
@@ -31,14 +28,11 @@ class Controller:
 			# [1]: http://doc.qt.io/qt-5/qt.html#KeyboardModifier-enum
 			modifiers &= ~KeypadModifier
 		key_sequence = QKeySequence(modifiers | key)
-		for binding in self.key_bindings:
-			if key_sequence.matches(binding.key_sequence):
-				pane = view.parentWidget()
-				if pane is self.right_pane:
-					other_pane = self.left_pane
-				else:
-					other_pane = self.right_pane
-				command = binding.command(self.main_window, pane, other_pane)
+		pane = view.parentWidget()
+		key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
+		for binding in key_bindings:
+			if key_sequence.matches(QKeySequence(binding.keys[0])):
+				command = binding.command
 				self.tracker.track('Ran command', {
 					'Command': command.__class__.__name__
 				})

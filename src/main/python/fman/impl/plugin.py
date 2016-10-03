@@ -1,51 +1,54 @@
+from collections import namedtuple
 from fman import DirectoryPaneCommand, platform
-from fman.impl.controller import KeyBinding
 from fman.util import listdir_absolute
 from glob import glob
-from importlib import import_module
+from importlib.machinery import SourceFileLoader
 from inspect import getmro
 from os import makedirs
 from os.path import join, isdir, splitext, basename, dirname
-from PyQt5.QtGui import QKeySequence
 
 import json
 import re
 import sys
 
+KeyBinding = namedtuple('KeyBinding', ('keys', 'command', 'args'))
+
 class PluginSupport:
 
 	USER_PLUGIN_NAME = 'User'
 
-	def __init__(self, shipped_plugins_dir, installed_plugins_dir, controller):
+	def __init__(self, shipped_plugins_dir, installed_plugins_dir):
 		self.shipped_plugins_dir = shipped_plugins_dir
 		self.installed_plugins_dir = installed_plugins_dir
-		self.controller = controller
-		self.plugins = []
-		self.commands = {}
-	def initialize(self):
-		self._load_plugins()
-		self.controller.key_bindings.extend(self._load_key_bindings())
-	def get_user_plugin(self):
-		return self.plugins[0]
-	def load_json(self, name):
-		return load_json(*self._get_json_paths(name))
-	def write_json(self, value, name):
-		return write_differential_json(value, *self._get_json_paths(name))
-	def _get_json_paths(self, name):
-		plugin_dirs = [plugin.path for plugin in self.plugins]
-		base, ext = splitext(name)
-		platform_specific_name = '%s (%s)%s' % (base, platform(), ext)
+		self._plugins = self._key_bindings_json = None
+		self._command_instances = {}
+	def initialize(self, ui, left_pane, right_pane):
+		self._plugins = self._load_plugins()
+		self._key_bindings_json = self.load_json('Key Bindings.json') or []
+		self._command_instances[left_pane] = {}
+		self._command_instances[right_pane] = {}
+		for plugin in self._plugins:
+			for command_name, command_class in plugin.commands.items():
+				self._command_instances[left_pane][command_name] = \
+					command_class(ui, left_pane, right_pane)
+				self._command_instances[right_pane][command_name] = \
+					command_class(ui, right_pane, left_pane)
+	def get_key_bindings_for_pane(self, pane):
 		result = []
-		for plugin_dir in plugin_dirs:
-			result.append(join(plugin_dir, name))
-			result.append(join(plugin_dir, platform_specific_name))
+		commands = self._command_instances[pane]
+		for key_binding in self._key_bindings_json:
+			keys = key_binding['keys']
+			command = commands[key_binding['command']]
+			args = key_binding.get('args', {})
+			result.append(KeyBinding(keys, command, args))
 		return result
 	def _load_plugins(self):
+		result = []
 		for plugin_dir in self._find_plugins():
 			plugin = Plugin(plugin_dir)
 			plugin.load()
-			self.plugins.append(plugin)
-			self.commands.update(plugin.commands)
+			result.append(plugin)
+		return result
 	def _find_plugins(self):
 		shipped_plugins = self._list_plugins(self.shipped_plugins_dir)
 		installed_plugins = [
@@ -59,17 +62,19 @@ class PluginSupport:
 			return list(filter(isdir, listdir_absolute(dir_path)))
 		except FileNotFoundError:
 			return []
-	def _load_key_bindings(self):
+	def load_json(self, name):
+		return load_json(*self._get_json_paths(name))
+	def write_json(self, value, name):
+		return write_differential_json(value, *self._get_json_paths(name))
+	def _get_json_paths(self, name):
+		plugin_dirs = [plugin.path for plugin in self._plugins]
+		base, ext = splitext(name)
+		platform_specific_name = '%s (%s)%s' % (base, platform(), ext)
 		result = []
-		key_bindings = self.load_json('Key Bindings.json') or []
-		for binding in key_bindings:
-			result.append(self._parse_key_binding(binding))
+		for plugin_dir in plugin_dirs:
+			result.append(join(plugin_dir, name))
+			result.append(join(plugin_dir, platform_specific_name))
 		return result
-	def _parse_key_binding(self, json_obj):
-		key_sequence = QKeySequence(json_obj['keys'][0])
-		command = self.commands[json_obj['command']]
-		args = json_obj.get('args', {})
-		return KeyBinding(key_sequence, command, args)
 
 class Plugin:
 	def __init__(self, dir_path):
@@ -83,7 +88,7 @@ class Plugin:
 		result = []
 		for py_file in glob(join(self.path, '*.py')):
 			module_name, _ = splitext(basename(py_file))
-			module = import_module(module_name)
+			module = SourceFileLoader(module_name, py_file).load_module()
 			for member_name in dir(module):
 				member = getattr(module, member_name)
 				try:
@@ -95,6 +100,8 @@ class Plugin:
 		return result
 	def _get_command_name(self, command_class_name):
 		return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class_name).lower()
+	def __str__(self):
+		return '<Plugin %r>' % basename(self.path)
 
 def load_json(*paths):
 	result = None
