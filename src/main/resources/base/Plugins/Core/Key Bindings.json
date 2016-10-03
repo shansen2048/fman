@@ -30,5 +30,5 @@
 	{ "keys": ["Ctrl+X"], "command": "cut" },
 	{ "keys": ["Ctrl+V"], "command": "paste" },
 	{ "keys": ["Ctrl+A"], "command": "select_all" },
-	{ "keys": ["Ctrl+Shift+."], "command": "toggle_hidden_files" }
+	{ "keys": ["Ctrl+."], "command": "toggle_hidden_files" }
 ]
