@@ -3,6 +3,7 @@ from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import abspath, exists, join, pardir
+from PyQt5.QtCore import QDir
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog
 
@@ -46,6 +47,7 @@ class DirectoryPane(QWidget):
 		super().__init__(parent)
 		self._path_view = PathView(self)
 		self._model = FileSystemModel()
+		self._model.setFilter(self._model.filter() | QDir.Hidden | QDir.System)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
 		self.file_view = FileListView(self)
@@ -96,10 +98,10 @@ class DirectoryPane(QWidget):
 		self.file_view.rename(file_path)
 	def open(self, file_path):
 		self.file_view.open(file_path)
-	def set_filter_flags(self, flags):
-		self._model.setFilter(flags)
-	def get_filter_flags(self):
-		return self._model.filter()
+	def add_filter(self, filter_):
+		self._model_sorted.add_filter(filter_)
+	def invalidate_filter(self):
+		return self._model_sorted.invalidateFilter()
 	def _normalize_path(self, path):
 		path = abspath(path)
 		while not exists(path):

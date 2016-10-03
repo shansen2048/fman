@@ -1,5 +1,5 @@
 from fman_unittest import TestLoader
-from os.path import dirname
+from os.path import dirname, pardir, join
 from PyQt5.QtCore import QCoreApplication, pyqtSignal, Qt
 from unittest import TestCase
 
@@ -20,3 +20,7 @@ class QtIT(TestCase):
 
 class Application(QCoreApplication):
 	running = pyqtSignal(object)
+
+def get_resource(*rel_path):
+	resources_dir = join(dirname(__file__), pardir, pardir, 'resources')
+	return join(resources_dir, *rel_path)

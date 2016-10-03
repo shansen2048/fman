@@ -1,8 +1,9 @@
 from fman import platform
 from fman.impl.plugin import PluginSupport, load_json, write_differential_json
+from fman_integrationtest import get_resource
 from os import mkdir
 from os.path import join
-from shutil import rmtree
+from shutil import rmtree, copytree
 from tempfile import mkdtemp
 from unittest import TestCase
 
@@ -50,27 +51,34 @@ class PluginSupportTest(TestCase):
 			[self.shipped_plugin, self.installed_plugin, self.user_plugin],
 			self.plugin_support._find_plugins()
 		)
+	def test_key_bindings(self):
+		for pane in self.left_pane, self.right_pane:
+			key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
+			self.assertEqual(1, len(key_bindings))
+			key_binding, = key_bindings
+			self.assertEqual(["Enter"], key_binding.keys)
+			command = key_binding.command
+			self.assertIs(pane, command.pane)
+			self.assertEqual(True, command(success=True))
 	def setUp(self):
 		self.shipped_plugins = mkdtemp()
-		self.user_plugins = mkdtemp()
+		self.installed_plugins = mkdtemp()
 		self.user_plugin = \
-			join(self.user_plugins, PluginSupport.USER_PLUGIN_NAME)
+			join(self.installed_plugins, PluginSupport.USER_PLUGIN_NAME)
 		mkdir(self.user_plugin)
 		self.shipped_plugin = join(self.shipped_plugins, 'Shipped')
 		mkdir(self.shipped_plugin)
-		self.installed_plugin = join(self.user_plugins, 'Installed')
-		mkdir(self.installed_plugin)
+		self.installed_plugin = \
+			join(self.installed_plugins, 'PluginSupportTest')
+		copytree(get_resource('PluginSupportTest'), self.installed_plugin)
 		self.plugin_support = PluginSupport(
-			self.shipped_plugins, self.user_plugins, StubController()
+			self.shipped_plugins, self.installed_plugins
 		)
-		self.plugin_support.initialize()
+		self.left_pane, self.right_pane = object(), object()
+		self.plugin_support.initialize(None, self.left_pane, self.right_pane)
 	def tearDown(self):
 		rmtree(self.shipped_plugins)
-		rmtree(self.user_plugins)
-
-class StubController:
-	def __init__(self):
-		self.key_bindings = []
+		rmtree(self.installed_plugins)
 
 class LoadJsonTest(TestCase):
 	def test_nonexistent_file(self):
