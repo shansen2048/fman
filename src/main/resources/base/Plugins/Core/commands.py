@@ -241,7 +241,7 @@ class ToggleHiddenFiles(CorePaneCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.pane.add_filter(self.filter)
-		self.show_hidden_files = True
+		self.show_hidden_files = False
 	def filter(self, file_path):
 		if self.show_hidden_files:
 			return True
