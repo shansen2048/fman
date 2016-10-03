@@ -22,17 +22,15 @@ class PluginSupport:
 		self.installed_plugins_dir = installed_plugins_dir
 		self._plugins = self._key_bindings_json = None
 		self._command_instances = {}
-	def initialize(self, ui, left_pane, right_pane):
+	def initialize(self):
 		self._plugins = self._load_plugins()
 		self._key_bindings_json = self.load_json('Key Bindings.json') or []
-		self._command_instances[left_pane] = {}
-		self._command_instances[right_pane] = {}
+	def on_pane_added(self, pane):
+		self._command_instances[pane] = {}
 		for plugin in self._plugins:
 			for command_name, command_class in plugin.commands.items():
-				self._command_instances[left_pane][command_name] = \
-					command_class(ui, left_pane, right_pane)
-				self._command_instances[right_pane][command_name] = \
-					command_class(ui, right_pane, left_pane)
+				command = command_class(pane)
+				self._command_instances[pane][command_name] = command
 	def get_key_bindings_for_pane(self, pane):
 		result = []
 		commands = self._command_instances[pane]

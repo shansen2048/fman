@@ -11,9 +11,15 @@ from threading import Thread
 from trash import move_to_trash
 
 import clipboard
+import fman
 import sys
 
 class CorePaneCommand(DirectoryPaneCommand):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		# The field `ui` is useful for automated tests: Tests can overwrite it
+		# with a stub implementation to run without an actual GUI.
+		self.ui = fman
 	def toggle_current(self):
 		self.pane.toggle_selection(self.pane.get_file_under_cursor())
 
@@ -122,6 +128,10 @@ class OpenWithEditor(CorePaneCommand):
 		raise NotImplementedError(platform())
 
 class TreeCommand(CorePaneCommand):
+	@property
+	def other_pane(self):
+		panes = self.pane.window.get_panes()
+		return panes[(panes.index(self.pane) + 1) % len(panes)]
 	def _confirm_tree_operation(self, files, dest_dir, descr_verb):
 		if len(files) == 1:
 			file_, = files

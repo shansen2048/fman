@@ -46,13 +46,10 @@ class ApplicationContext:
 		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
 		self.load_fonts()
+		self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
 		if self.updater:
 			self.updater.start()
-		self.plugin_support.initialize(
-			self.main_window, self.main_window.left_pane,
-			self.main_window.right_pane
-		)
 		# TODO: Remove this migration some time after mid October 2016:
 		self._migrate_versions_lte_0_0_4()
 	def load_fonts(self):
@@ -93,21 +90,19 @@ class ApplicationContext:
 				self._constants[key] = value
 	@property
 	def main_window(self):
-		return self._main_window_and_controller[0]
-	@property
-	def controller(self):
-		return self._main_window_and_controller[1]
-	@property
-	def _main_window_and_controller(self):
-		assert (self._main_window is None) == (self._controller is None)
 		if self._main_window is None:
-			self._main_window = MainWindow()
+			self._main_window = MainWindow(self.controller)
+			self._main_window.pane_added.connect(
+				self.plugin_support.on_pane_added
+			)
 			self._main_window.closeEvent = \
 				lambda _: self.session_manager.on_close(self.main_window)
-			self._controller = \
-				Controller(self._main_window, self.plugin_support, self.tracker)
-			self._main_window.set_controller(self._controller)
-		return self._main_window, self._controller
+		return self._main_window
+	@property
+	def controller(self):
+		if self._controller is None:
+			self._controller = Controller(self.plugin_support, self.tracker)
+		return self._controller
 	@property
 	def plugin_support(self):
 		if self._plugin_support is None:

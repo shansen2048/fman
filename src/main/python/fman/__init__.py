@@ -24,10 +24,8 @@ def platform():
 	raise ValueError('Unknown operating system.')
 
 class DirectoryPaneCommand:
-	def __init__(self, ui, pane, other_pane):
-		self.ui = ui
+	def __init__(self, pane):
 		self.pane = pane
-		self.other_pane = other_pane
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
 	def get_chosen_files(self):
@@ -40,6 +38,24 @@ def load_json(name):
 def write_json(value, name):
 	return _get_plugin_support().write_json(value, name)
 
+def show_alert(text, buttons=OK, default_button=OK):
+	return _get_ui().show_alert(text, buttons, default_button)
+
+def show_prompt(text, default=''):
+	return _get_ui().show_prompt(text, default)
+
+def show_status_message(text):
+	return _get_ui().show_status_message(text)
+
+def show_file_open_dialog(caption, dir_path, filter_text):
+	return _get_ui().show_file_open_dialog(caption, dir_path, filter_text)
+
 def _get_plugin_support():
+	return _get_app_ctxt().plugin_support
+
+def _get_ui():
+	return _get_app_ctxt().main_window
+
+def _get_app_ctxt():
 	from fman.impl.application_context import get_application_context
-	return get_application_context().plugin_support
+	return get_application_context()

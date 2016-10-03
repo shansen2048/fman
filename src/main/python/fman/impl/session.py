@@ -7,6 +7,7 @@ from os import makedirs
 
 class SessionManager:
 
+	DEFAULT_NUM_PANES = 2
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
 	DEFAULT_WINDOW_SIZE = (800, 450)
 
@@ -19,16 +20,14 @@ class SessionManager:
 				self._json_dict = json.load(f)
 		except FileNotFoundError:
 			self._json_dict = {}
-		self._apply_settings_to_pane(main_window, 'left_pane')
-		self._apply_settings_to_pane(main_window, 'right_pane')
+		default_panes = [{}] * self.DEFAULT_NUM_PANES
+		for pane_info in self._json_dict.get('panes', default_panes):
+			pane = main_window.add_pane()
+			pane.set_path(pane_info.get('location', expanduser('~')))
+			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
+			for i, width in enumerate(col_widths):
+				pane.file_view.setColumnWidth(i, width)
 		self._restore_window_geometry(main_window)
-	def _apply_settings_to_pane(self, main_window, pane_name):
-		pane = getattr(main_window, pane_name)
-		settings = self._json_dict.get(pane_name, {})
-		pane.set_path(settings.get('location', expanduser('~')))
-		col_widths = settings.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
-		for i, width in enumerate(col_widths):
-			pane.file_view.setColumnWidth(i, width)
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._json_dict.get('window_geometry', None)
 		if geometry_b64:
@@ -41,10 +40,8 @@ class SessionManager:
 	def on_close(self, main_window):
 		self._json_dict['window_geometry'] = _encode(main_window.saveGeometry())
 		self._json_dict['window_state'] = _encode(main_window.saveState())
-		left = main_window.left_pane
-		right = main_window.right_pane
-		self._json_dict['left_pane'] = self._read_settings_from_pane(left)
-		self._json_dict['right_pane'] = self._read_settings_from_pane(right)
+		self._json_dict['panes'] = \
+			list(map(self._read_settings_from_pane, main_window.get_panes()))
 		makedirs(dirname(self.json_path), exist_ok=True)
 		with open(self.json_path, 'w') as f:
 			json.dump(self._json_dict, f)

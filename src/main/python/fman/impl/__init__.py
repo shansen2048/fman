@@ -3,44 +3,9 @@ from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import abspath, exists, join, pardir
-from PyQt5.QtCore import QDir
+from PyQt5.QtCore import QDir, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog
-
-class MainWindow(QMainWindow):
-	def __init__(self):
-		super().__init__()
-		splitter = QSplitter(self)
-		self.left_pane = DirectoryPane(splitter)
-		splitter.addWidget(self.left_pane)
-		self.right_pane = DirectoryPane(splitter)
-		splitter.addWidget(self.right_pane)
-		self.setCentralWidget(splitter)
-		self.status_bar = QStatusBar(self)
-		self.status_bar.setSizeGripEnabled(False)
-		self.setStatusBar(self.status_bar)
-		self.setWindowTitle("fman")
-	@run_in_main_thread
-	def show_alert(self, text, buttons=OK, default_button=OK):
-		msgbox = QMessageBox(self)
-		msgbox.setText(text)
-		msgbox.setStandardButtons(buttons)
-		msgbox.setDefaultButton(default_button)
-		return msgbox.exec()
-	@run_in_main_thread
-	def show_file_open_dialog(self, caption, dir_path, filter_text):
-		return QFileDialog.getOpenFileName(self, caption, dir_path, filter_text)
-	@run_in_main_thread
-	def show_prompt(self, text, default=''):
-		return QInputDialog.getText(
-			self, 'fman', text, QLineEdit.Normal, default
-		)
-	@run_in_main_thread
-	def show_status_message(self, text):
-		self.status_bar.showMessage(text)
-	def set_controller(self, controller):
-		self.left_pane.set_controller(controller)
-		self.right_pane.set_controller(controller)
 
 class DirectoryPane(QWidget):
 	def __init__(self, parent):
@@ -102,6 +67,9 @@ class DirectoryPane(QWidget):
 		self._model_sorted.add_filter(filter_)
 	def invalidate_filter(self):
 		return self._model_sorted.invalidateFilter()
+	@property
+	def window(self):
+		return self.parentWidget().parentWidget()
 	def _normalize_path(self, path):
 		path = abspath(path)
 		while not exists(path):
@@ -113,3 +81,45 @@ class DirectoryPane(QWidget):
 	def _activated(self, index):
 		model_index = self._model_sorted.mapToSource(index)
 		self._controller.activated(self._model, self.file_view, model_index)
+
+class MainWindow(QMainWindow):
+
+	pane_added = pyqtSignal(DirectoryPane)
+
+	def __init__(self, controller):
+		super().__init__()
+		self.controller = controller
+		self.panes = []
+		self.splitter = QSplitter(self)
+		self.setCentralWidget(self.splitter)
+		self.status_bar = QStatusBar(self)
+		self.status_bar.setSizeGripEnabled(False)
+		self.setStatusBar(self.status_bar)
+		self.setWindowTitle("fman")
+	@run_in_main_thread
+	def show_alert(self, text, buttons=OK, default_button=OK):
+		msgbox = QMessageBox(self)
+		msgbox.setText(text)
+		msgbox.setStandardButtons(buttons)
+		msgbox.setDefaultButton(default_button)
+		return msgbox.exec()
+	@run_in_main_thread
+	def show_file_open_dialog(self, caption, dir_path, filter_text):
+		return QFileDialog.getOpenFileName(self, caption, dir_path, filter_text)
+	@run_in_main_thread
+	def show_prompt(self, text, default=''):
+		return QInputDialog.getText(
+			self, 'fman', text, QLineEdit.Normal, default
+		)
+	@run_in_main_thread
+	def show_status_message(self, text):
+		self.status_bar.showMessage(text)
+	def add_pane(self):
+		result = DirectoryPane(self.splitter)
+		result.set_controller(self.controller)
+		self.panes.append(result)
+		self.splitter.addWidget(result)
+		self.pane_added.emit(result)
+		return result
+	def get_panes(self):
+		return self.panes

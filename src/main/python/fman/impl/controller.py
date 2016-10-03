@@ -6,16 +6,9 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QKeySequence, QDesktopServices
 
 class Controller:
-	def __init__(self, main_window, plugin_support, tracker):
-		self.main_window = main_window
+	def __init__(self, plugin_support, tracker):
 		self.plugin_support = plugin_support
 		self.tracker = tracker
-	@property
-	def left_pane(self):
-		return self.main_window.left_pane
-	@property
-	def right_pane(self):
-		return self.main_window.right_pane
 	def key_pressed_in_file_view(self, view, event):
 		key = event.key()
 		modifiers = event.modifiers()
