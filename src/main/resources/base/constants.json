@@ -1,5 +1,7 @@
 {
-	"update_url": "${update_url}",
+	"environment": "${environment}",
 	"version": "${version}",
-	"mixpanel_token": "${mixpanel_token}"
+	"update_url": "${update_url}",
+	"mixpanel_token": "${mixpanel_token}",
+	"rollbar_token": "8b15d3ef41864b34a4be209dd0126754"
 }

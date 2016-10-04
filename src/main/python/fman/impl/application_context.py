@@ -2,6 +2,7 @@ from fman import platform
 from fman.impl import MainWindow
 from fman.impl.analytics import Tracker
 from fman.impl.controller import Controller
+from fman.impl.excepthook import Excepthook
 from fman.impl.plugin import PluginSupport
 from fman.impl.session import SessionManager
 from fman.impl.view import Style
@@ -30,6 +31,7 @@ class ApplicationContext:
 	def __init__(self):
 		self._app = None
 		self._constants = None
+		self._excepthook = None
 		self._main_window = None
 		self._controller = None
 		self._plugin_support = None
@@ -38,21 +40,23 @@ class ApplicationContext:
 		self._style = None
 		self._tracker = None
 	def initialize(self):
+		self.excepthook.install()
 		self.tracker.initialize()
+		self.excepthook.user_id = self.tracker.user_id
 		self.tracker.super_properties.update({
 			'$os': platform(), '$app_version': self.constants['version']
 		})
 		self.tracker.track('Started fman')
 		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
-		self.load_fonts()
+		self._load_fonts()
 		self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
 		if self.updater:
 			self.updater.start()
 		# TODO: Remove this migration some time after mid October 2016:
 		self._migrate_versions_lte_0_0_4()
-	def load_fonts(self):
+	def _load_fonts(self):
 		if system.is_linux():
 			db = QFontDatabase()
 			db.addApplicationFont(self.get_resource('OpenSans-Semibold.ttf'))
@@ -88,6 +92,14 @@ class ApplicationContext:
 				for filter_key, filter_value in filter_.items():
 					value = value.replace('${%s}' % filter_key, filter_value)
 				self._constants[key] = value
+	@property
+	def excepthook(self):
+		if self._excepthook is None:
+			self._excepthook = Excepthook(
+				self.constants['rollbar_token'], self.constants['environment'],
+				self.constants['version']
+			)
+		return self._excepthook
 	@property
 	def main_window(self):
 		if self._main_window is None:

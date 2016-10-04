@@ -29,8 +29,10 @@ class Tracker:
 				json.dump({'uuid': self.user_id}, f)
 		else:
 			self.collect_statistics = json_dict.get('collect_statistics', True)
-			if self.collect_statistics:
+			try:
 				self.user_id = json_dict['uuid']
+			except KeyError:
+				pass
 	def track(self, event_name, properties=None):
 		if not self.collect_statistics:
 			return
