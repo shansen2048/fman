@@ -1,5 +1,7 @@
 [
 	{ "keys": ["Space"], "command": "move_cursor_down", "args": {"toggle_selection": true} },
 	{ "keys": ["Ctrl+Backspace"], "command": "move_to_trash" },
-	{ "keys": ["Ctrl+Alt+V"], "command": "paste_cut" }
+	{ "keys": ["Ctrl+Alt+V"], "command": "paste_cut" },
+	{ "keys": ["Meta+Right"], "command": "open_in_right_pane" },
+	{ "keys": ["Meta+Left"], "command": "open_in_left_pane" }
 ]

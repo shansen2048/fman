@@ -51,6 +51,9 @@ class DirectoryPane(QWidget):
 		if callback is None:
 			callback = self.file_view.reset_cursor
 		path = self._normalize_path(path)
+		if path == self.get_path():
+			# Don't mess up the cursor if we're already in the right location.
+			return
 		self.file_view.reset()
 		self._path_view.setText(path)
 		connect_once(self._model.directoryLoaded, lambda _: callback())

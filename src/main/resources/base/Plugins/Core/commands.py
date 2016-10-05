@@ -3,7 +3,7 @@ from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	platform, write_json
 from os import mkdir
 from os.path import join, pardir, isfile, exists, splitdrive, basename, \
-	normpath, isdir, split
+	normpath, isdir, split, dirname
 from os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from PyQt5.QtCore import QFileInfo
@@ -255,3 +255,47 @@ class ToggleHiddenFiles(CorePaneCommand):
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
 		self.pane.invalidate_filter()
+
+class OpenInPaneCommand(CorePaneCommand):
+	def __call__(self):
+		panes = self.pane.window.get_panes()
+		num_panes = len(panes)
+		if num_panes < 2:
+			raise NotImplementedError()
+		this_pane = panes.index(self.pane)
+		source_pane = panes[self.get_source_pane(this_pane, num_panes)]
+		if source_pane is self.pane:
+			to_open = source_pane.get_file_under_cursor()
+		else:
+			# This for instance happens when the right pane is active and the
+			# user asks to "open in the right pane". The source pane in this
+			# case is the left pane. The cursor in the left pane is not visible
+			# (because the right pane is active) - but it still exists and might
+			# be over a directory! If we opened the directory under the cursor,
+			# we would thus open a subdirectory of the left pane. That's not
+			# what we want. We want to open the directory of the left pane:
+			to_open = source_pane.get_path()
+		if not isdir(to_open):
+			to_open = dirname(to_open)
+		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
+		dest_pane.set_path(to_open)
+	def get_source_pane(self, this_pane, num_panes):
+		raise NotImplementedError()
+	def get_destination_pane(self, this_pane, num_panes):
+		raise NotImplementedError()
+
+class OpenInRightPane(OpenInPaneCommand):
+	def get_source_pane(self, this_pane, num_panes):
+		if this_pane == num_panes - 1:
+			return this_pane - 1
+		return this_pane
+	def get_destination_pane(self, this_pane, num_panes):
+		return min(this_pane + 1, num_panes - 1)
+
+class OpenInLeftPane(OpenInPaneCommand):
+	def get_source_pane(self, this_pane, num_panes):
+		if this_pane > 0:
+			return this_pane
+		return 1
+	def get_destination_pane(self, this_pane, num_panes):
+		return max(this_pane - 1, 0)
