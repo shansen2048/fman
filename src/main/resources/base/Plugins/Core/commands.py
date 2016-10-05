@@ -23,10 +23,6 @@ class CorePaneCommand(DirectoryPaneCommand):
 	def toggle_selection(self):
 		self.pane.toggle_selection(self.pane.get_file_under_cursor())
 
-class DoNothing(CorePaneCommand):
-	def __call__(self):
-		return False
-
 class MoveCursorDown(CorePaneCommand):
 	def __call__(self, toggle_selection=False):
 		if toggle_selection:

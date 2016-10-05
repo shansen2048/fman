@@ -29,9 +29,12 @@ class Controller:
 				self.tracker.track('Ran command', {
 					'Command': command.__class__.__name__
 				})
-				if command(**binding.args) is False:
-					break
-				return True
+				try:
+					command(**binding.args)
+				except NotImplementedError:
+					continue
+				else:
+					return True
 		event.ignore()
 		return False
 	def activated(self, model, file_view, index):
