@@ -74,8 +74,10 @@ class PluginSupportTest(TestCase):
 		self.plugin_support = PluginSupport(
 			self.shipped_plugins, self.installed_plugins
 		)
+		self.plugin_support.initialize()
 		self.left_pane, self.right_pane = object(), object()
-		self.plugin_support.initialize(None, self.left_pane, self.right_pane)
+		self.plugin_support.on_pane_added(self.left_pane)
+		self.plugin_support.on_pane_added(self.right_pane)
 	def tearDown(self):
 		rmtree(self.shipped_plugins)
 		rmtree(self.installed_plugins)
