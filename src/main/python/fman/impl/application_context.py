@@ -1,6 +1,6 @@
 from fman import platform
 from fman.impl import MainWindow
-from fman.impl.analytics import Tracker
+from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.plugin import PluginSupport
@@ -38,15 +38,15 @@ class ApplicationContext:
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
-		self._tracker = None
+		self._metrics = None
 	def initialize(self):
 		self.excepthook.install()
-		self.tracker.initialize()
-		self.excepthook.user_id = self.tracker.user_id
-		self.tracker.super_properties.update({
+		self.metrics.initialize()
+		self.excepthook.user_id = self.metrics.user_id
+		self.metrics.super_properties.update({
 			'$os': platform(), '$app_version': self.constants['version']
 		})
-		self.tracker.track('Started fman')
+		self.metrics.track('Started fman')
 		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
 		self._load_fonts()
@@ -111,9 +111,21 @@ class ApplicationContext:
 				lambda _: self.session_manager.on_close(self.main_window)
 		return self._main_window
 	@property
+	def metrics(self):
+		if self._metrics is None:
+			json_path = join(get_data_dir(), 'Local', 'Metrics.json')
+			# TODO: Remove this migration some time after November 2016
+			old_json_names = ['Installation.json', 'Usage.json']
+			for old_json_name in old_json_names:
+				old_json_path = join(get_data_dir(), 'Local', old_json_name)
+				if exists(old_json_path) and not exists(json_path):
+					rename(old_json_path, json_path)
+			self._metrics = Metrics(self.constants['mixpanel_token'], json_path)
+		return self._metrics
+	@property
 	def controller(self):
 		if self._controller is None:
-			self._controller = Controller(self.plugin_support, self.tracker)
+			self._controller = Controller(self.plugin_support, self.metrics)
 		return self._controller
 	@property
 	def plugin_support(self):
@@ -160,16 +172,6 @@ class ApplicationContext:
 		if self._style is None:
 			self._style = Style(QStyleFactory.create('Fusion'))
 		return self._style
-	@property
-	def tracker(self):
-		if self._tracker is None:
-			json_path = join(get_data_dir(), 'Local', 'Usage.json')
-			old_json_path = join(get_data_dir(), 'Local', 'Installation.json')
-			# TODO: Remove this migration some time after November 2016
-			if exists(old_json_path) and not exists(json_path):
-				rename(old_json_path, json_path)
-			self._tracker = Tracker(self.constants['mixpanel_token'], json_path)
-		return self._tracker
 	@property
 	def updater(self):
 		return None

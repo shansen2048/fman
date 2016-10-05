@@ -7,12 +7,12 @@ from uuid import uuid4
 
 import json
 
-class Tracker:
+class Metrics:
 	def __init__(self, mixpanel_token, json_path):
 		self.mp = Mixpanel(mixpanel_token)
 		self.json_path = json_path
 		self.super_properties = {}
-		self.collect_statistics = True
+		self.enabled = True
 		self.user_id = None
 		self._executor = ThreadPoolExecutor(max_workers=1)
 	def initialize(self):
@@ -28,13 +28,13 @@ class Tracker:
 			with open(self.json_path, 'w') as f:
 				json.dump({'uuid': self.user_id}, f)
 		else:
-			self.collect_statistics = json_dict.get('collect_statistics', True)
+			self.enabled = json_dict.get('enabled', True)
 			try:
 				self.user_id = json_dict['uuid']
 			except KeyError:
 				pass
 	def track(self, event_name, properties=None):
-		if not self.collect_statistics:
+		if not self.enabled:
 			return
 		props = dict(self.super_properties)
 		if properties:
