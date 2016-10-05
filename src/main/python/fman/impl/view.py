@@ -35,25 +35,25 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setSelectionMode(self.ContiguousSelection)
-	def move_cursor_down(self, toggle_current=False):
-		self._move_cursor(Key_Down, toggle_current)
-	def move_cursor_up(self, toggle_current=False):
-		self._move_cursor(Key_Up, toggle_current)
-	def move_cursor_page_up(self, toggle_current=False):
-		self._move_cursor(Key_PageUp, toggle_current)
-	def move_cursor_page_down(self, toggle_current=False):
-		self._move_cursor(Key_PageDown, toggle_current)
-	def move_cursor_home(self, toggle_current=False):
-		self._move_cursor(Key_Home, toggle_current)
-	def move_cursor_end(self, toggle_current=False):
-		self._move_cursor(Key_End, toggle_current)
-	def _move_cursor(self, key, toggle_current=False):
-		selection_flags = self._get_selection_flags(toggle_current)
+	def move_cursor_down(self, toggle_selection=False):
+		self._move_cursor(Key_Down, toggle_selection)
+	def move_cursor_up(self, toggle_selection=False):
+		self._move_cursor(Key_Up, toggle_selection)
+	def move_cursor_page_up(self, toggle_selection=False):
+		self._move_cursor(Key_PageUp, toggle_selection)
+	def move_cursor_page_down(self, toggle_selection=False):
+		self._move_cursor(Key_PageDown, toggle_selection)
+	def move_cursor_home(self, toggle_selection=False):
+		self._move_cursor(Key_Home, toggle_selection)
+	def move_cursor_end(self, toggle_selection=False):
+		self._move_cursor(Key_End, toggle_selection)
+	def _move_cursor(self, key, toggle_selection=False):
+		selection_flags = self._get_selection_flags(toggle_selection)
 		modifiers = self._selection_flag_to_modifier(selection_flags)
 		evt = QKeyEvent(QEvent.KeyPress, key, modifiers, '', False, 1)
 		super().keyPressEvent(evt)
-	def _get_selection_flags(self, toggle_current):
-		if toggle_current:
+	def _get_selection_flags(self, toggle_selection):
+		if toggle_selection:
 			if self.selectionModel().isSelected(self.currentIndex()):
 				return QISM.Deselect | QISM.Current
 			else:

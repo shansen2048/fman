@@ -20,7 +20,7 @@ class CorePaneCommand(DirectoryPaneCommand):
 		# The field `ui` is useful for automated tests: Tests can overwrite it
 		# with a stub implementation to run without an actual GUI.
 		self.ui = fman
-	def toggle_current(self):
+	def toggle_selection(self):
 		self.pane.toggle_selection(self.pane.get_file_under_cursor())
 
 class DoNothing(CorePaneCommand):
@@ -28,38 +28,38 @@ class DoNothing(CorePaneCommand):
 		return False
 
 class MoveCursorDown(CorePaneCommand):
-	def __call__(self, toggle_current=False):
-		if toggle_current:
-			self.toggle_current()
+	def __call__(self, toggle_selection=False):
+		if toggle_selection:
+			self.toggle_selection()
 		self.pane.move_cursor_down()
 
 class MoveCursorUp(CorePaneCommand):
-	def __call__(self, toggle_current=False):
-		if toggle_current:
-			self.toggle_current()
+	def __call__(self, toggle_selection=False):
+		if toggle_selection:
+			self.toggle_selection()
 		self.pane.move_cursor_up()
 
 class MoveCursorHome(CorePaneCommand):
-	def __call__(self, toggle_current=False):
-		self.pane.move_cursor_home(toggle_current)
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_home(toggle_selection)
 
 class MoveCursorEnd(CorePaneCommand):
-	def __call__(self, toggle_current=False):
-		self.pane.move_cursor_end(toggle_current)
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_end(toggle_selection)
 
 class MoveCursorPageUp(CorePaneCommand):
-	def __call__(self, toggle_current=False):
-		self.pane.move_cursor_page_up(toggle_current)
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_page_up(toggle_selection)
 		self.pane.move_cursor_up()
 
 class MoveCursorPageDown(CorePaneCommand):
-	def __call__(self, toggle_current=False):
-		self.pane.move_cursor_page_down(toggle_current)
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_page_down(toggle_selection)
 		self.pane.move_cursor_down()
 
-class ToggleCurrent(CorePaneCommand):
+class ToggleSelection(CorePaneCommand):
 	def __call__(self):
-		self.toggle_current()
+		self.toggle_selection()
 
 class MoveToTrash(CorePaneCommand):
 	def __call__(self):

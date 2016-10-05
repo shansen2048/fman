@@ -25,18 +25,18 @@ class DirectoryPane(QWidget):
 		file_renamed = lambda *args: controller.file_renamed(self, *args)
 		self._model.file_renamed.connect(file_renamed)
 		self._controller = controller
-	def move_cursor_up(self, toggle_current=False):
-		self.file_view.move_cursor_up(toggle_current)
-	def move_cursor_down(self, toggle_current=False):
-		self.file_view.move_cursor_down(toggle_current)
-	def move_cursor_home(self, toggle_current=False):
-		self.file_view.move_cursor_home(toggle_current)
-	def move_cursor_end(self, toggle_current=False):
-		self.file_view.move_cursor_end(toggle_current)
-	def move_cursor_page_up(self, toggle_current=False):
-		self.file_view.move_cursor_page_up(toggle_current)
-	def move_cursor_page_down(self, toggle_current=False):
-		self.file_view.move_cursor_page_down(toggle_current)
+	def move_cursor_up(self, toggle_selection=False):
+		self.file_view.move_cursor_up(toggle_selection)
+	def move_cursor_down(self, toggle_selection=False):
+		self.file_view.move_cursor_down(toggle_selection)
+	def move_cursor_home(self, toggle_selection=False):
+		self.file_view.move_cursor_home(toggle_selection)
+	def move_cursor_end(self, toggle_selection=False):
+		self.file_view.move_cursor_end(toggle_selection)
+	def move_cursor_page_up(self, toggle_selection=False):
+		self.file_view.move_cursor_page_up(toggle_selection)
+	def move_cursor_page_down(self, toggle_selection=False):
+		self.file_view.move_cursor_page_down(toggle_selection)
 	def toggle_selection(self, file_path):
 		self.file_view.toggle_selection(file_path)
 	def select_all(self):
