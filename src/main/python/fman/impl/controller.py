@@ -24,7 +24,11 @@ class Controller:
 		pane = view.parentWidget()
 		key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
 		for binding in key_bindings:
-			if key_sequence.matches(QKeySequence(binding.keys[0])):
+			keys = binding.keys[0]
+			if is_mac():
+				keys_mac = {'Cmd': 'Ctrl', 'Ctrl': 'Meta'}
+				keys = '+'.join(keys_mac.get(k, k) for k in keys.split('+'))
+			if key_sequence.matches(QKeySequence(keys)):
 				command = binding.command
 				self.tracker.track('Ran command', {
 					'Command': command.__class__.__name__

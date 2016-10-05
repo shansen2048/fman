@@ -1,0 +1,7 @@
+[
+	{ "keys": ["Ctrl+C"], "command": "copy_to_clipboard" },
+	{ "keys": ["Ctrl+X"], "command": "cut" },
+	{ "keys": ["Ctrl+V"], "command": "paste" },
+	{ "keys": ["Ctrl+A"], "command": "select_all" },
+	{ "keys": ["Ctrl+."], "command": "toggle_hidden_files" }
+]

@@ -26,11 +26,6 @@
 	{ "keys": ["F9"], "command": "open_terminal" },
 	{ "keys": ["F10"], "command": "open_native_file_manager" },
 	{ "keys": ["F11"], "command": "copy_paths_to_clipboard" },
-	{ "keys": ["Ctrl+C"], "command": "copy_to_clipboard" },
-	{ "keys": ["Ctrl+X"], "command": "cut" },
-	{ "keys": ["Ctrl+V"], "command": "paste" },
-	{ "keys": ["Ctrl+A"], "command": "select_all" },
-	{ "keys": ["Ctrl+."], "command": "toggle_hidden_files" },
 	{ "keys": ["Ctrl+Right"], "command": "open_in_right_pane" },
 	{ "keys": ["Ctrl+Left"], "command": "open_in_left_pane" }
 ]

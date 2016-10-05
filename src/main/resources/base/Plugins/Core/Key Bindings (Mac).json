@@ -1,7 +1,9 @@
 [
+	{ "keys": ["Cmd+C"], "command": "copy_to_clipboard" },
+	{ "keys": ["Cmd+V"], "command": "paste" },
+	{ "keys": ["Cmd+Alt+V"], "command": "paste_cut" },
+	{ "keys": ["Cmd+A"], "command": "select_all" },
 	{ "keys": ["Space"], "command": "move_cursor_down", "args": {"toggle_selection": true} },
-	{ "keys": ["Ctrl+Backspace"], "command": "move_to_trash" },
-	{ "keys": ["Ctrl+Alt+V"], "command": "paste_cut" },
-	{ "keys": ["Meta+Right"], "command": "open_in_right_pane" },
-	{ "keys": ["Meta+Left"], "command": "open_in_left_pane" }
+	{ "keys": ["Cmd+Backspace"], "command": "move_to_trash" },
+	{ "keys": ["Cmd+."], "command": "toggle_hidden_files" }
 ]
