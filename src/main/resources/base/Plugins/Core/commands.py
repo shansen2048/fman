@@ -1,12 +1,12 @@
 from fileoperations import CopyFiles, MoveFiles
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	platform, write_json
-from hiddenfiles import is_hidden
 from os import mkdir
 from os.path import join, pardir, isfile, exists, splitdrive, basename, \
 	normpath, isdir, split
 from os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
+from PyQt5.QtCore import QFileInfo
 from threading import Thread
 from trash import move_to_trash
 
@@ -255,7 +255,7 @@ class ToggleHiddenFiles(CorePaneCommand):
 	def filter(self, file_path):
 		if self.show_hidden_files:
 			return True
-		return not is_hidden(file_path)
+		return not QFileInfo(file_path).isHidden()
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
 		self.pane.invalidate_filter()
