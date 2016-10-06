@@ -2,7 +2,7 @@ from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once, run_in_main_thread
-from os.path import abspath, exists, join, pardir
+from os.path import abspath, exists, normpath, dirname
 from PyQt5.QtCore import QDir, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog
@@ -76,9 +76,12 @@ class DirectoryPane(QWidget):
 		for i, width in enumerate(column_widths):
 			self._file_view.setColumnWidth(i, width)
 	def _normalize_path(self, path):
-		path = abspath(path)
+		"""
+		Makes fman resilient with respect to a directory it is in being deleted.
+		"""
+		path = normpath(path)
 		while not exists(path):
-			new_path = abspath(join(path, pardir))
+			new_path = dirname(path)
 			if path == new_path:
 				break
 			path = new_path
