@@ -2,8 +2,8 @@ from fileoperations import CopyFiles, MoveFiles
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	platform, write_json, DirectoryPaneListener
 from os import mkdir, rename
-from os.path import join, pardir, isfile, exists, splitdrive, basename, \
-	normpath, isdir, split, dirname
+from os.path import join, isfile, exists, splitdrive, basename, normpath, \
+	isdir, split, dirname
 from os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from PyQt5.QtCore import QFileInfo, QUrl
@@ -75,7 +75,10 @@ class MoveToTrash(CorePaneCommand):
 class GoUp(CorePaneCommand):
 	def __call__(self):
 		current_dir = self.pane.get_path()
-		parent_dir = join(current_dir, pardir)
+		parent_dir = dirname(current_dir)
+		if current_dir == parent_dir:
+			# Go to "My Computer":
+			parent_dir = ''
 		callback = lambda: self.pane.place_cursor_at(current_dir)
 		self.pane.set_path(parent_dir, callback)
 

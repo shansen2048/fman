@@ -3,7 +3,7 @@ from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
 	ShiftModifier, ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
 	KeyboardModifier, Key_Enter, Key_Return
 from os.path import normpath
-from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM
+from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir
 from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView
@@ -129,7 +129,14 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 			self.reset_cursor()
 		super().focusInEvent(event)
 	def reset_cursor(self):
-		self.setCurrentIndex(self.rootIndex().child(0, 0))
+		index = self.rootIndex().child(0, 0)
+		is_displaying_my_computer = not self.model().sourceModel().rootPath()
+		if not index.isValid() and is_displaying_my_computer:
+			# This happens when displaying the contents of "My Computer" on
+			# Windows. See QFileSystemModel#myComputer().
+			self.place_cursor_at(QDir.drives()[0].absolutePath())
+		else:
+			self.setCurrentIndex(index)
 	def _get_index(self, file_path):
 		model = self.model()
 		return model.mapFromSource(model.sourceModel().index(file_path))

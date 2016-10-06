@@ -2,7 +2,7 @@ from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.qt import connect_once, run_in_main_thread
-from os.path import abspath, exists, normpath, dirname
+from os.path import exists, normpath, dirname
 from PyQt5.QtCore import QDir, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog
@@ -20,6 +20,7 @@ class DirectoryPane(QWidget):
 		self._file_view.setModel(self._model_sorted)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
 		self._file_view.keyPressEventFilter = self._on_key_pressed
+		self._file_view.hideColumn(2)
 		self.setLayout(Layout(self._path_view, self._file_view))
 		self._controller = None
 	def set_controller(self, controller):
@@ -45,20 +46,29 @@ class DirectoryPane(QWidget):
 	def get_file_under_cursor(self):
 		return self._file_view.get_file_under_cursor()
 	def get_path(self):
-		return abspath(self._model.rootPath())
+		result = self._model.rootPath()
+		if not result:
+			# Displaying "My Computer" - see QFileSystemModel#myComputer()
+			return ''
+		return normpath(result)
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = self._file_view.reset_cursor
-		path = self._normalize_path(path)
 		if path == self.get_path():
 			# Don't mess up the cursor if we're already in the right location.
 			return
+		my_computer = self._model.myComputer()
+		path = self._skip_to_existing_pardir(path) if path else my_computer
 		self._file_view.reset()
 		self._path_view.setText(path)
-		connect_once(self._model.directoryLoaded, lambda _: callback())
+		if path == my_computer:
+			# directoryLoaded doesn't work for myComputer. Use rootPathChanged:
+			signal = self._model.rootPathChanged
+		else:
+			signal = self._model.directoryLoaded
+		connect_once(signal, lambda _: callback())
 		index = self._model_sorted.mapFromSource(self._model.setRootPath(path))
 		self._file_view.setRootIndex(index)
-		self._file_view.hideColumn(2)
 	def place_cursor_at(self, file_path):
 		self._file_view.place_cursor_at(file_path)
 	def edit_name(self, file_path):
@@ -75,10 +85,7 @@ class DirectoryPane(QWidget):
 	def set_column_widths(self, column_widths):
 		for i, width in enumerate(column_widths):
 			self._file_view.setColumnWidth(i, width)
-	def _normalize_path(self, path):
-		"""
-		Makes fman resilient with respect to a directory it is in being deleted.
-		"""
+	def _skip_to_existing_pardir(self, path):
 		path = normpath(path)
 		while not exists(path):
 			new_path = dirname(path)
