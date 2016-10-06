@@ -76,9 +76,6 @@ class GoUp(CorePaneCommand):
 	def __call__(self):
 		current_dir = self.pane.get_path()
 		parent_dir = dirname(current_dir)
-		if current_dir == parent_dir:
-			# Go to "My Computer":
-			parent_dir = ''
 		callback = lambda: self.pane.place_cursor_at(current_dir)
 		self.pane.set_path(parent_dir, callback)
 
@@ -268,10 +265,12 @@ class SelectAll(CorePaneCommand):
 class ToggleHiddenFiles(CorePaneCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.pane.add_filter(self.filter)
+		self.pane.add_filter(self.should_display)
 		self.show_hidden_files = False
-	def filter(self, file_path):
+	def should_display(self, file_path):
 		if self.show_hidden_files:
+			return True
+		if platform() == 'Mac' and file_path == '/Volumes':
 			return True
 		return not QFileInfo(file_path).isHidden()
 	def __call__(self):
@@ -321,3 +320,12 @@ class OpenInLeftPane(OpenInPaneCommand):
 		return 1
 	def get_destination_pane(self, this_pane, num_panes):
 		return max(this_pane - 1, 0)
+
+class OpenDrives(CorePaneCommand):
+	def __call__(self):
+		if platform() == 'Mac':
+			self.pane.set_path('/Volumes')
+		elif platform() == 'Windows':
+			# Go to "My Computer":
+			self.pane.set_path('')
+		raise NotImplementedError(platform())
