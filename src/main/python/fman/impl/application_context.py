@@ -5,8 +5,8 @@ from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.plugin import PluginSupport
 from fman.impl.session import SessionManager
+from fman.impl.updater import EskyUpdater, MacUpdater
 from fman.impl.view import Style
-from fman.updater import EskyUpdater, MacUpdater
 from fman.util import system
 from os import getenv, rename
 from os.path import dirname, join, pardir, normpath, exists, expanduser
