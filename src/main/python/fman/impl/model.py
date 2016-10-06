@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QFileSystemModel
 
 class FileSystemModel(QFileSystemModel):
 
-	file_renamed = pyqtSignal(QFileSystemModel, QModelIndex, str)
+	file_edited = pyqtSignal(QModelIndex, str)
 
 	def data(self, index, role):
 		value = super(FileSystemModel, self).data(index, role)
@@ -25,7 +25,7 @@ class FileSystemModel(QFileSystemModel):
 		return ItemIsEnabled | ItemIsEditable | ItemIsSelectable
 	def setData(self, index, value, role):
 		if role == EditRole:
-			self.file_renamed.emit(self, index, value)
+			self.file_edited.emit(index, value)
 			return True
 		return super().setData(index, value, role)
 

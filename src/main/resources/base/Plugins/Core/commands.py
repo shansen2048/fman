@@ -1,12 +1,13 @@
 from fileoperations import CopyFiles, MoveFiles
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	platform, write_json
-from os import mkdir
+	platform, write_json, DirectoryPaneListener
+from os import mkdir, rename
 from os.path import join, pardir, isfile, exists, splitdrive, basename, \
 	normpath, isdir, split, dirname
 from os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
-from PyQt5.QtCore import QFileInfo
+from PyQt5.QtCore import QFileInfo, QUrl
+from PyQt5.QtGui import QDesktopServices
 from threading import Thread
 from trash import move_to_trash
 
@@ -80,7 +81,17 @@ class GoUp(CorePaneCommand):
 
 class Open(CorePaneCommand):
 	def __call__(self):
-		self.pane.open(self.pane.get_file_under_cursor())
+		_open(self.pane, self.pane.get_file_under_cursor())
+
+class OpenListener(DirectoryPaneListener):
+	def on_doubleclicked(self, file_path):
+		_open(self.pane, file_path)
+
+def _open(pane, file_path):
+	if isdir(file_path):
+		pane.set_path(file_path)
+	else:
+		QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
 class OpenWithEditor(CorePaneCommand):
 	_PLATFORM_APPLICATIONS_FILTER = {
@@ -191,7 +202,15 @@ class Move(TreeCommand):
 
 class Rename(CorePaneCommand):
 	def __call__(self):
-		self.pane.rename(self.pane.get_file_under_cursor())
+		self.pane.edit_name(self.pane.get_file_under_cursor())
+
+class RenameListener(DirectoryPaneListener):
+	def on_name_edited(self, file_path, new_name):
+		if not new_name:
+			return
+		new_path = join(dirname(file_path), new_name)
+		rename(file_path, new_path)
+		self.pane.place_cursor_at(new_path)
 
 class CreateDirectory(CorePaneCommand):
 	def __call__(self):

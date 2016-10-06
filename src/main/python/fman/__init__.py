@@ -32,6 +32,14 @@ class DirectoryPaneCommand:
 		return self.pane.get_selected_files() or \
 			   [self.pane.get_file_under_cursor()]
 
+class DirectoryPaneListener:
+	def __init__(self, pane):
+		self.pane = pane
+	def on_doubleclicked(self, file_path):
+		pass
+	def on_name_edited(self, file_path, new_name):
+		pass
+
 def load_json(name):
 	return _get_plugin_support().load_json(name)
 

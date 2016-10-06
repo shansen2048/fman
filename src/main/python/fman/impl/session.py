@@ -25,8 +25,7 @@ class SessionManager:
 			pane = main_window.add_pane()
 			pane.set_path(pane_info.get('location', expanduser('~')))
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
-			for i, width in enumerate(col_widths):
-				pane.file_view.setColumnWidth(i, width)
+			pane.set_column_widths(col_widths)
 		self._restore_window_geometry(main_window)
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._json_dict.get('window_geometry', None)
@@ -48,7 +47,7 @@ class SessionManager:
 	def _read_settings_from_pane(self, pane):
 		return {
 			'location': pane.get_path(),
-			'col_widths': [pane.file_view.columnWidth(i) for i in (0, 1)]
+			'col_widths': pane.get_column_widths()
 		}
 
 def _encode(bytes_):

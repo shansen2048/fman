@@ -1,5 +1,5 @@
 from collections import namedtuple
-from fman import DirectoryPaneCommand, platform
+from fman import DirectoryPaneCommand, platform, DirectoryPaneListener
 from fman.util import listdir_absolute
 from glob import glob
 from importlib.machinery import SourceFileLoader
@@ -22,15 +22,19 @@ class PluginSupport:
 		self.installed_plugins_dir = installed_plugins_dir
 		self._plugins = self._key_bindings_json = None
 		self._command_instances = {}
+		self._listener_instances = {}
 	def initialize(self):
 		self._plugins = self._load_plugins()
 		self._key_bindings_json = self.load_json('Key Bindings.json') or []
 	def on_pane_added(self, pane):
 		self._command_instances[pane] = {}
+		self._listener_instances[pane] = []
 		for plugin in self._plugins:
-			for command_name, command_class in plugin.commands.items():
+			for command_name, command_class in plugin.command_classes.items():
 				command = command_class(pane)
 				self._command_instances[pane][command_name] = command
+			for listener_class in plugin.listener_classes:
+				self._listener_instances[pane].append(listener_class(pane))
 	def get_key_bindings_for_pane(self, pane):
 		result = []
 		commands = self._command_instances[pane]
@@ -40,6 +44,16 @@ class PluginSupport:
 			args = key_binding.get('args', {})
 			result.append(KeyBinding(keys, command, args))
 		return result
+	def on_doubleclicked(self, pane, file_path):
+		for listener in self._listener_instances[pane]:
+			listener.on_doubleclicked(file_path)
+	def on_name_edited(self, pane, file_path, new_name):
+		for listener in self._listener_instances[pane]:
+			listener.on_name_edited(file_path, new_name)
+	def load_json(self, name):
+		return load_json(*self._get_json_paths(name))
+	def write_json(self, value, name):
+		return write_differential_json(value, *self._get_json_paths(name))
 	def _load_plugins(self):
 		result = []
 		for plugin_dir in self._find_plugins():
@@ -60,10 +74,6 @@ class PluginSupport:
 			return list(filter(isdir, listdir_absolute(dir_path)))
 		except FileNotFoundError:
 			return []
-	def load_json(self, name):
-		return load_json(*self._get_json_paths(name))
-	def write_json(self, value, name):
-		return write_differential_json(value, *self._get_json_paths(name))
 	def _get_json_paths(self, name):
 		plugin_dirs = [plugin.path for plugin in self._plugins]
 		base, ext = splitext(name)
@@ -77,24 +87,28 @@ class PluginSupport:
 class Plugin:
 	def __init__(self, dir_path):
 		self.path = dir_path
-		self.commands = {}
+		self.command_classes = {}
+		self.listener_classes = []
 	def load(self):
-		sys.path.append(self.path)
-		for cls in self._get_command_classes():
-			self.commands[self._get_command_name(cls.__name__)] = cls
-	def _get_command_classes(self):
-		result = []
-		for py_file in glob(join(self.path, '*.py')):
-			module_name, _ = splitext(basename(py_file))
-			module = SourceFileLoader(module_name, py_file).load_module()
-			for member_name in dir(module):
-				member = getattr(module, member_name)
+		for module in self._load_modules():
+			members = [getattr(module, name) for name in dir(module)]
+			for cls in members:
 				try:
-					mro = getmro(member)
+					mro = getmro(cls)
 				except Exception as not_a_class:
 					continue
 				if DirectoryPaneCommand in mro:
-					result.append(member)
+					name = self._get_command_name(cls.__name__)
+					self.command_classes[name] = cls
+				if DirectoryPaneListener in mro:
+					self.listener_classes.append(cls)
+	def _load_modules(self):
+		result = []
+		sys.path.append(self.path)
+		for py_file in glob(join(self.path, '*.py')):
+			module_name, _ = splitext(basename(py_file))
+			module = SourceFileLoader(module_name, py_file).load_module()
+			result.append(module)
 		return result
 	def _get_command_name(self, command_class_name):
 		return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class_name).lower()

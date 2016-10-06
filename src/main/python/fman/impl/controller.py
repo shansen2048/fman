@@ -1,15 +1,12 @@
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, Key_Right
 from fman.util.system import is_mac
-from os import rename
-from os.path import join, dirname
-from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QKeySequence, QDesktopServices
+from PyQt5.QtGui import QKeySequence
 
 class Controller:
 	def __init__(self, plugin_support, tracker):
 		self.plugin_support = plugin_support
 		self.tracker = tracker
-	def key_pressed_in_file_view(self, view, event):
+	def on_key_pressed(self, pane, event):
 		key = event.key()
 		modifiers = event.modifiers()
 		if is_mac() and key in (Key_Down, Key_Up, Key_Left, Key_Right):
@@ -21,7 +18,6 @@ class Controller:
 			# [1]: http://doc.qt.io/qt-5/qt.html#KeyboardModifier-enum
 			modifiers &= ~KeypadModifier
 		key_sequence = QKeySequence(modifiers | key)
-		pane = view.parentWidget()
 		key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
 		for binding in key_bindings:
 			keys = binding.keys[0]
@@ -41,16 +37,8 @@ class Controller:
 					return True
 		event.ignore()
 		return False
-	def activated(self, model, file_view, index):
-		file_path = model.filePath(index)
-		if model.isDir(index):
-			file_view.parentWidget().set_path(file_path)
-		else:
-			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
-	def file_renamed(self, pane, model, index, new_name):
-		if not new_name:
-			return
-		src = model.filePath(index)
-		dest = join(dirname(src), new_name)
-		rename(src, dest)
-		pane.file_view.place_cursor_at(dest)
+	def on_doubleclicked(self, pane, file_path):
+		self.tracker.track('Doubleclicked file')
+		self.plugin_support.on_doubleclicked(pane, file_path)
+	def on_file_renamed(self, pane, file_path, new_name):
+		self.plugin_support.on_name_edited(pane, file_path, new_name)

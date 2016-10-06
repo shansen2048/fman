@@ -93,7 +93,7 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setUniformRowHeights(True)
 		self.setItemDelegate(FileListItemDelegate())
 		self.setSelectionBehavior(QAbstractItemView.SelectRows)
-		# Double click should activate the file, not open its editor:
+		# Double click should not open editor:
 		self.setEditTriggers(self.NoEditTriggers)
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
@@ -112,10 +112,8 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.selectionModel().select(
 			self._get_index(file_path), QISM.Toggle | QISM.Rows
 		)
-	def rename(self, file_path):
+	def edit_name(self, file_path):
 		self.edit(self._get_index(file_path))
-	def open(self, file_path):
-		self.activated.emit(self._get_index(file_path))
 	def keyPressEvent(self, event):
 		filter_ = self.keyPressEventFilter
 		if not filter_ or not filter_(self, event):
