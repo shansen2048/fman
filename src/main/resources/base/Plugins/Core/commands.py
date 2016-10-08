@@ -3,7 +3,7 @@ from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	platform, write_json, DirectoryPaneListener
 from os import mkdir, rename
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname
+	isdir, split, dirname, realpath
 from os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from PyQt5.QtCore import QFileInfo, QUrl
@@ -89,7 +89,7 @@ class OpenListener(DirectoryPaneListener):
 
 def _open(pane, file_path):
 	if isdir(file_path):
-		pane.set_path(file_path)
+		pane.set_path(realpath(file_path))
 	else:
 		QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
