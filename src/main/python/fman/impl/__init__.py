@@ -120,17 +120,23 @@ class MainWindow(QMainWindow):
 	@run_in_main_thread
 	def show_alert(self, text, buttons=OK, default_button=OK):
 		msgbox = QMessageBox(self)
-		msgbox.setText(text)
+		# API users might pass arbitrary objects as text when trying to debug,
+		# eg. exception instances. Convert to str(...) to allow for this:
+		msgbox.setText(str(text))
 		msgbox.setStandardButtons(buttons)
 		msgbox.setDefaultButton(default_button)
 		return msgbox.exec()
 	@run_in_main_thread
 	def show_file_open_dialog(self, caption, dir_path, filter_text):
-		return QFileDialog.getOpenFileName(self, caption, dir_path, filter_text)
+		# Let API users pass arbitrary objects by converting with str(...):
+		return QFileDialog.getOpenFileName(
+			self, str(caption), str(dir_path), str(filter_text)
+		)
 	@run_in_main_thread
 	def show_prompt(self, text, default=''):
+		# Let API users pass arbitrary objects by converting with str(...):
 		return QInputDialog.getText(
-			self, 'fman', text, QLineEdit.Normal, default
+			self, 'fman', str(text), QLineEdit.Normal, str(default)
 		)
 	@run_in_main_thread
 	def show_status_message(self, text):
