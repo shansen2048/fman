@@ -1,9 +1,11 @@
 from fileoperations import CopyFiles, MoveFiles
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	platform, write_json, DirectoryPaneListener
-from os import mkdir, rename
+	platform, write_json, DirectoryPaneListener, show_quicksearch
+from itertools import chain
+from ordered_set import OrderedSet
+from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath
+	isdir, split, dirname, realpath, expanduser
 from os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from PyQt5.QtCore import QFileInfo, QUrl
@@ -13,6 +15,7 @@ from trash import move_to_trash
 
 import clipboard
 import fman
+import os
 import sys
 
 class CorePaneCommand(DirectoryPaneCommand):
@@ -275,7 +278,7 @@ class ToggleHiddenFiles(CorePaneCommand):
 		return not QFileInfo(file_path).isHidden()
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
-		self.pane.invalidate_filter()
+		self.pane.invalidate_filters()
 
 class OpenInPaneCommand(CorePaneCommand):
 	def __call__(self):
@@ -329,3 +332,124 @@ class OpenDrives(CorePaneCommand):
 			# Go to "My Computer":
 			self.pane.set_path('')
 		raise NotImplementedError(platform())
+
+class GoTo(CorePaneCommand):
+	def __call__(self):
+		visited_paths = load_json('Visited Paths.json') or {}
+		get_suggestions = SuggestLocations(visited_paths)
+		def get_tab_completion(suggestion):
+			result = suggestion[0]
+			if not result.endswith(os.sep):
+				result += os.sep
+			return result
+		result = show_quicksearch(get_suggestions, get_tab_completion)
+		if result:
+			text, suggestion = result
+			path = ''
+			if suggestion:
+				path = expanduser(suggestion[0])
+			if not isdir(path):
+				path = expanduser(text)
+			if isdir(path):
+				self.pane.set_path(path)
+
+class GoToListener(DirectoryPaneListener):
+	def on_path_changed(self):
+		visited_paths = load_json('Visited Paths.json') or {}
+		new_path = self._unexpand_user(self.pane.get_path())
+		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
+		write_json(visited_paths, 'Visited Paths.json')
+	def _unexpand_user(self, path):
+		home_dir = expanduser('~')
+		if path.startswith(home_dir):
+			path = '~' + path[len(home_dir):]
+		return path
+
+class SuggestLocations:
+	def __init__(self, visited_paths, file_system=None):
+		if file_system is None:
+			# Encapsulating filesystem-related functionality in a separate field
+			# allows us to use a different implementation for testing.
+			file_system = FileSystem()
+		self.visited_paths = visited_paths
+		self.fs = file_system
+		self._matchers = [
+			self._starts_with, self._name_starts_with,
+			self._contains_upper_chars, self._contains_chars_ignorecase
+		]
+	def __call__(self, query):
+		suggestions = self._gather_suggestions(query)
+		return self._filter_suggestions(suggestions, query)
+	def _gather_suggestions(self, query):
+		count_visits = lambda path: self.visited_paths.get(path, 0)
+		path = self.fs.expanduser(query)
+		if self.fs.isdir(path) or self.fs.isdir(dirname(path)):
+			result = OrderedSet()
+			if self.fs.isdir(path):
+				if basename(path) != '.':
+					# We check for '.' because we don't want to add "path/./" as
+					# a suggestion for "path/.".
+					result.add(self._unexpand_user(path))
+				dir_ = path
+			else:
+				dir_ = dirname(path)
+			dir_ = normpath(dir_)
+			dir_items = []
+			for name in self.fs.listdir(dir_):
+				file_path = join(dir_, name)
+				if self.fs.isdir(file_path):
+					dir_items.append(join(self._unexpand_user(dir_), name))
+			dir_items.sort(key=count_visits, reverse=True)
+			result.update(dir_items)
+			return result
+		else:
+			return sorted(self.visited_paths, key=count_visits, reverse=True)
+	def _filter_suggestions(self, suggestions, query):
+		matches = [[] for _ in self._matchers]
+		for suggestion in suggestions:
+			for i, matcher in enumerate(self._matchers):
+				match = matcher(query, suggestion)
+				if match:
+					matches[i].append(match)
+					break
+		return list(chain.from_iterable(matches))
+	def _unexpand_user(self, path):
+		home_dir = self.fs.expanduser('~')
+		if path.startswith(home_dir):
+			path = '~' + path[len(home_dir):]
+		return path
+	def _starts_with(self, query, suggestion):
+		if suggestion.lower().startswith(query.lower()):
+			return suggestion, list(range(len(query)))
+	def _name_starts_with(self, query, suggestion):
+		name = basename(suggestion.lower())
+		if name.startswith(query.lower()):
+			offset = len(suggestion) - len(name)
+			return suggestion, [i + offset for i in range(len(query))]
+	def _contains_upper_chars(self, query, suggestion):
+		return self._contains_chars(query.upper(), suggestion, suggestion)
+	def _contains_chars_ignorecase(self, query, suggestion):
+		return self._contains_chars(
+			query.lower(), suggestion.lower(), suggestion
+		)
+	def _contains_chars(self, query, suggestion, suggestion_to_return):
+		try:
+			return suggestion_to_return, self._find_chars(query, suggestion)
+		except ValueError as not_found:
+			pass
+	def _find_chars(self, chars_to_find, in_string):
+		indices = []
+		i = 0
+		for char in chars_to_find:
+			i = in_string[i:].index(char) + i
+			indices.append(i)
+			i += 1
+		return indices
+
+class FileSystem:
+	def isdir(self, path):
+		return isdir(path)
+	def expanduser(self, path):
+		return expanduser(path)
+	def listdir(self, path):
+		return listdir(path)

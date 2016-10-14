@@ -35,6 +35,7 @@ class PluginSupport:
 				self._command_instances[pane][command_name] = command
 			for listener_class in plugin.listener_classes:
 				self._listener_instances[pane].append(listener_class(pane))
+		pane.path_changed.connect(self.on_path_changed)
 	def get_key_bindings_for_pane(self, pane):
 		result = []
 		commands = self._command_instances[pane]
@@ -50,6 +51,9 @@ class PluginSupport:
 	def on_name_edited(self, pane, file_path, new_name):
 		for listener in self._listener_instances[pane]:
 			listener.on_name_edited(file_path, new_name)
+	def on_path_changed(self, pane):
+		for listener in self._listener_instances[pane]:
+			listener.on_path_changed()
 	def load_json(self, name):
 		return load_json(*self._get_json_paths(name))
 	def write_json(self, value, name):

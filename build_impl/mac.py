@@ -34,6 +34,9 @@ def app():
 	copy_python_library(
 		'osxtrash', path('target/fman.app/Contents/Resources/Plugins/Core')
 	)
+	copy_python_library(
+		'ordered_set', path('target/fman.app/Contents/Resources/Plugins/Core')
+	)
 
 def _remove_unwanted_pyinstaller_files():
 	for unwanted in ('include', 'lib', 'lib2to3'):

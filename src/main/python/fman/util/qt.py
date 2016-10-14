@@ -95,6 +95,7 @@ Key_F9 = Qt.Key_F9
 Key_F10 = Qt.Key_F10
 Key_F11 = Qt.Key_F11
 Key_Delete = Qt.Key_Delete
+Key_Tab = Qt.Key_Tab
 ItemIsEnabled = Qt.ItemIsEnabled
 ItemIsEditable = Qt.ItemIsEditable
 ItemIsSelectable = Qt.ItemIsSelectable

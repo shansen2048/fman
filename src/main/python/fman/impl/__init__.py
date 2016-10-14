@@ -1,6 +1,6 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
-from fman.impl.view import FileListView, Layout, PathView
+from fman.impl.view import FileListView, Layout, PathView, QuickSearch
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import exists, normpath, dirname
 from PyQt5.QtCore import QDir, pyqtSignal
@@ -8,6 +8,9 @@ from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog
 
 class DirectoryPane(QWidget):
+
+	path_changed = pyqtSignal(QWidget)
+
 	def __init__(self, parent):
 		super().__init__(parent)
 		self._path_view = PathView(self)
@@ -66,7 +69,10 @@ class DirectoryPane(QWidget):
 			signal = self._model.rootPathChanged
 		else:
 			signal = self._model.directoryLoaded
-		connect_once(signal, lambda _: callback())
+		def callback_():
+			self.path_changed.emit(self)
+			callback()
+		connect_once(signal, lambda _: callback_())
 		index = self._model_sorted.mapFromSource(self._model.setRootPath(path))
 		self._file_view.setRootIndex(index)
 	def place_cursor_at(self, file_path):
@@ -75,8 +81,8 @@ class DirectoryPane(QWidget):
 		self._file_view.edit_name(file_path)
 	def add_filter(self, filter_):
 		self._model_sorted.add_filter(filter_)
-	def invalidate_filter(self):
-		return self._model_sorted.invalidateFilter()
+	def invalidate_filters(self):
+		self._model_sorted.invalidateFilter()
 	@property
 	def window(self):
 		return self.parentWidget().parentWidget()
@@ -138,6 +144,9 @@ class MainWindow(QMainWindow):
 		return QInputDialog.getText(
 			self, 'fman', str(text), QLineEdit.Normal, str(default)
 		)
+	@run_in_main_thread
+	def show_quicksearch(self, get_suggestions, get_tab_completion):
+		return QuickSearch(self, get_suggestions, get_tab_completion).exec()
 	@run_in_main_thread
 	def show_status_message(self, text):
 		self.status_bar.showMessage(text)

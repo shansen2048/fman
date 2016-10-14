@@ -39,6 +39,8 @@ class DirectoryPaneListener:
 		pass
 	def on_name_edited(self, file_path, new_name):
 		pass
+	def on_path_changed(self):
+		pass
 
 def load_json(name):
 	return _get_plugin_support().load_json(name)
@@ -57,6 +59,9 @@ def show_status_message(text):
 
 def show_file_open_dialog(caption, dir_path, filter_text):
 	return _get_ui().show_file_open_dialog(caption, dir_path, filter_text)
+
+def show_quicksearch(get_suggestions, get_tab_completion):
+	return _get_ui().show_quicksearch(get_suggestions, get_tab_completion)
 
 def _get_plugin_support():
 	return _get_app_ctxt().plugin_support

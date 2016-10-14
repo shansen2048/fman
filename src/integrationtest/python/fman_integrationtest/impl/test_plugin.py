@@ -75,12 +75,20 @@ class PluginSupportTest(TestCase):
 			self.shipped_plugins, self.installed_plugins
 		)
 		self.plugin_support.initialize()
-		self.left_pane, self.right_pane = object(), object()
+		self.left_pane = StubDirectoryPane()
+		self.right_pane = StubDirectoryPane()
 		self.plugin_support.on_pane_added(self.left_pane)
 		self.plugin_support.on_pane_added(self.right_pane)
 	def tearDown(self):
 		rmtree(self.shipped_plugins)
 		rmtree(self.installed_plugins)
+
+class StubSignal:
+	def connect(self, slot):
+		pass
+
+class StubDirectoryPane:
+	path_changed = StubSignal()
 
 class LoadJsonTest(TestCase):
 	def test_nonexistent_file(self):

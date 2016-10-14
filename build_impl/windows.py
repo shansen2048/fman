@@ -12,6 +12,7 @@ def exe():
 	_run_pyinstaller()
 	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
+	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('target/fman/fman.exe'))
 	_generate_uninstaller()
