@@ -4,7 +4,7 @@ from core.os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	platform, write_json, DirectoryPaneListener, show_quicksearch
+	platform, write_json, DirectoryPaneListener, show_quicksearch, show_prompt
 from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
@@ -102,29 +102,47 @@ class OpenWithEditor(CorePaneCommand):
 		'Windows': 'Applications (*.exe)',
 		'Linux': 'Applications (*)'
 	}
-	def __call__(self):
+	def __call__(self, create_new=False):
 		file_under_cursor = self.pane.get_file_under_cursor()
-		if not isfile(file_under_cursor):
-			self.ui.show_alert("No file is selected!")
+		file_to_edit = ''
+		if create_new:
+			if isfile(file_under_cursor):
+				default_name = basename(file_under_cursor)
+			else:
+				default_name = ''
+			file_name, ok = \
+				show_prompt('Enter file name to create/edit:', default_name)
+			if ok and file_name:
+				file_to_edit = join(self.pane.get_path(), file_name)
+				if not exists(file_to_edit):
+					open(file_to_edit, 'w').close()
+				self.pane.place_cursor_at(file_to_edit)
 		else:
-			settings = load_json('Core Settings.json') or {}
-			editor = settings.get('editor', None)
-			if not editor:
-				choice = self.ui.show_alert(
-					'Editor is currently not configured. Please pick one.',
-					OK | CANCEL, OK
+			if isfile(file_under_cursor):
+				file_to_edit = file_under_cursor
+			else:
+				self.ui.show_alert("No file is selected!")
+		if isfile(file_to_edit):
+			self._open_with_editor(file_to_edit)
+	def _open_with_editor(self, file_path):
+		settings = load_json('Core Settings.json') or {}
+		editor = settings.get('editor', None)
+		if not editor:
+			choice = self.ui.show_alert(
+				'Editor is currently not configured. Please pick one.',
+				OK | CANCEL, OK
+			)
+			if choice & OK:
+				result = self.ui.show_file_open_dialog(
+					'Pick an Editor', self._get_applications_directory(),
+					self._PLATFORM_APPLICATIONS_FILTER[platform()]
 				)
-				if choice & OK:
-					result = self.ui.show_file_open_dialog(
-						'Pick an Editor', self._get_applications_directory(),
-						self._PLATFORM_APPLICATIONS_FILTER[platform()]
-					)
-					if result:
-						editor = result[0]
-						settings['editor'] = editor
-						write_json(settings, 'Core Settings.json')
-			if editor:
-				open_file_with_app(file_under_cursor, editor)
+				if result:
+					editor = result[0]
+					settings['editor'] = editor
+					write_json(settings, 'Core Settings.json')
+		if editor:
+			open_file_with_app(file_path, editor)
 	def _get_applications_directory(self):
 		if platform() == 'Mac':
 			return '/Applications'
