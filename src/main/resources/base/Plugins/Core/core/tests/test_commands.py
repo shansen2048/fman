@@ -1,4 +1,4 @@
-from commands import SuggestLocations
+from core.commands import SuggestLocations
 from os.path import normpath
 from unittest import TestCase
 

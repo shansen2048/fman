@@ -68,9 +68,9 @@ class PluginSupportTest(TestCase):
 		mkdir(self.user_plugin)
 		self.shipped_plugin = join(self.shipped_plugins, 'Shipped')
 		mkdir(self.shipped_plugin)
-		self.installed_plugin = \
-			join(self.installed_plugins, 'PluginSupportTest')
-		copytree(get_resource('PluginSupportTest'), self.installed_plugin)
+		self.installed_plugin = join(self.installed_plugins, 'Simple Plugin')
+		src_dir = get_resource('PluginSupportTest/Simple Plugin')
+		copytree(src_dir, self.installed_plugin)
 		self.plugin_support = PluginSupport(
 			self.shipped_plugins, self.installed_plugins
 		)

@@ -1,4 +1,8 @@
-from fileoperations import CopyFiles, MoveFiles
+from core import clipboard
+from core.fileoperations import CopyFiles, MoveFiles
+from core.os_ import open_file_with_app, open_terminal_in_directory, \
+	open_native_file_manager
+from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	platform, write_json, DirectoryPaneListener, show_quicksearch
 from itertools import chain
@@ -6,14 +10,10 @@ from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 	isdir, split, dirname, realpath, expanduser
-from os_ import open_file_with_app, open_terminal_in_directory, \
-	open_native_file_manager
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from threading import Thread
-from trash import move_to_trash
 
-import clipboard
 import fman
 import os
 import sys

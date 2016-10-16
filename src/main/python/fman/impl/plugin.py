@@ -1,11 +1,10 @@
 from collections import namedtuple
 from fman import DirectoryPaneCommand, platform, DirectoryPaneListener
 from fman.util import listdir_absolute
-from glob import glob
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
 from os import makedirs
-from os.path import join, isdir, splitext, basename, dirname
+from os.path import join, isdir, splitext, basename, dirname, isfile
 
 import json
 import re
@@ -109,10 +108,12 @@ class Plugin:
 	def _load_modules(self):
 		result = []
 		sys.path.append(self.path)
-		for py_file in glob(join(self.path, '*.py')):
-			module_name, _ = splitext(basename(py_file))
-			module = SourceFileLoader(module_name, py_file).load_module()
-			result.append(module)
+		for dir_ in [f for f in listdir_absolute(self.path) if isdir(f)]:
+			init = join(dir_, '__init__.py')
+			if isfile(init):
+				package_name = basename(dir_)
+				package = SourceFileLoader(package_name, init).load_module()
+				result.append(package)
 		return result
 	def _get_command_name(self, command_class_name):
 		return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class_name).lower()

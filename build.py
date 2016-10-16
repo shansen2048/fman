@@ -1,8 +1,10 @@
-from build_impl import path, run, is_windows, is_mac, is_linux, OPTIONS, \
-	read_filter
-from os import unlink, listdir, remove, pathsep
+from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, read_filter
+from os import unlink, listdir, remove
 from os.path import join, isdir, isfile, islink
 from shutil import rmtree
+from unittest import TestSuite, TextTestRunner, defaultTestLoader
+
+import sys
 
 OPTIONS.update({
 	'version': read_filter()['version'],
@@ -25,14 +27,21 @@ elif is_linux():
 	from build_impl.linux import esky
 
 def test():
-	pythonpath = pathsep.join(map(path, [
-		'src/main/python', 'src/unittest/python', 'src/integrationtest/python',
+	test_dirs = list(map(path, [
+		'src/unittest/python', 'src/integrationtest/python',
 		'src/main/resources/base/Plugins/Core'
 	]))
-	run(
-		['python', '-m', 'unittest', 'fman_unittest', 'fman_integrationtest'],
-		extra_env={'PYTHONPATH': pythonpath}
-	)
+	sys.path.append(path('src/main/python'))
+	suite = TestSuite()
+	for test_dir in test_dirs:
+		sys.path.append(test_dir)
+		for dir_name in listdir(test_dir):
+			dir_path = join(test_dir, dir_name)
+			if isfile(join(dir_path, '__init__.py')):
+				suite.addTest(defaultTestLoader.discover(
+					dir_name, top_level_dir=test_dir
+				))
+	TextTestRunner().run(suite)
 
 def publish():
 	if is_windows():
