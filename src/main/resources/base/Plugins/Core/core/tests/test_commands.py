@@ -1,6 +1,9 @@
 from core.commands import SuggestLocations
+from fman import platform
 from os.path import normpath
 from unittest import TestCase
+
+import os
 
 class SuggestLocationsTest(TestCase):
 	def test_empty_suggests_recent_locations(self):
@@ -41,13 +44,14 @@ class SuggestLocationsTest(TestCase):
 	def setUp(self):
 		recent_locations = {
 			'~': 1,
-			'~/Downloads': 3,
-			'~/Dropbox': 4,
-			'~/Dropbox/Work': 5,
-			'~/Dropbox/Private': 2
+			self._replace_pathsep('~/Downloads'): 3,
+			self._replace_pathsep('~/Dropbox'): 4,
+			self._replace_pathsep('~/Dropbox/Work'): 5,
+			self._replace_pathsep('~/Dropbox/Private'): 2
 		}
+		root = 'C:' if platform() == 'Windows' else ''
 		files = {
-			'': {
+			root: {
 				'Users': {
 					'michael': {
 						'.hidden': {},
@@ -62,14 +66,22 @@ class SuggestLocationsTest(TestCase):
 				}
 			}
 		}
-		self.file_system = StubFileSystem(files, home_dir='/Users/michael')
+		if platform() == 'Windows':
+			home_dir = r'C:\Users\michael'
+		else:
+			home_dir = '/Users/michael'
+		self.file_system = StubFileSystem(files, home_dir=home_dir)
 		self.instance = SuggestLocations(recent_locations, self.file_system)
 	def _check_query_returns(self, query, paths, highlights=None):
+		query = self._replace_pathsep(query)
+		paths = tuple(map(self._replace_pathsep, paths))
 		if highlights is None:
 			highlights = (self._full_range(query),) * len(paths)
 		actual_paths, actual_highlights = unzip(self.instance(query))
 		self.assertEqual(paths, actual_paths)
 		self.assertEqual(highlights, actual_highlights)
+	def _replace_pathsep(self, path):
+		return path.replace('/', os.sep)
 	def _full_range(self, string):
 		return list(range(len(string)))
 
@@ -89,7 +101,7 @@ class StubFileSystem:
 	def _get_dir(self, path):
 		if not path:
 			raise KeyError(path)
-		parts = normpath(path).split('/')
+		parts = normpath(path).split(os.sep)
 		curr = self.files
 		for part in parts:
 			curr = curr[part]
