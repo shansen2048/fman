@@ -2,7 +2,7 @@ from fman import platform
 from fman.impl.plugin import PluginSupport, load_json, write_differential_json
 from fman_integrationtest import get_resource
 from os import mkdir
-from os.path import join
+from os.path import join, exists
 from shutil import rmtree, copytree
 from tempfile import mkdtemp
 from unittest import TestCase
@@ -209,6 +209,14 @@ class WriteDifferentialJsonTest(TestCase):
 			json.dump([2], f)
 		with self.assertRaises(ValueError):
 			write_differential_json(json1, json2)
+	def test_no_change(self):
+		json1 = self._json_file(0)
+		l = [0, 1]
+		with open(json1, 'w') as f:
+			json.dump(l, f)
+		json2 = self._json_file(1)
+		write_differential_json(l, json1, json2)
+		self.assertFalse(exists(json2))
 	def setUp(self):
 		self.temp_dir = mkdtemp()
 	def tearDown(self):

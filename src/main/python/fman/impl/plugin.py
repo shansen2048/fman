@@ -203,6 +203,8 @@ def load_json(*paths):
 def write_differential_json(obj, *paths):
 	dest_path = paths[-1]
 	old_obj = load_json(*paths)
+	if obj == old_obj:
+		return
 	if old_obj is None:
 		difference = obj
 	else:
