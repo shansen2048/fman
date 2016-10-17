@@ -1,4 +1,4 @@
-from fman import platform
+from fman import PLATFORM
 from fman.impl import MainWindow
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
@@ -48,7 +48,7 @@ class ApplicationContext:
 		self.metrics.initialize()
 		self.excepthook.user_id = self.metrics.user_id
 		self.metrics.super_properties.update({
-			'$os': platform(), '$app_version': self.constants['version']
+			'$os': PLATFORM, '$app_version': self.constants['version']
 		})
 		self.metrics.track('Started fman')
 		# Ensure QApplication is initialized before anything else Qt-related:
@@ -221,7 +221,7 @@ class ApplicationContext:
 		return None
 	def get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		os_dir = join(res_dir, platform().lower())
+		os_dir = join(res_dir, PLATFORM.lower())
 		os_path = normpath(join(os_dir, *rel_path))
 		if exists(os_path):
 			return os_path

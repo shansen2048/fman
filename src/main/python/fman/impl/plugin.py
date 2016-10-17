@@ -1,5 +1,5 @@
 from collections import namedtuple
-from fman import DirectoryPaneCommand, platform, DirectoryPaneListener
+from fman import DirectoryPaneCommand, PLATFORM, DirectoryPaneListener
 from fman.util import listdir_absolute
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
@@ -114,7 +114,7 @@ class PluginSupport:
 	def _get_json_paths(self, name):
 		plugin_dirs = [plugin.path for plugin in self._plugins]
 		base, ext = splitext(name)
-		platform_specific_name = '%s (%s)%s' % (base, platform(), ext)
+		platform_specific_name = '%s (%s)%s' % (base, PLATFORM, ext)
 		result = []
 		for plugin_dir in plugin_dirs:
 			result.append(join(plugin_dir, name))

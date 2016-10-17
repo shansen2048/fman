@@ -1,4 +1,4 @@
-from fman import platform
+from fman import PLATFORM
 from os.path import basename, normpath
 from PyQt5.QtCore import QMimeData, QUrl
 from PyQt5.QtWidgets import QApplication
@@ -28,7 +28,7 @@ def copy_files(files, extra_data=None):
 	_clipboard().setMimeData(new_clipboard_data)
 
 def cut_files(files):
-	if platform() == 'Windows':
+	if PLATFORM == 'Windows':
 		copy_files(files, {
 			# Make pasting work in Explorer:
 			_CFSTR_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE,
@@ -36,7 +36,7 @@ def cut_files(files):
 			_CF_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE
 		})
 	else:
-		raise NotImplementedError(platform())
+		raise NotImplementedError(PLATFORM)
 
 def get_files():
 	result = []
@@ -50,7 +50,7 @@ def get_files():
 	return result
 
 def files_were_cut():
-	if platform() == 'Windows':
+	if PLATFORM == 'Windows':
 		data = _clipboard().mimeData().data(_CF_PREFERREDDROPEFFECT)
 		return data == _DROPEFFECT_MOVE
 	return False

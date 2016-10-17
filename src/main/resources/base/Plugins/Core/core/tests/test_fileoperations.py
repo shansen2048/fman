@@ -1,5 +1,5 @@
 from core.fileoperations import CopyFiles, MoveFiles
-from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, platform
+from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, PLATFORM
 from os import listdir, mkdir, chmod, makedirs, readlink
 from os.path import basename, join, dirname, exists, islink, realpath, samefile
 from tempfile import TemporaryDirectory
@@ -42,7 +42,7 @@ class FileTreeOperationAT:
 		self._touch(file_in_dir)
 		executable_in_dir = join(dir_, 'executable')
 		self._touch(executable_in_dir, 'abc')
-		if platform() != 'Windows':
+		if PLATFORM != 'Windows':
 			st_mode = os.stat(executable_in_dir).st_mode
 			chmod(executable_in_dir, st_mode | stat.S_IEXEC)
 		self._perform_on(file_outside_dir, dir_, dest_dir=dest_dir)
@@ -52,7 +52,7 @@ class FileTreeOperationAT:
 		)
 		executable_dst = join(dest_dir, 'dir', 'executable')
 		self._assert_file_contents_equal(executable_dst, 'abc')
-		if platform() != 'Windows':
+		if PLATFORM != 'Windows':
 			self.assertTrue(os.stat(executable_dst).st_mode & stat.S_IEXEC)
 		return [file_outside_dir, dir_]
 	def test_directory_several_files_dest_dir_does_not_exist(self):

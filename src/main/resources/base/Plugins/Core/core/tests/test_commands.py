@@ -1,5 +1,5 @@
 from core.commands import SuggestLocations
-from fman import platform
+from fman import PLATFORM
 from os.path import normpath
 from unittest import TestCase
 
@@ -49,7 +49,7 @@ class SuggestLocationsTest(TestCase):
 			self._replace_pathsep('~/Dropbox/Work'): 5,
 			self._replace_pathsep('~/Dropbox/Private'): 2
 		}
-		root = 'C:' if platform() == 'Windows' else ''
+		root = 'C:' if PLATFORM == 'Windows' else ''
 		files = {
 			root: {
 				'Users': {
@@ -66,7 +66,7 @@ class SuggestLocationsTest(TestCase):
 				}
 			}
 		}
-		if platform() == 'Windows':
+		if PLATFORM == 'Windows':
 			home_dir = r'C:\Users\michael'
 		else:
 			home_dir = '/Users/michael'

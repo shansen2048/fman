@@ -2,8 +2,8 @@ from fman.util.system import is_mac, is_linux, is_windows
 from PyQt5.QtWidgets import QMessageBox
 
 __all__ = [
-	'DirectoryPaneCommand', 'platform', 'load_json', 'write_json',
-	'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT', 'OK', 'CANCEL'
+	'DirectoryPaneCommand', 'DirectoryPaneListener', 'load_json', 'write_json',
+	'PLATFORM', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT', 'OK', 'CANCEL'
 ]
 
 YES = QMessageBox.Yes
@@ -14,14 +14,12 @@ ABORT = QMessageBox.Abort
 OK = QMessageBox.Ok
 CANCEL = QMessageBox.Cancel
 
-def platform():
-	if is_windows():
-		return 'Windows'
-	if is_mac():
-		return 'Mac'
-	if is_linux():
-		return 'Linux'
-	raise ValueError('Unknown operating system.')
+if is_windows():
+	PLATFORM = 'Windows'
+elif is_mac():
+	PLATFORM = 'Mac'
+elif is_linux():
+	PLATFORM = 'Linux'
 
 class DirectoryPaneCommand:
 	def __init__(self, pane):

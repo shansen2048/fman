@@ -4,7 +4,7 @@ from core.os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	platform, DirectoryPaneListener, show_quicksearch, show_prompt
+	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt
 from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
@@ -135,7 +135,7 @@ class OpenWithEditor(CorePaneCommand):
 			if choice & OK:
 				result = self.ui.show_file_open_dialog(
 					'Pick an Editor', self._get_applications_directory(),
-					self._PLATFORM_APPLICATIONS_FILTER[platform()]
+					self._PLATFORM_APPLICATIONS_FILTER[PLATFORM]
 				)
 				if result:
 					editor = result[0]
@@ -143,16 +143,16 @@ class OpenWithEditor(CorePaneCommand):
 		if editor:
 			open_file_with_app(file_path, editor)
 	def _get_applications_directory(self):
-		if platform() == 'Mac':
+		if PLATFORM == 'Mac':
 			return '/Applications'
-		elif platform() == 'Windows':
+		elif PLATFORM == 'Windows':
 			result = r'c:\Program Files'
 			if not exists(result):
 				result = splitdrive(sys.executable)[0] + '\\'
 			return result
-		elif platform() == 'Linux':
+		elif PLATFORM == 'Linux':
 			return '/usr/bin'
-		raise NotImplementedError(platform())
+		raise NotImplementedError(PLATFORM)
 
 class TreeCommand(CorePaneCommand):
 	@property
@@ -290,7 +290,7 @@ class ToggleHiddenFiles(CorePaneCommand):
 	def should_display(self, file_path):
 		if self.show_hidden_files:
 			return True
-		if platform() == 'Mac' and file_path == '/Volumes':
+		if PLATFORM == 'Mac' and file_path == '/Volumes':
 			return True
 		return not QFileInfo(file_path).isHidden()
 	def __call__(self):
@@ -343,12 +343,12 @@ class OpenInLeftPane(OpenInPaneCommand):
 
 class OpenDrives(CorePaneCommand):
 	def __call__(self):
-		if platform() == 'Mac':
+		if PLATFORM == 'Mac':
 			self.pane.set_path('/Volumes')
-		elif platform() == 'Windows':
+		elif PLATFORM == 'Windows':
 			# Go to "My Computer":
 			self.pane.set_path('')
-		raise NotImplementedError(platform())
+		raise NotImplementedError(PLATFORM)
 
 class GoTo(CorePaneCommand):
 	def __call__(self):

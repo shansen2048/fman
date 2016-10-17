@@ -1,6 +1,6 @@
-from fman import platform
+from fman import PLATFORM
 
-if platform() == 'Mac':
+if PLATFORM == 'Mac':
 	from osxtrash import move_to_trash
 else:
 	from send2trash import send2trash
