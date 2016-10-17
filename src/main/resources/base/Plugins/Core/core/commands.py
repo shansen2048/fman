@@ -4,7 +4,7 @@ from core.os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	platform, write_json, DirectoryPaneListener, show_quicksearch, show_prompt
+	platform, DirectoryPaneListener, show_quicksearch, show_prompt
 from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
@@ -140,7 +140,6 @@ class OpenWithEditor(CorePaneCommand):
 				if result:
 					editor = result[0]
 					settings['editor'] = editor
-					write_json(settings, 'Core Settings.json')
 		if editor:
 			open_file_with_app(file_path, editor)
 	def _get_applications_directory(self):
@@ -376,7 +375,6 @@ class GoToListener(DirectoryPaneListener):
 		visited_paths = load_json('Visited Paths.json', default={})
 		new_path = self._unexpand_user(self.pane.get_path())
 		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
-		write_json(visited_paths, 'Visited Paths.json')
 	def _unexpand_user(self, path):
 		home_dir = expanduser('~')
 		if path.startswith(home_dir):

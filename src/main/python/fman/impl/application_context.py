@@ -139,6 +139,7 @@ class ApplicationContext:
 			installed_plugins = join(get_data_dir(), 'Plugins')
 			self._plugin_support = \
 				PluginSupport(shipped_plugins, installed_plugins)
+			self.app.aboutToQuit.connect(self._plugin_support.on_quit)
 		return self._plugin_support
 	@property
 	def session_manager(self):

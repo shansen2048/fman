@@ -46,8 +46,8 @@ class PluginSupport:
 				self._listener_instances[pane].append(listener_class(pane))
 		pane.path_changed.connect(self.on_path_changed)
 	def on_quit(self):
-		for name, value in self._cached_jsons:
-			self._write_json(value, name)
+		for name, value in self._cached_jsons.items():
+			self.write_json(value, name)
 	def get_key_bindings_for_pane(self, pane):
 		result = []
 		commands = self._command_instances[pane]
@@ -75,6 +75,7 @@ class PluginSupport:
 		return self._cached_jsons[name]
 	def write_json(self, value, name):
 		write_differential_json(value, *self._get_json_paths(name))
+		self._cached_jsons[name] = value
 	@property
 	def user_plugin(self):
 		return join(self.installed_plugins_dir, self.USER_PLUGIN_NAME)
