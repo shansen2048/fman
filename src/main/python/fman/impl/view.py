@@ -196,14 +196,6 @@ class QuickSearch(QDialog):
 		suggestions_container.setObjectName('suggestions-container')
 		self._layout_vertically(self, query_container, suggestions_container)
 		self.layout().setSizeConstraint(QLayout.SetFixedSize)
-	def _add_suggestion(self, suggestion, pos=None):
-		if pos is None:
-			pos = self._suggestions.count()
-		widget_item = QListWidgetItem("")
-		widget = QuickSearchResult(suggestion, self._suggestions)
-		widget_item.setSizeHint(widget.sizeHint())
-		self._suggestions.insertItem(pos, widget_item)
-		self._suggestions.setItemWidget(widget_item, widget)
 	def _on_return_pressed(self):
 		index = self._suggestions.currentIndex()
 		suggestion = \
@@ -239,23 +231,17 @@ class QuickSearch(QDialog):
 				break
 			row += 1
 	def _update_suggestions(self, query):
-		new_suggestions = self.get_suggestions(query)
-		diff = diff_lists(self._curr_suggestions, new_suggestions)
-		class AsList:
-			def __init__(self, target):
-				self.target = target
-			def __len__(self):
-				return len(self.target._curr_suggestions)
-			def __getitem__(self, i):
-				return self.target._curr_suggestions[i]
-			def __delitem__(self, i):
-				del self.target._curr_suggestions[i]
-				self.target._suggestions.takeItem(i)
-			def insert(self, index, value):
-				self.target._curr_suggestions.insert(index, value)
-				self.target._add_suggestion(value, index)
-		apply_list_diff(diff, AsList(self))
+		self._suggestions.clear()
+		self._curr_suggestions = self.get_suggestions(query)
+		for suggestion in self._curr_suggestions:
+			self._add_suggestion(suggestion)
 		self._shrink_suggestion_list_to_size()
+	def _add_suggestion(self, suggestion):
+		widget_item = QListWidgetItem("")
+		widget = QuickSearchResult(suggestion, self._suggestions)
+		widget_item.setSizeHint(widget.sizeHint())
+		self._suggestions.addItem(widget_item)
+		self._suggestions.setItemWidget(widget_item, widget)
 	def _shrink_suggestion_list_to_size(self, num_visible=None, max_height=400):
 		if num_visible is None:
 			num_visible = self._suggestions.count()
@@ -283,52 +269,6 @@ class QuickSearchResult(QLabel):
 			html_parts[i] = '<font color="white">' + \
 							html.escape(html_parts[i]) + '</font>'
 		super().__init__(''.join(html_parts), parent)
-
-def diff_lists(old, new):
-	if not old and new:
-		return [new]
-	result = []
-	for old_item in old:
-		try:
-			cut = new.index(old_item) + 1
-		except ValueError as not_found:
-			fragment = []
-		else:
-			fragment = new[:cut]
-			new = new[cut:]
-		result.append(fragment)
-	if result:
-		result[-1].extend(new)
-	return result
-
-def apply_list_diff(diff, list_):
-	offset = 0
-	for i, fragment in enumerate(diff):
-		try:
-			item = list_[i + offset]
-		except IndexError:
-			assert i + offset == len(list_)
-			add_before = fragment
-			add_after = []
-		else:
-			try:
-				split_point = fragment.index(item)
-			except ValueError:
-				del list_[i + offset]
-				offset -= 1
-				add_before = []
-				add_after = fragment
-			else:
-				add_before = fragment[:split_point]
-				add_after = fragment[split_point + 1:]
-		for item in add_before:
-			list_.insert(i + offset, item)
-			offset += 1
-		if add_after:
-			offset += 1
-		for item in add_after:
-			list_.insert(i + offset, item)
-			offset += 1
 
 class LineEdit(QLineEdit):
 	def __init__(self, *args, **kwargs):
