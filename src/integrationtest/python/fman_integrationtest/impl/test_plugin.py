@@ -178,16 +178,13 @@ class WriteDifferentialJsonTest(TestCase):
 		d = {'a': 1, 'b': 1}
 		with open(self._json_file(0), 'w') as f:
 			json.dump(d, f)
-		d_old = dict(d)
 		d['b'] = 2
 		d['c'] = 3
-		write_differential_json(
-			d, d_old, self._json_file(0), self._json_file(1)
-		)
+		write_differential_json(d, self._json_file(0), self._json_file(1))
 		with open(self._json_file(1), 'r') as f:
 			self.assertEqual({'b': 2, 'c': 3}, json.load(f))
 	def test_extend_list(self):
-		write_differential_json([1, 2], None, self._json_file())
+		write_differential_json([1, 2], self._json_file())
 		self._check_write([1, 2, 3])
 	def test_update_list(self):
 		json1 = self._json_file(0)
@@ -196,12 +193,13 @@ class WriteDifferentialJsonTest(TestCase):
 			json.dump([2, 3], f)
 		with open(json2, 'w') as f:
 			json.dump([1], f)
-		write_differential_json([0, 1, 2, 3], [1, 2, 3], json1, json2)
+		write_differential_json([0, 1, 2, 3], json1, json2)
 		with open(json2, 'r') as f:
 			self.assertEqual([0, 1], json.load(f))
 	def test_type_change_raises(self):
+		write_differential_json(1, self._json_file())
 		with self.assertRaises(ValueError):
-			write_differential_json({'x': 1}, 1, self._json_file())
+			write_differential_json({'x': 1}, self._json_file())
 	def test_update_unmodifiable_list_parts_raises(self):
 		json1 = self._json_file(0)
 		json2 = self._json_file(1)
@@ -210,13 +208,13 @@ class WriteDifferentialJsonTest(TestCase):
 		with open(json2, 'w') as f:
 			json.dump([2], f)
 		with self.assertRaises(ValueError):
-			write_differential_json([1, 2], json1, json2)
+			write_differential_json(json1, json2)
 	def setUp(self):
 		self.temp_dir = mkdtemp()
 	def tearDown(self):
 		rmtree(self.temp_dir)
 	def _check_write(self, obj):
-		write_differential_json(obj, None, self._json_file())
+		write_differential_json(obj, self._json_file())
 		self.assertEqual(obj, load_json(self._json_file()))
 	def _json_file(self, i=0):
 		return join(self.temp_dir, '%d.json' % i)
