@@ -42,8 +42,8 @@ class DirectoryPaneListener:
 	def on_path_changed(self):
 		pass
 
-def load_json(name):
-	return _get_plugin_support().load_json(name)
+def load_json(name, default=None):
+	return _get_plugin_support().load_json(name, default)
 
 def write_json(value, name):
 	return _get_plugin_support().write_json(value, name)

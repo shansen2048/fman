@@ -23,12 +23,13 @@ class PluginSupport:
 	def __init__(self, shipped_plugins_dir, installed_plugins_dir):
 		self.shipped_plugins_dir = shipped_plugins_dir
 		self.installed_plugins_dir = installed_plugins_dir
+		self._cached_jsons = {}
 		self._plugins = self._key_bindings_json = None
 		self._command_instances = {}
 		self._listener_instances = {}
 	def initialize(self):
 		self._plugins, errors = self._load_plugins()
-		self._key_bindings_json = self.load_json('Key Bindings.json') or []
+		self._key_bindings_json = self.load_json('Key Bindings.json', [])
 		errors.extend(
 			'Error in key bindings: Command %r does not exist.' % command
 			for command in self._remove_missing_commands()
@@ -62,10 +63,23 @@ class PluginSupport:
 	def on_path_changed(self, pane):
 		for listener in self._listener_instances[pane]:
 			listener.on_path_changed()
-	def load_json(self, name):
-		return load_json(*self._get_json_paths(name))
+	def load_json(self, name, default=None):
+		if name not in self._cached_jsons:
+			result = load_json(*self._get_json_paths(name))
+			if result is None:
+				result = default
+			self._cached_jsons[name] = result
+		return self._cached_jsons[name]
 	def write_json(self, value, name):
-		return write_differential_json(value, *self._get_json_paths(name))
+		old_value = self._cached_jsons.get(name, None)
+		json_paths = self._get_json_paths(name, [self.user_plugin])
+		user_plugin_existed = isdir(self.user_plugin)
+		write_differential_json(value, old_value, *json_paths)
+		if not user_plugin_existed:
+			self._plugins.append(Plugin(self.user_plugin))
+	@property
+	def user_plugin(self):
+		return join(self.installed_plugins_dir, self.USER_PLUGIN_NAME)
 	def _load_plugins(self):
 		result, errors = [], []
 		for plugin_dir in self._find_plugins():
@@ -86,15 +100,18 @@ class PluginSupport:
 			plugin for plugin in self._list_plugins(self.installed_plugins_dir)
 		 	if basename(plugin) != self.USER_PLUGIN_NAME
 		]
-		user_plugin = join(self.installed_plugins_dir, self.USER_PLUGIN_NAME)
-		return shipped_plugins + installed_plugins + [user_plugin]
+		result = shipped_plugins + installed_plugins
+		if isdir(self.user_plugin):
+			result.append(self.user_plugin)
+		return result
 	def _list_plugins(self, dir_path):
 		try:
 			return list(filter(isdir, listdir_absolute(dir_path)))
 		except FileNotFoundError:
 			return []
-	def _get_json_paths(self, name):
-		plugin_dirs = [plugin.path for plugin in self._plugins]
+	def _get_json_paths(self, name, plugin_dirs=None):
+		if plugin_dirs is None:
+			plugin_dirs = [plugin.path for plugin in self._plugins]
 		base, ext = splitext(name)
 		platform_specific_name = '%s (%s)%s' % (base, platform(), ext)
 		result = []
@@ -182,9 +199,8 @@ def load_json(*paths):
 			result = next_value + result
 	return result
 
-def write_differential_json(obj, *paths):
+def write_differential_json(obj, old_obj, *paths):
 	dest_path = paths[-1]
-	old_obj = load_json(*paths)
 	if old_obj is None:
 		difference = obj
 	else:

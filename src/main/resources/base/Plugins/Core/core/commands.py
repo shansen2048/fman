@@ -125,7 +125,7 @@ class OpenWithEditor(CorePaneCommand):
 		if isfile(file_to_edit):
 			self._open_with_editor(file_to_edit)
 	def _open_with_editor(self, file_path):
-		settings = load_json('Core Settings.json') or {}
+		settings = load_json('Core Settings.json', default={})
 		editor = settings.get('editor', None)
 		if not editor:
 			choice = self.ui.show_alert(
@@ -353,7 +353,7 @@ class OpenDrives(CorePaneCommand):
 
 class GoTo(CorePaneCommand):
 	def __call__(self):
-		visited_paths = load_json('Visited Paths.json') or {}
+		visited_paths = load_json('Visited Paths.json', default={})
 		get_suggestions = SuggestLocations(visited_paths)
 		def get_tab_completion(suggestion):
 			result = suggestion[0]
@@ -373,7 +373,7 @@ class GoTo(CorePaneCommand):
 
 class GoToListener(DirectoryPaneListener):
 	def on_path_changed(self):
-		visited_paths = load_json('Visited Paths.json') or {}
+		visited_paths = load_json('Visited Paths.json', default={})
 		new_path = self._unexpand_user(self.pane.get_path())
 		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
 		write_json(visited_paths, 'Visited Paths.json')
