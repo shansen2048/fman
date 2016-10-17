@@ -3,10 +3,14 @@ from fman import DirectoryPaneCommand, platform, DirectoryPaneListener
 from fman.util import listdir_absolute
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
+from io import StringIO
 from os import makedirs
-from os.path import join, isdir, splitext, basename, dirname, isfile
+from os.path import join, isdir, splitext, basename, dirname, isfile, relpath, \
+	realpath, pardir
+from traceback import extract_tb, print_exception
 
 import json
+import os
 import re
 import sys
 
@@ -23,12 +27,13 @@ class PluginSupport:
 		self._command_instances = {}
 		self._listener_instances = {}
 	def initialize(self):
-		self._plugins = self._load_plugins()
+		self._plugins, errors = self._load_plugins()
 		self._key_bindings_json = self.load_json('Key Bindings.json') or []
-		return [
+		errors.extend(
 			'Error in key bindings: Command %r does not exist.' % command
 			for command in self._remove_missing_commands()
-		]
+		)
+		return errors
 	def on_pane_added(self, pane):
 		self._command_instances[pane] = {}
 		self._listener_instances[pane] = []
@@ -62,12 +67,19 @@ class PluginSupport:
 	def write_json(self, value, name):
 		return write_differential_json(value, *self._get_json_paths(name))
 	def _load_plugins(self):
-		result = []
+		result, errors = [], []
 		for plugin_dir in self._find_plugins():
 			plugin = Plugin(plugin_dir)
-			plugin.load()
+			try:
+				plugin.load()
+			except Exception as e:
+				plugin_name = basename(plugin_dir)
+				traceback = self._get_plugin_traceback(e, plugin_dir)
+				errors.append(
+					'Plugin %r failed to load.\n\n%s' % (plugin_name, traceback)
+				)
 			result.append(plugin)
-		return result
+		return result, errors
 	def _find_plugins(self):
 		shipped_plugins = self._list_plugins(self.shipped_plugins_dir)
 		installed_plugins = [
@@ -90,6 +102,17 @@ class PluginSupport:
 			result.append(join(plugin_dir, name))
 			result.append(join(plugin_dir, platform_specific_name))
 		return result
+	def _get_plugin_traceback(self, exc, plugin_dir):
+		tb = exc.__traceback__
+		tb_first_file = lambda: extract_tb(tb)[0][0]
+		while tb and not self._is_in_subdir(tb_first_file(), plugin_dir):
+			tb = tb.tb_next
+		result = StringIO()
+		print_exception(exc.__class__, exc.with_traceback(tb), tb, file=result)
+		return result.getvalue()
+	def _is_in_subdir(self, file_path, directory):
+		rel = relpath(realpath(dirname(file_path)), realpath(directory))
+		return not (rel == pardir or rel.startswith(pardir + os.sep))
 	def _remove_missing_commands(self):
 		result = []
 		available_commands = set(
