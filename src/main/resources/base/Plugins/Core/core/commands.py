@@ -371,9 +371,17 @@ class GoTo(CorePaneCommand):
 				self.pane.set_path(path)
 
 class GoToListener(DirectoryPaneListener):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.is_first_path_change = True
 	def on_path_changed(self):
-		visited_paths = load_json('Visited Paths.json', default={})
+		if self.is_first_path_change:
+			# on_path_changed() is also called when fman starts. Since this is
+			# not a user-initiated path change, we don't want to count it:
+			self.is_first_path_change = False
+			return
 		new_path = self._unexpand_user(self.pane.get_path())
+		visited_paths = load_json('Visited Paths.json', default={})
 		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
 	def _unexpand_user(self, path):
 		home_dir = expanduser('~')
