@@ -25,6 +25,10 @@ class PluginSupport:
 	def initialize(self):
 		self._plugins = self._load_plugins()
 		self._key_bindings_json = self.load_json('Key Bindings.json') or []
+		return [
+			'Error in key bindings: Command %r does not exist.' % command
+			for command in self._remove_missing_commands()
+		]
 	def on_pane_added(self, pane):
 		self._command_instances[pane] = {}
 		self._listener_instances[pane] = []
@@ -85,6 +89,19 @@ class PluginSupport:
 		for plugin_dir in plugin_dirs:
 			result.append(join(plugin_dir, name))
 			result.append(join(plugin_dir, platform_specific_name))
+		return result
+	def _remove_missing_commands(self):
+		result = []
+		available_commands = set(
+			command_name
+			for plugin in self._plugins
+			for command_name in plugin.command_classes
+		)
+		for key_binding in self._key_bindings_json[:]:
+			command = key_binding['command']
+			if command not in available_commands:
+				self._key_bindings_json.remove(key_binding)
+				result.append(command)
 		return result
 
 class Plugin:

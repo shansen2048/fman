@@ -39,6 +39,7 @@ class ApplicationContext:
 		self._stylesheet = None
 		self._style = None
 		self._metrics = None
+		self._plugin_errors = []
 	def initialize(self):
 		self.excepthook.install()
 		self.metrics.initialize()
@@ -50,12 +51,15 @@ class ApplicationContext:
 		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
 		self._load_fonts()
-		self.plugin_support.initialize()
+		self._plugin_errors = self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
-		if self.updater:
-			self.updater.start()
 		# TODO: Remove this migration some time after mid October 2016:
 		self._migrate_versions_lte_0_0_4()
+	def on_main_window_shown(self):
+		if self._plugin_errors:
+			self.main_window.show_alert(self._plugin_errors[0])
+		if self.updater:
+			self.updater.start()
 	def _load_fonts(self):
 		if system.is_linux():
 			db = QFontDatabase()
@@ -104,6 +108,7 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(self.controller)
+			self._main_window.shown.connect(self.on_main_window_shown)
 			self._main_window.pane_added.connect(
 				self.plugin_support.on_pane_added
 			)

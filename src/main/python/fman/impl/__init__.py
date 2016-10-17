@@ -3,7 +3,7 @@ from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView, QuickSearch
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import exists, normpath, dirname
-from PyQt5.QtCore import QDir, pyqtSignal
+from PyQt5.QtCore import QDir, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog
 
@@ -112,6 +112,7 @@ class DirectoryPane(QWidget):
 class MainWindow(QMainWindow):
 
 	pane_added = pyqtSignal(DirectoryPane)
+	shown = pyqtSignal()
 
 	def __init__(self, controller):
 		super().__init__()
@@ -159,3 +160,6 @@ class MainWindow(QMainWindow):
 		return result
 	def get_panes(self):
 		return self.panes
+	def showEvent(self, *args):
+		super().showEvent(*args)
+		QTimer(self).singleShot(0, self.shown.emit)
