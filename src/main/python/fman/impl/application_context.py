@@ -10,7 +10,8 @@ from fman.impl.view import Style
 from fman.util import system
 from os import getenv, rename
 from os.path import dirname, join, pardir, normpath, exists, expanduser
-from PyQt5.QtGui import QFontDatabase
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFontDatabase, QColor, QPalette
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 from shutil import rmtree
 
@@ -34,6 +35,8 @@ class ApplicationContext:
 		self._excepthook = None
 		self._main_window = None
 		self._controller = None
+		self._palette = None
+		self._main_window_palette = None
 		self._plugin_support = None
 		self._session_manager = None
 		self._stylesheet = None
@@ -77,6 +80,7 @@ class ApplicationContext:
 			self._app.setApplicationDisplayName('fman')
 			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
+			self._app.setPalette(self.palette)
 		return self._app
 	@property
 	def constants(self):
@@ -108,6 +112,7 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(self.controller)
+			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
 			self._main_window.pane_added.connect(
 				self.plugin_support.on_pane_added
@@ -132,6 +137,39 @@ class ApplicationContext:
 		if self._controller is None:
 			self._controller = Controller(self.plugin_support, self.metrics)
 		return self._controller
+	@property
+	def palette(self):
+		if self._palette is None:
+			self._palette = QPalette()
+			self._palette.setColor(QPalette.Window, QColor(43, 43, 43))
+			self._palette.setColor(QPalette.WindowText, Qt.white)
+			self._palette.setColor(QPalette.Base, QColor(19, 19, 19))
+			self._palette.setColor(QPalette.AlternateBase, QColor(66, 64, 59))
+			self._palette.setColor(QPalette.ToolTipBase, QColor(19, 19, 19))
+			self._palette.setColor(QPalette.ToolTipText, Qt.white)
+			self._palette.setColor(QPalette.Light, QColor(0x44, 0x44, 0x44))
+			self._palette.setColor(QPalette.Midlight, QColor(0x33, 0x33, 0x33))
+			self._palette.setColor(QPalette.Button, QColor(0x29, 0x29, 0x29))
+			self._palette.setColor(QPalette.Mid, QColor(0x25, 0x25, 0x25))
+			self._palette.setColor(QPalette.Dark, QColor(0x20, 0x20, 0x20))
+			self._palette.setColor(QPalette.Shadow, QColor(0x1d, 0x1d, 0x1d))
+			self._palette.setColor(QPalette.Text, Qt.white)
+			self._palette.setColor(
+				QPalette.ButtonText, QColor(0xb6, 0xb3, 0xab)
+			)
+			self._palette.setColor(QPalette.Link, QColor(0x53, 0x9f, 0xa3))
+			self._palette.setColor(
+				QPalette.LinkVisited, QColor(0x84, 0x5b, 0x90)
+			)
+		return self._palette
+	@property
+	def main_window_palette(self):
+		if self._main_window_palette is None:
+			self._main_window_palette = QPalette(self.palette)
+			self._main_window_palette.setColor(
+				QPalette.Window, QColor(0x44, 0x44, 0x44)
+			)
+		return self._main_window_palette
 	@property
 	def plugin_support(self):
 		if self._plugin_support is None:
