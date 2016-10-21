@@ -81,7 +81,6 @@ QuickSearch QLineEdit {
 	border-top-color: #aeaeae;
 	border-left-color: #c9c9c9;
 	border-right-color: #d0d0d0;
-	font-size: 15pt;
 }
 
 QuickSearch #suggestions-container {
@@ -101,9 +100,12 @@ QuickSearch QListView::item:selected {
 
 QuickSearch QListView QLabel {
 	color: #c8c8c8;
-	font-size: 15pt;
 	border-top: 1px solid #4d4d4d;
 	border-bottom: 1px solid #363636;
+}
+
+QuickSearch QLineEdit, QuickSearch QListView QLabel {
+	font-size: 15pt;
 }
 
 QLineEdit:read-only {
