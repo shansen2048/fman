@@ -235,22 +235,12 @@ class QuickSearch(QDialog):
 		self._curr_suggestions = self.get_suggestions(query)
 		for suggestion in self._curr_suggestions:
 			self._add_suggestion(suggestion)
-		self._shrink_suggestion_list_to_size()
 	def _add_suggestion(self, suggestion):
 		widget_item = QListWidgetItem("")
 		widget = QuickSearchResult(suggestion, self._suggestions)
 		widget_item.setSizeHint(widget.sizeHint())
 		self._suggestions.addItem(widget_item)
 		self._suggestions.setItemWidget(widget_item, widget)
-	def _shrink_suggestion_list_to_size(self, num_visible=None, max_height=400):
-		if num_visible is None:
-			num_visible = self._suggestions.count()
-		height = num_visible * self._suggestions.sizeHintForRow(0)
-		if height > max_height:
-			self._suggestions.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-		else:
-			self._suggestions.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-		self._suggestions.setMaximumHeight(min(height, max_height))
 	def _layout_vertically(self, parent, *widgets):
 		layout = QVBoxLayout()
 		layout.setContentsMargins(0, 0, 0, 0)
