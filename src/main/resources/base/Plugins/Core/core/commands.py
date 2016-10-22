@@ -4,7 +4,7 @@ from core.os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt
+	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json
 from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
@@ -140,6 +140,7 @@ class OpenWithEditor(CorePaneCommand):
 				if result:
 					editor = result[0]
 					settings['editor'] = editor
+					save_json('Core Settings.json')
 		if editor:
 			open_file_with_app(file_path, editor)
 	def _get_applications_directory(self):
@@ -380,14 +381,16 @@ class GoToListener(DirectoryPaneListener):
 			# not a user-initiated path change, we don't want to count it:
 			self.is_first_path_change = False
 			return
-		new_path = self._unexpand_user(self.pane.get_path())
-		visited_paths = load_json('Visited Paths.json', default={})
+		new_path = unexpand_user(self.pane.get_path())
+		visited_paths = \
+			load_json('Visited Paths.json', default={}, save_on_quit=True)
 		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
-	def _unexpand_user(self, path):
-		home_dir = expanduser('~')
-		if path.startswith(home_dir):
-			path = '~' + path[len(home_dir):]
-		return path
+
+def unexpand_user(path, expanduser_=expanduser):
+	home_dir = expanduser_('~')
+	if path.startswith(home_dir):
+		path = '~' + path[len(home_dir):]
+	return path
 
 class SuggestLocations:
 	def __init__(self, visited_paths, file_system=None):
@@ -438,10 +441,7 @@ class SuggestLocations:
 					break
 		return list(chain.from_iterable(matches))
 	def _unexpand_user(self, path):
-		home_dir = self.fs.expanduser('~')
-		if path.startswith(home_dir):
-			path = '~' + path[len(home_dir):]
-		return path
+		return unexpand_user(path, self.fs.expanduser)
 	def _starts_with(self, query, suggestion):
 		if suggestion.lower().startswith(query.lower()):
 			return suggestion, list(range(len(query)))

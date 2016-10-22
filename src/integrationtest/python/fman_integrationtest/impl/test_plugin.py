@@ -55,9 +55,9 @@ class PluginSupportTest(TestCase):
 			json.dump({'a': 1}, f)
 		d = self.plugin_support.load_json('Test.json')
 		self.assertIs(d, self.plugin_support.load_json('Test.json'))
-	def test_write_json(self):
-		d = {'test_write_json': 1}
-		self.plugin_support.write_json(d, 'Test.json')
+	def test_save_json(self):
+		d = {'test_save_json': 1}
+		self.plugin_support.save_json('Test.json', d)
 		json_platform = join(self.user_plugin, 'Test (%s).json' % PLATFORM)
 		with open(json_platform, 'r') as f:
 			self.assertEqual(d, json.load(f))

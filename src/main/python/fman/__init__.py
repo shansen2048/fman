@@ -2,7 +2,7 @@ from fman.util.system import is_mac, is_linux, is_windows
 from PyQt5.QtWidgets import QMessageBox
 
 __all__ = [
-	'DirectoryPaneCommand', 'DirectoryPaneListener', 'load_json', 'write_json',
+	'DirectoryPaneCommand', 'DirectoryPaneListener', 'load_json', 'save_json',
 	'PLATFORM', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT', 'OK', 'CANCEL'
 ]
 
@@ -40,11 +40,11 @@ class DirectoryPaneListener:
 	def on_path_changed(self):
 		pass
 
-def load_json(name, default=None):
-	return _get_plugin_support().load_json(name, default)
+def load_json(name, default=None, save_on_quit=True):
+	return _get_plugin_support().load_json(name, default, save_on_quit)
 
-def write_json(value, name):
-	return _get_plugin_support().write_json(value, name)
+def save_json(name, value=None):
+	return _get_plugin_support().save_json(name, value)
 
 def show_alert(text, buttons=OK, default_button=OK):
 	return _get_ui().show_alert(text, buttons, default_button)

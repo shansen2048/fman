@@ -194,8 +194,8 @@ class ApplicationContext:
 			return
 		try:
 			editor = old_settings['editor']
-			self.plugin_support.write_json(
-				{'editor': editor}, 'Core Settings.json'
+			self.plugin_support.save_json(
+				'Core Settings.json', {'editor': editor}
 			)
 		except KeyError:
 			pass

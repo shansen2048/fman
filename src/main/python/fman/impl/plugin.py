@@ -24,6 +24,7 @@ class PluginSupport:
 		self.shipped_plugins_dir = shipped_plugins_dir
 		self.installed_plugins_dir = installed_plugins_dir
 		self._cached_jsons = {}
+		self._jsons_to_save_on_quit = set()
 		self._plugins = self._key_bindings_json = None
 		self._command_instances = {}
 		self._listener_instances = {}
@@ -46,8 +47,8 @@ class PluginSupport:
 				self._listener_instances[pane].append(listener_class(pane))
 		pane.path_changed.connect(self.on_path_changed)
 	def on_quit(self):
-		for name, value in self._cached_jsons.items():
-			self.write_json(value, name)
+		for name in self._jsons_to_save_on_quit:
+			self.save_json(name)
 	def get_key_bindings_for_pane(self, pane):
 		result = []
 		commands = self._command_instances[pane]
@@ -66,14 +67,18 @@ class PluginSupport:
 	def on_path_changed(self, pane):
 		for listener in self._listener_instances[pane]:
 			listener.on_path_changed()
-	def load_json(self, name, default=None):
+	def load_json(self, name, default=None, save_on_quit=False):
 		if name not in self._cached_jsons:
 			result = load_json(*self._get_json_paths(name))
 			if result is None:
 				result = default
 			self._cached_jsons[name] = result
+		if save_on_quit:
+			self._jsons_to_save_on_quit.add(name)
 		return self._cached_jsons[name]
-	def write_json(self, value, name):
+	def save_json(self, name, value=None):
+		if value is None:
+			value = self._cached_jsons[name]
 		write_differential_json(value, *self._get_json_paths(name))
 		self._cached_jsons[name] = value
 	@property
@@ -87,7 +92,7 @@ class PluginSupport:
 			if not exists(plugin_dir):
 				# This happens the first time fman is started. We still want the
 				# User plugin to be in `result` because this list is used to
-				# compute the destination path for write_json(...).
+				# compute the destination path for save_json(...).
 				assert plugin_dir == self.user_plugin
 				continue
 			try:
