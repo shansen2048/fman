@@ -293,10 +293,13 @@ class ToggleHiddenFiles(CorePaneCommand):
 			return True
 		if PLATFORM == 'Mac' and file_path == '/Volumes':
 			return True
-		return not QFileInfo(file_path).isHidden()
+		return not _is_hidden(file_path)
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
 		self.pane.invalidate_filters()
+
+def _is_hidden(file_path):
+	return QFileInfo(file_path).isHidden()
 
 class OpenInPaneCommand(CorePaneCommand):
 	def __call__(self):
@@ -354,6 +357,10 @@ class OpenDrives(CorePaneCommand):
 class GoTo(CorePaneCommand):
 	def __call__(self):
 		visited_paths = load_json('Visited Paths.json', default={})
+		if not visited_paths:
+			visited_paths.update({
+				path: 0 for path in self._get_default_paths()
+			})
 		get_suggestions = SuggestLocations(visited_paths)
 		def get_tab_completion(suggestion):
 			result = suggestion[0]
@@ -370,6 +377,20 @@ class GoTo(CorePaneCommand):
 				path = expanduser(text)
 			if isdir(path):
 				self.pane.set_path(path)
+	def _get_default_paths(self):
+		result = []
+		home_dir = expanduser('~')
+		for file_name in listdir(home_dir):
+			file_path = join(home_dir, file_name)
+			if isdir(file_path) and not _is_hidden(file_path):
+				result.append(join('~', file_name))
+		if PLATFORM == 'Windows':
+			for candidate in (r'C:\Program Files', r'C:\Program Files (x86)'):
+				if isdir(candidate):
+					result.append(candidate)
+		elif PLATFORM == 'Mac':
+			result.append('/Volumes')
+		return result
 
 class GoToListener(DirectoryPaneListener):
 	def __init__(self, *args, **kwargs):
@@ -408,7 +429,7 @@ class SuggestLocations:
 		suggestions = self._gather_suggestions(query)
 		return self._filter_suggestions(suggestions, query)
 	def _gather_suggestions(self, query):
-		count_visits = lambda path: self.visited_paths.get(path, 0)
+		sort_key = lambda path: (self.visited_paths.get(path, 0), path.lower())
 		path = self.fs.expanduser(query)
 		if self.fs.isdir(path) or self.fs.isdir(dirname(path)):
 			result = OrderedSet()
@@ -426,11 +447,11 @@ class SuggestLocations:
 				file_path = join(dir_, name)
 				if self.fs.isdir(file_path):
 					dir_items.append(join(self._unexpand_user(dir_), name))
-			dir_items.sort(key=count_visits, reverse=True)
+			dir_items.sort(key=sort_key, reverse=True)
 			result.update(dir_items)
 			return result
 		else:
-			return sorted(self.visited_paths, key=count_visits, reverse=True)
+			return sorted(self.visited_paths, key=sort_key, reverse=True)
 	def _filter_suggestions(self, suggestions, query):
 		matches = [[] for _ in self._matchers]
 		for suggestion in suggestions:
