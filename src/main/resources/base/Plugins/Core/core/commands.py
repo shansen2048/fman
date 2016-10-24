@@ -4,7 +4,8 @@ from core.os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json
+	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
+	show_alert
 from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
@@ -25,7 +26,9 @@ class CorePaneCommand(DirectoryPaneCommand):
 		# with a stub implementation to run without an actual GUI.
 		self.ui = fman
 	def toggle_selection(self):
-		self.pane.toggle_selection(self.pane.get_file_under_cursor())
+		file_under_cursor = self.pane.get_file_under_cursor()
+		if file_under_cursor:
+			self.pane.toggle_selection(file_under_cursor)
 
 class MoveCursorDown(CorePaneCommand):
 	def __call__(self, toggle_selection=False):
@@ -64,6 +67,9 @@ class ToggleSelection(CorePaneCommand):
 class MoveToTrash(CorePaneCommand):
 	def __call__(self):
 		to_delete = self.get_chosen_files()
+		if not to_delete:
+			show_alert('No file is selected!')
+			return
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
@@ -84,7 +90,11 @@ class GoUp(CorePaneCommand):
 
 class Open(CorePaneCommand):
 	def __call__(self):
-		_open(self.pane, self.pane.get_file_under_cursor())
+		file_under_cursor = self.pane.get_file_under_cursor()
+		if file_under_cursor:
+			_open(self.pane, file_under_cursor)
+		else:
+			show_alert('No file is selected!')
 
 class OpenListener(DirectoryPaneListener):
 	def on_doubleclicked(self, file_path):
@@ -121,7 +131,7 @@ class OpenWithEditor(CorePaneCommand):
 			if isfile(file_under_cursor):
 				file_to_edit = file_under_cursor
 			else:
-				self.ui.show_alert("No file is selected!")
+				show_alert('No file is selected!')
 		if isfile(file_to_edit):
 			self._open_with_editor(file_to_edit)
 	def _open_with_editor(self, file_path):
@@ -161,6 +171,9 @@ class TreeCommand(CorePaneCommand):
 		panes = self.pane.window.get_panes()
 		return panes[(panes.index(self.pane) + 1) % len(panes)]
 	def _confirm_tree_operation(self, files, dest_dir, descr_verb):
+		if not files:
+			show_alert('No file is selected!')
+			return
 		if len(files) == 1:
 			file_, = files
 			dest_name = basename(file_) if isfile(file_) else ''
@@ -223,7 +236,11 @@ class Move(TreeCommand):
 
 class Rename(CorePaneCommand):
 	def __call__(self):
-		self.pane.edit_name(self.pane.get_file_under_cursor())
+		file_under_cursor = self.pane.get_file_under_cursor()
+		if file_under_cursor:
+			self.pane.edit_name(file_under_cursor)
+		else:
+			show_alert('No file is selected!')
 
 class RenameListener(DirectoryPaneListener):
 	def on_name_edited(self, file_path, new_name):
@@ -251,17 +268,29 @@ class OpenNativeFileManager(CorePaneCommand):
 
 class CopyPathsToClipboard(CorePaneCommand):
 	def __call__(self):
-		files = '\n'.join(self.get_chosen_files())
+		chosen_files = self.get_chosen_files()
+		if not chosen_files:
+			show_alert('No file is selected!')
+			return
+		files = '\n'.join(chosen_files)
 		clipboard.clear()
 		clipboard.set_text(files)
 
 class CopyToClipboard(CorePaneCommand):
 	def __call__(self):
-		clipboard.copy_files(self.get_chosen_files())
+		files = self.get_chosen_files()
+		if files:
+			clipboard.copy_files(files)
+		else:
+			show_alert('No file is selected!')
 
 class Cut(CorePaneCommand):
 	def __call__(self):
-		clipboard.cut_files(self.get_chosen_files())
+		files = self.get_chosen_files()
+		if files:
+			clipboard.cut_files(files)
+		else:
+			show_alert('No file is selected!')
 
 class Paste(TreeCommand):
 	def __call__(self):

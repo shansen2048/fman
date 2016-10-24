@@ -27,8 +27,13 @@ class DirectoryPaneCommand:
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
 	def get_chosen_files(self):
-		return self.pane.get_selected_files() or \
-			   [self.pane.get_file_under_cursor()]
+		selected_files = self.pane.get_selected_files()
+		if selected_files:
+			return selected_files
+		file_under_cursor = self.pane.get_file_under_cursor()
+		if file_under_cursor:
+			return [file_under_cursor]
+		return []
 
 class DirectoryPaneListener:
 	def __init__(self, pane):
