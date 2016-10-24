@@ -429,7 +429,7 @@ class SuggestLocations:
 		suggestions = self._gather_suggestions(query)
 		return self._filter_suggestions(suggestions, query)
 	def _gather_suggestions(self, query):
-		sort_key = lambda path: (self.visited_paths.get(path, 0), path.lower())
+		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
 		path = self.fs.expanduser(query)
 		if self.fs.isdir(path) or self.fs.isdir(dirname(path)):
 			result = OrderedSet()
@@ -447,11 +447,11 @@ class SuggestLocations:
 				file_path = join(dir_, name)
 				if self.fs.isdir(file_path):
 					dir_items.append(join(self._unexpand_user(dir_), name))
-			dir_items.sort(key=sort_key, reverse=True)
+			dir_items.sort(key=sort_key)
 			result.update(dir_items)
 			return result
 		else:
-			return sorted(self.visited_paths, key=sort_key, reverse=True)
+			return sorted(self.visited_paths, key=sort_key)
 	def _filter_suggestions(self, suggestions, query):
 		matches = [[] for _ in self._matchers]
 		for suggestion in suggestions:
