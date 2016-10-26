@@ -109,7 +109,15 @@ class FileTreeOperation:
 	def _get_dest_path(self, src_file):
 		dest_name = self.dest_name or basename(src_file)
 		if self.src_dir:
-			rel_path = relpath(join(dirname(src_file), dest_name), self.src_dir)
+			try:
+				rel_path = \
+					relpath(join(dirname(src_file), dest_name), self.src_dir)
+			except ValueError as e:
+				raise ValueError(
+					'Could not construct path. '
+					'src_file: %r, dest_name: %r, src_dir: %r' %
+					(src_file, dest_name, self.src_dir)
+				) from e
 			is_in_src_dir = not rel_path.startswith(pardir)
 			if is_in_src_dir:
 				return join(self.dest_dir, rel_path)
