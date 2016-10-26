@@ -126,3 +126,7 @@ QStatusBar, QStatusBar QLabel {
 	color: white;
 	font-size: 11pt;
 }
+
+QStatusBar QLabel {
+	padding-left: .1ex;
+}

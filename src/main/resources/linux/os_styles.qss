@@ -22,10 +22,6 @@ QStatusBar, QStatusBar QLabel {
 	font-size: 8pt;
 }
 
-QStatusBar QLabel {
-	padding-left: .1ex;
-}
-
 QuickSearch QLineEdit, QuickSearch QListView QLabel {
 	font-size: 10pt;
 }
