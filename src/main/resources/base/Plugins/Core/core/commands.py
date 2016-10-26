@@ -6,6 +6,7 @@ from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
 	show_alert
+from getpass import getuser
 from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
@@ -377,11 +378,23 @@ class OpenInLeftPane(OpenInPaneCommand):
 class OpenDrives(CorePaneCommand):
 	def __call__(self):
 		if PLATFORM == 'Mac':
-			self.pane.set_path('/Volumes')
+			path = '/Volumes'
 		elif PLATFORM == 'Windows':
 			# Go to "My Computer":
-			self.pane.set_path('')
-		raise NotImplementedError(PLATFORM)
+			path = ''
+		elif PLATFORM == 'Linux':
+			if isdir('/media'):
+				contents = listdir('/media')
+				user_name = getuser()
+				if contents == [user_name]:
+					path = join('/media', user_name)
+				else:
+					path = '/media'
+			else:
+				path = '/mnt'
+		else:
+			raise NotImplementedError(PLATFORM)
+		self.pane.set_path(path)
 
 class GoTo(CorePaneCommand):
 	def __call__(self):
@@ -419,6 +432,14 @@ class GoTo(CorePaneCommand):
 					result.append(candidate)
 		elif PLATFORM == 'Mac':
 			result.append('/Volumes')
+		elif PLATFORM == 'Linux':
+			media_user = join('/media', getuser())
+			if exists(media_user):
+				result.append(media_user)
+			elif exists('/media'):
+				result.append('/media')
+			if exists('/mnt'):
+				result.append('/mnt')
 		return result
 
 class GoToListener(DirectoryPaneListener):

@@ -1,3 +1,4 @@
+from core.os_ import is_gnome_based, is_kde_based
 from fman import PLATFORM
 from os.path import basename, normpath
 from PyQt5.QtCore import QMimeData, QUrl
@@ -16,27 +17,26 @@ def clear():
 def set_text(text):
 	_clipboard().setText(text)
 
-def copy_files(files, extra_data=None):
-	if extra_data is None:
+def copy_files(files):
+	if PLATFORM == 'Linux':
+		extra_data = _get_extra_copy_cut_data_linux(files, 'copy')
+	else:
 		extra_data = {}
-	urls = [QUrl.fromLocalFile(file_) for file_ in files]
-	new_clipboard_data = QMimeData()
-	new_clipboard_data.setUrls(urls)
-	new_clipboard_data.setText('\n'.join(map(basename, files)))
-	for key, value in extra_data.items():
-		new_clipboard_data.setData(key, value)
-	_clipboard().setMimeData(new_clipboard_data)
+	_place_on_clipboard(files, extra_data)
 
 def cut_files(files):
 	if PLATFORM == 'Windows':
-		copy_files(files, {
+		extra_data = {
 			# Make pasting work in Explorer:
 			_CFSTR_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE,
 			# Make pasting work in Qt:
 			_CF_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE
-		})
+		}
+	elif PLATFORM == 'Linux':
+		extra_data = _get_extra_copy_cut_data_linux(files, 'cut')
 	else:
 		raise NotImplementedError(PLATFORM)
+	_place_on_clipboard(files, extra_data)
 
 def get_files():
 	result = []
@@ -53,7 +53,34 @@ def files_were_cut():
 	if PLATFORM == 'Windows':
 		data = _clipboard().mimeData().data(_CF_PREFERREDDROPEFFECT)
 		return data == _DROPEFFECT_MOVE
+	elif PLATFORM == 'Linux':
+		mime_type = _get_linux_copy_cut_mime_type()
+		if mime_type:
+			return _clipboard().mimeData().data(mime_type)[:4] == b'cut\n'
 	return False
 
 def _clipboard():
 	return QApplication.instance().clipboard()
+
+def _place_on_clipboard(files, extra_data):
+	urls = [QUrl.fromLocalFile(file_) for file_ in files]
+	new_clipboard_data = QMimeData()
+	new_clipboard_data.setUrls(urls)
+	new_clipboard_data.setText('\n'.join(map(basename, files)))
+	for key, value in extra_data.items():
+		new_clipboard_data.setData(key, value)
+	_clipboard().setMimeData(new_clipboard_data)
+
+def _get_extra_copy_cut_data_linux(files, copy_or_cut):
+	result = {}
+	mime_type = _get_linux_copy_cut_mime_type()
+	if mime_type:
+		file_urls = [QUrl.fromLocalFile(f).toString() for f in files]
+		result[mime_type] = '\n'.join([copy_or_cut] + file_urls).encode('utf-8')
+	return result
+
+def _get_linux_copy_cut_mime_type():
+	if is_gnome_based():
+		return 'x-special/gnome-copied-files'
+	if is_kde_based():
+		return 'application/x-kde-cutselection'

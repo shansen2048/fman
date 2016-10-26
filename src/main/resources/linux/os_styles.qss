@@ -1,8 +1,31 @@
 * {
 	font-family: "Open Sans";
 	font-style: "Semibold";
+	font-size: 9pt;
 }
 
-QStatusBar {
-	font-size: 11px;
+PathView {
+	padding: .5ex;
+}
+
+QTreeView QHeaderView::section {
+	font-size: 8pt;
+	padding-top: 1ex;
+	padding-bottom: 1ex;
+}
+
+QTreeView::item::first {
+	padding-left: 0.25em;
+}
+
+QStatusBar, QStatusBar QLabel {
+	font-size: 8pt;
+}
+
+QStatusBar QLabel {
+	padding-left: .1ex;
+}
+
+QuickSearch QLineEdit, QuickSearch QListView QLabel {
+	font-size: 10pt;
 }

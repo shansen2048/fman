@@ -3,9 +3,9 @@ from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView, QuickSearch
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import exists, normpath, dirname
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer
+from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
-	QMessageBox, QInputDialog, QLineEdit, QFileDialog
+	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel
 
 class DirectoryPane(QWidget):
 
@@ -121,6 +121,9 @@ class MainWindow(QMainWindow):
 		self.splitter = QSplitter(self)
 		self.setCentralWidget(self.splitter)
 		self.status_bar = QStatusBar(self)
+		self.status_bar_text = QLabel(self.status_bar)
+		self.status_bar_text.setOpenExternalLinks(True)
+		self.status_bar.addWidget(self.status_bar_text)
 		self.status_bar.setSizeGripEnabled(False)
 		self.setStatusBar(self.status_bar)
 		self.setWindowTitle("fman")
@@ -150,7 +153,7 @@ class MainWindow(QMainWindow):
 		return QuickSearch(self, get_suggestions, get_tab_completion).exec()
 	@run_in_main_thread
 	def show_status_message(self, text):
-		self.status_bar.showMessage(text)
+		self.status_bar_text.setText(text)
 	def add_pane(self):
 		result = DirectoryPane(self.splitter)
 		result.set_controller(self.controller)

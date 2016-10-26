@@ -157,10 +157,8 @@ class ApplicationContext:
 			self._palette.setColor(
 				QPalette.ButtonText, QColor(0xb6, 0xb3, 0xab)
 			)
-			self._palette.setColor(QPalette.Link, QColor(0x53, 0x9f, 0xa3))
-			self._palette.setColor(
-				QPalette.LinkVisited, QColor(0x84, 0x5b, 0x90)
-			)
+			self._palette.setColor(QPalette.Link, Qt.white)
+			self._palette.setColor(QPalette.LinkVisited, Qt.white)
 		return self._palette
 	@property
 	def main_window_palette(self):
