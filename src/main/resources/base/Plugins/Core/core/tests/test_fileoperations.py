@@ -334,3 +334,5 @@ class StubUI:
 		return answer
 	def show_status_message(self, _):
 		pass
+	def clear_status_message(self):
+		pass

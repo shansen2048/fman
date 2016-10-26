@@ -73,7 +73,8 @@ def open_native_file_manager(dir_path):
 				show_status_message(
 					'Hint: If %s opened in the background, click '
 					'<a href="https://askubuntu.com/a/594301">here</a>.'
-					% native_file_manager.title()
+					% native_file_manager.title(),
+					timeout_secs=10
 				)
 	else:
 		raise NotImplementedError(PLATFORM)

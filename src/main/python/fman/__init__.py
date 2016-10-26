@@ -57,8 +57,11 @@ def show_alert(text, buttons=OK, default_button=OK):
 def show_prompt(text, default=''):
 	return _get_ui().show_prompt(text, default)
 
-def show_status_message(text):
-	return _get_ui().show_status_message(text)
+def show_status_message(text, timeout_secs=None):
+	return _get_ui().show_status_message(text, timeout_secs)
+
+def clear_status_message():
+	return _get_ui().clear_status_message()
 
 def show_file_open_dialog(caption, dir_path, filter_text):
 	return _get_ui().show_file_open_dialog(caption, dir_path, filter_text)

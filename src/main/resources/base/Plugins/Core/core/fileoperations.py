@@ -30,7 +30,7 @@ class FileTreeOperation:
 		for src in self.files:
 			if not self._call_on_file(src):
 				break
-		self.ui.show_status_message('Ready.')
+		self.ui.clear_status_message()
 	def _call_on_file(self, src):
 		if src.endswith('/'):
 			# File paths ending in '/' screw up os.path.basename(...):
