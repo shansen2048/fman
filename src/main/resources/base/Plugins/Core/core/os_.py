@@ -66,7 +66,7 @@ def open_native_file_manager(dir_path):
 					'"Core Settings.json".'
 				)
 				return
-		Popen([native_file_manager, dir_path], shell=True)
+		Popen([native_file_manager, dir_path])
 		if is_gnome_based():
 			fpl = check_output(['dconf', 'read', _FOCUS_PREVENTION_LEVEL])
 			if fpl in (b'', b'1\n'):
