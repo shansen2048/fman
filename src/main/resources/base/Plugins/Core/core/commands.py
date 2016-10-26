@@ -375,7 +375,7 @@ class OpenInLeftPane(OpenInPaneCommand):
 	def get_destination_pane(self, this_pane, num_panes):
 		return max(this_pane - 1, 0)
 
-class OpenDrives(CorePaneCommand):
+class ShowDrives(CorePaneCommand):
 	def __call__(self):
 		if PLATFORM == 'Mac':
 			path = '/Volumes'

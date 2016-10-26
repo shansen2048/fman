@@ -6,6 +6,6 @@
 	{ "keys": ["Space"], "command": "move_cursor_down", "args": {"toggle_selection": true} },
 	{ "keys": ["Cmd+Backspace"], "command": "move_to_trash" },
 	{ "keys": ["Cmd+."], "command": "toggle_hidden_files" },
-	{ "keys": ["Cmd+F1"], "command": "open_drives" },
+	{ "keys": ["Cmd+F1"], "command": "show_drives" },
 	{ "keys": ["Cmd+P"], "command": "go_to"}
 ]

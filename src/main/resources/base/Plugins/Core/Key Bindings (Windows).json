@@ -4,6 +4,6 @@
 	{ "keys": ["Ctrl+V"], "command": "paste" },
 	{ "keys": ["Ctrl+A"], "command": "select_all" },
 	{ "keys": ["Ctrl+."], "command": "toggle_hidden_files" },
-	{ "keys": ["Alt+F1"], "command": "open_drives" },
+	{ "keys": ["Alt+F1"], "command": "show_drives" },
 	{ "keys": ["Ctrl+P"], "command": "go_to" }
 ]
