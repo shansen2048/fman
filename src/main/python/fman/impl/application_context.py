@@ -111,7 +111,10 @@ class ApplicationContext:
 	@property
 	def main_window(self):
 		if self._main_window is None:
-			self._main_window = MainWindow(self.controller)
+			self._main_window = MainWindow()
+			controller = \
+				Controller(self._main_window, self.plugin_support, self.metrics)
+			self._main_window.set_controller(controller)
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
 			self._main_window.pane_added.connect(
@@ -120,6 +123,9 @@ class ApplicationContext:
 			self._main_window.closeEvent = \
 				lambda _: self.session_manager.on_close(self.main_window)
 		return self._main_window
+	@property
+	def controller(self):
+		return self.main_window.controller
 	@property
 	def metrics(self):
 		if self._metrics is None:
@@ -132,11 +138,6 @@ class ApplicationContext:
 					rename(old_json_path, json_path)
 			self._metrics = Metrics(self.constants['mixpanel_token'], json_path)
 		return self._metrics
-	@property
-	def controller(self):
-		if self._controller is None:
-			self._controller = Controller(self.plugin_support, self.metrics)
-		return self._controller
 	@property
 	def palette(self):
 		if self._palette is None:

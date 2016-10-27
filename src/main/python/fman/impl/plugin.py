@@ -86,7 +86,7 @@ class PluginSupport:
 		return join(self.installed_plugins_dir, self.USER_PLUGIN_NAME)
 	def _load_plugins(self):
 		result, errors = [], []
-		for plugin_dir in self._find_plugins():
+		for plugin_dir in self._find_plugin_dirs():
 			plugin = Plugin(plugin_dir)
 			result.append(plugin)
 			if not exists(plugin_dir):
@@ -99,12 +99,12 @@ class PluginSupport:
 				plugin.load()
 			except Exception as e:
 				plugin_name = basename(plugin_dir)
-				traceback = self._get_plugin_traceback(e, plugin_dir)
+				traceback = self.get_plugin_traceback(e)
 				errors.append(
 					'Plugin %r failed to load.\n\n%s' % (plugin_name, traceback)
 				)
 		return result, errors
-	def _find_plugins(self):
+	def _find_plugin_dirs(self):
 		shipped_plugins = self._list_plugins(self.shipped_plugins_dir)
 		installed_plugins = [
 			plugin for plugin in self._list_plugins(self.installed_plugins_dir)
@@ -125,10 +125,15 @@ class PluginSupport:
 			result.append(join(plugin_dir, name))
 			result.append(join(plugin_dir, platform_specific_name))
 		return result
-	def _get_plugin_traceback(self, exc, plugin_dir):
+	def get_plugin_traceback(self, exc):
 		tb = exc.__traceback__
-		tb_first_file = lambda: extract_tb(tb)[0][0]
-		while tb and not self._is_in_subdir(tb_first_file(), plugin_dir):
+		def is_in_plugin(tb):
+			tb_file = extract_tb(tb)[0][0]
+			for plugin_dir in self._find_plugin_dirs():
+				if self._is_in_subdir(dirname(tb_file), plugin_dir):
+					return True
+			return False
+		while tb and not is_in_plugin(tb):
 			tb = tb.tb_next
 		result = StringIO()
 		print_exception(exc.__class__, exc.with_traceback(tb), tb, file=result)

@@ -114,9 +114,9 @@ class MainWindow(QMainWindow):
 	pane_added = pyqtSignal(DirectoryPane)
 	shown = pyqtSignal()
 
-	def __init__(self, controller):
+	def __init__(self):
 		super().__init__()
-		self.controller = controller
+		self.controller = None
 		self.panes = []
 		self.splitter = QSplitter(self)
 		self.setCentralWidget(self.splitter)
@@ -130,6 +130,8 @@ class MainWindow(QMainWindow):
 		self.timer = QTimer(self)
 		self.timer.timeout.connect(self.clear_status_message)
 		self.timer.setSingleShot(True)
+	def set_controller(self, controller):
+		self.controller = controller
 	@run_in_main_thread
 	def show_alert(self, text, buttons=OK, default_button=OK):
 		msgbox = QMessageBox(self)

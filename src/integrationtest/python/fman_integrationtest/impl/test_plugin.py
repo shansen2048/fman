@@ -64,7 +64,7 @@ class PluginSupportTest(TestCase):
 	def test_find_plugins(self):
 		self.assertEqual(
 			[self.shipped_plugin, self.installed_plugin, self.user_plugin],
-			self.plugin_support._find_plugins()
+			self.plugin_support._find_plugin_dirs()
 		)
 	def test_key_bindings(self):
 		for pane in self.left_pane, self.right_pane:
