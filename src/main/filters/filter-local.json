@@ -1,6 +1,6 @@
 {
 	"environment": "local",
-	"version": "0.1.8-SNAPSHOT",
+	"version": "0.1.8",
 	"update_url": "http://127.0.0.1:8000/updates",
 	"info_plist_extra": "<key>NSAppTransportSecurity</key>\n\t<dict>\n\t\t<key>NSAllowsArbitraryLoads</key>\n\t\t<true/>\n\t</dict>",
 	"mixpanel_token": "5aa8659a91b3770ec942c59febc92a5c"
