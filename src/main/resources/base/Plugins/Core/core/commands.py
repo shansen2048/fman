@@ -317,7 +317,12 @@ class ToggleHiddenFiles(CorePaneCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.pane.add_filter(self.should_display)
-		self.show_hidden_files = False
+		# Instead of simply storing `show_hidden_files` in a boolean variable,
+		# we store it under 'Panes.json'. This lets other plugins query it as
+		# load_json('Panes.json')[pane.id]['show_hidden_files'].
+		settings = load_json('Panes.json', default={})
+		default = {'show_hidden_files': False}
+		self.pane_info = settings.setdefault(self.pane.id, default)
 	def should_display(self, file_path):
 		if self.show_hidden_files:
 			return True
@@ -327,6 +332,12 @@ class ToggleHiddenFiles(CorePaneCommand):
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
 		self.pane.invalidate_filters()
+	@property
+	def show_hidden_files(self):
+		return self.pane_info['show_hidden_files']
+	@show_hidden_files.setter
+	def show_hidden_files(self, value):
+		self.pane_info['show_hidden_files'] = value
 
 def _is_hidden(file_path):
 	return QFileInfo(file_path).isHidden()
