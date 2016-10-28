@@ -495,10 +495,7 @@ class SuggestLocations:
 		if self.fs.isdir(path) or self.fs.isdir(dirname(path)):
 			result = OrderedSet()
 			if self.fs.isdir(path):
-				if basename(path) != '.':
-					# We check for '.' because we don't want to add "path/./" as
-					# a suggestion for "path/.".
-					result.add(self._unexpand_user(path))
+				result.add(self._unexpand_user(path))
 				dir_ = path
 			else:
 				dir_ = dirname(path)
@@ -524,6 +521,8 @@ class SuggestLocations:
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 	def _starts_with(self, query, suggestion):
+		# We do want to return ~/Downloads when query is ~/Downloads/:
+		query = query.rstrip(os.sep)
 		if suggestion.lower().startswith(query.lower()):
 			return suggestion, list(range(len(query)))
 	def _name_starts_with(self, query, suggestion):

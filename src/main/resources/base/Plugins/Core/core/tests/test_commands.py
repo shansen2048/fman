@@ -36,8 +36,10 @@ class SuggestLocationsTest(TestCase):
 			'~/Unvisited', ('~/Unvisited', '~/Unvisited/Dir')
 		)
 	def test_enter_path_slash(self):
+		highlight = list(range(len('~/Unvisited')))
 		self._check_query_returns(
-			'~/Unvisited/', ('~/Unvisited/', '~/Unvisited/Dir',)
+			'~/Unvisited/', ('~/Unvisited', '~/Unvisited/Dir',),
+			(highlight, highlight)
 		)
 	def test_trailing_space(self):
 		self._check_query_returns('~/Downloads ', ())
