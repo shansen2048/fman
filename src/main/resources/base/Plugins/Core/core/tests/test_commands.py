@@ -39,6 +39,8 @@ class SuggestLocationsTest(TestCase):
 		self._check_query_returns(
 			'~/Unvisited/', ('~/Unvisited/', '~/Unvisited/Dir',)
 		)
+	def test_trailing_space(self):
+		self._check_query_returns('~/Downloads ', ())
 	def test_hidden(self):
 		self._check_query_returns('~/.', ('~/.hidden',))
 	def setUp(self):
@@ -77,7 +79,8 @@ class SuggestLocationsTest(TestCase):
 		paths = tuple(map(self._replace_pathsep, paths))
 		if highlights is None:
 			highlights = (self._full_range(query),) * len(paths)
-		actual_paths, actual_highlights = unzip(self.instance(query))
+		result = self.instance(query)
+		actual_paths, actual_highlights = unzip(result) if result else ((), ())
 		self.assertEqual(paths, actual_paths)
 		self.assertEqual(highlights, actual_highlights)
 	def _replace_pathsep(self, path):
@@ -93,6 +96,10 @@ class StubFileSystem:
 		self.files = files
 		self.home_dir = home_dir
 	def isdir(self, path):
+		if PLATFORM == 'Windows' and path.endswith(' '):
+			# Strange behaviour on Windows: isdir('X ') returns True if X
+			# (without space) exists.
+			path = path.rstrip(' ')
 		try:
 			self._get_dir(path)
 		except KeyError:
@@ -109,4 +116,7 @@ class StubFileSystem:
 	def expanduser(self, path):
 		return path.replace('~', self.home_dir)
 	def listdir(self, path):
-		return sorted(list(self._get_dir(path)))
+		try:
+			return sorted(list(self._get_dir(path)))
+		except KeyError as e:
+			raise FileNotFoundError(repr(path)) from e
