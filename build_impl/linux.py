@@ -12,9 +12,6 @@ def esky():
 	_run_esky()
 	with ZipFile(_get_esky_zip_path(), 'a', ZIP_DEFLATED) as zip:
 		zip.write(r'c:\Windows\System32\msvcr100.dll', r'msvcr100.dll')
-		subdir = _get_esky_subdir()
-		for dll in ('msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll'):
-			zip.write(join(r'c:\Windows\System32', dll), join(subdir, dll))
 
 def _get_esky_zip_path():
 	return path('target/fman-%s.win-amd64.zip' % OPTIONS['version'])
