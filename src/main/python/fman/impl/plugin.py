@@ -30,7 +30,10 @@ class PluginSupport:
 		self._listener_instances = {}
 	def initialize(self):
 		self._plugins, errors = self._load_plugins()
-		self._key_bindings_json = self.load_json('Key Bindings.json', [])
+		try:
+			self._key_bindings_json = self.load_json('Key Bindings.json', [])
+		except:
+			errors.extend('Error: Could not load key bindings.')
 		errors.extend(
 			'Error in key bindings: Command %r does not exist.' % command
 			for command in self._remove_missing_commands()
