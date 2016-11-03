@@ -32,7 +32,7 @@ def _run_pyinstaller():
 def _add_missing_dlls():
 	for dll in (
 		'msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll', 'vcruntime140.dll',
-		'msvcp140.dll'
+		'msvcp140.dll', 'concrt140.dll', 'vccorlib140.dll'
 	):
 		copy(join(r'c:\Windows\System32', dll), path('target/fman'))
 
