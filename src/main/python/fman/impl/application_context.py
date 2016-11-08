@@ -56,8 +56,6 @@ class ApplicationContext:
 		self._load_fonts()
 		self._plugin_errors = self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
-		# TODO: Remove this migration some time after mid October 2016:
-		self._migrate_versions_lte_0_0_4()
 	def on_main_window_shown(self):
 		if self._plugin_errors:
 			self.main_window.show_alert(self._plugin_errors[0])
@@ -184,22 +182,6 @@ class ApplicationContext:
 			json_path = join(get_data_dir(), 'Local', 'Session.json')
 			self._session_manager = SessionManager(json_path)
 		return self._session_manager
-	def _migrate_versions_lte_0_0_4(self):
-		old_settings_dir = expanduser('~/.fman')
-		try:
-			with open(join(old_settings_dir, 'settings.json'), 'r') as f:
-				old_settings = json.load(f)
-		except FileNotFoundError:
-			return
-		try:
-			editor = old_settings['editor']
-			self.plugin_support.save_json(
-				'Core Settings.json', {'editor': editor}
-			)
-		except KeyError:
-			pass
-		finally:
-			rmtree(old_settings_dir)
 	@property
 	def stylesheet(self):
 		if self._stylesheet is None:
