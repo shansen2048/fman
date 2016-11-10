@@ -491,7 +491,7 @@ class SuggestLocations:
 		return self._filter_suggestions(suggestions, query)
 	def _gather_suggestions(self, query):
 		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
-		path = realpath(self.fs.expanduser(query))
+		path = normpath(self.fs.expanduser(query))
 		if self.fs.isdir(path) or self.fs.isdir(dirname(path)):
 			result = OrderedSet()
 			if self.fs.isdir(path):
