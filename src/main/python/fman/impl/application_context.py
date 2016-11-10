@@ -3,7 +3,7 @@ from fman.impl import MainWindow
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
-from fman.impl.plugin import PluginSupport
+from fman.impl.plugin import PluginSupport, find_plugin_dirs, PluginErrorHandler
 from fman.impl.session import SessionManager
 from fman.impl.updater import EskyUpdater, MacUpdater
 from fman.impl.view import Style
@@ -13,7 +13,6 @@ from os.path import dirname, join, pardir, normpath, exists, expanduser
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontDatabase, QColor, QPalette
 from PyQt5.QtWidgets import QApplication, QStyleFactory
-from shutil import rmtree
 
 import json
 import sys
@@ -37,12 +36,11 @@ class ApplicationContext:
 		self._controller = None
 		self._palette = None
 		self._main_window_palette = None
-		self._plugin_support = None
+		self._plugin_dirs = None
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
 		self._metrics = None
-		self._plugin_errors = []
 	def initialize(self):
 		self.excepthook.install()
 		self.metrics.initialize()
@@ -54,11 +52,9 @@ class ApplicationContext:
 		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
 		self._load_fonts()
-		self._plugin_errors = self.plugin_support.initialize()
+		self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
 	def on_main_window_shown(self):
-		if self._plugin_errors:
-			self.main_window.show_alert(self._plugin_errors[0])
 		if self.updater:
 			self.updater.start()
 	def _load_fonts(self):
@@ -110,17 +106,34 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow()
-			controller = \
-				Controller(self._main_window, self.plugin_support, self.metrics)
+			plugin_dirs = self.plugin_dirs
+			error_handler = \
+				PluginErrorHandler(plugin_dirs, self._main_window)
+			plugin_support = PluginSupport(plugin_dirs, error_handler)
+			self.app.aboutToQuit.connect(plugin_support.on_quit)
+			controller = Controller(plugin_support, self.metrics)
 			self._main_window.set_controller(controller)
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
-			self._main_window.pane_added.connect(
-				self.plugin_support.on_pane_added
-			)
+			self._main_window.shown.connect(error_handler.on_main_window_shown)
+			self._main_window.pane_added.connect(plugin_support.on_pane_added)
 			self._main_window.closeEvent = \
 				lambda _: self.session_manager.on_close(self.main_window)
 		return self._main_window
+	@property
+	def plugin_dirs(self):
+		if self._plugin_dirs is None:
+			shipped_plugins = self.get_resource('Plugins')
+			installed_plugins = join(get_data_dir(), 'Plugins')
+			self._plugin_dirs = \
+				find_plugin_dirs(shipped_plugins, installed_plugins)
+		return self._plugin_dirs
+	@property
+	def plugin_support(self):
+		return self.controller.plugin_support
+	@property
+	def plugin_error_handler(self):
+		return self.plugin_support.error_handler
 	@property
 	def controller(self):
 		return self.main_window.controller
@@ -167,15 +180,6 @@ class ApplicationContext:
 				QPalette.Window, QColor(0x44, 0x44, 0x44)
 			)
 		return self._main_window_palette
-	@property
-	def plugin_support(self):
-		if self._plugin_support is None:
-			shipped_plugins = self.get_resource('Plugins')
-			installed_plugins = join(get_data_dir(), 'Plugins')
-			self._plugin_support = \
-				PluginSupport(shipped_plugins, installed_plugins)
-			self.app.aboutToQuit.connect(self._plugin_support.on_quit)
-		return self._plugin_support
 	@property
 	def session_manager(self):
 		if self._session_manager is None:

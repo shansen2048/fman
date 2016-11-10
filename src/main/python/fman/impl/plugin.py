@@ -16,29 +16,30 @@ import sys
 
 KeyBinding = namedtuple('KeyBinding', ('keys', 'command', 'args'))
 
+USER_PLUGIN_NAME = 'User'
+
 class PluginSupport:
-
-	USER_PLUGIN_NAME = 'User'
-
-	def __init__(self, shipped_plugins_dir, installed_plugins_dir):
-		self.shipped_plugins_dir = shipped_plugins_dir
-		self.installed_plugins_dir = installed_plugins_dir
+	def __init__(self, plugin_dirs, error_handler):
+		self.plugin_dirs = plugin_dirs
+		self.error_handler = error_handler
 		self._cached_jsons = {}
 		self._jsons_to_save_on_quit = set()
-		self._plugins = self._key_bindings_json = None
+		self._plugins = None
+		self._key_bindings_json = []
 		self._command_instances = {}
 		self._listener_instances = {}
 	def initialize(self):
-		self._plugins, errors = self._load_plugins()
+		self._plugins = self._load_plugins()
 		try:
 			self._key_bindings_json = self.load_json('Key Bindings.json', [])
 		except:
-			errors.extend('Error: Could not load key bindings.')
-		errors.extend(
-			'Error in key bindings: Command %r does not exist.' % command
-			for command in self._remove_missing_commands()
-		)
-		return errors
+			self.error_handler.report('Error: Could not load key bindings.')
+		else:
+			for command in self._remove_missing_commands():
+				self.error_handler.report(
+					'Error in key bindings: Command %r does not exist.' %
+					command
+				)
 	def on_pane_added(self, pane):
 		self._command_instances[pane] = {}
 		self._listener_instances[pane] = []
@@ -57,19 +58,34 @@ class PluginSupport:
 		commands = self._command_instances[pane]
 		for key_binding in self._key_bindings_json:
 			keys = key_binding['keys']
-			command = commands[key_binding['command']]
+			command_name = key_binding['command']
+			command = CommandWrapper(commands[command_name], self.error_handler)
 			args = key_binding.get('args', {})
 			result.append(KeyBinding(keys, command, args))
 		return result
 	def on_doubleclicked(self, pane, file_path):
 		for listener in self._listener_instances[pane]:
-			listener.on_doubleclicked(file_path)
+			try:
+				listener.on_doubleclicked(file_path)
+			except:
+				self._report_listener_error(listener)
 	def on_name_edited(self, pane, file_path, new_name):
 		for listener in self._listener_instances[pane]:
-			listener.on_name_edited(file_path, new_name)
+			try:
+				listener.on_name_edited(file_path, new_name)
+			except:
+				self._report_listener_error(listener)
 	def on_path_changed(self, pane):
 		for listener in self._listener_instances[pane]:
-			listener.on_path_changed()
+			try:
+				listener.on_path_changed()
+			except:
+				self._report_listener_error(listener)
+	def _report_listener_error(self, listener):
+		self.error_handler.report(
+			'DirectoryPaneListener %r raised error.' %
+			listener.__class__.__name__
+		)
 	def load_json(self, name, default=None, save_on_quit=False):
 		if name not in self._cached_jsons:
 			result = load_json(*self._get_json_paths(name))
@@ -84,41 +100,23 @@ class PluginSupport:
 			value = self._cached_jsons[name]
 		write_differential_json(value, *self._get_json_paths(name))
 		self._cached_jsons[name] = value
-	@property
-	def user_plugin(self):
-		return join(self.installed_plugins_dir, self.USER_PLUGIN_NAME)
 	def _load_plugins(self):
-		result, errors = [], []
-		for plugin_dir in self._find_plugin_dirs():
+		result = []
+		for plugin_dir in self.plugin_dirs:
 			plugin = Plugin(plugin_dir)
 			result.append(plugin)
 			if not exists(plugin_dir):
 				# This happens the first time fman is started. We still want the
 				# User plugin to be in `result` because this list is used to
 				# compute the destination path for save_json(...).
-				assert plugin_dir == self.user_plugin
+				assert basename(plugin_dir) == USER_PLUGIN_NAME
 				continue
 			try:
 				plugin.load()
-			except Exception as e:
-				plugin_name = basename(plugin_dir)
-				traceback = self.get_plugin_traceback(e)
-				errors.append(
-					'Plugin %r failed to load.\n\n%s' % (plugin_name, traceback)
-				)
-		return result, errors
-	def _find_plugin_dirs(self):
-		shipped_plugins = self._list_plugins(self.shipped_plugins_dir)
-		installed_plugins = [
-			plugin for plugin in self._list_plugins(self.installed_plugins_dir)
-		 	if basename(plugin) != self.USER_PLUGIN_NAME
-		]
-		return shipped_plugins + installed_plugins + [self.user_plugin]
-	def _list_plugins(self, dir_path):
-		try:
-			return list(filter(isdir, listdir_absolute(dir_path)))
-		except FileNotFoundError:
-			return []
+			except:
+				message = 'Plugin %r failed to load.' % basename(plugin_dir)
+				self.error_handler.report(message)
+		return result
 	def _get_json_paths(self, name):
 		plugin_dirs = [plugin.path for plugin in self._plugins]
 		base, ext = splitext(name)
@@ -128,22 +126,6 @@ class PluginSupport:
 			result.append(join(plugin_dir, name))
 			result.append(join(plugin_dir, platform_specific_name))
 		return result
-	def get_plugin_traceback(self, exc):
-		tb = exc.__traceback__
-		def is_in_plugin(tb):
-			tb_file = extract_tb(tb)[0][0]
-			for plugin_dir in self._find_plugin_dirs():
-				if self._is_in_subdir(dirname(tb_file), plugin_dir):
-					return True
-			return False
-		while tb and not is_in_plugin(tb):
-			tb = tb.tb_next
-		result = StringIO()
-		print_exception(exc.__class__, exc.with_traceback(tb), tb, file=result)
-		return result.getvalue()
-	def _is_in_subdir(self, file_path, directory):
-		rel = relpath(realpath(dirname(file_path)), realpath(directory))
-		return not (rel == pardir or rel.startswith(pardir + os.sep))
 	def _remove_missing_commands(self):
 		result = []
 		available_commands = set(
@@ -158,6 +140,72 @@ class PluginSupport:
 				result.append(command)
 		return result
 
+def find_plugin_dirs(shipped_plugins_dir, installed_plugins_dir):
+	shipped_plugins = _list_plugins(shipped_plugins_dir)
+	installed_plugins = [
+		plugin for plugin in _list_plugins(installed_plugins_dir)
+		if basename(plugin) != USER_PLUGIN_NAME
+	]
+	user_plugin = join(installed_plugins_dir, USER_PLUGIN_NAME)
+	return shipped_plugins + installed_plugins + [user_plugin]
+
+def _list_plugins(dir_path):
+	try:
+		return list(filter(isdir, listdir_absolute(dir_path)))
+	except FileNotFoundError:
+		return []
+
+class PluginErrorHandler:
+	def __init__(self, plugin_dirs, main_window):
+		self.plugin_dirs = plugin_dirs
+		self.main_window = main_window
+		self.main_window_initialized = False
+		self.pending_error_messages = []
+	def report(self, message):
+		exc = sys.exc_info()[1]
+		if exc:
+			message += '\n\n' + self._get_plugin_traceback(exc)
+		if self.main_window_initialized:
+			self.main_window.show_alert(message)
+		else:
+			self.pending_error_messages.append(message)
+	def on_main_window_shown(self):
+		if self.pending_error_messages:
+			self.main_window.show_alert(self.pending_error_messages[0])
+		self.main_window_initialized = True
+	def _get_plugin_traceback(self, exc):
+		tb = exc.__traceback__
+		while tb:
+			plugin_dir = self._get_plugin_dir(tb)
+			if plugin_dir:
+				break
+			tb = tb.tb_next
+		traceback_ = StringIO()
+		print_exception(
+			exc.__class__, exc.with_traceback(tb), tb, file=traceback_
+		)
+		return traceback_.getvalue()
+	def _get_plugin_dir(self, traceback_):
+		tb_file = extract_tb(traceback_)[0][0]
+		for plugin_dir in self.plugin_dirs:
+			if self._is_in_subdir(dirname(tb_file), plugin_dir):
+				return plugin_dir
+	def _is_in_subdir(self, file_path, directory):
+		rel = relpath(realpath(dirname(file_path)), realpath(directory))
+		return not (rel == pardir or rel.startswith(pardir + os.sep))
+
+class CommandWrapper:
+	def __init__(self, command, error_handler):
+		self.wrapped_command = command
+		self.error_handler = error_handler
+	def __call__(self, *args, **kwargs):
+		try:
+			return self.wrapped_command(*args, **kwargs)
+		except:
+			command_name = self.wrapped_command.__class__.__name__
+			message = 'Command %r raised exception.' % command_name
+			self.error_handler.report(message)
+
 class Plugin:
 	def __init__(self, dir_path):
 		self.path = dir_path
@@ -171,10 +219,11 @@ class Plugin:
 					mro = getmro(cls)
 				except Exception as not_a_class:
 					continue
-				if DirectoryPaneCommand in mro:
+				is_strict_subclass_of = lambda superclass: superclass in mro[1:]
+				if is_strict_subclass_of(DirectoryPaneCommand):
 					name = self._get_command_name(cls.__name__)
 					self.command_classes[name] = cls
-				if DirectoryPaneListener in mro:
+				if is_strict_subclass_of(DirectoryPaneListener):
 					self.listener_classes.append(cls)
 	def _load_modules(self):
 		result = []

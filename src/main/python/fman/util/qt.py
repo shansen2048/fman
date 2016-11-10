@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import QApplication
 
 def connect_once(signal, slot):
 	def _connect_once(*args, **kwargs):
-		slot(*args, **kwargs)
 		signal.disconnect(_connect_once)
+		slot(*args, **kwargs)
 	signal.connect(_connect_once)
 
 def run_in_thread(thread_fn):

@@ -3,8 +3,7 @@ from fman.util.system import is_mac
 from PyQt5.QtGui import QKeySequence
 
 class Controller:
-	def __init__(self, main_window, plugin_support, tracker):
-		self.main_window = main_window
+	def __init__(self, plugin_support, tracker):
 		self.plugin_support = plugin_support
 		self.tracker = tracker
 	def on_key_pressed(self, pane, event):
@@ -35,12 +34,6 @@ class Controller:
 					command(**binding.args)
 				except NotImplementedError:
 					continue
-				except Exception as e:
-					traceback = self.plugin_support.get_plugin_traceback(e)
-					self.main_window.show_alert(
-						'Command %s raised exception.\n\n%s' %
-						(command_name, traceback)
-					)
 				else:
 					return True
 		event.ignore()

@@ -1,5 +1,6 @@
 from fman import PLATFORM
-from fman.impl.plugin import PluginSupport, load_json, write_differential_json
+from fman.impl.plugin import PluginSupport, load_json, \
+	write_differential_json, USER_PLUGIN_NAME, find_plugin_dirs
 from fman_integrationtest import get_resource
 from os import mkdir
 from os.path import join, exists
@@ -63,32 +64,60 @@ class PluginSupportTest(TestCase):
 			self.assertEqual(d, json.load(f))
 	def test_find_plugins(self):
 		self.assertEqual(
-			[self.shipped_plugin, self.installed_plugin, self.user_plugin],
-			self.plugin_support._find_plugin_dirs()
+			self.plugin_dirs,
+			find_plugin_dirs(self.shipped_plugins, self.installed_plugins)
 		)
 	def test_key_bindings(self):
-		for pane in self.left_pane, self.right_pane:
-			key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
-			self.assertEqual(1, len(key_bindings))
-			key_binding, = key_bindings
-			self.assertEqual(["Enter"], key_binding.keys)
-			command = key_binding.command
-			self.assertIs(pane, command.pane)
-			self.assertEqual(True, command(success=True))
+		pane = self.left_pane
+		key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
+		self.assertEqual(2, len(key_bindings))
+		test_command, command_raising_error = key_bindings
+		self.assertEqual(["Enter"], test_command.keys)
+		self.assertEqual(["Space"], command_raising_error.keys)
+		for binding in key_bindings:
+			self.assertIs(pane, binding.command.wrapped_command.pane)
+		self.assertEqual(True, test_command.command(success=True))
+		# Should not raise an exception:
+		command_raising_error.command()
+		self.assertEqual(
+			["Command 'CommandRaisingError' raised exception."],
+			self.error_handler.error_messages
+		)
+	def test_on_path_changed_error(self):
+		self.plugin_support.on_path_changed(self.left_pane)
+		self.assertEqual(
+			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
+			self.error_handler.error_messages
+		)
+	def test_on_doubleclicked_error(self):
+		self.plugin_support.on_doubleclicked(self.left_pane, self.user_plugin)
+		self.assertEqual(
+			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
+			self.error_handler.error_messages
+		)
+	def test_on_on_name_edited_error(self):
+		self.plugin_support.on_name_edited(
+			self.left_pane, self.user_plugin, 'New name'
+		)
+		self.assertEqual(
+			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
+			self.error_handler.error_messages
+		)
 	def setUp(self):
 		self.shipped_plugins = mkdtemp()
 		self.installed_plugins = mkdtemp()
-		self.user_plugin = \
-			join(self.installed_plugins, PluginSupport.USER_PLUGIN_NAME)
+		self.user_plugin = join(self.installed_plugins, USER_PLUGIN_NAME)
 		mkdir(self.user_plugin)
 		self.shipped_plugin = join(self.shipped_plugins, 'Shipped')
 		mkdir(self.shipped_plugin)
 		self.installed_plugin = join(self.installed_plugins, 'Simple Plugin')
 		src_dir = get_resource('PluginSupportTest/Simple Plugin')
 		copytree(src_dir, self.installed_plugin)
-		self.plugin_support = PluginSupport(
-			self.shipped_plugins, self.installed_plugins
-		)
+		self.plugin_dirs = \
+			[self.shipped_plugin, self.installed_plugin, self.user_plugin]
+		self.error_handler = StubErrorHandler()
+		self.plugin_support = \
+			PluginSupport(self.plugin_dirs, self.error_handler)
 		self.plugin_support.initialize()
 		self.left_pane = StubDirectoryPane()
 		self.right_pane = StubDirectoryPane()
@@ -97,6 +126,12 @@ class PluginSupportTest(TestCase):
 	def tearDown(self):
 		rmtree(self.shipped_plugins)
 		rmtree(self.installed_plugins)
+
+class StubErrorHandler:
+	def __init__(self):
+		self.error_messages = []
+	def report(self, message):
+		self.error_messages.append(message)
 
 class StubSignal:
 	def connect(self, slot):
