@@ -257,12 +257,13 @@ class QuickSearch(QDialog):
 
 class QuickSearchResult(QLabel):
 	def __init__(self, result, parent):
+		super().__init__(parent)
 		text, char_indices_to_highlight = result
-		html_parts = list(text)
+		html_parts = list(map(html.escape, text))
 		for i in char_indices_to_highlight:
-			html_parts[i] = '<font color="white">' + \
-							html.escape(html_parts[i]) + '</font>'
-		super().__init__(''.join(html_parts), parent)
+			html_parts[i] = '<font color="white">' + html_parts[i] + '</font>'
+		self.setTextFormat(Qt.RichText)
+		self.setText(''.join(html_parts))
 
 class LineEdit(QLineEdit):
 	def __init__(self, *args, **kwargs):
