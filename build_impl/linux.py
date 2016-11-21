@@ -1,6 +1,6 @@
 from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering
+	copy_with_filtering, collectstatic
 from os import makedirs
 from os.path import exists, basename, join
 from shutil import copytree, rmtree, copy
@@ -61,6 +61,12 @@ def upload():
 				deb_path_remote
 			)
 		)
+		run_on_server(
+			'mv "%s" "%s/fman.deb"' % (
+				deb_path_remote, get_path_on_server('downloads')
+			)
+		)
+		collectstatic()
 	finally:
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
 

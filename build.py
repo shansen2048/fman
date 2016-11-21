@@ -1,4 +1,4 @@
-from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, read_filter
+from build_impl import path, is_windows, is_mac, is_linux, OPTIONS
 from os import unlink, listdir, remove
 from os.path import join, isdir, isfile, islink, expanduser
 from shutil import rmtree
@@ -16,7 +16,6 @@ OPTIONS.update({
 	],
 	'gpg_key': 'C6BC0CF4D8FEA35D'
 })
-OPTIONS.update(read_filter())
 
 if is_windows():
 	from build_impl.windows import exe, installer, zip, sign_exe, \

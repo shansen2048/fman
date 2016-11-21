@@ -12,15 +12,37 @@ import sys
 
 PROJECT_DIR = join(dirname(__file__), pardir)
 
-# We cannot have this dict in the same file as __main__.
-# See: http://stackoverflow.com/q/38702175/1839209
-OPTIONS = {
-	'release': False,
-	'files_to_filter': []
-}
+class LazyOptions:
+	def __init__(self):
+		self.cache = {}
+	def __getitem__(self, item):
+		return self.cache[item]
+	def __setitem__(self, key, value):
+		self.cache[key] = value
+		if key == 'release':
+			self.update(read_filter())
+	def update(self, other):
+		for key, value in other.items():
+			self[key] = value
+	def items(self):
+		return self.cache.items()
+
+def read_filter():
+	with open(path('src/main/filters/filter-local.json'), 'r') as f:
+		result = json.load(f)
+	if OPTIONS['release']:
+		with open(path('src/main/filters/filter-release.json'), 'r') as f:
+			result.update(json.load(f))
+	return result
 
 def path(relpath):
 	return normpath(join(PROJECT_DIR, *relpath.split('/')))
+
+OPTIONS = LazyOptions()
+OPTIONS.update({
+	'release': False,
+	'files_to_filter': []
+})
 
 def generate_resources(dest_dir=path('target/resources'), exclude=None):
 	copy_with_filtering(
@@ -48,14 +70,6 @@ def copy_with_filtering(
 			_copy_with_filtering(src, dest, replacements)
 		else:
 			copy(src, dest)
-
-def read_filter():
-	with open(path('src/main/filters/filter-local.json'), 'r') as f:
-		result = json.load(f)
-	if OPTIONS['release']:
-		with open(path('src/main/filters/filter-release.json'), 'r') as f:
-			result.update(json.load(f))
-	return result
 
 def _get_files_to_copy(src_dir_or_file, dest_dir, exclude):
 	excludes = _paths(exclude)
@@ -172,21 +186,25 @@ def upload_file(f, dest_dir):
 	print('Uploading %s...' % basename(f))
 	dest_path = get_path_on_server(dest_dir)
 	if OPTIONS['release']:
-		run(['scp', f, OPTIONS['server_user'] + ':' + dest_path])
-		# The server serves its static files from static-collected/. The
-		# "Appcast.xml" view looks inside static/. So we need the files in both
-		# locations. Run `collectstatic` to have Django copy them from static/
-		# to static-collected/.
-		run_on_server(
-			'cd src/ ; '
-			'source venv/bin/activate ; '
-			'python manage.py collectstatic --noinput'
-		)
+		run(['scp', '-r', f, OPTIONS['server_user'] + ':' + dest_path])
 	else:
 		if isdir(f):
 			copytree(f, join(dest_dir, basename(f)))
 		else:
 			copy(f, dest_path)
+	# The server serves its static files from static-collected/. The
+	# "Appcast.xml" view looks inside static/. So we need the files in both
+	# locations. Run `collectstatic` to have Django copy them from static/
+	# to static-collected/.
+	collectstatic()
+
+def collectstatic():
+	if OPTIONS['release']:
+		run_on_server(
+			'cd src/ ; '
+			'source venv/bin/activate ; '
+			'python manage.py collectstatic --noinput'
+		)
 
 def get_path_on_server(file_path):
 	if file_path.startswith('/'):
