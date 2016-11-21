@@ -11,7 +11,8 @@ def exe():
 	exclude = [
 		path('src/main/resources/linux/' + file_name)
 		for file_name in (
-			'fman.desktop', 'fman.list', 'after-install.sh', 'update-fman'
+			'fman.desktop', 'fman.list', 'after-install.sh', 'update-fman',
+			'fman'
 		)
 	]
 	generate_resources(dest_dir=path('target/fman'), exclude=exclude)
@@ -25,7 +26,7 @@ def deb():
 	for file_name, dest in (
 		('fman.list', '/etc/apt/sources.list.d'),
 		('fman.desktop', '/usr/share/applications'),
-		('update-fman', '/usr/bin'),
+		('update-fman', '/usr/bin'), ('fman', '/etc/cron.daily')
 	):
 		to_copy = path('src/main/resources/linux/' + file_name)
 		copy_with_filtering(
@@ -41,6 +42,10 @@ def deb():
 		'-m', 'Michael Herrmann <michael@herrmann.io>',
 		'--vendor', 'Michael Herrmann', '--url', 'https://fman.io',
 		'--after-install', path('target/after-install.sh'),
+		# Avoid warning "The postinst maintainerscript of the package fman seems
+		# to use apt-key (provided by apt) without depending on gnupg or
+		# gnupg2.":
+		'-d', 'gnupg',
 		'-p', _get_deb_path(), '-f', '-C', path('target/deb')
 	])
 
