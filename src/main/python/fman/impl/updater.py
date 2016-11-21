@@ -1,15 +1,6 @@
 from os.path import join, pardir, dirname
-from threading import Thread
 
 import sys
-
-class EskyUpdater(Thread):
-	def __init__(self, executable, update_url):
-		super().__init__()
-		from esky import Esky
-		self.esky = Esky(executable, update_url)
-	def run(self):
-		self.esky.auto_update()
 
 class MacUpdater:
 	def __init__(self, app, appcast_url):

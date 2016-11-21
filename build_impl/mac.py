@@ -1,24 +1,15 @@
 from build_impl import run, path, copy_framework, get_canonical_os_name, \
-	generate_resources, OPTIONS, copy_python_library
+	generate_resources, OPTIONS, copy_python_library, upload_file, \
+	run_on_server, check_output_decode, get_path_on_server, run_pyinstaller
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
 from shutil import rmtree, copy
-from subprocess import check_output
 from tempfile import TemporaryDirectory
 
-import sys
-
 def app():
-	run([
-		'pyinstaller',
-		'--name', 'fman',
-		'--osx-bundle-identifier', 'io.fman.fman',
-		'--windowed',
-		'--distpath', path('target'),
-		'--specpath', path('target/build'),
-		'--workpath', path('target/build'),
-		path('src/main/python/fman/main.py')
+	run_pyinstaller(extra_args=[
+		'--windowed', '--osx-bundle-identifier', 'io.fman.fman'
 	])
 	_remove_unwanted_pyinstaller_files()
 	_fix_sparkle_delta_updates()
@@ -135,7 +126,7 @@ def _sync_cache_with_server():
 	return result
 
 def _get_versions_on_server():
-	updates_dir = _get_updates_dir()
+	updates_dir = get_path_on_server(_get_updates_dir())
 	hash_cmd = ' ; '.join([
 		# Prevent literal string ".../*.zip" from being passed to for loop below
 		# when there is no .zip file:
@@ -145,9 +136,9 @@ def _get_versions_on_server():
 		'done'
 	])
 	if OPTIONS['release']:
-		shasums_lines = _run_on_server(OPTIONS['server_user'], hash_cmd)
+		shasums_lines = run_on_server(hash_cmd)
 	else:
-		shasums_lines = _check_output_decode(hash_cmd, shell=True)
+		shasums_lines = check_output_decode(hash_cmd, shell=True)
 	lines = [line for line in shasums_lines.split('\n')[:-1]]
 	result = []
 	for line in lines:
@@ -156,7 +147,7 @@ def _get_versions_on_server():
 	return result
 
 def _shasum(path_):
-	return _check_output_decode(
+	return check_output_decode(
 		'shasum -a 256 %s | cut -c 1-64' % path_, shell=True
 	)[:-1]
 
@@ -167,12 +158,6 @@ def _download_from_server(file_path, dest_dir):
 	else:
 		copy(file_path, dest_dir)
 
-def _run_on_server(user_server, command):
-	return _check_output_decode(['ssh', user_server, command])
-
-def _check_output_decode(*args, **kwargs):
-	return check_output(*args, **kwargs).decode(sys.stdout.encoding)
-
 def _version_str_to_tuple(version_str):
 	return tuple(map(int, version_str.split('.')))
 
@@ -180,41 +165,13 @@ def _version_tuple_to_str(version_tuple):
 	return '.'.join(map(str, version_tuple))
 
 def upload():
-	_upload_file(path('target/fman.dmg'), _get_downloads_dir())
-	_upload_file(
-		path('target/autoupdate/%s.zip' % OPTIONS['version']),
-		_get_updates_dir()
+	upload_file(path('target/fman.dmg'), 'downloads')
+	updates_dir = _get_updates_dir()
+	upload_file(
+		path('target/autoupdate/%s.zip' % OPTIONS['version']), updates_dir
 	)
 	for patch_file in glob(path('target/autoupdate/*.delta')):
-		_upload_file(patch_file, _get_updates_dir())
-	if OPTIONS['release']:
-		# The server serves its static files from static-collected/. The
-		# "Appcast.xml" view looks inside static/. So we need the files in both
-		# locations. Run `collectstatic` to have Django copy them from static/
-		# to static-collected/.
-		run([
-			'ssh', OPTIONS['server_user'],
-			'cd src/ ; '
-			'source venv/bin/activate ; '
-			'python manage.py collectstatic --noinput'
-		])
-
-def _upload_file(f, dest_dir):
-	print('Uploading %s...' % basename(f))
-	if OPTIONS['release']:
-		run(['scp', f, OPTIONS['server_user'] + ':' + dest_dir])
-	else:
-		copy(f, dest_dir)
+		upload_file(patch_file, updates_dir)
 
 def _get_updates_dir():
-	return _get_staticfiles_dir() + '/updates/' + get_canonical_os_name()
-
-def _get_downloads_dir():
-	return _get_staticfiles_dir() + '/downloads/'
-
-def _get_staticfiles_dir():
-	if OPTIONS['release']:
-		staticfiles_dir = OPTIONS['server_staticfiles_dir']
-	else:
-		staticfiles_dir = OPTIONS['local_staticfiles_dir']
-	return staticfiles_dir
+	return 'updates/' + get_canonical_os_name()

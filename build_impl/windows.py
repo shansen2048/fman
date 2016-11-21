@@ -1,5 +1,5 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
-	copy_with_filtering, copy_python_library
+	copy_with_filtering, copy_python_library, run_pyinstaller
 from os import rename, makedirs
 from os.path import join, relpath, splitext
 from shutil import copy
@@ -9,25 +9,14 @@ from zipfile import ZipFile, ZIP_DEFLATED
 import os
 
 def exe():
-	_run_pyinstaller()
+	run_pyinstaller(extra_args=['--windowed'])
+	generate_resources(dest_dir=path('target/fman'))
 	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('target/fman/fman.exe'))
 	_generate_uninstaller()
-
-def _run_pyinstaller():
-	run([
-		'pyinstaller',
-		'--name', 'fman',
-		'--windowed', '--noupx',
-		'--distpath', path('target'),
-		'--specpath', path('target/build'),
-		'--workpath', path('target/build'),
-		path('src/main/python/fman/main.py')
-	])
-	generate_resources(dest_dir=path('target/fman'))
 
 def _add_missing_dlls():
 	for dll in (

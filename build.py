@@ -1,21 +1,22 @@
 from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, read_filter
 from os import unlink, listdir, remove
-from os.path import join, isdir, isfile, islink
+from os.path import join, isdir, isfile, islink, expanduser
 from shutil import rmtree
 from unittest import TestSuite, TextTestRunner, defaultTestLoader
 
 import sys
 
 OPTIONS.update({
-	'version': read_filter()['version'],
-	'local_staticfiles_dir': '/Users/michael/dev/fman.io/static',
+	'local_staticfiles_dir': expanduser('~/dev/fman.io/static'),
 	'server_staticfiles_dir': '/home/fman/src/static',
 	'server_user': 'fman@fman.io',
 	'files_to_filter': [
 		path('src/main/resources/base/constants.json'),
 		path('src/main/resources/mac/Info.plist')
-	]
+	],
+	'gpg_key': 'C6BC0CF4D8FEA35D'
 })
+OPTIONS.update(read_filter())
 
 if is_windows():
 	from build_impl.windows import exe, installer, zip, sign_exe, \
@@ -24,7 +25,7 @@ elif is_mac():
 	from build_impl.mac import app, sign_app, dmg, sign_dmg,\
 		create_autoupdate_files, upload
 elif is_linux():
-	from build_impl.linux import esky
+	from build_impl.linux import exe, deb, upload
 
 def test():
 	test_dirs = list(map(path, [
@@ -58,7 +59,9 @@ def publish():
 		create_autoupdate_files()
 		upload()
 	elif is_linux():
-		esky()
+		exe()
+		deb()
+		upload()
 	else:
 		raise ValueError('Unknown operating system.')
 

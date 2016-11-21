@@ -2,8 +2,8 @@ from importlib import import_module
 from os import makedirs, readlink, symlink
 from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
 	isfile, pardir, exists, normpath
-from shutil import copy, copytree
-from subprocess import Popen, STDOUT, CalledProcessError
+from shutil import copy, copytree, copymode
+from subprocess import Popen, STDOUT, CalledProcessError, check_output
 
 import json
 import os
@@ -22,20 +22,25 @@ OPTIONS = {
 def path(relpath):
 	return normpath(join(PROJECT_DIR, *relpath.split('/')))
 
-def generate_resources(dest_dir=path('target/resources')):
-	copy_with_filtering(path('src/main/resources/base'), dest_dir)
+def generate_resources(dest_dir=path('target/resources'), exclude=None):
+	copy_with_filtering(
+		path('src/main/resources/base'), dest_dir, exclude=exclude
+	)
 	os_resources_dir = path('src/main/resources/' + get_canonical_os_name())
 	if exists(os_resources_dir):
-		copy_with_filtering(os_resources_dir, dest_dir)
+		copy_with_filtering(os_resources_dir, dest_dir, exclude=exclude)
 
 def copy_with_filtering(
-	src_dir_or_file, dest_dir, replacements=None, files_to_filter=None
+	src_dir_or_file, dest_dir, replacements=None, files_to_filter=None,
+	exclude=None
 ):
 	if replacements is None:
-		replacements = read_filter()
+		replacements = OPTIONS
 	if files_to_filter is None:
 		files_to_filter = OPTIONS['files_to_filter']
-	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir)
+	if exclude is None:
+		exclude = []
+	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, exclude)
 	to_filter = _paths(files_to_filter)
 	for src, dest in to_copy:
 		makedirs(dirname(dest), exist_ok=True)
@@ -52,8 +57,9 @@ def read_filter():
 			result.update(json.load(f))
 	return result
 
-def _get_files_to_copy(src_dir_or_file, dest_dir):
-	if isfile(src_dir_or_file):
+def _get_files_to_copy(src_dir_or_file, dest_dir, exclude):
+	excludes = _paths(exclude)
+	if isfile(src_dir_or_file) and src_dir_or_file not in excludes:
 		yield src_dir_or_file, join(dest_dir, basename(src_dir_or_file))
 	else:
 		for (subdir, _, files) in os.walk(src_dir_or_file):
@@ -61,7 +67,8 @@ def _get_files_to_copy(src_dir_or_file, dest_dir):
 			for file_ in files:
 				file_path = join(subdir, file_)
 				dest_path = join(dest_subdir, file_)
-				yield file_path, dest_path
+				if file_path not in excludes:
+					yield file_path, dest_path
 
 def _copy_with_filtering(
 	src_file, dest_file, dict_, place_holder='${%s}', encoding='utf-8'
@@ -69,7 +76,7 @@ def _copy_with_filtering(
 	replacements = []
 	for key, value in dict_.items():
 		old = (place_holder % key).encode(encoding)
-		new = value.encode(encoding)
+		new = str(value).encode(encoding)
 		replacements.append((old, new))
 	with open(src_file, 'rb') as open_src_file:
 		with open(dest_file, 'wb') as open_dest_file:
@@ -78,6 +85,7 @@ def _copy_with_filtering(
 				for old, new in replacements:
 					new_line = new_line.replace(old, new)
 				open_dest_file.write(new_line)
+		copymode(src_file, dest_file)
 
 class _paths:
 	def __init__(self, paths):
@@ -106,6 +114,21 @@ def _copy_files(src_dir, dest_dir, files):
 			copytree(src, dst, symlinks=True)
 		else:
 			copy(src, dst, follow_symlinks=False)
+
+def run_pyinstaller(extra_args=None):
+	if extra_args is None:
+		extra_args = []
+	cmdline = [
+		'pyinstaller',
+		'--name', 'fman',
+		'--noupx'
+	] + extra_args + [
+		'--distpath', path('target'),
+		'--specpath', path('target/build'),
+		'--workpath', path('target/build'),
+		path('src/main/python/fman/main.py')
+	]
+	run(cmdline)
 
 def copy_python_library(name, dest_dir):
 	library = import_module(name)
@@ -144,3 +167,41 @@ def get_canonical_os_name():
 	if is_linux():
 		return 'linux'
 	raise ValueError('Unknown operating system.')
+
+def upload_file(f, dest_dir):
+	print('Uploading %s...' % basename(f))
+	dest_path = get_path_on_server(dest_dir)
+	if OPTIONS['release']:
+		run(['scp', f, OPTIONS['server_user'] + ':' + dest_path])
+		# The server serves its static files from static-collected/. The
+		# "Appcast.xml" view looks inside static/. So we need the files in both
+		# locations. Run `collectstatic` to have Django copy them from static/
+		# to static-collected/.
+		run_on_server(
+			'cd src/ ; '
+			'source venv/bin/activate ; '
+			'python manage.py collectstatic --noinput'
+		)
+	else:
+		if isdir(f):
+			copytree(f, join(dest_dir, basename(f)))
+		else:
+			copy(f, dest_path)
+
+def get_path_on_server(file_path):
+	if file_path.startswith('/'):
+		return file_path
+	if OPTIONS['release']:
+		staticfiles_dir = OPTIONS['server_staticfiles_dir']
+	else:
+		staticfiles_dir = OPTIONS['local_staticfiles_dir']
+	return join(staticfiles_dir, file_path)
+
+def run_on_server(command):
+	if OPTIONS['release']:
+		return check_output_decode(['ssh', OPTIONS['server_user'], command])
+	else:
+		return check_output_decode(command, shell=True)
+
+def check_output_decode(*args, **kwargs):
+	return check_output(*args, **kwargs).decode(sys.stdout.encoding)

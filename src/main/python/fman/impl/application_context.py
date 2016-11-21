@@ -5,7 +5,7 @@ from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.plugin import PluginSupport, find_plugin_dirs, PluginErrorHandler
 from fman.impl.session import SessionManager
-from fman.impl.updater import EskyUpdater, MacUpdater
+from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.util import system
 from os import getenv, rename
@@ -233,8 +233,6 @@ class FrozenApplicationContext(ApplicationContext):
 			if system.is_mac():
 				appcast_url = update_url + '/Appcast.xml'
 				self._updater = MacUpdater(self.app, appcast_url)
-			elif system.is_linux():
-				self._updater = EskyUpdater(sys.executable, update_url)
 		return self._updater
 	def get_resource(self, *rel_path):
 		if system.is_mac():
