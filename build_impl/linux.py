@@ -1,13 +1,20 @@
 from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
 	copy_with_filtering, collectstatic
-from os import makedirs
+from os import makedirs, remove
 from os.path import exists, basename, join
 from shutil import copytree, rmtree, copy
 from time import time
 
 def exe():
 	run_pyinstaller()
+	# For some reason, PyInstaller packages libstdc++.so.6 even though it is
+	# available on most Linux distributions. If we include it and run fman on a
+	# different Ubuntu version, then Popen(...) calls fail with errors
+	# "GLIBCXX_... not found" or "CXXABI_..." not found. So ensure we don't
+	# package the file, so that the respective system's compatible version is
+	# used:
+	remove(path('target/fman/libstdc++.so.6'))
 	generate_resources(dest_dir=path('target/fman'))
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
