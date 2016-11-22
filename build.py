@@ -14,7 +14,7 @@ OPTIONS.update({
 		path('src/main/resources/base/constants.json'),
 		path('src/main/resources/mac/Info.plist')
 	],
-	'gpg_key': 'C6BC0CF4D8FEA35D'
+	'gpg_key': 'B015FE599CFAF7EB'
 })
 
 if is_windows():
