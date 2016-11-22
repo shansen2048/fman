@@ -8,42 +8,38 @@ from time import time
 
 def exe():
 	run_pyinstaller()
-	exclude = [
-		path('src/main/resources/linux/' + file_name)
-		for file_name in (
-			'fman.desktop', 'fman.list', 'after-install.sh', 'update-fman',
-			'fman', 'private.gpg-key', 'public.gpg-key', 'after-upgrade.sh'
-		)
-	]
-	generate_resources(dest_dir=path('target/fman'), exclude=exclude)
+	generate_resources(dest_dir=path('target/fman'))
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
 
 def deb():
 	if exists(path('target/deb')):
 		rmtree(path('target/deb'))
+	if exists(path('target/deb-config')):
+		rmtree(path('target/deb-config'))
 	copytree(path('target/fman'), path('target/deb/opt/fman'))
-	for file_name, dest in (
-		('fman.list', '/etc/apt/sources.list.d'),
-		('fman.desktop', '/usr/share/applications'),
-		('update-fman', '/usr/bin'), ('fman', '/etc/cron.daily')
-	):
-		to_copy = path('src/main/resources/linux/' + file_name)
-		copy_with_filtering(
-			to_copy, path('target/deb' + dest), files_to_filter=[to_copy]
-		)
-	for file_name in ('after-install.sh', 'after-upgrade.sh'):
-		src_path = path('src/main/resources/linux/' + file_name)
-		copy_with_filtering(
-			src_path, path('target'), files_to_filter=[src_path]
-		)
+	deb_resource = \
+		lambda relpath: path('src/main/resources/linux-deb' + relpath)
+	copy_with_filtering(
+		path('src/main/resources/linux-deb'), path('target/deb'),
+		files_to_filter=[
+			deb_resource('/etc/apt/sources.list.d/fman.list'),
+			deb_resource('/usr/share/applications/fman.desktop')
+		]
+	)
+	copy_with_filtering(
+		path('src/main/resources/linux-deb-config'), path('target/deb-config'),
+		files_to_filter=[
+			path('src/main/resources/linux-deb-config/after-install.sh')
+		]
+	)
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman', '-v', OPTIONS['version'],
 		'--description', 'A modern file manager for power users.',
 		'-m', 'Michael Herrmann <michael@herrmann.io>',
 		'--vendor', 'Michael Herrmann', '--url', 'https://fman.io',
-		'--after-install', path('target/after-install.sh'),
-		'--after-upgrade', path('target/after-upgrade.sh'),
+		'--after-install', path('target/deb-config/after-install.sh'),
+		'--after-upgrade', path('target/deb-config/after-upgrade.sh'),
 		# Avoid warning "The postinst maintainerscript of the package fman seems
 		# to use apt-key (provided by apt) without depending on gnupg or
 		# gnupg2.":
@@ -56,8 +52,8 @@ def upload():
 	makedirs(tmp_dir_local)
 	deb_path = _get_deb_path()
 	copy(deb_path, tmp_dir_local)
-	copy(path('src/main/resources/linux/private.gpg-key'), tmp_dir_local)
-	copy(path('src/main/resources/linux/public.gpg-key'), tmp_dir_local)
+	copy(path('target/deb-config/private.gpg-key'), tmp_dir_local)
+	copy(path('target/deb-config/public.gpg-key'), tmp_dir_local)
 	_generate_reprepro_distributions_file(tmp_dir_local)
 	upload_file(tmp_dir_local, '/tmp')
 	tmp_dir_remote = '/tmp/' + basename(tmp_dir_local)
