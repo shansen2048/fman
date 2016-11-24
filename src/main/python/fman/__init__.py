@@ -1,9 +1,12 @@
 from fman.util.system import is_mac, is_linux, is_windows
+from os import getenv
+from os.path import join, expanduser
 from PyQt5.QtWidgets import QMessageBox
 
 __all__ = [
 	'DirectoryPaneCommand', 'DirectoryPaneListener', 'load_json', 'save_json',
-	'PLATFORM', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT', 'OK', 'CANCEL'
+	'PLATFORM', 'DATA_DIRECTORY', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL',
+	'ABORT', 'OK', 'CANCEL'
 ]
 
 YES = QMessageBox.Yes
@@ -16,10 +19,13 @@ CANCEL = QMessageBox.Cancel
 
 if is_windows():
 	PLATFORM = 'Windows'
+	DATA_DIRECTORY = join(getenv('APPDATA'), 'fman')
 elif is_mac():
 	PLATFORM = 'Mac'
+	DATA_DIRECTORY = expanduser('~/Library/Application Support/fman')
 elif is_linux():
 	PLATFORM = 'Linux'
+	DATA_DIRECTORY = expanduser('~/.config/fman')
 
 class DirectoryPaneCommand:
 	def __init__(self, pane):
@@ -45,7 +51,7 @@ class DirectoryPaneListener:
 	def on_path_changed(self):
 		pass
 
-def load_json(name, default=None, save_on_quit=True):
+def load_json(name, default=None, save_on_quit=False):
 	return _get_plugin_support().load_json(name, default, save_on_quit)
 
 def save_json(name, value=None):

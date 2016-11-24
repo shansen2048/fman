@@ -1,4 +1,4 @@
-from fman import PLATFORM
+from fman import PLATFORM, DATA_DIRECTORY
 from fman.impl import MainWindow
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
@@ -8,8 +8,8 @@ from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.util import system
-from os import getenv, rename
-from os.path import dirname, join, pardir, normpath, exists, expanduser
+from os import rename, remove
+from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontDatabase, QColor, QPalette
 from PyQt5.QtWidgets import QApplication, QStyleFactory
@@ -42,6 +42,14 @@ class ApplicationContext:
 		self._style = None
 		self._metrics = None
 	def initialize(self):
+		# TODO: Remove this migration some time after December 2016
+		panes_json = join(
+			DATA_DIRECTORY, 'Plugins', 'User', 'Panes (%s).json' % PLATFORM
+		)
+		try:
+			remove(panes_json)
+		except:
+			pass
 		self.excepthook.install()
 		self.metrics.initialize()
 		self.excepthook.user_id = self.metrics.user_id
@@ -124,7 +132,7 @@ class ApplicationContext:
 	def plugin_dirs(self):
 		if self._plugin_dirs is None:
 			shipped_plugins = self.get_resource('Plugins')
-			installed_plugins = join(get_data_dir(), 'Plugins')
+			installed_plugins = join(DATA_DIRECTORY, 'Plugins')
 			self._plugin_dirs = \
 				find_plugin_dirs(shipped_plugins, installed_plugins)
 		return self._plugin_dirs
@@ -140,11 +148,11 @@ class ApplicationContext:
 	@property
 	def metrics(self):
 		if self._metrics is None:
-			json_path = join(get_data_dir(), 'Local', 'Metrics.json')
+			json_path = join(DATA_DIRECTORY, 'Local', 'Metrics.json')
 			# TODO: Remove this migration some time after November 2016
 			old_json_names = ['Installation.json', 'Usage.json']
 			for old_json_name in old_json_names:
-				old_json_path = join(get_data_dir(), 'Local', old_json_name)
+				old_json_path = join(DATA_DIRECTORY, 'Local', old_json_name)
 				if exists(old_json_path) and not exists(json_path):
 					rename(old_json_path, json_path)
 			self._metrics = Metrics(self.constants['mixpanel_token'], json_path)
@@ -183,7 +191,7 @@ class ApplicationContext:
 	@property
 	def session_manager(self):
 		if self._session_manager is None:
-			json_path = join(get_data_dir(), 'Local', 'Session.json')
+			json_path = join(DATA_DIRECTORY, 'Local', 'Session.json')
 			self._session_manager = SessionManager(json_path)
 		return self._session_manager
 	@property
@@ -212,15 +220,6 @@ class ApplicationContext:
 			return os_path
 		base_dir = join(res_dir, 'base')
 		return normpath(join(base_dir, *rel_path))
-
-def get_data_dir():
-	if system.is_mac():
-		return expanduser('~/Library/Application Support/fman')
-	if system.is_windows():
-		return join(getenv('APPDATA'), 'fman')
-	if system.is_linux():
-		return expanduser('~/.config/fman')
-	raise NotImplementedError('Your operating system is not supported.')
 
 class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
