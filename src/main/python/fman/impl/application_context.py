@@ -3,6 +3,7 @@ from fman.impl import MainWindow
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
+from fman.impl.model import UbuntuFileIconProvider
 from fman.impl.plugin import PluginSupport, find_plugin_dirs, PluginErrorHandler
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
@@ -32,6 +33,7 @@ class ApplicationContext:
 		self._app = None
 		self._constants = None
 		self._excepthook = None
+		self._icon_provider = None
 		self._main_window = None
 		self._controller = None
 		self._palette = None
@@ -111,9 +113,14 @@ class ApplicationContext:
 			)
 		return self._excepthook
 	@property
+	def icon_provider(self):
+		if self._icon_provider is None and system.is_linux():
+			self._icon_provider = UbuntuFileIconProvider()
+		return self._icon_provider
+	@property
 	def main_window(self):
 		if self._main_window is None:
-			self._main_window = MainWindow()
+			self._main_window = MainWindow(self.icon_provider)
 			plugin_dirs = self.plugin_dirs
 			error_handler = \
 				PluginErrorHandler(plugin_dirs, self._main_window)

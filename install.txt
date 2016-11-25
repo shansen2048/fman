@@ -28,12 +28,13 @@ Linux preparation:
 
 2) Build & install
 ------------------
-We build without accessibility to work around https://bugreports.qt.io/browse/QTBUG-32981
+We build without accessibility to work around https://bugreports.qt.io/browse/QTBUG-32981.
+We build with qtsvg because on Ubuntu, the icons for files/directories are only available in SVG
 
-	./configure -prefix ~/dev/fman/lib/mac/Qt-5.6.1 -release -opensource -no-accessibility -nomake examples -nomake tests
+	./configure -prefix ~/dev/fman/lib/linux/Qt-5.6.1-1 -release -opensource -no-accessibility -nomake examples -nomake tests
 	Add lib/mac/ to .gitignore
-	make -j4 module-qtbase (on Windows use jom module-qtbase)
-	sudo make module-qtbase-install_subtargets (on Windows use jom ...)
+	make -j4 module-qtbase module-qtsvg (on Windows use jom module-qtbase)
+	sudo make module-qtbase-install_subtargets module-qtsvg-install_subtargets (on Windows use jom ...)
 
 Install SIP:
 ============

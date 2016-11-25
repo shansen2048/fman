@@ -1,2 +1,3 @@
 -r base.txt
 Send2Trash==1.3.0
+pgi==0.0.11.1

@@ -11,10 +11,12 @@ class DirectoryPane(QWidget):
 
 	path_changed = pyqtSignal(QWidget)
 
-	def __init__(self, parent):
+	def __init__(self, parent, icon_provider=None):
 		super().__init__(parent)
 		self._path_view = PathView(self)
 		self._model = FileSystemModel()
+		if icon_provider is not None:
+			self._model.setIconProvider(icon_provider)
 		self._model.setFilter(self._model.filter() | QDir.Hidden | QDir.System)
 		self._model.file_edited.connect(self._on_file_renamed)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
@@ -117,8 +119,9 @@ class MainWindow(QMainWindow):
 	pane_added = pyqtSignal(DirectoryPane)
 	shown = pyqtSignal()
 
-	def __init__(self):
+	def __init__(self, icon_provider=None):
 		super().__init__()
+		self.icon_provider = icon_provider
 		self.controller = None
 		self.panes = []
 		self.splitter = QSplitter(self)
@@ -169,7 +172,7 @@ class MainWindow(QMainWindow):
 	def clear_status_message(self):
 		self.show_status_message('Ready.')
 	def add_pane(self):
-		result = DirectoryPane(self.splitter)
+		result = DirectoryPane(self.splitter, self.icon_provider)
 		result.set_controller(self.controller)
 		self.panes.append(result)
 		self.splitter.addWidget(result)

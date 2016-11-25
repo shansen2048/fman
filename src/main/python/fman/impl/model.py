@@ -1,8 +1,12 @@
 from fman.util.qt import TextAlignmentRole, AlignVCenter, ItemIsEnabled, \
 	ItemIsEditable, ItemIsSelectable, EditRole, AscendingOrder
 from os.path import commonprefix
-from PyQt5.QtCore import pyqtSignal, QModelIndex, QSortFilterProxyModel
-from PyQt5.QtWidgets import QFileSystemModel
+from PyQt5.QtCore import pyqtSignal, QModelIndex, QSortFilterProxyModel, \
+	QFileInfo
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider
+
+import sys
 
 class FileSystemModel(QFileSystemModel):
 
@@ -105,3 +109,44 @@ class LastModifiedColumn(ValueComparingColumn):
 		return left_or_right.lastModified()
 
 _COLUMNS = (NameColumn, SizeColumn, TypeColumn, LastModifiedColumn)
+
+class UbuntuFileIconProvider(QFileIconProvider):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.Gtk, self.Gio, self.GLib = self._init_pgi()
+	def _init_pgi(self):
+		import pgi
+		pgi.install_as_gi()
+		import gi
+		gi.require_version('Gtk', '3.0')
+		from gi.repository import Gtk, Gio, GLib
+		# This is required when we use pgi in a PyInstaller-frozen app. See:
+		# https://github.com/lazka/pgi/issues/38
+		Gtk.init(sys.argv)
+		return Gtk, Gio, GLib
+	def icon(self, arg):
+		result = None
+		if isinstance(arg, QFileInfo):
+			file_path = arg.absoluteFilePath()
+			gio_file = self.Gio.file_new_for_path(file_path)
+			nofollow_symlinks = self.Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS
+			try:
+				file_info = gio_file.query_info(
+					'standard::icon', nofollow_symlinks, None
+				)
+			except self.GLib.Error:
+				pass
+			else:
+				if file_info:
+					icon = file_info.get_icon()
+					if icon:
+						icon_names = icon.get_names()
+						if icon_names:
+							result = self._load_gtk_icon(icon_names[0])
+		return result or super().icon(arg)
+	def _load_gtk_icon(self, name, size=32):
+		theme = self.Gtk.IconTheme.get_default()
+		if theme:
+			icon = theme.lookup_icon(name, size, 0)
+			if icon:
+				return QIcon(icon.get_filename())
