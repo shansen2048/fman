@@ -113,17 +113,17 @@ _COLUMNS = (NameColumn, SizeColumn, TypeColumn, LastModifiedColumn)
 class UbuntuFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.Gtk, self.Gio, self.GLib = self._init_pgi()
+		self.Gtk, self.Gio = self._init_pgi()
 	def _init_pgi(self):
 		import pgi
 		pgi.install_as_gi()
 		import gi
 		gi.require_version('Gtk', '3.0')
-		from gi.repository import Gtk, Gio, GLib
+		from gi.repository import Gtk, Gio
 		# This is required when we use pgi in a PyInstaller-frozen app. See:
 		# https://github.com/lazka/pgi/issues/38
 		Gtk.init(sys.argv)
-		return Gtk, Gio, GLib
+		return Gtk, Gio
 	def icon(self, arg):
 		result = None
 		if isinstance(arg, QFileInfo):
@@ -134,7 +134,7 @@ class UbuntuFileIconProvider(QFileIconProvider):
 				file_info = gio_file.query_info(
 					'standard::icon', nofollow_symlinks, None
 				)
-			except self.GLib.Error:
+			except Exception:
 				pass
 			else:
 				if file_info:
