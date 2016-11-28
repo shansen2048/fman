@@ -492,6 +492,10 @@ class SuggestLocations:
 	def _gather_suggestions(self, query):
 		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
 		path = normpath(self.fs.expanduser(query))
+		if PLATFORM == 'Windows':
+			# Windows completely ignores trailing spaces in directory names at
+			# all times. Make our implementation reflect this:
+			path = path.rstrip(' ')
 		if self.fs.isdir(path) or self.fs.isdir(dirname(path)):
 			result = OrderedSet()
 			if self.fs.isdir(path):
