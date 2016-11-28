@@ -25,13 +25,29 @@ OS X preparation:
 
 Linux preparation:
  sudo apt-get install build-essential libxcb1 libxcb1-dev libx11-xcb1 libx11-xcb-dev libxcb-keysyms1 libxcb-keysyms1-dev libxcb-image0 libxcb-image0-dev libxcb-shm0 libxcb-shm0-dev libxcb-icccm4 libxcb-icccm4-dev libxcb-sync1 libxcb-sync-dev libxcb-xfixes0-dev libxrender-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0 libxcb-render-util0-dev libxcb-glx0-dev libxcb-xinerama0-dev
+ sudo apt-get install build-essential libxrender-dev libfontconfig1-dev
+ 
+Install Python 3.4 from source on Linux:
+========================================
+Download the source tarball
+
+	./configure --enable-shared
+	make
+	sudo make install
+
+--enable-shared is required to produce libpython3.4m.so.1.0 which is required by (eg) PyInstaller.
+It is placed by the Python build in /usr/local/lib
+Add the following line to ~/.bashrc:
+
+	export LD_LIBRARY_PATH=/usr/local/lib
 
 2) Build & install
 ------------------
 We build without accessibility to work around https://bugreports.qt.io/browse/QTBUG-32981.
-We build with qtsvg because on Ubuntu, the icons for files/directories are only available in SVG
+We build with qtsvg because on Ubuntu, the icons for files/directories are only available in SVG.
+The -fontconfig parameter (hopefully) gets rid of error "QFontDatabase: Cannot find font directory" when deploying to a Linux system without Qt installed.
 
-	./configure -prefix ~/dev/fman/lib/linux/Qt-5.6.1-1 -release -opensource -no-accessibility -nomake examples -nomake tests
+	./configure -prefix ~/dev/fman/lib/linux/Qt-5.6.1-1 -release -opensource -no-accessibility -nomake examples -nomake tests -fontconfig
 	Add lib/mac/ to .gitignore
 	make -j4 module-qtbase module-qtsvg (on Windows use jom module-qtbase)
 	sudo make module-qtbase-install_subtargets module-qtsvg-install_subtargets (on Windows use jom ...)
@@ -57,7 +73,7 @@ On Windows:
  8) jom install
 
 Linux:
-  3) sudo apt-get install python3-dev
+  3) sudo apt-get install python3-dev (unless you installed Python 3 from source)
   rest as in OS X
 
 Install PyQT:
@@ -78,16 +94,6 @@ Windows:
  6) Search for `python34.lib` in all Makefile's and replace by absolute path c:\Python34\libs\python34.lib
  7) jom - when you get a compiler error on VS 2015, you need to install version 14.0.25425.01 (KB3165756)
  8) jom install
-
-cx_Freeze:
-==========
-
-Linux:
-------
-sudo apt-get install lib32z1-dev
-Download cx_Freeze.tar.gz from PyPI
-source venv/bin/activate
-python setup.py install
 
 NSIS:
 =====
