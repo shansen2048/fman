@@ -44,9 +44,8 @@ def _remove_gtk_dependencies():
 			raise ValueError(repr(line))
 		so_name, so_path = match.groups()
 		if so_name and so_path:
-			foo = path('target/fman/' + so_name)
 			try:
-				remove(foo)
+				remove(path('target/fman/' + so_name))
 			except FileNotFoundError:
 				pass
 
