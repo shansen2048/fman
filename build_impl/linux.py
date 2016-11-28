@@ -1,10 +1,12 @@
 from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering, collectstatic
+	copy_with_filtering, collectstatic, check_output_decode
 from os import makedirs, remove
 from os.path import exists, basename, join
 from shutil import copytree, rmtree, copy
 from time import time
+
+import re
 
 def exe():
 	run_pyinstaller()
@@ -15,9 +17,38 @@ def exe():
 	# package the file, so that the respective system's compatible version is
 	# used:
 	remove(path('target/fman/libstdc++.so.6'))
+	# We're using Python library `pgi` instead of `gi`, `GObject` or other more
+	# well-known alternatives. PyInstaller does not know how to handle this
+	# properly and includes .so files it shouldn't include. In particular, we
+	# use libgtk-3.so.0 via pgi. PyInstaller does *not* include that file. BUT
+	# it does include some of its dependencies. When we then deploy fman to a
+	# different Linux version, PyInstaller loads that distribution's
+	# libgtk-3.so.0 but our copy of its dependencies, which fails. We thus
+	# exclude the dependencies so that when fman runs on a different system,
+	# PyInstaller loads the dependencies from that system:
+	_remove_gtk_dependencies()
 	generate_resources(dest_dir=path('target/fman'))
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
+
+def _remove_gtk_dependencies():
+	output = check_output_decode(
+		'ldd /usr/lib/x86_64-linux-gnu/libgtk-3.so.0', shell=True
+	)
+	assert output.endswith('\n')
+	for line in output.split('\n')[:-1]:
+		if not '=>' in line:
+			continue
+		match = re.match('\t(?:(.*) => )?(.*) \(0x[0-9a-f]+\)', line)
+		if not match:
+			raise ValueError(repr(line))
+		so_name, so_path = match.groups()
+		if so_name and so_path:
+			foo = path('target/fman/' + so_name)
+			try:
+				remove(foo)
+			except FileNotFoundError:
+				pass
 
 def deb():
 	if exists(path('target/deb')):
