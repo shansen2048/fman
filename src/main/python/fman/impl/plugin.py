@@ -36,8 +36,14 @@ class PluginSupport:
 		self._listener_instances[pane] = []
 		for plugin in self._plugins:
 			for command_name, command_class in plugin.command_classes.items():
-				command = command_class(pane)
-				self._command_instances[pane][command_name] = command
+				try:
+					command = command_class(pane)
+				except:
+					self.error_handler.report(
+						'Could not instantiate command %r.' % command_name
+					)
+				else:
+					self._command_instances[pane][command_name] = command
 			for listener_class in plugin.listener_classes:
 				self._listener_instances[pane].append(listener_class(pane))
 		pane.path_changed.connect(self.on_path_changed)
@@ -58,9 +64,15 @@ class PluginSupport:
 		for key_binding in self._key_bindings_json:
 			keys = key_binding['keys']
 			command_name = key_binding['command']
-			command = CommandWrapper(commands[command_name], self.error_handler)
+			try:
+				command = commands[command_name]
+			except KeyError:
+				# This for instance happens when the command raised an exception
+				# when it was instantiated.
+				continue
+			command_wrapper = CommandWrapper(command, self.error_handler)
 			args = key_binding.get('args', {})
-			result.append(KeyBinding(keys, command, args))
+			result.append(KeyBinding(keys, command_wrapper, args))
 		return result
 	def on_doubleclicked(self, pane, file_path):
 		for listener in self._listener_instances[pane]:
