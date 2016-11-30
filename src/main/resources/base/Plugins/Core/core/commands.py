@@ -248,8 +248,14 @@ class RenameListener(DirectoryPaneListener):
 		if not new_name:
 			return
 		new_path = join(dirname(file_path), new_name)
-		rename(file_path, new_path)
-		self.pane.place_cursor_at(new_path)
+		if exists(new_path):
+			response = show_alert(
+				'%s already exists. Do you want to overwrite it?' % new_name,
+				buttons=YES|NO, default_button=NO
+			)
+			if response & YES:
+				rename(file_path, new_path)
+				self.pane.place_cursor_at(new_path)
 
 class CreateDirectory(CorePaneCommand):
 	def __call__(self):
