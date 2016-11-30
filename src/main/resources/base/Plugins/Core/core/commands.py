@@ -248,13 +248,23 @@ class RenameListener(DirectoryPaneListener):
 		if not new_name:
 			return
 		new_path = join(dirname(file_path), new_name)
+		do_rename = True
 		if exists(new_path):
 			response = show_alert(
 				'%s already exists. Do you want to overwrite it?' % new_name,
 				buttons=YES|NO, default_button=NO
 			)
-			if response & YES:
+			do_rename = response & YES
+		if do_rename:
+			try:
 				rename(file_path, new_path)
+			except OSError as e:
+				if isinstance(e, PermissionError):
+					message = 'Access was denied trying to rename %s to %s.'
+				else:
+					message = 'Could not rename %s to %s.'
+				show_alert(message % (basename(file_path), new_name))
+			else:
 				self.pane.place_cursor_at(new_path)
 
 class CreateDirectory(CorePaneCommand):
