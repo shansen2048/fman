@@ -129,7 +129,12 @@ class CopyFiles(FileTreeOperation):
 	):
 		super().__init__(ui, files, dest_dir, 'copy', src_dir, dest_name)
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		copytree(src, dest, symlinks=True)
+		try:
+			copytree(src, dest, symlinks=True)
+		except AttributeError as e:
+			# Work around http://bugs.python.org/issue21775
+			# TODO: Remove workaround once we are using a Python version > 3.4
+			raise OSError() from e
 	def _perform_on_file(self, src, dest):
 		copy2(src, dest, follow_symlinks=False)
 
