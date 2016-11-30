@@ -5,6 +5,8 @@ from PyQt5.QtWidgets import QMessageBox
 
 __all__ = [
 	'DirectoryPaneCommand', 'DirectoryPaneListener', 'load_json', 'save_json',
+	'show_alert', 'show_prompt', 'show_status_message', 'clear_status_message',
+	'show_file_open_dialog', 'show_quicksearch',
 	'PLATFORM', 'DATA_DIRECTORY', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL',
 	'ABORT', 'OK', 'CANCEL'
 ]
