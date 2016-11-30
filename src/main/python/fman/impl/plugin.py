@@ -30,16 +30,7 @@ class PluginSupport:
 		self._listener_instances = {}
 	def initialize(self):
 		self._plugins = self._load_plugins()
-		try:
-			self._key_bindings_json = self.load_json('Key Bindings.json', [])
-		except:
-			self.error_handler.report('Error: Could not load key bindings.')
-		else:
-			for command in self._remove_missing_commands():
-				self.error_handler.report(
-					'Error in key bindings: Command %r does not exist.' %
-					command
-				)
+		self._key_bindings_json = self._load_key_bindings()
 	def on_pane_added(self, pane):
 		self._command_instances[pane] = {}
 		self._listener_instances[pane] = []
@@ -134,18 +125,46 @@ class PluginSupport:
 			result.append(join(plugin_dir, name))
 			result.append(join(plugin_dir, platform_specific_name))
 		return result
-	def _remove_missing_commands(self):
+	def _load_key_bindings(self):
 		result = []
-		available_commands = set(
-			command_name
-			for plugin in self._plugins
-			for command_name in plugin.command_classes
-		)
-		for key_binding in self._key_bindings_json[:]:
-			command = key_binding['command']
-			if command not in available_commands:
-				self._key_bindings_json.remove(key_binding)
-				result.append(command)
+		report = self.error_handler.report
+		try:
+			bindings = self.load_json('Key Bindings.json', [])
+		except:
+			report('Error: Could not load key bindings.')
+		else:
+			if not isinstance(bindings, list):
+				report(
+					'Error: Key bindings should be a list ([...]), not %s.' %
+					type(self._key_bindings_json).__name__
+				)
+			else:
+				available_commands = set(
+					command_name
+					for plugin in self._plugins
+					for command_name in plugin.command_classes
+				)
+				for binding in bindings:
+					try:
+						command = binding['command']
+					except KeyError:
+						report(
+							'Error: Each key binding must specify a "command".'
+						)
+					else:
+						if not isinstance(command, str):
+							report(
+								'Error: A key binding\'s "command" must be a '
+								'string, not %s.' % type(command).__name__
+							)
+						else:
+							if command not in available_commands:
+								report(
+									'Error in key bindings: Command %r does '
+									'not exist.' % command
+								)
+							else:
+								result.append(binding)
 		return result
 
 def find_plugin_dirs(shipped_plugins_dir, installed_plugins_dir):
