@@ -241,9 +241,11 @@ class CommandWrapper:
 		try:
 			return self.wrapped_command(*args, **kwargs)
 		except:
-			command_name = self.wrapped_command.__class__.__name__
-			message = 'Command %r raised exception.' % command_name
+			message = 'Command %r raised exception.' % self.name
 			self.error_handler.report(message)
+	@property
+	def name(self):
+		return self.wrapped_command.__class__.__name__
 
 class Plugin:
 	def __init__(self, dir_path):

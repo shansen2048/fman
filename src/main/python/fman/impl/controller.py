@@ -26,9 +26,8 @@ class Controller:
 				keys = '+'.join(keys_mac.get(k, k) for k in keys.split('+'))
 			if key_sequence.matches(QKeySequence(keys)):
 				command = binding.command
-				command_name = command.__class__.__name__
 				self.tracker.track('Ran command', {
-					'Command': command_name
+					'Command': command.name
 				})
 				try:
 					command(**binding.args)
