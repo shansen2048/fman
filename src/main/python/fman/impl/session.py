@@ -1,6 +1,7 @@
 from base64 import b64encode, b64decode
-from os import makedirs
-from os.path import expanduser, dirname, realpath
+from fman.util import system
+from os import makedirs, getcwd
+from os.path import expanduser, dirname, realpath, normpath, splitdrive
 
 import json
 import sys
@@ -25,13 +26,20 @@ class SessionManager:
 		for i, pane_info in enumerate(panes):
 			pane = main_window.add_pane()
 			try:
-				path = realpath(expanduser(paths_on_command_line[i]))
+				path = self._make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
 			pane.set_path(path)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
 		self._restore_window_geometry(main_window)
+	def _make_absolute(self, path, cwd):
+		if normpath(path) == '.':
+			return cwd
+		if system.is_windows() and path == splitdrive(path)[0]:
+			# Add trailing backslash for drives, eg. "C:"
+			return path + ('' if path.endswith('\\') else '\\')
+		return realpath(expanduser(path))
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._json_dict.get('window_geometry', None)
 		if geometry_b64:
