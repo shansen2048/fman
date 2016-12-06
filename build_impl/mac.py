@@ -1,6 +1,7 @@
 from build_impl import run, path, copy_framework, get_canonical_os_name, \
-	generate_resources, OPTIONS, copy_python_library, upload_file, \
-	run_on_server, check_output_decode, get_path_on_server, run_pyinstaller
+	OPTIONS, copy_python_library, upload_file, run_on_server,\
+	check_output_decode, get_path_on_server, run_pyinstaller, \
+	copy_with_filtering
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
@@ -13,10 +14,12 @@ def app():
 	])
 	_remove_unwanted_pyinstaller_files()
 	_fix_sparkle_delta_updates()
-	generate_resources(dest_dir=path('target/fman.app/Contents/Resources'))
-	rename(
-		path('target/fman.app/Contents/Resources/Info.plist'),
-		path('target/fman.app/Contents/Info.plist')
+	copy_with_filtering(
+		path('src/main/resources/base'),
+		dest_dir=path('target/fman.app/Contents/Resources')
+	)
+	copy_with_filtering(
+		path('src/main/resources/mac'), dest_dir=path('target/fman.app')
 	)
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),

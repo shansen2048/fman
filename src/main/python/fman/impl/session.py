@@ -1,9 +1,9 @@
 from base64 import b64encode, b64decode
-from os.path import expanduser, dirname
+from os import makedirs
+from os.path import expanduser, dirname, realpath
 
 import json
-
-from os import makedirs
+import sys
 
 class SessionManager:
 
@@ -20,10 +20,15 @@ class SessionManager:
 				self._json_dict = json.load(f)
 		except FileNotFoundError:
 			self._json_dict = {}
-		default_panes = [{}] * self.DEFAULT_NUM_PANES
-		for pane_info in self._json_dict.get('panes', default_panes):
+		paths_on_command_line = sys.argv[1:]
+		panes = self._json_dict.get('panes', [{}] * self.DEFAULT_NUM_PANES)
+		for i, pane_info in enumerate(panes):
 			pane = main_window.add_pane()
-			pane.set_path(pane_info.get('location', expanduser('~')))
+			try:
+				path = realpath(expanduser(paths_on_command_line[i]))
+			except IndexError:
+				path = pane_info.get('location', expanduser('~'))
+			pane.set_path(path)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
 		self._restore_window_geometry(main_window)

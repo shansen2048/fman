@@ -12,7 +12,8 @@ OPTIONS.update({
 	'server_user': 'fman@fman.io',
 	'files_to_filter': [
 		path('src/main/resources/base/constants.json'),
-		path('src/main/resources/mac/Info.plist')
+		path('src/main/resources/mac/Contents/Info.plist'),
+		path('src/main/resources/mac/Contents/SharedSupport/bin/fman')
 	],
 	'gpg_key': 'B015FE599CFAF7EB'
 })
