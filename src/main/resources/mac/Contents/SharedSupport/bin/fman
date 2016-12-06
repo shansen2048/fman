@@ -15,7 +15,7 @@ THIS_SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 if [ "$1" = "--help" ]; then
 	echo "fman version ${version}"
-	echo "Usage: fman [dir1 [dir2]]    open the given directories"
+	echo "Usage: fman [left_dir [right_dir]]    open the given directories"
 	exit 0
 fi
 

@@ -61,7 +61,8 @@ def deb():
 		path('src/main/resources/linux-deb'), path('target/deb'),
 		files_to_filter=[
 			deb_resource('/etc/apt/sources.list.d/fman.list'),
-			deb_resource('/usr/share/applications/fman.desktop')
+			deb_resource('/usr/share/applications/fman.desktop'),
+			deb_resource('/usr/bin/fman')
 		]
 	)
 	copy_with_filtering(
