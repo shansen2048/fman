@@ -252,6 +252,17 @@ class WriteDifferentialJsonTest(TestCase):
 		json2 = self._json_file(1)
 		write_differential_json(l, json1, json2)
 		self.assertFalse(exists(json2))
+	def test_delete_dict_key_same_file_ok(self):
+		write_differential_json({'a': 1}, self._json_file(0))
+		files = (self._json_file(0), self._json_file(1))
+		write_differential_json({'a': 1, 'b': 2}, *files)
+		write_differential_json({'a': 1}, *files)
+	def test_delete_dict_key_different_file_raises(self):
+		write_differential_json({'a': 1}, self._json_file(0))
+		files = (self._json_file(0), self._json_file(1))
+		write_differential_json({'a': 1, 'b': 2}, *files)
+		with self.assertRaises(ValueError):
+			write_differential_json({'b': 2}, *files)
 	def setUp(self):
 		self.temp_dir = mkdtemp()
 	def tearDown(self):

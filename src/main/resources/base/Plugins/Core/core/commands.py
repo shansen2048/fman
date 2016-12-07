@@ -503,9 +503,10 @@ class SuggestLocations:
 			self._contains_upper_chars, self._contains_chars_ignorecase
 		]
 	def __call__(self, query):
-		suggestions = self._gather_suggestions(query)
-		return self._filter_suggestions(suggestions, query)
-	def _gather_suggestions(self, query):
+		possible_dirs = self._gather_dirs(query)
+		suggestions = self._filter_matching(possible_dirs, query)
+		return list(self._remove_nonexistent(suggestions))
+	def _gather_dirs(self, query):
 		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
 		path = normpath(self.fs.expanduser(query))
 		if PLATFORM == 'Windows':
@@ -529,15 +530,26 @@ class SuggestLocations:
 			return result
 		else:
 			return sorted(self.visited_paths, key=sort_key)
-	def _filter_suggestions(self, suggestions, query):
-		matches = [[] for _ in self._matchers]
-		for suggestion in suggestions:
-			for i, matcher in enumerate(self._matchers):
-				match = matcher(query, suggestion)
+	def _filter_matching(self, dirs, query):
+		for matcher in self._matchers:
+			remaining_dirs = []
+			for dir_ in dirs:
+				match = matcher(query, dir_)
 				if match:
-					matches[i].append(match)
-					break
-		return list(chain.from_iterable(matches))
+					yield match
+				else:
+					remaining_dirs.append(dir_)
+			dirs = remaining_dirs
+	def _remove_nonexistent(self, suggestions):
+		for suggestion in suggestions:
+			dir_ = suggestion[0]
+			if self.fs.isdir(self.fs.expanduser(dir_)):
+				yield suggestion
+			else:
+				try:
+					del self.visited_paths[dir_]
+				except KeyError:
+					pass
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 	def _starts_with(self, query, suggestion):

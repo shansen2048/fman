@@ -317,9 +317,13 @@ def write_differential_json(obj, *paths):
 				(type(old_obj).__name__, type(obj).__name__)
 			)
 		if isinstance(obj, dict):
-			deleted = [key for key in old_obj if key not in obj]
-			if deleted:
-				raise ValueError('Deleting keys %r is not supported.' % deleted)
+			deleted = set(key for key in old_obj if key not in obj)
+			not_deletable = set(load_json(*paths[:-1]) or {})
+			wrongly_deleted = deleted.intersection(not_deletable)
+			if wrongly_deleted:
+				raise ValueError(
+					'Deleting keys %r is not supported.' % wrongly_deleted
+				)
 			base = load_json(*paths[:-1]) or {}
 			difference = {
 				key: value for key, value in obj.items()
