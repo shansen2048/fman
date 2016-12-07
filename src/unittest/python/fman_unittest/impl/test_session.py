@@ -11,9 +11,10 @@ class SessionManagerTest(TestCase):
 			join(expanduser('~'), 'foo', 'test.txt'),
 			self._make_absolute(sep.join(['~', 'foo', 'test.txt']))
 		)
+	@skipUnless(system.is_windows(), 'Only run this test on Windows')
 	def test_make_absolute_home_dir_backslash(self):
 		self.test_make_absolute_home_dir(sep='\\')
-	@skipUnless(system.is_windows(), 'This test only makes sense on Windows')
+	@skipUnless(system.is_windows(), 'Only run this test on Windows')
 	def test_make_absolute_c_drive_no_backslash(self):
 		self.assertEquals('C:\\', self._make_absolute('C:'))
 	def setUp(self):
