@@ -68,7 +68,8 @@ class SuggestLocationsTest(TestCase):
 						}
 					}
 				}
-			}
+			},
+			'.': {}
 		}
 		if PLATFORM == 'Windows':
 			home_dir = r'C:\Users\michael'

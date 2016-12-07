@@ -512,7 +512,7 @@ class SuggestLocations:
 			# Windows completely ignores trailing spaces in directory names at
 			# all times. Make our implementation reflect this:
 			path = path.rstrip(' ')
-		if self.fs.isdir(path) or self.fs.isdir(dirname(path)):
+		if path != '.' and self.fs.isdir(path) or self.fs.isdir(dirname(path)):
 			result = OrderedSet()
 			if self.fs.isdir(path):
 				result.add(self._unexpand_user(path))
