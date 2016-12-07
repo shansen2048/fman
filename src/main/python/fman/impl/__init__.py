@@ -1,11 +1,13 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView, QuickSearch
+from fman.util import system
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import exists, normpath, dirname
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer
+from PyQt5.QtCore import QDir, pyqtSignal, QTimer, QUrl
+from PyQt5.QtGui import QDesktopServices, QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
-	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel
+	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QAction
 
 class DirectoryPane(QWidget):
 
@@ -136,6 +138,30 @@ class MainWindow(QMainWindow):
 		self.timer = QTimer(self)
 		self.timer.timeout.connect(self.clear_status_message)
 		self.timer.setSingleShot(True)
+		self._init_help_menu()
+	def _init_help_menu(self):
+		help_menu_text = 'Help'
+		if system.is_mac():
+			# On OS X, any menu named "Help" has the "Spotlight search for Help"
+			# bar displayed in it. We don't need or want this. Add an invisible
+			# character to fool OS X into not treating it as "Help"
+			# (' ' doesn't work):
+			help_menu_text += '\u2063'
+		help_menu = self.menuBar().addMenu(help_menu_text)
+
+		key_bindings = QAction("Key bindings", help_menu)
+		key_bindings.setShortcut(QKeySequence("F1"))
+		def show_key_bindings(_):
+			QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings'))
+		key_bindings.triggered.connect(show_key_bindings)
+
+		online_guide = QAction("Online guide", help_menu)
+		def show_online_guide(_):
+			QDesktopServices.openUrl(QUrl('https://fman.io/docs'))
+		online_guide.triggered.connect(show_online_guide)
+
+		help_menu.addAction(key_bindings)
+		help_menu.addAction(online_guide)
 	def set_controller(self, controller):
 		self.controller = controller
 	@run_in_main_thread
