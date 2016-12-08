@@ -21,7 +21,7 @@ import sys
 
 class Help(DirectoryPaneCommand):
 	def __call__(self):
-		QDesktopServices.openUrl(QUrl('https://fman.io/docs'))
+		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings'))
 
 class CorePaneCommand(DirectoryPaneCommand):
 	def __init__(self, *args, **kwargs):
