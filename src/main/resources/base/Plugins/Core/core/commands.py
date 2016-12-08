@@ -19,6 +19,10 @@ import fman
 import os
 import sys
 
+class Help(DirectoryPaneCommand):
+	def __call__(self):
+		QDesktopServices.openUrl(QUrl('https://fman.io/docs'))
+
 class CorePaneCommand(DirectoryPaneCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)

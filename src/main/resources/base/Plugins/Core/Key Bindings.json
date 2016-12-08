@@ -16,6 +16,7 @@
 	{ "keys": ["Backspace"], "command": "go_up" },
 	{ "keys": ["Enter"], "command": "open" },
 	{ "keys": ["Return"], "command": "open" },
+	{ "keys": ["F1"], "command": "help" },
 	{ "keys": ["F4"], "command": "open_with_editor" },
 	{ "keys": ["Shift+F4"], "command": "open_with_editor", "args": {"create_new": true} },
 	{ "keys": ["F5"], "command": "copy" },
