@@ -26,22 +26,12 @@ source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
 
-alias generate_resources='python build.py generate_resources'
-
-alias esky='python build.py esky'
-
-alias app='python build.py app'
-
-alias sign_app='python build.py sign_app'
-
-alias dmg='python build.py dmg'
-
-alias sign_dmg='python build.py sign_dmg'
-
-alias setup='python build.py setup'
-
-alias test='python build.py test'
-
-alias release='python build.py release'
-
 alias clean='python build.py clean'
+alias exe='python build.py exe'
+alias installer='python build.py installer'
+alias publish='python build.py publish'
+alias release='python build.py release'
+alias app='python build.py app'
+alias dmg='python build.py dmg'
+alias deb='python build.py deb'
+alias test='python build.py test'
