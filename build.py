@@ -22,8 +22,8 @@ if is_windows():
 	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
 		add_installer_manifest
 elif is_mac():
-	from build_impl.mac import app, sign_app, dmg, sign_dmg,\
-		create_autoupdate_files, upload
+	from build_impl.mac import app, sign_app, dmg, sign_dmg, upload, \
+		create_autoupdate_files
 elif is_linux():
 	from build_impl.linux import exe, deb, upload
 
