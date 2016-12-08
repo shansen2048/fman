@@ -1,8 +1,8 @@
 from fman.util.qt import TextAlignmentRole, AlignVCenter, ItemIsEnabled, \
-	ItemIsEditable, ItemIsSelectable, EditRole, AscendingOrder
+	ItemIsEditable, ItemIsSelectable, EditRole, AscendingOrder, DisplayRole
 from os.path import commonprefix
 from PyQt5.QtCore import pyqtSignal, QModelIndex, QSortFilterProxyModel, \
-	QFileInfo
+	QFileInfo, QLocale, QVariant
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider
 
@@ -13,6 +13,23 @@ class FileSystemModel(QFileSystemModel):
 	file_edited = pyqtSignal(QModelIndex, str)
 
 	def data(self, index, role):
+		# Copied from QFileSystemModel:
+		if not index.isValid() or index.model() != self:
+			return QVariant()
+		if role == DisplayRole and index.column() == _LAST_MODIFIED_COLUMN:
+			datetime_format = QLocale().dateTimeFormat(QLocale.ShortFormat)
+			# In December 2016, Qt started displaying the modified time as
+			# "...yyyy" instead of "...yy" on my Mac. The default implementation
+			# of QFileSystemModel uses the system locale (not! the default
+			# locale, which we could override) to textualise times. On that Mac,
+			# the system locale had the surprising property that
+			#     system.dateTimeFormat()
+			#              !=
+			#     QLocale(system.language(), system.country()).dateTimeFormat()
+			# (where system = QLocale.system()).
+			# Anyways, we want short 2-year dates instead of long 4-year dates:
+			datetime_format = datetime_format.replace('yyyy', 'yy')
+			return self.lastModified(index).toString(datetime_format)
 		value = super(FileSystemModel, self).data(index, role)
 		if role == TextAlignmentRole and value is not None:
 			# The standard QFileSystemModel messes up the vertical alignment of
@@ -109,6 +126,7 @@ class LastModifiedColumn(ValueComparingColumn):
 		return left_or_right.lastModified()
 
 _COLUMNS = (NameColumn, SizeColumn, TypeColumn, LastModifiedColumn)
+_LAST_MODIFIED_COLUMN = _COLUMNS.index(LastModifiedColumn)
 
 class UbuntuFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):

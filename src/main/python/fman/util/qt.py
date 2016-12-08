@@ -100,3 +100,4 @@ ItemIsEnabled = Qt.ItemIsEnabled
 ItemIsEditable = Qt.ItemIsEditable
 ItemIsSelectable = Qt.ItemIsSelectable
 EditRole = Qt.EditRole
+DisplayRole = Qt.DisplayRole
