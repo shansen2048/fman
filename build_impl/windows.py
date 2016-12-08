@@ -1,10 +1,9 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
 	copy_with_filtering, copy_python_library, run_pyinstaller
 from os import rename, makedirs
-from os.path import join, relpath, splitext
+from os.path import join, splitext
 from shutil import copy
 from subprocess import call, DEVNULL
-from zipfile import ZipFile, ZIP_DEFLATED
 
 import os
 
@@ -144,11 +143,3 @@ def _sign(file_path, description='', url=''):
 	args_sha256 = \
 		args[:-1] + ['/as', '/fd', 'sha256', '/td', 'sha256'] + args[-1:]
 	run(args_sha256)
-
-def zip():
-	with ZipFile(path('target/fman.zip'), 'w', ZIP_DEFLATED) as zip:
-		for subdir, dirnames, filenames in os.walk(path('target/fman')):
-			for filename in filenames:
-				filepath = join(subdir, filename)
-				arcname = relpath(filepath, path('target'))
-				zip.write(filepath, arcname)

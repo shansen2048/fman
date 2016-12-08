@@ -19,8 +19,8 @@ OPTIONS.update({
 })
 
 if is_windows():
-	from build_impl.windows import exe, installer, zip, sign_exe, \
-		sign_installer, add_installer_manifest
+	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
+		add_installer_manifest
 elif is_mac():
 	from build_impl.mac import app, sign_app, dmg, sign_dmg,\
 		create_autoupdate_files, upload
