@@ -7,7 +7,6 @@ from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
 	show_alert
 from getpass import getuser
-from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
