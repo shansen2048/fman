@@ -248,7 +248,7 @@ class Rename(CorePaneCommand):
 
 class RenameListener(DirectoryPaneListener):
 	def on_name_edited(self, file_path, new_name):
-		if not new_name:
+		if not new_name or basename(file_path) == new_name:
 			return
 		new_path = join(dirname(file_path), new_name)
 		do_rename = True
