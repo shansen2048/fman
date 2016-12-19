@@ -204,8 +204,9 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 				self.selectionModel().select(selection, QISM.ClearAndSelect)
 				self.selectionModel().setCurrentIndex(current, QISM.NoUpdate)
 	def dropEvent(self, event):
-		alt_pressed = event.keyboardModifiers() & AltModifier
-		action = CopyAction if alt_pressed else MoveAction
+		copy_modifier = AltModifier if is_mac() else ControlModifier
+		do_copy = event.keyboardModifiers() & copy_modifier
+		action = CopyAction if do_copy else MoveAction
 		event.setDropAction(action)
 		super().dropEvent(event)
 
