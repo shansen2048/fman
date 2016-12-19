@@ -50,7 +50,7 @@ The -fontconfig parameter (hopefully) gets rid of error "QFontDatabase: Cannot f
 	./configure -prefix ~/dev/fman/lib/linux/Qt-5.6.1-1 -release -opensource -no-accessibility -nomake examples -nomake tests -fontconfig
 	Add lib/mac/ to .gitignore
 	make -j4 module-qtbase module-qtsvg (on Windows use jom module-qtbase)
-	sudo make module-qtbase-install_subtargets module-qtsvg-install_subtargets (on Windows use jom ...)
+	make module-qtbase-install_subtargets module-qtsvg-install_subtargets (on Windows use jom ...)
 
 Install SIP:
 ============
