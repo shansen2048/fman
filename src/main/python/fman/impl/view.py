@@ -1,11 +1,12 @@
 from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
 	Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, \
 	ShiftModifier, ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
-	KeyboardModifier, Key_Enter, Key_Return, Key_Tab
+	KeyboardModifier, Key_Enter, Key_Return, Key_Tab, MoveAction, NoButton, \
+	CopyAction
 from fman.util.system import is_mac
 from os.path import normpath
-from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, Qt
-from PyQt5.QtGui import QKeyEvent
+from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, Qt, QRect
+from PyQt5.QtGui import QKeyEvent, QPen
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QDialog, QLabel, \
 	QLayout, QListWidget, QListWidgetItem, QFrame
@@ -84,6 +85,9 @@ class TreeViewWithNiceCursorAndSelectionAPI(QTreeView):
 		return KeyboardModifier(result)
 
 class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
+
+	_IDLE_STATES = (QAbstractItemView.NoState, QAbstractItemView.AnimatingState)
+
 	def __init__(self, parent):
 		super().__init__(parent)
 		self.keyPressEventFilter = None
@@ -99,6 +103,7 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		self.setSelectionBehavior(QAbstractItemView.SelectRows)
 		# Double click should not open editor:
 		self.setEditTriggers(self.NoEditTriggers)
+		self._init_for_drag_and_drop()
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		model = self.model()
@@ -144,6 +149,65 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 	def _get_index(self, file_path):
 		model = self.model()
 		return model.mapFromSource(model.sourceModel().index(file_path))
+	def _init_for_drag_and_drop(self):
+		self._dragged_index = None
+		self.setDragEnabled(True)
+		self.setDragDropMode(self.DragDrop)
+		self.setDefaultDropAction(MoveAction)
+		self.setDropIndicatorShown(True)
+		self.setAcceptDrops(True)
+		# Consider:
+		#   A/
+		#   B/
+		# Drag A/ downwards. With dragDropOverwriteMode = False, as you leave A/
+		# but before you reach B/, Qt draws a horizontal line between A/ and B/,
+		# presumably to let you drag items to between rows. This may make sense
+		# for other widgets, but we don't want it. We therefore set
+		# dragDropOverwriteMode to True:
+		self.setDragDropOverwriteMode(True)
+	def mouseMoveEvent(self, event):
+		if event.buttons() != NoButton and self.state() in self._IDLE_STATES:
+			self._dragged_index = self.indexAt(event.pos())
+			if self._dragged_index.isValid():
+				# Qt's default implementation only starts dragging when there
+				# are selected items. We also want to start dragging when there
+				# aren't (because in this case we drag the focus item):
+				self.setState(self.DraggingState)
+				# startDrag(...) below now initiates drag and drop.
+				return
+		else:
+			super().mouseMoveEvent(event)
+	def startDrag(self, supportedActions):
+		if not self._dragged_index or not self._dragged_index.isValid():
+			return
+		if self._dragged_index in self.selectedIndexes():
+			super().startDrag(supportedActions)
+		else:
+			# The default implementation of Qt only supports dragging the
+			# currently selected item(s). We therefore briefly need to "select"
+			# the items we wish to drag. This has the (unintended) side-effect
+			# that the dragged items are also rendered as being selected.
+			selection = self.selectionModel().selection()
+			current = self.selectionModel().currentIndex()
+			try:
+				self.selectionModel().clear()
+				# When dragging items that have actually been selected by the
+				# user, the cursor is on one of the selected items (because the
+				# user clicked on it when initiating the drag). Mimic the same
+				# behaviour for consistency:
+				self.setCurrentIndex(self._dragged_index)
+				self.selectionModel().select(
+					self._dragged_index, QISM.ClearAndSelect | QISM.Rows
+				)
+				super().startDrag(supportedActions)
+			finally:
+				self.selectionModel().select(selection, QISM.ClearAndSelect)
+				self.selectionModel().setCurrentIndex(current, QISM.NoUpdate)
+	def dropEvent(self, event):
+		alt_pressed = event.keyboardModifiers() & AltModifier
+		action = CopyAction if alt_pressed else MoveAction
+		event.setDropAction(action)
+		super().dropEvent(event)
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):
@@ -166,6 +230,47 @@ class Style(QProxyStyle):
 	def drawPrimitive(self, element, option, painter, widget):
 		if element == QStyle.PE_FrameFocusRect:
 			# Prevent the ugly dotted border around focused elements on Windows:
+			return
+		if element == QStyle.PE_IndicatorItemViewItemDrop:
+			# This element draws the drop indicator during drag and drop
+			# operations, ie. the rectangle around the drop target. In the case
+			# of a tree view for instance, the drop target could be the tree
+			# item that is under the mouse cursor while dragging.
+			rect = option.rect
+			pen_width = 2
+			if not rect.height():
+				# This happens in two cases:
+				#  1) Qt allows dropping items "between" rows. The drop
+				#     indicator in this case is a horizontal line between the
+				#     two rows, indicated by a rect of height 0.
+				#     (DropIndicatorPosition "AboveItem" and "BelowItem")
+				#  2) When the mouse cursor isn't over any item
+				#     (DropIndicatorPosition "OnViewport")
+				# In both cases, we want to draw a rectangle around the entire
+				# viewport:
+				margin = pen_width // 2
+				width = widget.width() - margin * 2
+				height = widget.height() - margin * 2
+				if isinstance(widget, QTreeView):
+					# Painting on a QTreeView actually starts painting below the
+					# header - at the ` in the below picture:
+					#          ___________
+					#         |___________|
+					#         |`          |
+					#         |           |
+					#         |___________|
+					#
+					# The .height() however includes the header's height. This
+					# means that the rectangle (w, h) starting at ` would extend
+					# too far to the bottom. Correct for this:
+					height -= widget.header().height()
+				rect = QRect(margin, margin, width, height)
+			painter.save()
+			pen = QPen(option.palette.light().color())
+			pen.setWidth(pen_width)
+			painter.setPen(pen)
+			painter.drawRect(rect)
+			painter.restore()
 			return
 		super().drawPrimitive(element, option, painter, widget)
 

@@ -52,6 +52,8 @@ class DirectoryPaneListener:
 		pass
 	def on_path_changed(self):
 		pass
+	def on_files_dropped(self, file_paths, dest_dir, is_copy_not_move):
+		pass
 
 def load_json(name, default=None, save_on_quit=False):
 	return _get_plugin_support().load_json(name, default, save_on_quit)

@@ -170,11 +170,23 @@ class OpenWithEditor(CorePaneCommand):
 		raise NotImplementedError(PLATFORM)
 
 class TreeCommand(CorePaneCommand):
+	def __call__(self, files=None, dest_dir=None):
+		if files is None:
+			files = self.get_chosen_files()
+		if dest_dir is None:
+			dest_dir = self.other_pane.get_path()
+		proceed = self._confirm_tree_operation(files, dest_dir)
+		if proceed:
+			dest_dir, dest_name = proceed
+			src_dir = self.pane.get_path()
+			self._call(files, dest_dir, src_dir, dest_name)
+	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
+		raise NotImplementedError()
 	@property
 	def other_pane(self):
 		panes = self.pane.window.get_panes()
 		return panes[(panes.index(self.pane) + 1) % len(panes)]
-	def _confirm_tree_operation(self, files, dest_dir, descr_verb):
+	def _confirm_tree_operation(self, files, dest_dir):
 		if not files:
 			show_alert('No file is selected!')
 			return
@@ -185,7 +197,8 @@ class TreeCommand(CorePaneCommand):
 		else:
 			dest_name = ''
 			files_descr = '%d files' % len(files)
-		message = '%s %s to' % (descr_verb.capitalize(), files_descr)
+		descr_verb = self.__class__.__name__
+		message = '%s %s to' % (descr_verb, files_descr)
 		dest = normpath(join(dest_dir, dest_name))
 		dest, ok = self.ui.show_prompt(message, dest)
 		if ok:
@@ -198,7 +211,7 @@ class TreeCommand(CorePaneCommand):
 					else:
 						self.ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
-							descr_verb
+							descr_verb.lower()
 						)
 			else:
 				if len(files) == 1:
@@ -207,36 +220,25 @@ class TreeCommand(CorePaneCommand):
 					choice = self.ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(dest, descr_verb), YES | NO, YES
+						(dest, descr_verb.lower()), YES | NO, YES
 					)
 					if choice & YES:
 						return dest, None
-	def _copy(self, files, dest_dir, src_dir=None, dest_name=None):
+
+class Copy(TreeCommand):
+	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
 		copy = CopyFiles(self.ui, files, dest_dir, src_dir, dest_name)
 		Thread(target=copy).start()
-	def _move(self, files, dest_dir, src_dir=None, dest_name=None):
+
+class Move(TreeCommand):
+	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
 		move = MoveFiles(self.ui, files, dest_dir, src_dir, dest_name)
 		Thread(target=move).start()
 
-class Copy(TreeCommand):
-	def __call__(self):
-		files = self.get_chosen_files()
-		dest_dir = self.other_pane.get_path()
-		proceed = self._confirm_tree_operation(files, dest_dir, 'copy')
-		if proceed:
-			dest_dir, dest_name = proceed
-			src_dir = self.pane.get_path()
-			self._copy(files, dest_dir, src_dir, dest_name)
-
-class Move(TreeCommand):
-	def __call__(self):
-		files = self.get_chosen_files()
-		dest_dir = self.other_pane.get_path()
-		proceed = self._confirm_tree_operation(files, dest_dir, 'move')
-		if proceed:
-			dest_dir, dest_name = proceed
-			src_dir = self.pane.get_path()
-			self._move(files, dest_dir, src_dir, dest_name)
+class DragAndDropListener(DirectoryPaneListener):
+	def on_files_dropped(self, file_paths, dest_dir, is_copy_not_move):
+		action = Copy if is_copy_not_move else Move
+		action(self.pane)(file_paths, dest_dir)
 
 class Rename(CorePaneCommand):
 	def __call__(self):
@@ -312,21 +314,21 @@ class Cut(CorePaneCommand):
 		else:
 			show_alert('No file is selected!')
 
-class Paste(TreeCommand):
+class Paste(CorePaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
 		if clipboard.files_were_cut():
-			self._move(files, self.pane.get_path())
-			# The file has been cut; Clear the clipboard so the user doesn't
-			# get an error when he accidentally pastes again:
+			Move(self.pane)(files, self.pane.get_path())
+			# Clear the clipboard so the user doesn't get an error when he
+			# accidentally pastes the cut file again:
 			clipboard.clear()
 		else:
-			self._copy(files, self.pane.get_path())
+			Copy(self.pane)(files, self.pane.get_path())
 
-class PasteCut(TreeCommand):
+class PasteCut(CorePaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
-		self._move(files, self.pane.get_path())
+		Move(self.pane)(files, self.pane.get_path())
 
 class SelectAll(CorePaneCommand):
 	def __call__(self):

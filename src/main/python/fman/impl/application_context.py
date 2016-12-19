@@ -174,7 +174,7 @@ class ApplicationContext:
 			self._palette.setColor(QPalette.AlternateBase, QColor(66, 64, 59))
 			self._palette.setColor(QPalette.ToolTipBase, QColor(19, 19, 19))
 			self._palette.setColor(QPalette.ToolTipText, Qt.white)
-			self._palette.setColor(QPalette.Light, QColor(0x44, 0x44, 0x44))
+			self._palette.setColor(QPalette.Light, QColor(0x49, 0x48, 0x3E))
 			self._palette.setColor(QPalette.Midlight, QColor(0x33, 0x33, 0x33))
 			self._palette.setColor(QPalette.Button, QColor(0x29, 0x29, 0x29))
 			self._palette.setColor(QPalette.Mid, QColor(0x25, 0x25, 0x25))

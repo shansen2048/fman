@@ -80,10 +80,16 @@ class PluginSupport:
 				listener.on_doubleclicked(file_path)
 			except:
 				self._report_listener_error(listener)
-	def on_name_edited(self, pane, file_path, new_name):
+	def on_name_edited(self, pane, *args):
 		for listener in self._listener_instances[pane]:
 			try:
-				listener.on_name_edited(file_path, new_name)
+				listener.on_name_edited(*args)
+			except:
+				self._report_listener_error(listener)
+	def on_files_dropped(self, pane, *args):
+		for listener in self._listener_instances[pane]:
+			try:
+				listener.on_files_dropped(*args)
 			except:
 				self._report_listener_error(listener)
 	def on_path_changed(self, pane):

@@ -37,8 +37,10 @@ class Controller:
 					return True
 		event.ignore()
 		return False
-	def on_doubleclicked(self, pane, file_path):
+	def on_doubleclicked(self, *args):
 		self.tracker.track('Doubleclicked file')
-		self.plugin_support.on_doubleclicked(pane, file_path)
-	def on_file_renamed(self, pane, file_path, new_name):
-		self.plugin_support.on_name_edited(pane, file_path, new_name)
+		self.plugin_support.on_doubleclicked(*args)
+	def on_file_renamed(self, *args):
+		self.plugin_support.on_name_edited(*args)
+	def on_files_dropped(self, *args):
+		self.plugin_support.on_files_dropped(*args)

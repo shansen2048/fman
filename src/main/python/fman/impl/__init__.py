@@ -18,7 +18,8 @@ class DirectoryPane(QWidget):
 		if icon_provider is not None:
 			self._model.setIconProvider(icon_provider)
 		self._model.setFilter(self._model.filter() | QDir.Hidden | QDir.System)
-		self._model.file_edited.connect(self._on_file_renamed)
+		self._model.file_renamed.connect(self._on_file_renamed)
+		self._model.files_dropped.connect(self._on_files_dropped)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
 		self._file_view = FileListView(self)
@@ -110,9 +111,10 @@ class DirectoryPane(QWidget):
 		)
 	def _on_key_pressed(self, file_view, event):
 		return self._controller.on_key_pressed(self, event)
-	def _on_file_renamed(self, index, new_name):
-		file_path = self._model.filePath(index)
-		self._controller.on_file_renamed(self, file_path, new_name)
+	def _on_file_renamed(self, *args):
+		self._controller.on_file_renamed(self, *args)
+	def _on_files_dropped(self, *args):
+		self._controller.on_files_dropped(self, *args)
 
 class MainWindow(QMainWindow):
 
