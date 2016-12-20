@@ -1,4 +1,4 @@
-from getpass import getuser
+from fman.util import get_user
 
 import rollbar
 import sys
@@ -49,5 +49,5 @@ class RollbarRequest:
 	@property
 	def rollbar_person(self):
 		return {
-			'id': self.user_id, 'username': getuser()
+			'id': self.user_id, 'username': get_user()
 		}

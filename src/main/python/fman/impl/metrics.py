@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from getpass import getuser
+from fman.util import get_user
 from mixpanel import Mixpanel
 from os import makedirs
 from os.path import dirname
@@ -22,7 +22,7 @@ class Metrics:
 		except FileNotFoundError:
 			self.user_id = str(uuid4())
 			self._executor.submit(
-				self.mp.people_set, self.user_id, {'$name': getuser()}
+				self.mp.people_set, self.user_id, {'$name': get_user()}
 			)
 			makedirs(dirname(self.json_path), exist_ok=True)
 			with open(self.json_path, 'w') as f:

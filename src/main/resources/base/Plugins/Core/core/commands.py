@@ -417,7 +417,7 @@ class ShowDrives(CorePaneCommand):
 		elif PLATFORM == 'Linux':
 			if isdir('/media'):
 				contents = listdir('/media')
-				user_name = getuser()
+				user_name = _get_user()
 				if contents == [user_name]:
 					path = join('/media', user_name)
 				else:
@@ -427,6 +427,12 @@ class ShowDrives(CorePaneCommand):
 		else:
 			raise NotImplementedError(PLATFORM)
 		self.pane.set_path(path)
+
+def _get_user():
+	try:
+		return getuser()
+	except:
+		return basename(expanduser('~'))
 
 class GoTo(CorePaneCommand):
 	def __call__(self):
@@ -465,7 +471,7 @@ class GoTo(CorePaneCommand):
 		elif PLATFORM == 'Mac':
 			result.append('/Volumes')
 		elif PLATFORM == 'Linux':
-			media_user = join('/media', getuser())
+			media_user = join('/media', _get_user())
 			if exists(media_user):
 				result.append(media_user)
 			elif exists('/media'):
