@@ -111,6 +111,20 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.filters = []
+	def setRootPath(self, path):
+		source_index = self.sourceModel().setRootPath(path)
+		# We filter out hidden files/dirs below the current root path.
+		# Consider the following: We're at ~ and change to a hidden subfolder,
+		# ~/Library. We previously filtered out ~/Library because it is hidden.
+		# Now however, we do want to include it (because we want to see its
+		# contents). The problem is that the source model doesn't notify us
+		# of the call to setRootPath(...) above. When we're queried for
+		# ~/Library, the base implementation in QSortFilterProxyModel thus
+		# returns the cached result, which is "don't include".
+		# We use the following call to notify the base implementation that the
+		# filter needs to be recomputed for the new root path:
+		self.sourceModel().dataChanged.emit(source_index, source_index, [])
+		return self.mapFromSource(source_index)
 	def lessThan(self, left, right):
 		column = _COLUMNS[self.sortColumn()]
 		is_ascending = self.sortOrder() == AscendingOrder

@@ -79,7 +79,7 @@ class DirectoryPane(QWidget):
 			self.path_changed.emit(self)
 			callback()
 		connect_once(signal, lambda _: callback_())
-		index = self._model_sorted.mapFromSource(self._model.setRootPath(path))
+		index = self._model_sorted.setRootPath(path)
 		self._file_view.setRootIndex(index)
 	def place_cursor_at(self, file_path):
 		self._file_view.place_cursor_at(file_path)
