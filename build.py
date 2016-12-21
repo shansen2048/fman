@@ -1,9 +1,10 @@
-from build_impl import path, is_windows, is_mac, is_linux, OPTIONS
+from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, run
 from os import unlink, listdir, remove
 from os.path import join, isdir, isfile, islink, expanduser
 from shutil import rmtree
 from unittest import TestSuite, TextTestRunner, defaultTestLoader
 
+import re
 import sys
 
 OPTIONS.update({
@@ -66,8 +67,61 @@ def publish():
 		raise ValueError('Unknown operating system.')
 
 def release():
+	clean()
 	OPTIONS['release'] = True
-	publish()
+	version = OPTIONS['version']
+	snapshot_suffix = '-SNAPSHOT'
+	if version.endswith(snapshot_suffix):
+		release_version = version[:-len(snapshot_suffix)]
+		print('Releasing version %s' % release_version)
+		release_version_parts = release_version.split('.')
+		new_patch_v = str(int(release_version_parts[-1]) + 1)
+		new_version = '.'.join(release_version_parts[:-1]) + '.' + new_patch_v
+		new_version = input('New version (default: %s): ' % new_version) \
+					  or new_version
+		filter_path = path('src/main/filters/filter-local.json')
+		_replace_in_json(filter_path, 'version', release_version)
+		run(['git', 'add', filter_path])
+		run([
+			'git', 'commit', '-m',
+			'Set version number for release ' + release_version
+		])
+		publish()
+		release_tag = 'v' + release_version
+		run(['git', 'tag', release_tag])
+		_replace_in_json(filter_path, 'version', new_version + snapshot_suffix)
+		run(['git', 'add', filter_path])
+		run([
+			'git', 'commit', '-m', 'Bump version for next development iteration'
+		])
+		run(['git', 'push', '-u', 'origin', 'master'])
+		run(['git', 'push', 'origin', release_tag])
+	else:
+		publish()
+
+def _replace_in_json(json_path, key, value):
+	with open(json_path, 'r') as f:
+		old_lines = f.readlines()
+	new_lines = []
+	found = False
+	for line in old_lines:
+		new_line = _replace_re_group('\t"%s": "([^"]*)"' % key, line, value)
+		if new_line:
+			found = True
+		else:
+			new_line = line
+		new_lines.append(new_line)
+	if not found:
+		raise ValueError('Could not find "%s" mapping in %s' % (key, json_path))
+	with open(json_path, 'w') as f:
+		f.write(''.join(new_lines))
+
+def _replace_re_group(pattern, string, group_replacement):
+	match = re.match(pattern, string)
+	if match:
+		return string[:match.start(1)] + \
+			   group_replacement + \
+			   string[match.end(1):]
 
 def clean():
 	try:
