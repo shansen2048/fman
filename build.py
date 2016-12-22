@@ -86,6 +86,7 @@ def release():
 			'git', 'commit', '-m',
 			'Set version number for release ' + release_version
 		])
+		OPTIONS['version'] = release_version
 		publish()
 		release_tag = 'v' + release_version
 		run(['git', 'tag', release_tag])
