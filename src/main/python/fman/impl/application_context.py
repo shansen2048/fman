@@ -1,5 +1,4 @@
 from fman import PLATFORM, DATA_DIRECTORY
-from fman.impl import MainWindow
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
@@ -8,6 +7,7 @@ from fman.impl.plugin import PluginSupport, find_plugin_dirs, PluginErrorHandler
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
+from fman.impl.widgets import MainWindow
 from fman.util import system
 from os import rename, remove
 from os.path import dirname, join, pardir, normpath, exists
