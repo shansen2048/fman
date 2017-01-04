@@ -1,13 +1,49 @@
-from fman import PLATFORM
+from fman import PLATFORM, Window, DirectoryPane
+from fman.impl.json_support import JsonSupport
 from fman.impl.plugin import PluginSupport, USER_PLUGIN_NAME, find_plugin_dirs
 from fman_integrationtest import get_resource
 from os import mkdir
-from os.path import join
+from os.path import join, basename
 from shutil import rmtree, copytree
 from tempfile import mkdtemp
 from unittest import TestCase
 
 import json
+
+class FindPluginDirsTest(TestCase):
+	def test_find_plugins(self):
+		plugin_dirs = \
+			[self.shipped_plugin, self.installed_plugin, self.user_plugin]
+		for plugin_dir in plugin_dirs:
+			mkdir(plugin_dir)
+		self.assertEqual(
+			plugin_dirs,
+			find_plugin_dirs(self.shipped_plugins, self.installed_plugins)
+		)
+	def test_find_plugins_no_user_plugin(self):
+		plugin_dirs = [self.shipped_plugin, self.installed_plugin]
+		for plugin_dir in plugin_dirs:
+			mkdir(plugin_dir)
+		self.assertEqual(
+			plugin_dirs,
+			find_plugin_dirs(self.shipped_plugins, self.installed_plugins)
+		)
+	def setUp(self):
+		self.shipped_plugins = mkdtemp()
+		self.installed_plugins = mkdtemp()
+		self.shipped_plugin = join(self.shipped_plugins, 'Shipped')
+		installed_plugin = 'Very Simple Plugin'
+		assert basename(installed_plugin)[0] > USER_PLUGIN_NAME[0], \
+			"Please ensure that the name of the installed plugin appears in" \
+			"listdir(...) _after_ the User plugin. This lets us test that" \
+			"find_plugins(...) does not simply return plugins in the same " \
+			"order as listdir(...) but ensures that the User plugin appears " \
+			"last."
+		self.installed_plugin = join(self.installed_plugins, installed_plugin)
+		self.user_plugin = join(self.installed_plugins, USER_PLUGIN_NAME)
+	def tearDown(self):
+		rmtree(self.shipped_plugins)
+		rmtree(self.installed_plugins)
 
 class PluginSupportTest(TestCase):
 	def test_load_json_default(self):
@@ -61,43 +97,46 @@ class PluginSupportTest(TestCase):
 		json_platform = join(self.user_plugin, 'Test (%s).json' % PLATFORM)
 		with open(json_platform, 'r') as f:
 			self.assertEqual(d, json.load(f))
-	def test_find_plugins(self):
-		self.assertEqual(
-			self.plugin_dirs,
-			find_plugin_dirs(self.shipped_plugins, self.installed_plugins)
-		)
 	def test_key_bindings(self):
-		pane = self.left_pane
-		key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
+		key_bindings = self.plugin_support.get_key_bindings()
 		self.assertEqual(2, len(key_bindings))
-		test_command, command_raising_error = key_bindings
-		self.assertEqual(["Enter"], test_command.keys)
-		self.assertEqual(["Space"], command_raising_error.keys)
-		for binding in key_bindings:
-			self.assertIs(pane, binding.command.wrapped_command.pane)
-		self.assertEqual(True, test_command.command(success=True))
+		first, second = key_bindings
+		self.assertEqual({
+			'keys': ['Enter'],
+			'command': 'test_command',
+			'args': {
+				'success': True
+			}
+		}, first)
+		def run(key_binding):
+			command = key_binding['command']
+			args = key_binding.get('args', {})
+			return self.left_pane.run_command(command, args)
+		self.assertEqual(True, run(first))
+		self.assertEqual({
+			'keys': ['Space'],
+			'command': 'command_raising_error'
+		}, second)
 		# Should not raise an exception:
-		command_raising_error.command()
+		run(second)
 		self.assertEqual(
 			["Command 'CommandRaisingError' raised exception."],
 			self.error_handler.error_messages
 		)
 	def test_on_path_changed_error(self):
-		self.plugin_support.on_path_changed(self.left_pane)
+		self.left_pane._broadcast('on_path_changed')
 		self.assertEqual(
 			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
 			self.error_handler.error_messages
 		)
 	def test_on_doubleclicked_error(self):
-		self.plugin_support.on_doubleclicked(self.left_pane, self.user_plugin)
+		self.left_pane._broadcast('on_doubleclicked', self.user_plugin)
 		self.assertEqual(
 			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
 			self.error_handler.error_messages
 		)
 	def test_on_on_name_edited_error(self):
-		self.plugin_support.on_name_edited(
-			self.left_pane, self.user_plugin, 'New name'
-		)
+		self.left_pane._broadcast('on_name_edited', self.user_plugin, 'New name')
 		self.assertEqual(
 			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
 			self.error_handler.error_messages
@@ -114,12 +153,14 @@ class PluginSupportTest(TestCase):
 		copytree(src_dir, self.installed_plugin)
 		self.plugin_dirs = \
 			[self.shipped_plugin, self.installed_plugin, self.user_plugin]
+		json_support = JsonSupport(self.plugin_dirs, PLATFORM)
 		self.error_handler = StubErrorHandler()
 		self.plugin_support = \
-			PluginSupport(self.plugin_dirs, self.error_handler)
+			PluginSupport(self.plugin_dirs, json_support, self.error_handler)
 		self.plugin_support.initialize()
-		self.left_pane = StubDirectoryPane()
-		self.right_pane = StubDirectoryPane()
+		self.window = Window()
+		self.left_pane = DirectoryPane(self.window, None)
+		self.right_pane = DirectoryPane(self.window, None)
 		self.plugin_support.on_pane_added(self.left_pane)
 		self.plugin_support.on_pane_added(self.right_pane)
 	def tearDown(self):

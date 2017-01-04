@@ -173,12 +173,14 @@ class TreeCommand(CorePaneCommand):
 	def __call__(self, files=None, dest_dir=None):
 		if files is None:
 			files = self.get_chosen_files()
+			src_dir = self.pane.get_path()
+		else:
+			src_dir=None
 		if dest_dir is None:
 			dest_dir = self.other_pane.get_path()
 		proceed = self._confirm_tree_operation(files, dest_dir)
 		if proceed:
 			dest_dir, dest_name = proceed
-			src_dir = self.pane.get_path()
 			self._call(files, dest_dir, src_dir, dest_name)
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
 		raise NotImplementedError()
@@ -236,9 +238,9 @@ class Move(TreeCommand):
 		Thread(target=move).start()
 
 class DragAndDropListener(DirectoryPaneListener):
-	def on_files_dropped(self, file_paths, dest_dir, is_copy_not_move):
-		action = Copy if is_copy_not_move else Move
-		action(self.pane)(file_paths, dest_dir)
+	def on_files_dropped(self, files, dest_dir, is_copy_not_move):
+		command = 'copy' if is_copy_not_move else 'move'
+		self.pane.run_command(command, {'files': files, 'dest_dir': dest_dir})
 
 class Rename(CorePaneCommand):
 	def __call__(self):
@@ -337,7 +339,7 @@ class SelectAll(CorePaneCommand):
 class ToggleHiddenFiles(CorePaneCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.pane.add_filter(self.should_display)
+		self.pane._add_filter(self.should_display)
 		# Instead of simply storing `show_hidden_files` in a boolean variable,
 		# we store it under 'Panes.json'. This lets other plugins query it as
 		# load_json('Panes.json')[pane.id]['show_hidden_files'].
@@ -352,7 +354,7 @@ class ToggleHiddenFiles(CorePaneCommand):
 		return not _is_hidden(file_path)
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
-		self.pane.invalidate_filters()
+		self.pane._invalidate_filters()
 	@property
 	def show_hidden_files(self):
 		return self.pane_info['show_hidden_files']

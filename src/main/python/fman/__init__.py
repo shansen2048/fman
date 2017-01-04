@@ -29,6 +29,75 @@ elif is_linux():
 	PLATFORM = 'Linux'
 	DATA_DIRECTORY = expanduser('~/.config/fman')
 
+class DirectoryPane:
+	def __init__(self, window, widget):
+		self.window = window
+		self._widget = widget
+		self._commands = {}
+		self._listeners = []
+
+	def _add_listener(self, listener):
+		self._listeners.append(listener)
+	def _broadcast(self, event, *args):
+		for listener in self._listeners:
+			getattr(listener, event)(*args)
+
+	def get_commands(self):
+		return self._commands
+	def run_command(self, command_name, args=None):
+		if args is None:
+			args = {}
+		return self._commands[command_name](**args)
+	def _register_command(self, command_name, command):
+		self._commands[command_name] = command
+
+	@property
+	def id(self):
+		return id(self._widget)
+	def _add_filter(self, filter_):
+		self._widget.add_filter(filter_)
+	def _invalidate_filters(self):
+		self._widget.invalidate_filters()
+
+	def get_selected_files(self):
+		return self._widget.get_selected_files()
+	def get_file_under_cursor(self):
+		return self._widget.get_file_under_cursor()
+	def move_cursor_down(self, toggle_selection=False):
+		self._widget.move_cursor_down(toggle_selection)
+	def move_cursor_up(self, toggle_selection=False):
+		self._widget.move_cursor_up(toggle_selection)
+	def move_cursor_home(self, toggle_selection=False):
+		self._widget.move_cursor_home(toggle_selection)
+	def move_cursor_end(self, toggle_selection=False):
+		self._widget.move_cursor_end(toggle_selection)
+	def move_cursor_page_down(self, toggle_selection=False):
+		self._widget.move_cursor_page_down(toggle_selection)
+	def move_cursor_page_up(self, toggle_selection=False):
+		self._widget.move_cursor_page_up(toggle_selection)
+	def place_cursor_at(self, file_path):
+		self._widget.place_cursor_at(file_path)
+	def get_path(self):
+		return self._widget.get_path()
+	def set_path(self, dir_path, callback=None):
+		self._widget.set_path(dir_path, callback)
+	def edit_name(self, file_path):
+		self._widget.edit_name(file_path)
+	def select_all(self):
+		self._widget.select_all()
+	def toggle_selection(self, file_path):
+		self._widget.toggle_selection(file_path)
+
+class Window:
+	def __init__(self):
+		self._panes = []
+	def get_panes(self):
+		return self._panes
+	def add_pane(self, pane_widget):
+		result = DirectoryPane(self, pane_widget)
+		self._panes.append(result)
+		return result
+
 class DirectoryPaneCommand:
 	def __init__(self, pane):
 		self.pane = pane

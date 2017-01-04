@@ -29,9 +29,6 @@ class DirectoryPane(QWidget):
 		self._file_view.hideColumn(2)
 		self.setLayout(Layout(self._path_view, self._file_view))
 		self._controller = None
-	@property
-	def id(self):
-		return id(self)
 	def set_controller(self, controller):
 		self._controller = controller
 	def move_cursor_up(self, toggle_selection=False):

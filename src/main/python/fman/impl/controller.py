@@ -1,15 +1,54 @@
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, Key_Right
 from fman.util.system import is_mac
 from PyQt5.QtGui import QKeySequence
+from weakref import WeakValueDictionary
 
 class Controller:
-	def __init__(self, plugin_support, tracker):
+	"""
+	The main purpose of this class is to shield the rest of the `plugin`
+	implementation from having to know about Qt.
+	"""
+	def __init__(self, window, plugin_support, tracker):
+		self.window = window
 		self.plugin_support = plugin_support
 		self.tracker = tracker
-	def on_key_pressed(self, pane, event):
-		key = event.key()
-		modifiers = event.modifiers()
-		if is_mac() and key in (Key_Down, Key_Up, Key_Left, Key_Right):
+		self._panes = WeakValueDictionary()
+	def on_pane_added(self, pane_widget):
+		pane = self.window.add_pane(pane_widget)
+		self._panes[pane_widget] = pane
+		pane_widget.path_changed.connect(self.on_path_changed)
+		self.plugin_support.on_pane_added(pane)
+	def on_path_changed(self, pane_widget):
+		self._panes[pane_widget]._broadcast('on_path_changed')
+	def on_key_pressed(self, pane_widget, event):
+		key_event = QtKeyEvent(event.key(), event.modifiers())
+		for key_binding in self.plugin_support.get_key_bindings():
+			keys = key_binding['keys']
+			if key_event.matches(keys[0]):
+				command_name = key_binding['command']
+				args = key_binding.get('args', {})
+				self._panes[pane_widget].run_command(command_name, args)
+				return True
+		event.ignore()
+		return False
+	def on_doubleclicked(self, pane_widget, file_path):
+		self.tracker.track('Doubleclicked file')
+		self._panes[pane_widget]._broadcast('on_doubleclicked', file_path)
+	def on_file_renamed(self, pane_widget, *args):
+		self._panes[pane_widget]._broadcast('on_name_edited', *args)
+	def on_files_dropped(self, pane_widget, *args):
+		self._panes[pane_widget]._broadcast('on_files_dropped', *args)
+
+class QtKeyEvent:
+	def __init__(self, key, modifiers):
+		self.key = key
+		self.modifiers = modifiers
+	def matches(self, keys):
+		if is_mac():
+			keys_mac = {'Cmd': 'Ctrl', 'Ctrl': 'Meta'}
+			keys = '+'.join(keys_mac.get(k, k) for k in keys.split('+'))
+		modifiers = self.modifiers
+		if is_mac() and self.key in (Key_Down, Key_Up, Key_Left, Key_Right):
 			# According to the Qt documentation ([1]), the KeypadModifier flag
 			# is set when an arrow key is pressed on OS X because the arrow keys
 			# are part of the keypad. We don't want our users to have to specify
@@ -17,30 +56,4 @@ class Controller:
 			# this behaviour of Qt.
 			# [1]: http://doc.qt.io/qt-5/qt.html#KeyboardModifier-enum
 			modifiers &= ~KeypadModifier
-		key_sequence = QKeySequence(modifiers | key)
-		key_bindings = self.plugin_support.get_key_bindings_for_pane(pane)
-		for binding in key_bindings:
-			keys = binding.keys[0]
-			if is_mac():
-				keys_mac = {'Cmd': 'Ctrl', 'Ctrl': 'Meta'}
-				keys = '+'.join(keys_mac.get(k, k) for k in keys.split('+'))
-			if key_sequence.matches(QKeySequence(keys)):
-				command = binding.command
-				self.tracker.track('Ran command', {
-					'Command': command.name
-				})
-				try:
-					command(**binding.args)
-				except NotImplementedError:
-					continue
-				else:
-					return True
-		event.ignore()
-		return False
-	def on_doubleclicked(self, *args):
-		self.tracker.track('Doubleclicked file')
-		self.plugin_support.on_doubleclicked(*args)
-	def on_file_renamed(self, *args):
-		self.plugin_support.on_name_edited(*args)
-	def on_files_dropped(self, *args):
-		self.plugin_support.on_files_dropped(*args)
+		return QKeySequence(modifiers | self.key).matches(QKeySequence(keys))

@@ -1,9 +1,11 @@
-from fman import PLATFORM, DATA_DIRECTORY
+from fman import PLATFORM, DATA_DIRECTORY, Window
+from fman.impl.json_support import JsonSupport
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.model import UbuntuFileIconProvider
-from fman.impl.plugin import PluginSupport, find_plugin_dirs, PluginErrorHandler
+from fman.impl.plugin import PluginSupport, find_plugin_dirs, \
+	PluginErrorHandler, USER_PLUGIN_NAME
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
@@ -39,10 +41,12 @@ class ApplicationContext:
 		self._palette = None
 		self._main_window_palette = None
 		self._plugin_dirs = None
+		self._json_support = None
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
 		self._metrics = None
+		self._window = None
 	def initialize(self):
 		# TODO: Remove this migration some time after December 2016
 		panes_json = join(
@@ -124,14 +128,14 @@ class ApplicationContext:
 			plugin_dirs = self.plugin_dirs
 			error_handler = \
 				PluginErrorHandler(plugin_dirs, self._main_window)
-			plugin_support = PluginSupport(plugin_dirs, error_handler)
-			self.app.aboutToQuit.connect(plugin_support.on_quit)
-			controller = Controller(plugin_support, self.metrics)
+			plugin_support = \
+				PluginSupport(plugin_dirs, self.json_support, error_handler)
+			controller = Controller(self.window, plugin_support, self.metrics)
 			self._main_window.set_controller(controller)
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
 			self._main_window.shown.connect(error_handler.on_main_window_shown)
-			self._main_window.pane_added.connect(plugin_support.on_pane_added)
+			self._main_window.pane_added.connect(controller.on_pane_added)
 			self._main_window.closeEvent = \
 				lambda _: self.session_manager.on_close(self.main_window)
 		return self._main_window
@@ -143,6 +147,21 @@ class ApplicationContext:
 			self._plugin_dirs = \
 				find_plugin_dirs(shipped_plugins, installed_plugins)
 		return self._plugin_dirs
+	@property
+	def json_support(self):
+		if self._json_support is None:
+			self._json_support = JsonSupport(self._get_json_dirs(), PLATFORM)
+			self.app.aboutToQuit.connect(self._json_support.on_quit)
+		return self._json_support
+	def _get_json_dirs(self):
+		result = list(self.plugin_dirs)
+		user_plugin = join(DATA_DIRECTORY, 'Plugins', USER_PLUGIN_NAME)
+		if user_plugin not in result:
+			# We want the User plugin to appear in the list of json dirs
+			# even if it does not exist, because it serves as the default
+			# destination for save_json(...):
+			result.append(user_plugin)
+		return result
 	@property
 	def plugin_support(self):
 		return self.controller.plugin_support
@@ -219,6 +238,11 @@ class ApplicationContext:
 	@property
 	def updater(self):
 		return None
+	@property
+	def window(self):
+		if self._window is None:
+			self._window = Window()
+		return self._window
 	def get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
 		os_dir = join(res_dir, PLATFORM.lower())
