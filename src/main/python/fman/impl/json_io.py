@@ -3,30 +3,30 @@ from os.path import splitext, dirname, join
 
 import json
 
-class JsonSupport:
+class JsonIO:
 	def __init__(self, json_dirs, platform_):
 		self._json_dirs = json_dirs
 		self._platform = platform_
 		self._cache = {}
 		self._save_on_quit = set()
-	def load(self, name, default=None, save_on_quit=False):
-		if name not in self._cache:
-			result = load_json(*self._get_json_paths(name))
+	def load(self, json_name, default=None, save_on_quit=False):
+		if json_name not in self._cache:
+			result = load_json(*self._get_json_paths(json_name))
 			if result is None:
 				result = default
-			self._cache[name] = result
+			self._cache[json_name] = result
 		if save_on_quit:
-			self._save_on_quit.add(name)
-		return self._cache[name]
-	def save(self, name, value=None):
+			self._save_on_quit.add(json_name)
+		return self._cache[json_name]
+	def save(self, json_name, value=None):
 		if value is None:
-			value = self._cache[name]
-		write_differential_json(value, *self._get_json_paths(name))
-		self._cache[name] = value
+			value = self._cache[json_name]
+		write_differential_json(value, *self._get_json_paths(json_name))
+		self._cache[json_name] = value
 	def on_quit(self):
-		for name in self._save_on_quit:
+		for json_name in self._save_on_quit:
 			try:
-				self.save(name)
+				self.save(json_name)
 			except ValueError as error_computing_delta:
 				# This can happen for a variety of reasons. One example: When
 				# multiple instances of fman are open and another instance has
@@ -34,12 +34,12 @@ class JsonSupport:
 				# computation may fail with a ValueError. Ignore this so we can
 				# at least save the other files in _save_on_quit:
 				pass
-	def _get_json_paths(self, name):
-		base, ext = splitext(name)
+	def _get_json_paths(self, json_name):
+		base, ext = splitext(json_name)
 		platform_specific_name = '%s (%s)%s' % (base, self._platform, ext)
 		result = []
 		for json_dir in self._json_dirs:
-			result.append(join(json_dir, name))
+			result.append(join(json_dir, json_name))
 			result.append(join(json_dir, platform_specific_name))
 		return result
 

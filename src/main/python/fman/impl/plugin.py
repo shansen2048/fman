@@ -32,9 +32,9 @@ def _list_plugins(dir_path):
 		return []
 
 class PluginSupport:
-	def __init__(self, plugin_dirs, json_support, error_handler):
+	def __init__(self, plugin_dirs, json_io, error_handler):
 		self._plugin_dirs = plugin_dirs
-		self._json_support = json_support
+		self._json_io = json_io
 		self._error_handler = error_handler
 		self._plugins = None
 		self._key_bindings = None
@@ -42,9 +42,9 @@ class PluginSupport:
 		self._plugins = self._load_plugins()
 		self._key_bindings = self._load_key_bindings()
 	def load_json(self, name, default=None, save_on_quit=False):
-		return self._json_support.load(name, default, save_on_quit)
+		return self._json_io.load(name, default, save_on_quit)
 	def save_json(self, name, value=None):
-		self._json_support.save(name, value)
+		self._json_io.save(name, value)
 	def get_key_bindings(self):
 		return self._key_bindings
 	def on_pane_added(self, pane):

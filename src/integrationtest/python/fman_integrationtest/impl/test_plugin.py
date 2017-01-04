@@ -1,5 +1,5 @@
 from fman import PLATFORM, Window, DirectoryPane
-from fman.impl.json_support import JsonSupport
+from fman.impl.json_io import JsonIO
 from fman.impl.plugin import PluginSupport, USER_PLUGIN_NAME, find_plugin_dirs
 from fman_integrationtest import get_resource
 from os import mkdir
@@ -153,10 +153,10 @@ class PluginSupportTest(TestCase):
 		copytree(src_dir, self.installed_plugin)
 		self.plugin_dirs = \
 			[self.shipped_plugin, self.installed_plugin, self.user_plugin]
-		json_support = JsonSupport(self.plugin_dirs, PLATFORM)
+		json_io = JsonIO(self.plugin_dirs, PLATFORM)
 		self.error_handler = StubErrorHandler()
 		self.plugin_support = \
-			PluginSupport(self.plugin_dirs, json_support, self.error_handler)
+			PluginSupport(self.plugin_dirs, json_io, self.error_handler)
 		self.plugin_support.initialize()
 		self.window = Window()
 		self.left_pane = DirectoryPane(self.window, None)

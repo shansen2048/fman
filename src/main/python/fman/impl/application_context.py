@@ -1,5 +1,5 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
-from fman.impl.json_support import JsonSupport
+from fman.impl.json_io import JsonIO
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
@@ -41,7 +41,7 @@ class ApplicationContext:
 		self._palette = None
 		self._main_window_palette = None
 		self._plugin_dirs = None
-		self._json_support = None
+		self._json_io = None
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
@@ -129,7 +129,7 @@ class ApplicationContext:
 			error_handler = \
 				PluginErrorHandler(plugin_dirs, self._main_window)
 			plugin_support = \
-				PluginSupport(plugin_dirs, self.json_support, error_handler)
+				PluginSupport(plugin_dirs, self.json_io, error_handler)
 			controller = Controller(self.window, plugin_support, self.metrics)
 			self._main_window.set_controller(controller)
 			self._main_window.setPalette(self.main_window_palette)
@@ -148,11 +148,11 @@ class ApplicationContext:
 				find_plugin_dirs(shipped_plugins, installed_plugins)
 		return self._plugin_dirs
 	@property
-	def json_support(self):
-		if self._json_support is None:
-			self._json_support = JsonSupport(self._get_json_dirs(), PLATFORM)
-			self.app.aboutToQuit.connect(self._json_support.on_quit)
-		return self._json_support
+	def json_io(self):
+		if self._json_io is None:
+			self._json_io = JsonIO(self._get_json_dirs(), PLATFORM)
+			self.app.aboutToQuit.connect(self._json_io.on_quit)
+		return self._json_io
 	def _get_json_dirs(self):
 		result = list(self.plugin_dirs)
 		user_plugin = join(DATA_DIRECTORY, 'Plugins', USER_PLUGIN_NAME)
