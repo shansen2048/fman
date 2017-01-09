@@ -409,26 +409,32 @@ class OpenInLeftPane(OpenInPaneCommand):
 	def get_destination_pane(self, this_pane, num_panes):
 		return max(this_pane - 1, 0)
 
-class ShowDrives(CorePaneCommand):
-	def __call__(self):
-		if PLATFORM == 'Mac':
-			path = '/Volumes'
-		elif PLATFORM == 'Windows':
-			# Go to "My Computer":
-			path = ''
-		elif PLATFORM == 'Linux':
-			if isdir('/media'):
-				contents = listdir('/media')
-				user_name = _get_user()
-				if contents == [user_name]:
-					path = join('/media', user_name)
-				else:
-					path = '/media'
-			else:
-				path = '/mnt'
+class ShowVolumes(CorePaneCommand):
+	def __call__(self, pane_index=None):
+		if pane_index is None:
+			pane = self.pane
 		else:
-			raise NotImplementedError(PLATFORM)
-		self.pane.set_path(path)
+			pane = self.pane.window.get_panes()[pane_index]
+		pane.set_path(_get_volumes_path())
+
+def _get_volumes_path():
+	if PLATFORM == 'Mac':
+		return '/Volumes'
+	elif PLATFORM == 'Windows':
+		# Go to "My Computer":
+		return ''
+	elif PLATFORM == 'Linux':
+		if isdir('/media'):
+			contents = listdir('/media')
+			user_name = _get_user()
+			if contents == [user_name]:
+				return join('/media', user_name)
+			else:
+				return '/media'
+		else:
+			return '/mnt'
+	else:
+		raise NotImplementedError(PLATFORM)
 
 def _get_user():
 	try:
