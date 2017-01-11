@@ -588,12 +588,10 @@ class CommandPalette(CorePaneCommand):
 
 	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
 
-	_KEY_SYMBOLS = {
-		'Up': '↑', 'Down': '↓', 'Left': '←', 'Right': '→', 'Enter': '↩',
-		'Shift': '⇧', 'Backspace': '⌫'
+	_KEY_SYMBOLS_MAC = {
+		'Cmd': '⌘', 'Alt': '⌥', 'Ctrl': '⌃', 'Shift': '⇧', 'Backspace': '⌫',
+		'Up': '↑', 'Down': '↓', 'Left': '←', 'Right': '→', 'Enter': '↩'
 	}
-	if PLATFORM == 'Mac':
-		_KEY_SYMBOLS.update( { 'Cmd': '⌘', 'Alt': '⌥', 'Ctrl': '⌃' } )
 
 	def __call__(self):
 		result = show_quicksearch(self._suggest_commands)
@@ -608,8 +606,7 @@ class CommandPalette(CorePaneCommand):
 			for i, matcher in enumerate(self._MATCHERS):
 				match = matcher(command_title.lower(), query.lower())
 				if match is not None:
-					shortcuts = self._get_shortcuts_for_command(command)
-					hint = ', '.join(map(self._insert_key_symbols, shortcuts))
+					hint = ', '.join(self._get_shortcuts_for_command(command))
 					suggestion = Suggestion(command, command_title, match, hint)
 					result[i].append(suggestion)
 					break
@@ -617,6 +614,10 @@ class CommandPalette(CorePaneCommand):
 	def _get_shortcuts_for_command(self, command):
 		for binding in load_json('Key Bindings.json'):
 			if binding['command'] == command:
-				yield binding['keys'][0]
-	def _insert_key_symbols(self, keys):
-		return ''.join(self._KEY_SYMBOLS.get(k, k) for k in keys.split('+'))
+				shortcut = binding['keys'][0]
+				if PLATFORM == 'Mac':
+					shortcut = self._insert_mac_key_symbols(shortcut)
+				yield shortcut
+	def _insert_mac_key_symbols(self, shortcut):
+		keys = shortcut.split('+')
+		return ''.join(self._KEY_SYMBOLS_MAC.get(key, key) for key in keys)
