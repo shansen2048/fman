@@ -22,7 +22,7 @@ class Controller:
 		self._panes[pane_widget]._broadcast('on_path_changed')
 	def on_key_pressed(self, pane_widget, event):
 		key_event = QtKeyEvent(event.key(), event.modifiers())
-		for key_binding in self.plugin_support.get_key_bindings():
+		for key_binding in self.plugin_support.get_sanitized_key_bindings():
 			keys = key_binding['keys']
 			if key_event.matches(keys[0]):
 				command_name = key_binding['command']

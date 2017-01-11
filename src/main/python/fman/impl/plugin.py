@@ -45,7 +45,7 @@ class PluginSupport:
 		return self._json_io.load(name, default, save_on_quit)
 	def save_json(self, name, value=None):
 		self._json_io.save(name, value)
-	def get_key_bindings(self):
+	def get_sanitized_key_bindings(self):
 		return self._key_bindings
 	def on_pane_added(self, pane):
 		for plugin in self._plugins:

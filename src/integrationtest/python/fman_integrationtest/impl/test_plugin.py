@@ -98,7 +98,7 @@ class PluginSupportTest(TestCase):
 		with open(json_platform, 'r') as f:
 			self.assertEqual(d, json.load(f))
 	def test_key_bindings(self):
-		key_bindings = self.plugin_support.get_key_bindings()
+		key_bindings = self.plugin_support.get_sanitized_key_bindings()
 		self.assertEqual(2, len(key_bindings))
 		first, second = key_bindings
 		self.assertEqual({
