@@ -68,14 +68,18 @@ def open_native_file_manager(dir_path):
 				return
 		Popen([native_file_manager, dir_path])
 		if is_gnome_based():
-			fpl = check_output(['dconf', 'read', _FOCUS_PREVENTION_LEVEL])
-			if fpl in (b'', b'1\n'):
-				show_status_message(
-					'Hint: If %s opened in the background, click '
-					'<a href="https://askubuntu.com/a/594301">here</a>.'
-					% native_file_manager.title(),
-					timeout_secs=10
-				)
+			try:
+				fpl = check_output(['dconf', 'read', _FOCUS_PREVENTION_LEVEL])
+			except FileNotFoundError as dconf_not_installed:
+				pass
+			else:
+				if fpl in (b'', b'1\n'):
+					show_status_message(
+						'Hint: If %s opened in the background, click '
+						'<a href="https://askubuntu.com/a/594301">here</a>.'
+						% native_file_manager.title(),
+						timeout_secs=10
+					)
 	else:
 		raise NotImplementedError(PLATFORM)
 
