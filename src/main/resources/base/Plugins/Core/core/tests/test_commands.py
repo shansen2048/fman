@@ -7,44 +7,44 @@ import os
 
 class SuggestLocationsTest(TestCase):
 	def test_empty_suggests_recent_locations(self):
-		expected_paths = (
+		expected_paths = [
 			'~/Dropbox/Work', '~/Dropbox', '~/Downloads', '~/Dropbox/Private',
 			'~'
-		)
+		]
 		self._check_query_returns(
-			'', expected_paths, ([],) * len(expected_paths)
+			'', expected_paths, [[]] * len(expected_paths)
 		)
 	def test_basename_matches(self):
 		self._check_query_returns(
-			'dow', ('~/Downloads', '~/Dropbox/Work'), ([2, 3, 4], [2, 4, 10])
+			'dow', ['~/Downloads', '~/Dropbox/Work'], [[2, 3, 4], [2, 4, 10]]
 		)
 	def test_exact_match_takes_precedence(self):
 		expected_paths = \
-			('~', '~/Dropbox', '~/Downloads', '~/.hidden', '~/Unvisited')
+			['~', '~/Dropbox', '~/Downloads', '~/.hidden', '~/Unvisited']
 		self._check_query_returns(
-			'~', expected_paths, ([0],) * len(expected_paths)
+			'~', expected_paths, [[0]] * len(expected_paths)
 		)
 	def test_prefix_match(self):
-		self._check_query_returns('~/dow', ('~/Downloads',), ([0, 1, 2, 3, 4],))
+		self._check_query_returns('~/dow', ['~/Downloads'], [[0, 1, 2, 3, 4]])
 	def test_matches_upper_characters(self):
 		self._check_query_returns(
-			'dp', ('~/Dropbox/Private', '~/Dropbox/Work', '~/Dropbox'),
-			([2, 10], [2, 5], [2, 5])
+			'dp', ['~/Dropbox/Private', '~/Dropbox/Work', '~/Dropbox'],
+			[[2, 10], [2, 5], [2, 5]]
 		)
 	def test_enter_existing_path(self):
 		self._check_query_returns(
-			'~/Unvisited', ('~/Unvisited', '~/Unvisited/Dir')
+			'~/Unvisited', ['~/Unvisited', '~/Unvisited/Dir']
 		)
 	def test_enter_path_slash(self):
 		highlight = list(range(len('~/Unvisited')))
 		self._check_query_returns(
-			'~/Unvisited/', ('~/Unvisited', '~/Unvisited/Dir',),
-			(highlight, highlight)
+			'~/Unvisited/', ['~/Unvisited', '~/Unvisited/Dir'],
+			[highlight, highlight]
 		)
 	def test_trailing_space(self):
-		self._check_query_returns('~/Downloads ', ())
+		self._check_query_returns('~/Downloads ', [])
 	def test_hidden(self):
-		self._check_query_returns('~/.', ('~/.hidden',))
+		self._check_query_returns('~/.', ['~/.hidden'])
 	def setUp(self):
 		recent_locations = {
 			'~': 1,
@@ -79,20 +79,18 @@ class SuggestLocationsTest(TestCase):
 		self.instance = SuggestLocations(recent_locations, self.file_system)
 	def _check_query_returns(self, query, paths, highlights=None):
 		query = self._replace_pathsep(query)
-		paths = tuple(map(self._replace_pathsep, paths))
+		paths = list(map(self._replace_pathsep, paths))
 		if highlights is None:
-			highlights = (self._full_range(query),) * len(paths)
+			highlights = [self._full_range(query)] * len(paths)
 		result = self.instance(query)
-		actual_paths, actual_highlights = unzip(result) if result else ((), ())
+		actual_paths = [suggestion.value for suggestion in result]
+		actual_highlights = [suggestion.highlight for suggestion in result]
 		self.assertEqual(paths, actual_paths)
 		self.assertEqual(highlights, actual_highlights)
 	def _replace_pathsep(self, path):
 		return path.replace('/', os.sep)
 	def _full_range(self, string):
 		return list(range(len(string)))
-
-def unzip(lst):
-	return zip(*lst)
 
 class StubFileSystem:
 	def __init__(self, files, home_dir):

@@ -44,9 +44,10 @@ class QtKeyEvent:
 		self.key = key
 		self.modifiers = modifiers
 	def matches(self, keys):
+		def replace_keys(replacements):
+			return '+'.join(replacements.get(k, k) for k in keys.split('+'))
 		if is_mac():
-			keys_mac = {'Cmd': 'Ctrl', 'Ctrl': 'Meta'}
-			keys = '+'.join(keys_mac.get(k, k) for k in keys.split('+'))
+			keys = replace_keys({'Cmd': 'Ctrl', 'Ctrl': 'Meta'})
 		modifiers = self.modifiers
 		if is_mac() and self.key in (Key_Down, Key_Up, Key_Left, Key_Right):
 			# According to the Qt documentation ([1]), the KeypadModifier flag
@@ -56,4 +57,11 @@ class QtKeyEvent:
 			# this behaviour of Qt.
 			# [1]: http://doc.qt.io/qt-5/qt.html#KeyboardModifier-enum
 			modifiers &= ~KeypadModifier
-		return QKeySequence(modifiers | self.key).matches(QKeySequence(keys))
+		this_event = QKeySequence(modifiers | self.key)
+		if 'Enter' in keys.split('+'):
+			# Qt has keys 'Return' as well as 'Enter'. We want to treat them as
+			# the same and expect the user to write 'Enter' in Key Bindings.json
+			keys_return = replace_keys({'Enter': 'Return'})
+			if this_event.matches(QKeySequence(keys_return)):
+				return True
+		return this_event.matches(QKeySequence(keys))

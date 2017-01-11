@@ -8,5 +8,6 @@
 	{ "keys": ["Cmd+."], "command": "toggle_hidden_files" },
 	{ "keys": ["Cmd+F1"], "command": "show_volumes", "args": {"pane_index": 0} },
 	{ "keys": ["Cmd+F2"], "command": "show_volumes", "args": {"pane_index": 1} },
-	{ "keys": ["Cmd+P"], "command": "go_to"}
+	{ "keys": ["Cmd+P"], "command": "go_to" },
+	{ "keys": ["Cmd+Shift+P"], "command": "command_palette" }
 ]

@@ -2,11 +2,14 @@ from core import clipboard
 from core.fileoperations import CopyFiles, MoveFiles
 from core.os_ import open_file_with_app, open_terminal_in_directory, \
 	open_native_file_manager
+from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
+	contains_chars, contains_chars_after_separator
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
-	show_alert
+	show_alert, QuicksearchSuggestion as Suggestion
 from getpass import getuser
+from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
@@ -450,17 +453,12 @@ class GoTo(CorePaneCommand):
 				path: 0 for path in self._get_default_paths()
 			})
 		get_suggestions = SuggestLocations(visited_paths)
-		def get_tab_completion(suggestion):
-			result = suggestion[0]
-			if not result.endswith(os.sep):
-				result += os.sep
-			return result
-		result = show_quicksearch(get_suggestions, get_tab_completion)
+		result = show_quicksearch(get_suggestions, self._get_tab_completion)
 		if result:
 			text, suggestion = result
 			path = ''
 			if suggestion:
-				path = expanduser(suggestion[0])
+				path = expanduser(suggestion.value)
 			if not isdir(path):
 				path = expanduser(text)
 			if isdir(path):
@@ -487,6 +485,11 @@ class GoTo(CorePaneCommand):
 			if exists('/mnt'):
 				result.append('/mnt')
 		return result
+	def _get_tab_completion(self, suggestion):
+		result = suggestion.value
+		if not result.endswith(os.sep):
+			result += os.sep
+		return result
 
 class GoToListener(DirectoryPaneListener):
 	def __init__(self, *args, **kwargs):
@@ -510,6 +513,12 @@ def unexpand_user(path, expanduser_=expanduser):
 	return path
 
 class SuggestLocations:
+
+	_MATCHERS = (
+		path_starts_with, basename_starts_with,
+		contains_chars_after_separator(os.sep), contains_chars
+	)
+
 	def __init__(self, visited_paths, file_system=None):
 		if file_system is None:
 			# Encapsulating filesystem-related functionality in a separate field
@@ -517,10 +526,6 @@ class SuggestLocations:
 			file_system = FileSystem()
 		self.visited_paths = visited_paths
 		self.fs = file_system
-		self._matchers = [
-			self._starts_with, self._name_starts_with,
-			self._contains_upper_chars, self._contains_chars_ignorecase
-		]
 	def __call__(self, query):
 		possible_dirs = self._gather_dirs(query)
 		suggestions = self._filter_matching(possible_dirs, query)
@@ -550,18 +555,17 @@ class SuggestLocations:
 		else:
 			return sorted(self.visited_paths, key=sort_key)
 	def _filter_matching(self, dirs, query):
-		for matcher in self._matchers:
-			remaining_dirs = []
-			for dir_ in dirs:
-				match = matcher(query, dir_)
-				if match:
-					yield match
-				else:
-					remaining_dirs.append(dir_)
-			dirs = remaining_dirs
+		result = [[] for _ in self._MATCHERS]
+		for dir_ in dirs:
+			for i, matcher in enumerate(self._MATCHERS):
+				match = matcher(dir_.lower(), query.lower())
+				if match is not None:
+					result[i].append(Suggestion(dir_, highlight=match))
+					break
+		return list(chain.from_iterable(result))
 	def _remove_nonexistent(self, suggestions):
 		for suggestion in suggestions:
-			dir_ = suggestion[0]
+			dir_ = suggestion.value
 			if self.fs.isdir(self.fs.expanduser(dir_)):
 				yield suggestion
 			else:
@@ -571,35 +575,6 @@ class SuggestLocations:
 					pass
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
-	def _starts_with(self, query, suggestion):
-		# We do want to return ~/Downloads when query is ~/Downloads/:
-		query = query.rstrip(os.sep)
-		if suggestion.lower().startswith(query.lower()):
-			return suggestion, list(range(len(query)))
-	def _name_starts_with(self, query, suggestion):
-		name = basename(suggestion.lower())
-		if name.startswith(query.lower()):
-			offset = len(suggestion) - len(name)
-			return suggestion, [i + offset for i in range(len(query))]
-	def _contains_upper_chars(self, query, suggestion):
-		return self._contains_chars(query.upper(), suggestion, suggestion)
-	def _contains_chars_ignorecase(self, query, suggestion):
-		return self._contains_chars(
-			query.lower(), suggestion.lower(), suggestion
-		)
-	def _contains_chars(self, query, suggestion, suggestion_to_return):
-		try:
-			return suggestion_to_return, self._find_chars(query, suggestion)
-		except ValueError as not_found:
-			pass
-	def _find_chars(self, chars_to_find, in_string):
-		indices = []
-		i = 0
-		for char in chars_to_find:
-			i = in_string[i:].index(char) + i
-			indices.append(i)
-			i += 1
-		return indices
 
 class FileSystem:
 	def isdir(self, path):
@@ -608,3 +583,40 @@ class FileSystem:
 		return expanduser(path)
 	def listdir(self, path):
 		return listdir(path)
+
+class CommandPalette(CorePaneCommand):
+
+	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
+
+	_KEY_SYMBOLS = {
+		'Up': '↑', 'Down': '↓', 'Left': '←', 'Right': '→', 'Enter': '↩',
+		'Shift': '⇧', 'Backspace': '⌫'
+	}
+	if PLATFORM == 'Mac':
+		_KEY_SYMBOLS.update( { 'Cmd': '⌘', 'Alt': '⌥', 'Ctrl': '⌃' } )
+
+	def __call__(self):
+		result = show_quicksearch(self._suggest_commands)
+		if result:
+			suggestion = result[1]
+			if suggestion:
+				self.pane.run_command(suggestion.value)
+	def _suggest_commands(self, query):
+		result = [[] for _ in self._MATCHERS]
+		for command in sorted(self.pane.get_commands(), key=len):
+			command_title = command.capitalize().replace('_', ' ')
+			for i, matcher in enumerate(self._MATCHERS):
+				match = matcher(command_title.lower(), query.lower())
+				if match is not None:
+					shortcuts = self._get_shortcuts_for_command(command)
+					hint = ', '.join(map(self._insert_key_symbols, shortcuts))
+					suggestion = Suggestion(command, command_title, match, hint)
+					result[i].append(suggestion)
+					break
+		return list(chain.from_iterable(result))
+	def _get_shortcuts_for_command(self, command):
+		for binding in load_json('Key Bindings.json'):
+			if binding['command'] == command:
+				yield binding['keys'][0]
+	def _insert_key_symbols(self, keys):
+		return ''.join(self._KEY_SYMBOLS.get(k, k) for k in keys.split('+'))

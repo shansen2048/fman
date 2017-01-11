@@ -9,7 +9,7 @@ from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, Qt, QRect
 from PyQt5.QtGui import QKeyEvent, QPen
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QDialog, QLabel, \
-	QLayout, QListWidget, QListWidgetItem, QFrame
+	QLayout, QListWidget, QListWidgetItem, QFrame, QHBoxLayout
 
 import html
 
@@ -275,8 +275,10 @@ class Style(QProxyStyle):
 			return
 		super().drawPrimitive(element, option, painter, widget)
 
-class QuickSearch(QDialog):
-	def __init__(self, parent, get_suggestions, get_tab_completion):
+class Quicksearch(QDialog):
+	def __init__(self, parent, get_suggestions, get_tab_completion=None):
+		if get_tab_completion is None:
+			get_tab_completion = lambda _: None
 		super().__init__(parent, Qt.FramelessWindowHint)
 		self.get_suggestions = get_suggestions
 		self.get_tab_completion = get_tab_completion
@@ -313,7 +315,9 @@ class QuickSearch(QDialog):
 			index = self._suggestions.currentIndex()
 			if index.isValid():
 				suggestion = self._curr_suggestions[index.row()]
-				self._query.setText(self.get_tab_completion(suggestion))
+				completion = self.get_tab_completion(suggestion)
+				if completion:
+					self._query.setText(completion)
 				return True
 		if event.key() in (Key_Down, Key_Up, Key_PageDown, Key_PageUp) or \
 				is_mac() and event.key() in (Key_Home, Key_End):
@@ -344,7 +348,10 @@ class QuickSearch(QDialog):
 		self._shrink_suggestion_list_to_size()
 	def _add_suggestion(self, suggestion):
 		widget_item = QListWidgetItem("")
-		widget = QuickSearchResult(suggestion, self._suggestions)
+		widget = QuicksearchSuggestion(
+			suggestion.title, suggestion.highlight, suggestion.hint,
+			self._suggestions
+		)
 		widget_item.setSizeHint(widget.sizeHint())
 		self._suggestions.addItem(widget_item)
 		self._suggestions.setItemWidget(widget_item, widget)
@@ -361,15 +368,30 @@ class QuickSearch(QDialog):
 		parent.setLayout(layout)
 		return parent
 
-class QuickSearchResult(QLabel):
-	def __init__(self, result, parent):
+class QuicksearchSuggestion(QFrame):
+	def __init__(self, title, highlight, hint, parent):
 		super().__init__(parent)
-		text, char_indices_to_highlight = result
-		html_parts = list(map(html.escape, text))
-		for i in char_indices_to_highlight:
-			html_parts[i] = '<font color="white">' + html_parts[i] + '</font>'
-		self.setTextFormat(Qt.RichText)
-		self.setText(''.join(html_parts))
+		layout = QHBoxLayout()
+		layout.setContentsMargins(0, 0, 0, 0)
+		layout.setSpacing(0)
+
+		title_widget = QLabel(self._get_title_html(title, highlight), self)
+		title_widget.setTextFormat(Qt.RichText)
+		title_widget.setObjectName('title')
+		layout.addWidget(title_widget)
+
+		if hint:
+			hint_widget = QLabel(hint, self)
+			hint_widget.setObjectName('hint')
+			layout.addWidget(hint_widget)
+			layout.insertStretch(1, 2)
+
+		self.setLayout(layout)
+	def _get_title_html(self, title, highlight):
+		parts = list(map(html.escape, title))
+		for i in highlight:
+			parts[i] = '<font color="white">' + parts[i] + '</font>'
+		return ''.join(parts)
 
 class LineEdit(QLineEdit):
 	def __init__(self, *args, **kwargs):

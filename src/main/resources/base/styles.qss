@@ -55,11 +55,11 @@ QLineEdit {
 	border: 1px solid #2c2c2c;
 }
 
-QuickSearch {
+Quicksearch {
 	background-color: #404040;
 }
 
-QuickSearch #query-container {
+Quicksearch #query-container {
 	/*
 	 * The sole purpose of this Div is to draw an extra border at the bottom.
 	 */
@@ -69,12 +69,12 @@ QuickSearch #query-container {
 	border-bottom-color: #8e8e8e;
 }
 
-QuickSearch #query-container > Div {
+Quicksearch #query-container > Div {
 	padding: 0;
 	border: 1px solid #2c2c2c;
 }
 
-QuickSearch QLineEdit {
+Quicksearch QLineEdit {
 	color: #1d1d1d;
 	background-color: #e6e6e6;
 	border: 1px solid #dddddd;
@@ -83,28 +83,38 @@ QuickSearch QLineEdit {
 	border-right-color: #d0d0d0;
 }
 
-QuickSearch #suggestions-container {
+Quicksearch #suggestions-container {
 	margin-bottom: 4px;
 }
 
-QuickSearch QListView {
+Quicksearch QListView {
 	min-width: 40em;
 	background-color: #404040;
 	margin-left: 4px;
 	margin-right: 4px;
 }
 
-QuickSearch QListView::item:selected {
+Quicksearch QListView::item:selected {
 	background-color: #575757;
 }
 
-QuickSearch QListView QLabel {
-	color: #c8c8c8;
+QuicksearchSuggestion {
 	border-top: 1px solid #4d4d4d;
 	border-bottom: 1px solid #363636;
+	padding-left: 4px;
+	padding-right: 4px;
 }
 
-QuickSearch QLineEdit, QuickSearch QListView QLabel {
+QuicksearchSuggestion #title {
+	color: #c8c8c8;
+}
+
+QuicksearchSuggestion #hint {
+	font-size: 12pt;
+	color: white;
+}
+
+Quicksearch QLineEdit, QuicksearchSuggestion #title {
 	font-size: 15pt;
 }
 

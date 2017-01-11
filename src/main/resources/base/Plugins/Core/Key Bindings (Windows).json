@@ -1,4 +1,5 @@
 [
+	{ "keys": ["Ins"], "command": "move_cursor_down", "args": {"toggle_selection": true} },
 	{ "keys": ["Ctrl+C"], "command": "copy_to_clipboard" },
 	{ "keys": ["Ctrl+X"], "command": "cut" },
 	{ "keys": ["Ctrl+V"], "command": "paste" },
@@ -6,5 +7,6 @@
 	{ "keys": ["Ctrl+."], "command": "toggle_hidden_files" },
 	{ "keys": ["Alt+F1"], "command": "show_volumes", "args": {"pane_index": 0} },
 	{ "keys": ["Alt+F2"], "command": "show_volumes", "args": {"pane_index": 1} },
-	{ "keys": ["Ctrl+P"], "command": "go_to" }
+	{ "keys": ["Ctrl+P"], "command": "go_to" },
+	{ "keys": ["Ctrl+Shift+P"], "command": "command_palette" }
 ]

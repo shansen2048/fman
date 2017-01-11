@@ -1,6 +1,6 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
-from fman.impl.view import FileListView, Layout, PathView, QuickSearch
+from fman.impl.view import FileListView, Layout, PathView, Quicksearch
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import exists, normpath, dirname
 from PyQt5.QtCore import QDir, pyqtSignal, QTimer
@@ -159,8 +159,8 @@ class MainWindow(QMainWindow):
 			self, 'fman', str(text), QLineEdit.Normal, str(default)
 		)
 	@run_in_main_thread
-	def show_quicksearch(self, get_suggestions, get_tab_completion):
-		return QuickSearch(self, get_suggestions, get_tab_completion).exec()
+	def show_quicksearch(self, get_suggestions, get_tab_completion=None):
+		return Quicksearch(self, get_suggestions, get_tab_completion).exec()
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
 		self.status_bar_text.setText(text)
