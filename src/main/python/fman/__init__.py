@@ -87,6 +87,8 @@ class DirectoryPane:
 		self._widget.select_all()
 	def toggle_selection(self, file_path):
 		self._widget.toggle_selection(file_path)
+	def focus(self):
+		self._widget.focus()
 
 class Window:
 	def __init__(self):

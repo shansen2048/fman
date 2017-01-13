@@ -28,6 +28,8 @@ class DirectoryPane(QWidget):
 		self._file_view.keyPressEventFilter = self._on_key_pressed
 		self._file_view.hideColumn(2)
 		self.setLayout(Layout(self._path_view, self._file_view))
+		self._path_view.setFocusProxy(self._file_view)
+		self.setFocusProxy(self._file_view)
 		self._controller = None
 	def set_controller(self, controller):
 		self._controller = controller
@@ -45,6 +47,8 @@ class DirectoryPane(QWidget):
 		self._file_view.move_cursor_page_down(toggle_selection)
 	def toggle_selection(self, file_path):
 		self._file_view.toggle_selection(file_path)
+	def focus(self):
+		self.setFocus()
 	def select_all(self):
 		self._file_view.selectAll()
 	def get_selected_files(self):
@@ -59,9 +63,10 @@ class DirectoryPane(QWidget):
 		return normpath(result)
 	def set_path(self, path, callback=None):
 		if callback is None:
-			callback = self._file_view.reset_cursor
+			callback = lambda: None
 		if path == self.get_path():
 			# Don't mess up the cursor if we're already in the right location.
+			callback()
 			return
 		my_computer = self._model.myComputer()
 		path = self._skip_to_existing_pardir(path) if path else my_computer
@@ -73,6 +78,7 @@ class DirectoryPane(QWidget):
 		else:
 			signal = self._model.directoryLoaded
 		def callback_():
+			self._file_view.reset_cursor()
 			self.path_changed.emit(self)
 			callback()
 		connect_once(signal, lambda _: callback_())

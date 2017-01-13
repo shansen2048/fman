@@ -418,7 +418,7 @@ class ShowVolumes(_CorePaneCommand):
 			pane = self.pane
 		else:
 			pane = self.pane.window.get_panes()[pane_index]
-		pane.set_path(_get_volumes_path())
+		pane.set_path(_get_volumes_path(), callback=pane.focus)
 
 def _get_volumes_path():
 	if PLATFORM == 'Mac':
