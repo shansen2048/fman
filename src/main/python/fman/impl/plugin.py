@@ -163,6 +163,9 @@ class Plugin:
 def _get_command_name(command_class_name):
 	return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class_name).lower()
 
+def get_command_class_name(command_name):
+	return ''.join(part.title() for part in command_name.split('_'))
+
 class CommandWrapper:
 	def __init__(self, command, error_handler):
 		self.command = command

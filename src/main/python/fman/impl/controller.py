@@ -1,3 +1,4 @@
+from fman.impl.plugin import get_command_class_name
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, Key_Right
 from fman.util.system import is_mac
 from PyQt5.QtGui import QKeySequence
@@ -28,6 +29,7 @@ class Controller:
 				command_name = key_binding['command']
 				args = key_binding.get('args', {})
 				self._panes[pane_widget].run_command(command_name, args)
+				self._track_command(command_name)
 				return True
 		event.ignore()
 		return False
@@ -35,9 +37,15 @@ class Controller:
 		self.tracker.track('Doubleclicked file')
 		self._panes[pane_widget]._broadcast('on_doubleclicked', file_path)
 	def on_file_renamed(self, pane_widget, *args):
+		self.tracker.track('Renamed file')
 		self._panes[pane_widget]._broadcast('on_name_edited', *args)
 	def on_files_dropped(self, pane_widget, *args):
+		self.tracker.track('Dropped file(s)')
 		self._panes[pane_widget]._broadcast('on_files_dropped', *args)
+	def _track_command(self, command_name):
+		self.tracker.track('Ran command', {
+			'Command': get_command_class_name(command_name)
+		})
 
 class QtKeyEvent:
 	def __init__(self, key, modifiers):
