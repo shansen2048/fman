@@ -322,18 +322,22 @@ class Cut(_CorePaneCommand):
 class Paste(_CorePaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
+		if not files:
+			return
 		if clipboard.files_were_cut():
-			Move(self.pane)(files, self.pane.get_path())
-			# Clear the clipboard so the user doesn't get an error when he
-			# accidentally pastes the cut file again:
-			clipboard.clear()
+			self.pane.run_command('paste_cut')
 		else:
-			Copy(self.pane)(files, self.pane.get_path())
+			dest = self.pane.get_path()
+			self.pane.run_command('copy', {'files': files, 'dest_dir': dest})
 
 class PasteCut(_CorePaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
-		Move(self.pane)(files, self.pane.get_path())
+		if not any(map(exists, files)):
+			# This can happen when the paste-cut has already been performed.
+			return
+		dest_dir = self.pane.get_path()
+		self.pane.run_command('move', {'files': files, 'dest_dir': dest_dir})
 
 class SelectAll(_CorePaneCommand):
 	def __call__(self):
