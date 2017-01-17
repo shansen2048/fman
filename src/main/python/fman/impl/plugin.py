@@ -173,6 +173,8 @@ class CommandWrapper:
 	def __call__(self, *args, **kwargs):
 		try:
 			return self.command(*args, **kwargs)
+		except SystemExit as e:
+			self.error_handler.handle_system_exit(e.code)
 		except:
 			message = 'Command %r raised exception.' % self.name
 			self.error_handler.report(message)
@@ -203,8 +205,9 @@ class ListenerWrapper:
 			)
 
 class PluginErrorHandler:
-	def __init__(self, plugin_dirs, main_window):
+	def __init__(self, plugin_dirs, app, main_window):
 		self.plugin_dirs = plugin_dirs
+		self.app = app
 		self.main_window = main_window
 		self.main_window_initialized = False
 		self.pending_error_messages = []
@@ -216,6 +219,8 @@ class PluginErrorHandler:
 			self.main_window.show_alert(message)
 		else:
 			self.pending_error_messages.append(message)
+	def handle_system_exit(self, code=0):
+		self.app.exit(code)
 	def on_main_window_shown(self):
 		if self.pending_error_messages:
 			self.main_window.show_alert(self.pending_error_messages[0])

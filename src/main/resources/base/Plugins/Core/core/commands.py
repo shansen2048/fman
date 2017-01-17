@@ -630,3 +630,7 @@ class CommandPalette(_CorePaneCommand):
 	def _insert_mac_key_symbols(self, shortcut):
 		keys = shortcut.split('+')
 		return ''.join(self._KEY_SYMBOLS_MAC.get(key, key) for key in keys)
+
+class Quit(DirectoryPaneCommand):
+	def __call__(self):
+		sys.exit(0)
