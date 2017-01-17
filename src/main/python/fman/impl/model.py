@@ -208,7 +208,15 @@ class UbuntuFileIconProvider(QFileIconProvider):
 		pgi.install_as_gi()
 		import gi
 		gi.require_version('Gtk', '3.0')
-		from gi.repository import Gtk, Gio
+		try:
+			from gi.repository import Gtk, Gio
+		except AttributeError as e:
+			if e.args == (
+				"'GLib' module has not attribute 'uri_list_extract_uris'",
+			):
+				# This happens when we run fman from source.
+				sys.modules['pgi.overrides.GObject'] = None
+				from gi.repository import Gtk, Gio
 		# This is required when we use pgi in a PyInstaller-frozen app. See:
 		# https://github.com/lazka/pgi/issues/38
 		Gtk.init(sys.argv)
