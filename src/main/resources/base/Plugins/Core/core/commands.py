@@ -91,9 +91,14 @@ class MoveToTrash(_CorePaneCommand):
 class GoUp(_CorePaneCommand):
 	def __call__(self):
 		current_dir = self.pane.get_path()
-		parent_dir = dirname(current_dir)
+		if current_dir == '/':
+			# We catch this case because the callback below doesn't handle it.
+			# Consider: current_dir is '/'. Say the cursor is at /bin. We want
+			# it to stay there. But the callback would attempt to place it at /.
+			# This doesn't make sense.
+			return
 		callback = lambda: self.pane.place_cursor_at(current_dir)
-		self.pane.set_path(parent_dir, callback)
+		self.pane.set_path(dirname(current_dir), callback)
 
 class Open(_CorePaneCommand):
 	def __call__(self):
