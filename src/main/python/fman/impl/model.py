@@ -1,7 +1,7 @@
 from fman.util.qt import TextAlignmentRole, AlignVCenter, ItemIsEnabled, \
 	ItemIsEditable, ItemIsSelectable, EditRole, AscendingOrder, DisplayRole, \
 	ItemIsDragEnabled, ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction
-from os.path import commonprefix, isdir, dirname
+from os.path import commonprefix, isdir, dirname, normpath
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
 	QLocale, QVariant, QUrl, QMimeData
 from PyQt5.QtGui import QIcon
@@ -81,7 +81,9 @@ class FileSystemModel(QFileSystemModel):
 		dest = self.filePath(parent)
 		if not isdir(dest):
 			return False
-		urls = [url.toLocalFile() for url in data.urls()]
+		# On OS X, url.toLocalFile() ends in '/' for directories. Get rid of
+		# this via normpath(...):
+		urls = [normpath(url.toLocalFile()) for url in data.urls()]
 		if action == MoveAction:
 			self.files_dropped.emit(urls, dest, False)
 			return True
