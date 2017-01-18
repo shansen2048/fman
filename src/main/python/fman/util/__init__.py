@@ -1,7 +1,7 @@
 from getpass import getuser
 from os import listdir
 from os.path import join, basename, expanduser, dirname, realpath, relpath, \
-	pardir
+	pardir, splitdrive
 
 import os
 
@@ -15,5 +15,7 @@ def get_user():
 		return basename(expanduser('~'))
 
 def is_in_subdir(file_path, directory):
+	if splitdrive(file_path)[0].lower() != splitdrive(directory)[0].lower():
+		return False
 	rel = relpath(realpath(dirname(file_path)), realpath(directory))
 	return not (rel == pardir or rel.startswith(pardir + os.sep))

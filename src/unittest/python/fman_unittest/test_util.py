@@ -13,6 +13,6 @@ class IsInSubdirTest(TestCase):
 		self.assertTrue(is_in_subdir(nested, self.root))
 	@skipIf(not is_windows(), 'Skipping Windows-only test')
 	def test_different_drive_windows(self):
-		self.assertFalse(is_in_subdir(r'C:\Dir\Subdir', r'D:\Dir'))
+		self.assertFalse(is_in_subdir(r'c:\Dir\Subdir', r'D:\Dir'))
 	def setUp(self):
 		self.root = r'C:\Dir' if is_windows() else '/Dir'
