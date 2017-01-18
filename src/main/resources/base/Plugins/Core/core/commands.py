@@ -1,7 +1,8 @@
 from core import clipboard
 from core.fileoperations import CopyFiles, MoveFiles
-from core.os_ import open_file_with_app, open_terminal_in_directory, \
-	open_native_file_manager
+from core.os_ import open_terminal_in_directory, open_native_file_manager, \
+	get_popen_kwargs_for_opening
+from core.util import strformat_dict_values
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from core.trash import move_to_trash
@@ -16,6 +17,7 @@ from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 	isdir, split, dirname, realpath, expanduser
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
+from subprocess import Popen
 from threading import Thread
 
 import fman
@@ -126,7 +128,7 @@ class OpenWithEditor(_CorePaneCommand):
 	}
 	def __call__(self, create_new=False):
 		file_under_cursor = self.pane.get_file_under_cursor()
-		file_to_edit = ''
+		file_to_edit = file_under_cursor
 		if create_new:
 			if isfile(file_under_cursor):
 				default_name = basename(file_under_cursor)
@@ -134,21 +136,25 @@ class OpenWithEditor(_CorePaneCommand):
 				default_name = ''
 			file_name, ok = \
 				show_prompt('Enter file name to create/edit:', default_name)
+			if not ok or not file_name:
+				return
 			if ok and file_name:
 				file_to_edit = join(self.pane.get_path(), file_name)
 				if not exists(file_to_edit):
 					open(file_to_edit, 'w').close()
 				self.pane.place_cursor_at(file_to_edit)
-		else:
-			if isfile(file_under_cursor):
-				file_to_edit = file_under_cursor
-			else:
-				show_alert('No file is selected!')
-		if isfile(file_to_edit):
+		if exists(file_to_edit):
 			self._open_with_editor(file_to_edit)
+		else:
+			show_alert('No file is selected!')
 	def _open_with_editor(self, file_path):
 		settings = load_json('Core Settings.json', default={})
-		editor = settings.get('editor', None)
+		editor = settings.get('editor', {})
+		if isinstance(editor, str):
+			# TODO: Remove this migration after Feb, 2017.
+			editor = get_popen_kwargs_for_opening('{file}', with_=editor)
+			settings['editor'] = editor
+			save_json('Core Settings.json')
 		if not editor:
 			choice = self.ui.show_alert(
 				'Editor is currently not configured. Please pick one.',
@@ -160,11 +166,13 @@ class OpenWithEditor(_CorePaneCommand):
 					self._PLATFORM_APPLICATIONS_FILTER[PLATFORM]
 				)
 				if result:
-					editor = result[0]
+					editor_path = result[0]
+					editor = get_popen_kwargs_for_opening('{file}', editor_path)
 					settings['editor'] = editor
 					save_json('Core Settings.json')
 		if editor:
-			open_file_with_app(file_path, editor)
+			popen_kwargs = strformat_dict_values(editor, {'file': file_path})
+			Popen(**popen_kwargs)
 	def _get_applications_directory(self):
 		if PLATFORM == 'Mac':
 			return '/Applications'

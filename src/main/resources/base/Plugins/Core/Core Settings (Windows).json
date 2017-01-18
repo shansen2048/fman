@@ -1,4 +1,8 @@
 {
-	"terminal_app": "cmd",
-	"native_file_manager": "explorer"
+	"terminal": {
+		"args": "start cmd", "shell": true, "cwd": "{curr_dir}"
+	},
+	"native_file_manager": {
+		"args": ["start", "explorer", "{curr_dir}"], "shell": true
+	}
 }
