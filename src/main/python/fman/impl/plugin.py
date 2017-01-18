@@ -1,13 +1,11 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener
-from fman.util import listdir_absolute
+from fman.util import listdir_absolute, is_in_subdir
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
 from io import StringIO
-from os.path import join, isdir, basename, dirname, isfile, relpath, realpath, \
-	pardir
+from os.path import join, isdir, basename, dirname, isfile
 from traceback import extract_tb, print_exception
 
-import os
 import re
 import sys
 
@@ -240,8 +238,5 @@ class PluginErrorHandler:
 	def _get_plugin_dir(self, traceback_):
 		tb_file = extract_tb(traceback_)[0][0]
 		for plugin_dir in self.plugin_dirs:
-			if self._is_in_subdir(dirname(tb_file), plugin_dir):
+			if is_in_subdir(dirname(tb_file), plugin_dir):
 				return plugin_dir
-	def _is_in_subdir(self, file_path, directory):
-		rel = relpath(realpath(dirname(file_path)), realpath(directory))
-		return not (rel == pardir or rel.startswith(pardir + os.sep))
