@@ -599,7 +599,19 @@ class FileSystem:
 	def expanduser(self, path):
 		return expanduser(path)
 	def listdir(self, path):
-		return listdir(path)
+		try:
+			return listdir(path)
+		except PermissionError:
+			if PLATFORM == 'Windows' and _is_documents_and_settings(path):
+				# Python can' listdir("C:\Documents and Settings"). In fact, no
+				# Windows program can. But "C:\{DaS}\<Username>" does work, and
+				# displays "C:\Users\<Username>". For consistency, treat DaS
+				# like a symlink to \Users:
+				return listdir(splitdrive(path)[0] + r'\Users')
+			raise
+
+def _is_documents_and_settings(path):
+	return splitdrive(normpath(path))[1].lower() == '\\documents and settings'
 
 class CommandPalette(_CorePaneCommand):
 

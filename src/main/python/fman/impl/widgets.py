@@ -1,8 +1,9 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView, Quicksearch
+from fman.util.system import is_windows
 from fman.util.qt import connect_once, run_in_main_thread
-from os.path import exists, normpath, dirname
+from os.path import exists, normpath, dirname, splitdrive
 from PyQt5.QtCore import QDir, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel
@@ -64,6 +65,16 @@ class DirectoryPane(QWidget):
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = lambda: None
+		if is_windows() and _is_documents_and_settings(path):
+			# When listing C:\, QFileSystemModel includes the "Documents and
+			# Settings" folder. However, it displays no contents when you open
+			# that directory. (Actually, no Windows program can display
+			# the contents of "C:\Documents and Settings". Explorer says "Access
+			# denied", Python gets a PermissionError.) But "C:\Documents and
+			# Settings\Michael" does work and displays "C:\Users\Michael".
+			# Gracefully handle "C:\Documents and Settings" for the case when
+			# the user presses Enter while the cursor is over it:
+			path = splitdrive(path)[0] + r'\Users'
 		if path == self.get_path():
 			# Don't mess up the cursor if we're already in the right location.
 			callback()
@@ -118,6 +129,9 @@ class DirectoryPane(QWidget):
 		self._controller.on_file_renamed(self, *args)
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
+
+def _is_documents_and_settings(path):
+	return splitdrive(normpath(path))[1].lower() == '\\documents and settings'
 
 class MainWindow(QMainWindow):
 
