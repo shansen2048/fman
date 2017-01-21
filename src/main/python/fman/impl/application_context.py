@@ -18,6 +18,7 @@ from PyQt5.QtGui import QFontDatabase, QColor, QPalette
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 import json
+import shutil
 import sys
 
 def get_application_context():
@@ -29,6 +30,16 @@ def get_application_context():
 	return _APPLICATION_CONTEXT
 
 _APPLICATION_CONTEXT = None
+
+# Work around http://bugs.python.org/issue21775:
+# TODO: Remove workaround once we are using a Python version > 3.4
+_copytree_original = shutil.copytree
+def _copytree_patched(*args, **kwargs):
+	try:
+		return _copytree_original(*args, **kwargs)
+	except AttributeError as e:
+		raise OSError() from e
+shutil.copytree = _copytree_patched
 
 class ApplicationContext:
 	def __init__(self):
