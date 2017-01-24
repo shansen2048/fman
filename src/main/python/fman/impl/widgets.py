@@ -137,6 +137,7 @@ class MainWindow(QMainWindow):
 
 	pane_added = pyqtSignal(DirectoryPane)
 	shown = pyqtSignal()
+	closed = pyqtSignal()
 
 	def __init__(self, icon_provider=None):
 		super().__init__()
@@ -202,3 +203,5 @@ class MainWindow(QMainWindow):
 	def showEvent(self, *args):
 		super().showEvent(*args)
 		QTimer(self).singleShot(0, self.shown.emit)
+	def closeEvent(self, _):
+		self.closed.emit()

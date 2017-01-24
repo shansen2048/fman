@@ -136,8 +136,12 @@ class ApplicationContext:
 			self._main_window.shown.connect(self.on_main_window_shown)
 			self._main_window.shown.connect(error_handler.on_main_window_shown)
 			self._main_window.pane_added.connect(controller.on_pane_added)
-			self._main_window.closeEvent = \
-				lambda _: self.session_manager.on_close(self.main_window)
+			self._main_window.closed.connect(
+				lambda: self.session_manager.on_close(self.main_window)
+			)
+			# Ensure all other windows are closed as well when the main window
+			# is closed. (This in particular closes windows opened by plugins.)
+			self._main_window.closed.connect(self.app.quit)
 		return self._main_window
 	@property
 	def plugin_dirs(self):
