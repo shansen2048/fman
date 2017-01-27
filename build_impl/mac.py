@@ -9,8 +9,11 @@ from shutil import rmtree, copy
 from tempfile import TemporaryDirectory
 
 def app():
+	if not exists(path('target/fman.icns')):
+		icon()
 	run_pyinstaller(extra_args=[
-		'--windowed', '--osx-bundle-identifier', 'io.fman.fman'
+		'--windowed', '--osx-bundle-identifier', 'io.fman.fman',
+		'--icon', path('target/fman.icns')
 	])
 	_remove_unwanted_pyinstaller_files()
 	_fix_sparkle_delta_updates()
@@ -31,6 +34,17 @@ def app():
 	copy_python_library(
 		'ordered_set', path('target/fman.app/Contents/Resources/Plugins/Core')
 	)
+
+def icon():
+	_generate_iconset()
+	run(['iconutil', '-c', 'icns', path('target/fman.iconset')])
+
+def _generate_iconset():
+	makedirs(path('target/fman.iconset'), exist_ok=True)
+	for icon_png in glob(path('src/main/icons/base/*.png')):
+		size = int(splitext(basename(icon_png))[0])
+		dest_name = 'icon_%dx%d.png' % (size, size)
+		copy(icon_png, path('target/fman.iconset/' + dest_name))
 
 def _remove_unwanted_pyinstaller_files():
 	for unwanted in ('include', 'lib', 'lib2to3'):

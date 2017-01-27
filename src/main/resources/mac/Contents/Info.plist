@@ -11,7 +11,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleIconFile</key>
-	<string>icon-windowed.icns</string>
+	<string>fman.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.fman.fman</string>
 	<key>LSBackgroundOnly</key>
