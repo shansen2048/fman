@@ -41,10 +41,14 @@ def icon():
 
 def _generate_iconset():
 	makedirs(path('target/fman.iconset'), exist_ok=True)
-	for icon_png in glob(path('src/main/icons/base/*.png')):
-		size = int(splitext(basename(icon_png))[0])
+	icon_sizes = {}
+	for icons_dir in ('src/main/icons/base', 'src/main/icons/mac'):
+		for icon_path in glob(path(icons_dir + '/*.png')):
+			size = int(splitext(basename(icon_path))[0])
+			icon_sizes[size] = icon_path
+	for size, icon_path in icon_sizes.items():
 		dest_name = 'icon_%dx%d.png' % (size, size)
-		copy(icon_png, path('target/fman.iconset/' + dest_name))
+		copy(icon_path, path('target/fman.iconset/' + dest_name))
 
 def _remove_unwanted_pyinstaller_files():
 	for unwanted in ('include', 'lib', 'lib2to3'):
