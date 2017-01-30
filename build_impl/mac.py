@@ -19,7 +19,8 @@ def app():
 	_fix_sparkle_delta_updates()
 	copy_with_filtering(
 		path('src/main/resources/base'),
-		dest_dir=path('target/fman.app/Contents/Resources')
+		dest_dir=path('target/fman.app/Contents/Resources'),
+		exclude=[path('src/main/resources/base/fman.ico')]
 	)
 	copy_with_filtering(
 		path('src/main/resources/mac'), dest_dir=path('target/fman.app')

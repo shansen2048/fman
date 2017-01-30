@@ -95,7 +95,7 @@ class ApplicationContext:
 		return self._app
 	@property
 	def app_icon(self):
-		if self._app_icon is None:
+		if self._app_icon is None and not system.is_mac():
 			self._app_icon = QIcon(self.get_resource('fman.ico'))
 		return self._app_icon
 	@property
