@@ -6,3 +6,4 @@ Terminal=false
 NoDisplay=false
 Categories=System;FileTools;
 Version=${version}
+Icon=fman

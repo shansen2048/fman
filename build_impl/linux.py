@@ -1,8 +1,8 @@
 from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering, collectstatic, check_output_decode
+	copy_with_filtering, collectstatic, check_output_decode, get_icons
 from os import makedirs, remove
-from os.path import exists, basename, join
+from os.path import exists, basename, join, dirname
 from shutil import copytree, rmtree, copy
 from time import time
 
@@ -71,6 +71,12 @@ def deb():
 			path('src/main/resources/linux-deb-config/after-install.sh')
 		]
 	)
+	icons_root = path('target/deb/usr/share/icons/hicolor')
+	makedirs(icons_root)
+	for size, icon_path in get_icons():
+		dest_path = join(icons_root, '%dx%d' % (size, size), 'apps', 'fman.png')
+		makedirs(dirname(dest_path))
+		copy(icon_path, dest_path)
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman', '-v', OPTIONS['version'],
 		'--description', 'A modern file manager for power users.',
@@ -84,6 +90,7 @@ def deb():
 		'-d', 'gnupg',
 		'-p', _get_deb_path(), '-f', '-C', path('target/deb')
 	])
+	run(['chmod', 'g-r', '-R', path('target/deb')])
 
 def upload():
 	tmp_dir_local = path('target/upload_%d' % time())

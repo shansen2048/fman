@@ -1,7 +1,7 @@
 from build_impl import run, path, copy_framework, get_canonical_os_name, \
 	OPTIONS, copy_python_library, upload_file, run_on_server,\
 	check_output_decode, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering
+	copy_with_filtering, get_icons
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
@@ -41,12 +41,7 @@ def icon():
 
 def _generate_iconset():
 	makedirs(path('target/fman.iconset'), exist_ok=True)
-	icon_sizes = {}
-	for icons_dir in ('src/main/icons/base', 'src/main/icons/mac'):
-		for icon_path in glob(path(icons_dir + '/*.png')):
-			size = int(splitext(basename(icon_path))[0])
-			icon_sizes[size] = icon_path
-	for size, icon_path in icon_sizes.items():
+	for size, icon_path in get_icons():
 		dest_name = 'icon_%dx%d.png' % (size, size)
 		copy(icon_path, path('target/fman.iconset/' + dest_name))
 
