@@ -10,7 +10,7 @@ import os
 
 def exe():
 	run_pyinstaller(extra_args=[
-		'--windowed', '--icon', path('src/main/resources/windows/fman.ico')
+		'--windowed', '--icon', path('src/main/resources/base/fman.ico')
 	])
 	generate_resources(dest_dir=path('target/fman'))
 	_add_missing_dlls()
@@ -47,7 +47,7 @@ def _build_launcher(dest):
 		}, files_to_filter=[path("src/main/go/src/launcher/versioninfo.json")]
 	)
 	copy(
-		path('src/main/resources/windows/fman.ico'),
+		path('src/main/resources/base/fman.ico'),
 		path('target/go/src/launcher')
 	)
 	_run_go('generate', 'launcher')
