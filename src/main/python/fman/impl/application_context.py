@@ -14,7 +14,7 @@ from fman.util import system
 from os import rename, remove
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFontDatabase, QColor, QPalette
+from PyQt5.QtGui import QFontDatabase, QColor, QPalette, QIcon
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 import json
@@ -33,6 +33,7 @@ _APPLICATION_CONTEXT = None
 class ApplicationContext:
 	def __init__(self):
 		self._app = None
+		self._app_icon = None
 		self._constants = None
 		self._excepthook = None
 		self._icon_provider = None
@@ -89,7 +90,13 @@ class ApplicationContext:
 			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
 			self._app.setPalette(self.palette)
+			self._app.setWindowIcon(self.app_icon)
 		return self._app
+	@property
+	def app_icon(self):
+		if self._app_icon is None:
+			self._app_icon = QIcon(self.get_resource('fman.ico'))
+		return self._app_icon
 	@property
 	def constants(self):
 		if self._constants is None:

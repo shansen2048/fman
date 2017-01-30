@@ -8,7 +8,9 @@ from subprocess import call, DEVNULL
 import os
 
 def exe():
-	run_pyinstaller(extra_args=['--windowed'])
+	run_pyinstaller(
+		extra_args=['--windowed', '--icon', path('src/main/resources/fman.ico')]
+	)
 	generate_resources(dest_dir=path('target/fman'))
 	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
