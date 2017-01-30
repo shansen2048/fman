@@ -90,7 +90,8 @@ class ApplicationContext:
 			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
 			self._app.setPalette(self.palette)
-			self._app.setWindowIcon(self.app_icon)
+			if self.app_icon:
+				self._app.setWindowIcon(self.app_icon)
 		return self._app
 	@property
 	def app_icon(self):
