@@ -1,5 +1,6 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
 	copy_with_filtering, copy_python_library, run_pyinstaller
+from datetime import date
 from os import rename, makedirs
 from os.path import join, splitext
 from shutil import copy
@@ -8,9 +9,9 @@ from subprocess import call, DEVNULL
 import os
 
 def exe():
-	run_pyinstaller(
-		extra_args=['--windowed', '--icon', path('src/main/resources/fman.ico')]
-	)
+	run_pyinstaller(extra_args=[
+		'--windowed', '--icon', path('src/main/resources/windows/fman.ico')
+	])
 	generate_resources(dest_dir=path('target/fman'))
 	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
@@ -33,10 +34,30 @@ def _move_pyinstaller_output_to_version_subdir():
 	rename(path('target/pyinstaller'), join(versions_dir, OPTIONS['version']))
 
 def _build_launcher(dest):
-	run([
-		'go', 'build', '-o', dest, '-ldflags', '-H windowsgui',
-		path('src/main/go/src/launcher/launcher.go')
-	])
+	major_str, minor_str, patch_str = OPTIONS['version'].split('.')
+	if patch_str.endswith('-SNAPSHOT'):
+		patch_str = patch_str[:-len('-SNAPSHOT')]
+	copy_with_filtering(
+		path('src/main/go/src/launcher'), path('target/go/src/launcher'), {
+			'version': OPTIONS['version'],
+			'version.major': major_str,
+			'version.minor': minor_str,
+			'version.patch': patch_str,
+			'year': date.today().year
+		}, files_to_filter=[path("src/main/go/src/launcher/versioninfo.json")]
+	)
+	copy(
+		path('src/main/resources/windows/fman.ico'),
+		path('target/go/src/launcher')
+	)
+	_run_go('generate', 'launcher')
+	_run_go('build', '-o', dest, '-ldflags', '-H windowsgui', 'launcher')
+
+def _run_go(*args):
+	run(
+		['go'] + list(args),
+		extra_env={'GOPATH': path('target/go') + ';' + os.environ['GOPATH']}
+	)
 
 def sign_exe():
 	for subdir, _, files in os.walk(path('target/fman')):
@@ -73,14 +94,9 @@ def installer():
 	])
 	_repl_in_file(data_go, b'package main', b'package data')
 	setup = path('target/fmanSetup.exe')
-	run(
-		[
-			'go', 'build', '-o', setup, '-ldflags', '-H windowsgui',
-			path('target/go/src/installer/installer.go')
-		],
-		extra_env={
-			'GOPATH': path('target/go') + ';' + os.environ['GOPATH']
-		}
+	_run_go(
+		'build', '-o', setup, '-ldflags', '-H windowsgui',
+		path('target/go/src/installer/installer.go')
 	)
 
 def _repl_in_file(file_path, bytes_, replacement):

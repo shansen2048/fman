@@ -1,3 +1,5 @@
+//go:generate goversioninfo -icon=fman.ico
+
 /*
 Looks at directory "Versions" next to this executable. Finds the latest version
 and runs the executable with the same name as this executable in that directory.
