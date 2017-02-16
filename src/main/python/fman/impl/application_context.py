@@ -9,7 +9,7 @@ from fman.impl.plugin import PluginSupport, find_plugin_dirs, \
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
-from fman.impl.widgets import MainWindow
+from fman.impl.widgets import MainWindow, SplashScreen
 from fman.util import system
 from os import rename, remove
 from os.path import dirname, join, pardir, normpath, exists
@@ -43,6 +43,7 @@ class ApplicationContext:
 		self._main_window_palette = None
 		self._plugin_dirs = None
 		self._json_io = None
+		self._splash_screen = None
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
@@ -72,6 +73,7 @@ class ApplicationContext:
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
+		self.splash_screen.exec()
 	def _load_fonts(self):
 		if system.is_linux():
 			db = QFontDatabase()
@@ -174,6 +176,11 @@ class ApplicationContext:
 			# destination for save_json(...):
 			result.append(user_plugin)
 		return result
+	@property
+	def splash_screen(self):
+		if self._splash_screen is None:
+			self._splash_screen = SplashScreen(self.main_window, self.app)
+		return self._splash_screen
 	@property
 	def plugin_support(self):
 		return self.controller.plugin_support

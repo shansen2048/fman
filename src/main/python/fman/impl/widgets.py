@@ -4,9 +4,12 @@ from fman.impl.view import FileListView, Layout, PathView, Quicksearch
 from fman.util.system import is_windows
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import exists, normpath, dirname, splitdrive
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer
+from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
-	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel
+	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
+	QHBoxLayout, QPushButton, QVBoxLayout
+from random import randint
 
 class DirectoryPane(QWidget):
 
@@ -152,7 +155,7 @@ class MainWindow(QMainWindow):
 		self.status_bar.addWidget(self.status_bar_text)
 		self.status_bar.setSizeGripEnabled(False)
 		self.setStatusBar(self.status_bar)
-		self.setWindowTitle("fman")
+		self.setWindowTitle("fman - NOT REGISTERED")
 		self.timer = QTimer(self)
 		self.timer.timeout.connect(self.clear_status_message)
 		self.timer.setSingleShot(True)
@@ -205,3 +208,57 @@ class MainWindow(QMainWindow):
 		QTimer(self).singleShot(0, self.shown.emit)
 	def closeEvent(self, _):
 		self.closed.emit()
+
+class SplashScreen(QDialog):
+	def __init__(self, parent, app):
+		super().__init__(parent, Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+		self.app = app
+		self.setWindowTitle('fman')
+
+		button_texts = ('A', 'B', 'C')
+		button_to_press_i = randint(0, len(button_texts) - 1)
+		button_to_press = button_texts[button_to_press_i]
+
+		layout = QVBoxLayout()
+		layout.setContentsMargins(20, 20, 20, 20)
+
+		label = QLabel(self)
+		label.setText(
+			"<center style='line-height: 130%'>"
+				"<h2>Welcome to fman!</h2>"
+			"</center>"
+			"<p style='line-height: 110%'>"
+				"To remove this annoying popup, please "
+				"<a href='https://fman.io/buy'>obtain a license</a>."
+				"<br/>"
+				"It only takes a minute and you'll never be bothered again!"
+			"</p>"
+			"<p style='line-height: 110%'>"
+				"To continue without a license for now, press button "
+				+ button_to_press + "."
+			"</p>"
+		)
+		label.setOpenExternalLinks(True)
+		layout.addWidget(label)
+
+		button_container = QWidget(self)
+		button_layout = QHBoxLayout()
+		for i, button_text in enumerate(button_texts):
+			button = QPushButton(button_text, button_container)
+			button.setFocusPolicy(Qt.NoFocus)
+			action = self.accept if i == button_to_press_i else self.reject
+			button.clicked.connect(action)
+			button_layout.addWidget(button)
+		button_container.setLayout(button_layout)
+		layout.addWidget(button_container)
+
+		self.setLayout(layout)
+		self.finished.connect(self._finished)
+	def keyPressEvent(self, event):
+		if event.matches(QKeySequence.Quit):
+			self.app.exit(0)
+		else:
+			event.ignore()
+	def _finished(self, result):
+		if result != self.Accepted:
+			self.app.exit(0)
