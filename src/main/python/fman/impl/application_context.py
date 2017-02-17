@@ -11,7 +11,6 @@ from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen
 from fman.util import system
-from os import rename, remove
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontDatabase, QColor, QPalette, QIcon
@@ -50,14 +49,6 @@ class ApplicationContext:
 		self._metrics = None
 		self._window = None
 	def initialize(self):
-		# TODO: Remove this migration some time after December 2016
-		panes_json = join(
-			DATA_DIRECTORY, 'Plugins', 'User', 'Panes (%s).json' % PLATFORM
-		)
-		try:
-			remove(panes_json)
-		except:
-			pass
 		self.excepthook.install()
 		self.metrics.initialize()
 		self.excepthook.user_id = self.metrics.user_id
@@ -194,12 +185,6 @@ class ApplicationContext:
 	def metrics(self):
 		if self._metrics is None:
 			json_path = join(DATA_DIRECTORY, 'Local', 'Metrics.json')
-			# TODO: Remove this migration some time after November 2016
-			old_json_names = ['Installation.json', 'Usage.json']
-			for old_json_name in old_json_names:
-				old_json_path = join(DATA_DIRECTORY, 'Local', old_json_name)
-				if exists(old_json_path) and not exists(json_path):
-					rename(old_json_path, json_path)
 			self._metrics = Metrics(self.constants['mixpanel_token'], json_path)
 		return self._metrics
 	@property
