@@ -222,17 +222,21 @@ class SplashScreen(QDialog):
 		layout.setContentsMargins(20, 20, 20, 20)
 
 		label = QLabel(self)
+		p_styles = ['line-height: 115%']
+		if is_windows():
+			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
+		p_style = '; '.join(p_styles)
 		label.setText(
 			"<center style='line-height: 130%'>"
 				"<h2>Welcome to fman!</h2>"
 			"</center>"
-			"<p style='line-height: 110%'>"
+			"<p style='" + p_style + "'>"
 				"To remove this annoying popup, please "
 				"<a href='https://fman.io/buy'>obtain a license</a>."
 				"<br/>"
 				"It only takes a minute and you'll never be bothered again!"
 			"</p>"
-			"<p style='line-height: 110%'>"
+			"<p style='" + p_style + "'>"
 				"To continue without a license for now, press button "
 				+ button_to_press + "."
 			"</p>"
