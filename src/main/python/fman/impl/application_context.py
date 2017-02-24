@@ -85,7 +85,6 @@ class ApplicationContext:
 			self._app.setOrganizationName('fman.io')
 			self._app.setOrganizationDomain('fman.io')
 			self._app.setApplicationName('fman')
-			self._app.setApplicationDisplayName('fman')
 			self._app.setStyleSheet(self.stylesheet)
 			self._app.setStyle(self.style)
 			self._app.setPalette(self.palette)
@@ -132,11 +131,7 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(self.icon_provider)
-			if self.license_manager.is_licensed():
-				title = 'fman – ' + self.license_manager.get_licensee()
-			else:
-				title = 'fman – NOT REGISTERED'
-			self._main_window.setWindowTitle(title)
+			self._main_window.setWindowTitle(self._get_main_window_title())
 			plugin_dirs = self.plugin_dirs
 			error_handler = \
 				PluginErrorHandler(plugin_dirs, self.app, self._main_window)
@@ -155,6 +150,10 @@ class ApplicationContext:
 			# is closed. (This in particular closes windows opened by plugins.)
 			self._main_window.closed.connect(self.app.quit)
 		return self._main_window
+	def _get_main_window_title(self):
+		if self.license_manager.is_licensed():
+			return 'fman – ' + self.license_manager.get_licensee()
+		return 'fman – NOT REGISTERED'
 	@property
 	def plugin_dirs(self):
 		if self._plugin_dirs is None:
