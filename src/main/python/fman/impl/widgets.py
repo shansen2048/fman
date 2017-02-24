@@ -155,7 +155,6 @@ class MainWindow(QMainWindow):
 		self.status_bar.addWidget(self.status_bar_text)
 		self.status_bar.setSizeGripEnabled(False)
 		self.setStatusBar(self.status_bar)
-		self.setWindowTitle("fman - NOT REGISTERED")
 		self.timer = QTimer(self)
 		self.timer.timeout.connect(self.clear_status_message)
 		self.timer.setSingleShot(True)

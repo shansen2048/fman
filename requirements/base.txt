@@ -2,3 +2,4 @@ mixpanel==4.3.1
 rollbar==0.13.5
 ordered-set==2.0.1
 git+git://github.com/pyinstaller/pyinstaller.git@a909f1a91f17e43bb909a5dae1a6b451bb98b728
+rsa==3.4.2

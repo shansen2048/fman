@@ -1,5 +1,6 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.json_io import JsonIO
+from fman.impl.licensing import LicenseManager
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
@@ -39,6 +40,7 @@ class ApplicationContext:
 		self._main_window = None
 		self._controller = None
 		self._palette = None
+		self._license_manager = None
 		self._main_window_palette = None
 		self._plugin_dirs = None
 		self._json_io = None
@@ -53,7 +55,7 @@ class ApplicationContext:
 		self.metrics.initialize()
 		self.excepthook.user_id = self.metrics.user_id
 		self.metrics.super_properties.update({
-			'$os': PLATFORM, '$app_version': self.constants['version']
+			'$os': PLATFORM, '$app_version': self.fman_version
 		})
 		self.metrics.track('Started fman')
 		# Ensure QApplication is initialized before anything else Qt-related:
@@ -61,10 +63,14 @@ class ApplicationContext:
 		self._load_fonts()
 		self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
+	@property
+	def fman_version(self):
+		return self.constants['version']
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
-		self.splash_screen.exec()
+		if not self.license_manager.is_licensed():
+			self.splash_screen.exec()
 	def _load_fonts(self):
 		if system.is_linux():
 			db = QFontDatabase()
@@ -114,7 +120,7 @@ class ApplicationContext:
 		if self._excepthook is None:
 			self._excepthook = Excepthook(
 				self.constants['rollbar_token'], self.constants['environment'],
-				self.constants['version']
+				self.fman_version
 			)
 		return self._excepthook
 	@property
@@ -126,6 +132,11 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(self.icon_provider)
+			if self.license_manager.is_licensed():
+				title = 'fman – ' + self.license_manager.get_licensee()
+			else:
+				title = 'fman – NOT REGISTERED'
+			self._main_window.setWindowTitle(title)
 			plugin_dirs = self.plugin_dirs
 			error_handler = \
 				PluginErrorHandler(plugin_dirs, self.app, self._main_window)
@@ -210,6 +221,20 @@ class ApplicationContext:
 			self._palette.setColor(QPalette.Link, Qt.white)
 			self._palette.setColor(QPalette.LinkVisited, Qt.white)
 		return self._palette
+	@property
+	def license_manager(self):
+		if self._license_manager is None:
+			json_path = join(DATA_DIRECTORY, 'Local', 'User.json')
+			try:
+				with open(json_path, 'r') as f:
+					data = json.load(f)
+			except (IOError, ValueError):
+				data = {}
+			email = data.get('email', '')
+			key = data.get('key', '')
+			self._license_manager = \
+				LicenseManager(self.fman_version, email, key)
+		return self._license_manager
 	@property
 	def main_window_palette(self):
 		if self._main_window_palette is None:
