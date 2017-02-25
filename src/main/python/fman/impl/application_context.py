@@ -1,6 +1,6 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.json_io import JsonIO
-from fman.impl.licensing import LicenseManager
+from fman.impl.licensing import User
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
@@ -40,7 +40,7 @@ class ApplicationContext:
 		self._main_window = None
 		self._controller = None
 		self._palette = None
-		self._license_manager = None
+		self._user = None
 		self._main_window_palette = None
 		self._plugin_dirs = None
 		self._json_io = None
@@ -69,7 +69,7 @@ class ApplicationContext:
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
-		if not self.license_manager.is_licensed():
+		if not self.user.is_licensed(self.fman_version):
 			self.splash_screen.exec()
 	def _load_fonts(self):
 		if system.is_linux():
@@ -151,8 +151,8 @@ class ApplicationContext:
 			self._main_window.closed.connect(self.app.quit)
 		return self._main_window
 	def _get_main_window_title(self):
-		if self.license_manager.is_licensed():
-			return 'fman – ' + self.license_manager.get_licensee()
+		if self.user.is_licensed(self.fman_version):
+			return 'fman – ' + self.user.email
 		return 'fman – NOT REGISTERED'
 	@property
 	def plugin_dirs(self):
@@ -221,8 +221,8 @@ class ApplicationContext:
 			self._palette.setColor(QPalette.LinkVisited, Qt.white)
 		return self._palette
 	@property
-	def license_manager(self):
-		if self._license_manager is None:
+	def user(self):
+		if self._user is None:
 			json_path = join(DATA_DIRECTORY, 'Local', 'User.json')
 			try:
 				with open(json_path, 'r') as f:
@@ -231,9 +231,8 @@ class ApplicationContext:
 				data = {}
 			email = data.get('email', '')
 			key = data.get('key', '')
-			self._license_manager = \
-				LicenseManager(self.fman_version, email, key)
-		return self._license_manager
+			self._user = User(email, key)
+		return self._user
 	@property
 	def main_window_palette(self):
 		if self._main_window_palette is None:

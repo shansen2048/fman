@@ -5,27 +5,25 @@ from rsa.common import byte_size as get_byte_size
 import json
 import rsa
 
-class LicenseManager:
-	def __init__(self, fman_version, email, key):
-		self.fman_version = fman_version
+class User:
+	def __init__(self, email='', key=''):
 		self.email = email
-		try:
-			self.key_data = unpack_key(key)
-		except ValueError:
-			self.key_data = {}
-	def is_licensed(self):
-		try:
-			key_email = self.key_data['email']
-		except KeyError:
+		self.key = key
+	def is_licensed(self, fman_version):
+		if 'email' not in self._key_data:
 			return False
-		if key_email != self.email:
+		if self._key_data['email'] != self.email:
 			return False
-		max_version = self.key_data.get('max_version', self.fman_version)
-		if parse_version(self.fman_version) > parse_version(max_version):
+		max_version = self._key_data.get('max_version', fman_version)
+		if parse_version(fman_version) > parse_version(max_version):
 			return False
 		return True
-	def get_licensee(self):
-		return self.email
+	@property
+	def _key_data(self):
+		try:
+			return unpack_key(self.key)
+		except ValueError:
+			return {}
 
 def unpack_key(key):
 	return json.loads(decrypt(key))

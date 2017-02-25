@@ -1,48 +1,48 @@
 from base64 import b64encode
-from fman.impl.licensing import LicenseManager, _negate, decrypt
+from fman.impl.licensing import User, _negate, decrypt
 from rsa import PrivateKey
 from unittest import TestCase
 
 import json
 import rsa
 
-class LicenseManagerTest(TestCase):
-	def test_no_email(self):
-		lm = LicenseManager('0.2.9', '', '')
-		self.assertFalse(lm.is_licensed())
-	def test_no_key(self):
-		lm = LicenseManager('0.2.9', 'michael@herrmann.io', '')
-		self.assertFalse(lm.is_licensed())
+class UserTest(TestCase):
+	def test_is_licensed_no_email(self):
+		user = User()
+		self.assertFalse(user.is_licensed('0.2.9'))
+	def test_is_licensed_no_key(self):
+		user = User('michael@herrmann.io')
+		self.assertFalse(user.is_licensed('0.2.9'))
 	def test_is_licensed(self):
 		email = 'michael@herrmann.io'
-		lm = LicenseManager('0.2.9', email, generate_key(email))
-		self.assertTrue(lm.is_licensed())
-	def test_max_version(self):
+		user = User(email, generate_key(email=email))
+		self.assertTrue(user.is_licensed('0.2.9'))
+	def test_is_licensed_max_version(self):
 		is_licensed = self._versioncheck(version='0.2.8', max_version='0.2.9')
 		self.assertTrue(is_licensed)
-	def test_max_version_false(self):
+	def test_is_licensed_max_version_false(self):
 		is_licensed = self._versioncheck(version='0.3.0', max_version='0.2.9')
 		self.assertFalse(is_licensed)
 	def _versioncheck(self, version, max_version):
 		email = 'michael@herrmann.io'
-		lm = LicenseManager(version, email, generate_key(email, max_version))
-		return lm.is_licensed()
+		key = generate_key(email=email, max_version=max_version)
+		user = User(email, key)
+		return user.is_licensed(version)
 
 class EncryptionTest(TestCase):
 	def test_simple(self):
 		text = '{"email": "michael@herrmann.io"}' * 1000
 		self.assertEqual(text, decrypt(encrypt(text)))
 
-def generate_key(email, max_version=None):
-	data = {
-		'email': email
-	}
-	if max_version:
-		data['max_version'] = max_version
-	return pack_key(data)
+def generate_key(**kwargs):
+	return pack_key(kwargs)
 
 def pack_key(data):
-	return encrypt(json.dumps(data))
+	return encrypt(json.dumps(
+		data,
+		# Ensure the output is deterministic:
+		sort_keys=True
+	))
 
 def encrypt(text):
 	bytes_ = text.encode('utf-8')
