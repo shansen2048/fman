@@ -18,6 +18,8 @@ class User:
 		if parse_version(fman_version) > parse_version(max_version):
 			return False
 		return True
+	def is_entitled_to_updates(self):
+		return 'max_version' not in self._key_data
 	@property
 	def _key_data(self):
 		try:

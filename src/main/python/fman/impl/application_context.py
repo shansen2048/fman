@@ -286,7 +286,7 @@ class FrozenApplicationContext(ApplicationContext):
 	@property
 	def updater(self):
 		if self._updater is None:
-			if system.is_mac():
+			if system.is_mac() and self.user.is_entitled_to_updates():
 				appcast_url = self.constants['update_url'] + '/Appcast.xml'
 				self._updater = MacUpdater(self.app, appcast_url)
 		return self._updater

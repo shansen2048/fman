@@ -7,27 +7,29 @@ import json
 import rsa
 
 class UserTest(TestCase):
-	def test_is_licensed_no_email(self):
+	def test_no_email(self):
 		user = User()
 		self.assertFalse(user.is_licensed('0.2.9'))
-	def test_is_licensed_no_key(self):
+		self.assertTrue(user.is_entitled_to_updates())
+	def test_no_key(self):
 		user = User('michael@herrmann.io')
 		self.assertFalse(user.is_licensed('0.2.9'))
-	def test_is_licensed(self):
-		email = 'michael@herrmann.io'
-		user = User(email, generate_key(email=email))
+		self.assertTrue(user.is_entitled_to_updates())
+	def test_licensed(self):
+		user = self._create_licensed_user('michael@herrmann.io')
 		self.assertTrue(user.is_licensed('0.2.9'))
-	def test_is_licensed_max_version(self):
-		is_licensed = self._versioncheck(version='0.2.8', max_version='0.2.9')
-		self.assertTrue(is_licensed)
-	def test_is_licensed_max_version_false(self):
-		is_licensed = self._versioncheck(version='0.3.0', max_version='0.2.9')
-		self.assertFalse(is_licensed)
-	def _versioncheck(self, version, max_version):
-		email = 'michael@herrmann.io'
-		key = generate_key(email=email, max_version=max_version)
-		user = User(email, key)
-		return user.is_licensed(version)
+		self.assertTrue(user.is_entitled_to_updates())
+		self.assertTrue(user.is_entitled_to_updates())
+	def test_licensed_max_version(self):
+		user = self._create_licensed_user('michael@herrmann.io', '0.2.9')
+		self.assertTrue(user.is_licensed('0.2.9'))
+		self.assertFalse(user.is_licensed('0.3.0'))
+		self.assertFalse(user.is_entitled_to_updates())
+	def _create_licensed_user(self, email, max_version=None):
+		key_kwargs = {'email': email}
+		if max_version:
+			key_kwargs['max_version'] = max_version
+		return User(email, generate_key(**key_kwargs))
 
 class EncryptionTest(TestCase):
 	def test_simple(self):
