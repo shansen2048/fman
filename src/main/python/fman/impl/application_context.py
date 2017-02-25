@@ -287,9 +287,8 @@ class FrozenApplicationContext(ApplicationContext):
 	@property
 	def updater(self):
 		if self._updater is None:
-			update_url = self.constants['update_url']
 			if system.is_mac():
-				appcast_url = update_url + '/Appcast.xml'
+				appcast_url = self.constants['update_url'] + '/Appcast.xml'
 				self._updater = MacUpdater(self.app, appcast_url)
 		return self._updater
 	def get_resource(self, *rel_path):
