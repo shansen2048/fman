@@ -31,7 +31,7 @@ def get_application_context():
 
 _APPLICATION_CONTEXT = None
 # TODO: Remove this after March 1, 2017:
-_LICENSING_START_DATE = date(2017, 2, 1)
+_LICENSING_START_DATE = date(2017, 3, 1)
 
 class ApplicationContext:
 	def __init__(self):
