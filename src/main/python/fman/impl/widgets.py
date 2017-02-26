@@ -4,11 +4,11 @@ from fman.impl.view import FileListView, Layout, PathView, Quicksearch
 from fman.util.system import is_windows
 from fman.util.qt import connect_once, run_in_main_thread
 from os.path import exists, normpath, dirname, splitdrive
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt
+from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
-	QHBoxLayout, QPushButton, QVBoxLayout
+	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle
 from random import randint
 
 class DirectoryPane(QWidget):
@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
 		self.icon_provider = icon_provider
 		self.controller = None
 		self.panes = []
-		self.splitter = QSplitter(self)
+		self.splitter = Splitter(self)
 		self.setCentralWidget(self.splitter)
 		self.status_bar = QStatusBar(self)
 		self.status_bar_text = QLabel(self.status_bar)
@@ -207,6 +207,21 @@ class MainWindow(QMainWindow):
 		QTimer(self).singleShot(0, self.shown.emit)
 	def closeEvent(self, _):
 		self.closed.emit()
+
+class Splitter(QSplitter):
+	def createHandle(self):
+		result = QSplitterHandle(self.orientation(), self)
+		result.installEventFilter(self)
+		return result
+	def eventFilter(self, splitter_handle, event):
+		if event.type() == QEvent.MouseButtonDblClick:
+			self._distribute_handles_evenly(splitter_handle.width())
+			return True
+		return False
+	def _distribute_handles_evenly(self, handle_width):
+		width_increment = self.width() // self.count()
+		for i in range(1, self.count()):
+			self.moveSplitter(i * width_increment - handle_width // 2, i)
 
 class SplashScreen(QDialog):
 	def __init__(self, parent, app):
