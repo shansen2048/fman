@@ -30,8 +30,6 @@ def get_application_context():
 	return _APPLICATION_CONTEXT
 
 _APPLICATION_CONTEXT = None
-# TODO: Remove this after March 1, 2017:
-_LICENSING_START_DATE = date(2017, 3, 1)
 
 class ApplicationContext:
 	def __init__(self):
@@ -72,9 +70,8 @@ class ApplicationContext:
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
-		if date.today() >= _LICENSING_START_DATE:
-			if not self.user.is_licensed(self.fman_version):
-				self.splash_screen.exec()
+		if not self.user.is_licensed(self.fman_version):
+			self.splash_screen.exec()
 	def _load_fonts(self):
 		if system.is_linux():
 			db = QFontDatabase()
@@ -155,8 +152,6 @@ class ApplicationContext:
 			self._main_window.closed.connect(self.app.quit)
 		return self._main_window
 	def _get_main_window_title(self):
-		if date.today() < _LICENSING_START_DATE:
-			return 'fman'
 		if self.user.is_licensed(self.fman_version):
 			return 'fman – ' + self.user.email
 		return 'fman – NOT REGISTERED'
