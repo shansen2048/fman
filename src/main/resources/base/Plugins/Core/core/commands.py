@@ -161,12 +161,11 @@ class OpenWithEditor(_CorePaneCommand):
 				OK | CANCEL, OK
 			)
 			if choice & OK:
-				result = self.ui.show_file_open_dialog(
+				editor_path = self.ui.show_file_open_dialog(
 					'Pick an Editor', self._get_applications_directory(),
 					self._PLATFORM_APPLICATIONS_FILTER[PLATFORM]
 				)
-				if result:
-					editor_path = result[0]
+				if editor_path:
 					editor = get_popen_kwargs_for_opening('{file}', editor_path)
 					settings['editor'] = editor
 					save_json('Core Settings.json')

@@ -174,7 +174,7 @@ class MainWindow(QMainWindow):
 		# Let API users pass arbitrary objects by converting with str(...):
 		return QFileDialog.getOpenFileName(
 			self, str(caption), str(dir_path), str(filter_text)
-		)
+		)[0]
 	@run_in_main_thread
 	def show_prompt(self, text, default=''):
 		# Let API users pass arbitrary objects by converting with str(...):
