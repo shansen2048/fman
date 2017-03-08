@@ -42,6 +42,7 @@ func main() {
 		installDir = getDefaultInstallDir()
 		extractAssets(installDir)
 		createRegistryKeysForUninstaller(installDir)
+		createStartMenuShortcut(installDir)
 		launchFman(installDir)
 	}
 }
