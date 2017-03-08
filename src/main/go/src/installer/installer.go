@@ -25,20 +25,28 @@ func main() {
 	doUpdatePtr := flag.Bool("update", false, "Update fman")
 	flag.Parse()
 
+	var installDir string
 	if *doInstallPtr {
-		extractAssets()
-		createRegistryKeysForUninstaller()
+		installDir = getInstallDirWhenManagedByOmaha()
+		extractAssets(installDir)
+		createRegistryKeysForUninstaller(installDir)
 		updateVersionInRegistry()
-		createStartMenuShortcut()
-		launchFman()
+		createStartMenuShortcut(installDir)
+		launchFman(installDir)
 	} else if *doUpdatePtr {
-		extractAssets()
+		installDir = getInstallDirWhenManagedByOmaha()
+		extractAssets(installDir)
 		updateVersionInRegistry()
-		removeOldVersions()
+		removeOldVersions(installDir)
+	} else {
+		installDir = getDefaultInstallDir()
+		extractAssets(installDir)
+		createRegistryKeysForUninstaller(installDir)
+		launchFman(installDir)
 	}
 }
 
-func getInstallDir() string {
+func getInstallDirWhenManagedByOmaha() string {
 	executablePath, err := winutil.GetExecutablePath()
 	check(err)
 	result := executablePath
@@ -57,8 +65,15 @@ func getInstallDir() string {
 	return result
 }
 
-func extractAssets() {
-	installDir := getInstallDir()
+func getDefaultInstallDir() string {
+	localAppData := os.Getenv("LOCALAPPDATA")
+	if localAppData == "" {
+		panic("Environment variable LOCALAPPDATA is not set.")
+	}
+	return filepath.Join(localAppData, "fman")
+}
+
+func extractAssets(installDir string) {
 	for _, relPath := range data.AssetNames() {
 		bytes, err := data.Asset(relPath)
 		check(err)
@@ -78,10 +93,9 @@ func isUserInstall() bool {
 	return strings.HasPrefix(os.Args[0], os.Getenv("LOCALAPPDATA"))
 }
 
-func createRegistryKeysForUninstaller() {
+func createRegistryKeysForUninstaller(installDir string) {
 	regRoot := getRegistryRoot()
 	uninstKey := `Software\Microsoft\Windows\CurrentVersion\Uninstall\fman`
-	installDir := getInstallDir()
 	writeRegStr(regRoot, uninstKey, "", installDir)
 	writeRegStr(regRoot, uninstKey, "DisplayName", "fman")
 	writeRegStr(regRoot, uninstKey, "Publisher", "Michael Herrmann")
@@ -117,10 +131,10 @@ func writeRegStr(regRoot registry.Key, keyPath string, valueName string, value s
 	check(key.SetStringValue(valueName, value))
 }
 
-func createStartMenuShortcut() {
+func createStartMenuShortcut(installDir string) {
 	startMenuDir := getStartMenuDir()
 	linkPath := filepath.Join(startMenuDir, "Programs", "fman.lnk")
-	targetPath := filepath.Join(getInstallDir(), "fman.exe")
+	targetPath := filepath.Join(installDir, "fman.exe")
 	createShortcut(linkPath, targetPath)
 }
 
@@ -164,13 +178,13 @@ WScript.Quit 0`)
 	check(cmd.Run())
 }
 
-func launchFman() {
-	cmd := exec.Command(filepath.Join(getInstallDir(), "fman.exe"))
+func launchFman(installDir string) {
+	cmd := exec.Command(filepath.Join(installDir, "fman.exe"))
 	check(cmd.Start())
 }
 
-func removeOldVersions() {
-	versionsDir := filepath.Join(getInstallDir(), "Versions")
+func removeOldVersions(installDir string) {
+	versionsDir := filepath.Join(installDir, "Versions")
 	versions, err := ioutil.ReadDir(versionsDir)
 	check(err)
 	for _, version := range versions {
