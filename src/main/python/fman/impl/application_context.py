@@ -11,12 +11,12 @@ from fman.impl.plugin import PluginSupport, find_plugin_dirs, \
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
-from fman.impl.widgets import MainWindow, SplashScreen
+from fman.impl.widgets import MainWindow, SplashScreen, Application
 from fman.util import system
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontDatabase, QColor, QPalette, QIcon
-from PyQt5.QtWidgets import QApplication, QStyleFactory
+from PyQt5.QtWidgets import QStyleFactory
 
 import json
 import sys
@@ -82,7 +82,7 @@ class ApplicationContext:
 	@property
 	def app(self):
 		if self._app is None:
-			self._app = QApplication([sys.argv[0]])
+			self._app = Application([sys.argv[0]])
 			self._app.setOrganizationName('fman.io')
 			self._app.setOrganizationDomain('fman.io')
 			self._app.setApplicationName('fman')
@@ -147,9 +147,7 @@ class ApplicationContext:
 			self._main_window.closed.connect(
 				lambda: self.session_manager.on_close(self.main_window)
 			)
-			# Ensure all other windows are closed as well when the main window
-			# is closed. (This in particular closes windows opened by plugins.)
-			self._main_window.closed.connect(self.app.quit)
+			self.app.set_main_window(self._main_window)
 		return self._main_window
 	def _get_main_window_title(self):
 		if self.user.is_licensed(self.fman_version):

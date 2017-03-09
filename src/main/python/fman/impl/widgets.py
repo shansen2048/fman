@@ -8,8 +8,22 @@ from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
-	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle
+	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication
 from random import randint
+
+class Application(QApplication):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._main_window = None
+	def set_main_window(self, main_window):
+		self._main_window = main_window
+		# Ensure all other windows are closed as well when the main window
+		# is closed. (This in particular closes windows opened by plugins.)
+		main_window.closed.connect(self.quit)
+	def exit(self, returnCode=0):
+		if self._main_window is not None:
+			self._main_window.close()
+		super().exit(returnCode)
 
 class DirectoryPane(QWidget):
 
