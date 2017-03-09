@@ -151,7 +151,7 @@ class ApplicationContext:
 		return self._main_window
 	def _get_main_window_title(self):
 		if self.user.is_licensed(self.fman_version):
-			return 'fman – ' + self.user.email
+			return 'fman'
 		return 'fman – NOT REGISTERED'
 	@property
 	def plugin_dirs(self):
