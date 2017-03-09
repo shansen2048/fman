@@ -1,6 +1,5 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
-	copy_with_filtering, copy_python_library, run_pyinstaller, \
-	upload_installer_to_aws
+	copy_with_filtering, copy_python_library, run_pyinstaller, upload_to_s3
 from datetime import date
 from os import rename, makedirs
 from os.path import join, splitext
@@ -165,5 +164,7 @@ def _sign(file_path, description='', url=''):
 
 def upload():
 	if OPTIONS['release']:
-		upload_installer_to_aws('fmanSetup.exe')
+		src_path = path('target/fmanSetup.exe')
+		dest_path = OPTIONS['version'] + '/fmanSetup.exe'
+		upload_to_s3(src_path, dest_path)
 		print('\nDone. Please upload fmanSetup.exe to update.fman.io now.')
