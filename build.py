@@ -82,7 +82,9 @@ def release():
 		next_version = _get_suggested_next_version(release_version)
 		next_version = input('Next version (default: %s): ' % next_version) \
 					   or next_version
-		_commit_version(version, 'Set version number for release ' + version)
+		_commit_version(
+			release_version, 'Set version number for release ' + release_version
+		)
 		OPTIONS['version'] = release_version
 		publish()
 		release_tag = 'v' + release_version
