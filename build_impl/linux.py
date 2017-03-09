@@ -2,7 +2,7 @@ from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
 	copy_with_filtering, collectstatic, check_output_decode, get_icons, \
 	upload_installer_to_aws
-from os import makedirs, remove
+from os import makedirs, remove, rename
 from os.path import exists, basename, join, dirname
 from shutil import copytree, rmtree, copy
 from time import time
@@ -79,6 +79,7 @@ def deb():
 		dest_path = join(icons_root, '%dx%d' % (size, size), 'apps', 'fman.png')
 		makedirs(dirname(dest_path))
 		copy(icon_path, dest_path)
+	deb_path = _get_deb_path()
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman', '-v', OPTIONS['version'],
 		'--description', 'A modern file manager for power users.',
@@ -90,9 +91,10 @@ def deb():
 		# to use apt-key (provided by apt) without depending on gnupg or
 		# gnupg2.":
 		'-d', 'gnupg',
-		'-p', _get_deb_path(), '-f', '-C', path('target/deb')
+		'-p', deb_path, '-f', '-C', path('target/deb')
 	])
 	run(['chmod', 'g-r', '-R', path('target/deb')])
+	rename(deb_path, path('target/fman.deb'))
 
 def upload():
 	tmp_dir_local = path('target/upload_%d' % time())
@@ -127,7 +129,7 @@ def upload():
 	finally:
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
 	if OPTIONS['release']:
-		upload_installer_to_aws('fmanSetup.exe')
+		upload_installer_to_aws('fman.deb')
 
 def _generate_reprepro_distributions_file(dest_dir):
 	conf_dir = join(dest_dir, 'reprepro', 'conf')
