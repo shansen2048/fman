@@ -8,7 +8,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
-	show_alert, QuicksearchSuggestion as Suggestion
+	show_alert, QuicksearchSuggestion as Suggestion, DATA_DIRECTORY
 from getpass import getuser
 from itertools import chain
 from ordered_set import OrderedSet
@@ -17,6 +17,7 @@ from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 	isdir, split, dirname, realpath, expanduser
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
+from shutil import copy
 from subprocess import Popen
 from threading import Thread
 
@@ -653,3 +654,19 @@ class CommandPalette(_CorePaneCommand):
 class Quit(DirectoryPaneCommand):
 	def __call__(self):
 		sys.exit(0)
+
+class InstallLicenseKey(DirectoryPaneCommand):
+	def __call__(self):
+		license_key = join(self.pane.get_path(), 'User.json')
+		if not exists(license_key):
+			show_alert(
+				'Could not find license key file "User.json" in the current '
+				'directory %s.' % self.pane.get_path()
+			)
+			return
+		destination_directory = join(DATA_DIRECTORY, 'Local')
+		copy(license_key, destination_directory)
+		show_alert(
+			"Thank you! To complete the registration, please restart fman. You "
+			"should no longer see the annoying popup when it starts."
+		)
