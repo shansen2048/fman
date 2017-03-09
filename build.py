@@ -116,7 +116,7 @@ def post_release():
 	assert not version.endswith(snapshot_suffix)
 	cloudfront_items_to_invalidate = []
 	for item in ('fman.deb', 'fman.dmg', 'fmanSetup.exe'):
-		cloudfront_items_to_invalidate.append(item)
+		cloudfront_items_to_invalidate.append('/' + item)
 		cloudfront_items_to_invalidate.append('/%s/%s' % (version, item))
 	create_cloudfront_invalidation(cloudfront_items_to_invalidate)
 	git('checkout', 'master')
