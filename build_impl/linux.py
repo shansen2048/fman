@@ -17,6 +17,7 @@ def exe():
 	# package the file, so that the respective system's compatible version is
 	# used:
 	remove(path('target/fman/libstdc++.so.6'))
+	remove(path('target/fman/libreadline.so.6'))
 	# We're using Python library `pgi` instead of `gi`, `GObject` or other more
 	# well-known alternatives. PyInstaller does not know how to handle this
 	# properly and includes .so files it shouldn't include. In particular, we
