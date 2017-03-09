@@ -1,3 +1,4 @@
+from .aws import upload_to_s3
 from glob import glob
 from importlib import import_module
 from os import makedirs, readlink, symlink
@@ -234,3 +235,10 @@ def run_on_server(command):
 
 def check_output_decode(*args, **kwargs):
 	return check_output(*args, **kwargs).decode(sys.stdout.encoding)
+
+def upload_installer_to_aws(installer_name):
+	assert OPTIONS['release']
+	src_path = path('target/' + installer_name)
+	upload_to_s3(src_path, installer_name)
+	version_dest_path = '/%s/%s' % (OPTIONS['version'], installer_name)
+	upload_to_s3(src_path, version_dest_path)

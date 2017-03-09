@@ -1,7 +1,7 @@
 from build_impl import run, path, copy_framework, get_canonical_os_name, \
 	OPTIONS, copy_python_library, upload_file, run_on_server,\
 	check_output_decode, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering, get_icons
+	copy_with_filtering, get_icons, upload_installer_to_aws
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
@@ -182,13 +182,14 @@ def _version_tuple_to_str(version_tuple):
 	return '.'.join(map(str, version_tuple))
 
 def upload():
-	upload_file(path('target/fman.dmg'), 'downloads')
 	updates_dir = _get_updates_dir()
 	upload_file(
 		path('target/autoupdate/%s.zip' % OPTIONS['version']), updates_dir
 	)
 	for patch_file in glob(path('target/autoupdate/*.delta')):
 		upload_file(patch_file, updates_dir)
+	if OPTIONS['release']:
+		upload_installer_to_aws('fman.dmg')
 
 def _get_updates_dir():
 	return 'updates/' + get_canonical_os_name()

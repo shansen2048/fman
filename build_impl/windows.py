@@ -1,5 +1,6 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
-	copy_with_filtering, copy_python_library, run_pyinstaller
+	copy_with_filtering, copy_python_library, run_pyinstaller, \
+	upload_installer_to_aws
 from datetime import date
 from os import rename, makedirs
 from os.path import join, splitext
@@ -161,3 +162,7 @@ def _sign(file_path, description='', url=''):
 	args_sha256 = \
 		args[:-1] + ['/as', '/fd', 'sha256', '/td', 'sha256'] + args[-1:]
 	run(args_sha256)
+
+def upload():
+	if OPTIONS['release']:
+		upload_installer_to_aws('fmanSetup.exe')

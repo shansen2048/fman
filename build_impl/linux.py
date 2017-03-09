@@ -1,6 +1,7 @@
 from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering, collectstatic, check_output_decode, get_icons
+	copy_with_filtering, collectstatic, check_output_decode, get_icons, \
+	upload_installer_to_aws
 from os import makedirs, remove
 from os.path import exists, basename, join, dirname
 from shutil import copytree, rmtree, copy
@@ -125,6 +126,8 @@ def upload():
 		collectstatic()
 	finally:
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
+	if OPTIONS['release']:
+		upload_installer_to_aws('fmanSetup.exe')
 
 def _generate_reprepro_distributions_file(dest_dir):
 	conf_dir = join(dest_dir, 'reprepro', 'conf')

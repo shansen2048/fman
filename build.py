@@ -19,9 +19,16 @@ OPTIONS.update({
 	'gpg_key': 'B015FE599CFAF7EB'
 })
 
+AWS_CREDENTIALS = {
+	'aws_access_key_id': 'AKIAIWTB3R6KKMMTWXEA',
+	'aws_secret_access_key': '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'
+}
+AWS_BUCKET = 'fman'
+AWS_DISTRIBUTION_ID = 'E36JGR8Q7NMYHR'
+
 if is_windows():
 	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
-		add_installer_manifest
+		add_installer_manifest, upload
 elif is_mac():
 	from build_impl.mac import app, sign_app, dmg, sign_dmg, upload, \
 		create_autoupdate_files
@@ -52,6 +59,7 @@ def publish():
 		installer()
 		add_installer_manifest()
 		sign_installer()
+		upload()
 	elif is_mac():
 		app()
 		sign_app()
