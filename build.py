@@ -1,4 +1,4 @@
-from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, run
+from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, git
 from os import unlink, listdir, remove
 from os.path import join, isdir, isfile, islink, expanduser
 from shutil import rmtree
@@ -82,31 +82,33 @@ def release():
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
 		print('Releasing version %s' % release_version)
-		release_version_parts = release_version.split('.')
-		new_patch_v = str(int(release_version_parts[-1]) + 1)
-		new_version = '.'.join(release_version_parts[:-1]) + '.' + new_patch_v
-		new_version = input('New version (default: %s): ' % new_version) \
-					  or new_version
-		filter_path = path('src/main/filters/filter-local.json')
-		_replace_in_json(filter_path, 'version', release_version)
-		run(['git', 'add', filter_path])
-		run([
-			'git', 'commit', '-m',
-			'Set version number for release ' + release_version
-		])
+		next_version = _get_suggested_next_version(release_version)
+		next_version = input('Next version (default: %s): ' % next_version) \
+					   or next_version
+		_commit_version(version, 'Set version number for release ' + version)
 		OPTIONS['version'] = release_version
 		publish()
 		release_tag = 'v' + release_version
-		run(['git', 'tag', release_tag])
-		_replace_in_json(filter_path, 'version', new_version + snapshot_suffix)
-		run(['git', 'add', filter_path])
-		run([
-			'git', 'commit', '-m', 'Bump version for next development iteration'
-		])
-		run(['git', 'push', '-u', 'origin', 'master'])
-		run(['git', 'push', 'origin', release_tag])
+		git('tag', release_tag)
+		_commit_version(
+			next_version + snapshot_suffix,
+			'Bump version for next development iteration'
+		)
+		git('push', '-u', 'origin', 'master')
+		git('push', 'origin', release_tag)
 	else:
 		publish()
+
+def _get_suggested_next_version(version):
+	version_parts = version.split('.')
+	next_patch = str(int(version_parts[-1]) + 1)
+	return '.'.join(version_parts[:-1]) + '.' + next_patch
+
+def _commit_version(version, commit_message):
+	filter_path = path('src/main/filters/filter-local.json')
+	_replace_in_json(filter_path, 'version', version)
+	git('add', filter_path)
+	git('commit', '-m', commit_message)
 
 def _replace_in_json(json_path, key, value):
 	with open(json_path, 'r') as f:
