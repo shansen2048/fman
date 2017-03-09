@@ -32,8 +32,9 @@ def _run_app_from_setting(setting_name, gnome_default, kde_default, curr_dir):
 	if not app:
 		show_alert(
 			'Could not determine the Popen(...) arguments for opening the '
-			'%s. Please configure the "%s" dictionary in "Core Settings.json".'
-			% (setting_name.replace('_', ' '), setting_name)
+			'%s. Please configure the "%s" dictionary in "Core Settings.json". '
+			'You can use "{curr_dir}" as a placeholder for the current '
+			'directory.' % (setting_name.replace('_', ' '), setting_name)
 		)
 		return
 	popen_kwargs = strformat_dict_values(app, {'curr_dir': curr_dir})
