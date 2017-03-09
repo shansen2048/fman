@@ -166,3 +166,4 @@ def _sign(file_path, description='', url=''):
 def upload():
 	if OPTIONS['release']:
 		upload_installer_to_aws('fmanSetup.exe')
+		print('\nDone. Please upload fmanSetup.exe to update.fman.io now.')

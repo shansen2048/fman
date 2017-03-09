@@ -1,4 +1,3 @@
-from .aws import upload_to_s3
 from glob import glob
 from importlib import import_module
 from os import makedirs, readlink, symlink
@@ -6,7 +5,9 @@ from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
 	isfile, pardir, exists, normpath, splitext
 from shutil import copy, copytree, copymode
 from subprocess import Popen, STDOUT, CalledProcessError, check_output
+from time import time
 
+import boto3
 import json
 import os
 import re
@@ -245,3 +246,28 @@ def upload_installer_to_aws(installer_name):
 
 def git(cmd, *args):
 	run(['git', cmd] + list(args))
+
+def upload_to_s3(src_path, dest_path):
+	s3 = boto3.resource('s3', **_get_aws_credentials())
+	s3.Bucket(OPTIONS['aws_bucket']).upload_file(
+		src_path, dest_path, ExtraArgs={'ACL': 'public-read'}
+	)
+
+def create_cloudfront_invalidation(items):
+	cloudfront = boto3.client('cloudfront', **_get_aws_credentials())
+	cloudfront.create_invalidation(
+		DistributionId=OPTIONS['aws_distribution_id'],
+		InvalidationBatch={
+			'Paths': {
+				'Quantity': len(items),
+				'Items': items
+			},
+			'CallerReference': str(int(time()))
+		}
+	)
+
+def _get_aws_credentials():
+	return {
+		'aws_access_key_id': OPTIONS['aws_access_key_id'],
+		'aws_secret_access_key': OPTIONS['aws_secret_access_key']
+	}

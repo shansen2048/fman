@@ -1,4 +1,5 @@
-from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, git
+from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, git, \
+	create_cloudfront_invalidation
 from os import unlink, listdir, remove
 from os.path import join, isdir, isfile, islink, expanduser
 from shutil import rmtree
@@ -16,15 +17,12 @@ OPTIONS.update({
 		path('src/main/resources/mac/Contents/Info.plist'),
 		path('src/main/resources/mac/Contents/SharedSupport/bin/fman')
 	],
-	'gpg_key': 'B015FE599CFAF7EB'
-})
-
-AWS_CREDENTIALS = {
+	'gpg_key': 'B015FE599CFAF7EB',
 	'aws_access_key_id': 'AKIAIWTB3R6KKMMTWXEA',
-	'aws_secret_access_key': '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'
-}
-AWS_BUCKET = 'fman'
-AWS_DISTRIBUTION_ID = 'E36JGR8Q7NMYHR'
+	'aws_secret_access_key': 'JRNCpqdUC6+b4OtSgLahgKNjWujXqz1a4hnowQXE',
+	'aws_bucket': 'fman',
+	'aws_distribution_id': 'E36JGR8Q7NMYHR'
+})
 
 if is_windows():
 	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
@@ -78,7 +76,6 @@ def release():
 	clean()
 	OPTIONS['release'] = True
 	version = OPTIONS['version']
-	snapshot_suffix = '-SNAPSHOT'
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
 		print('Releasing version %s' % release_version)
@@ -96,8 +93,31 @@ def release():
 		)
 		git('push', '-u', 'origin', 'master')
 		git('push', 'origin', release_tag)
+		git('checkout', release_tag)
+		print(
+			'\nDone. Run\n\n'
+			'    git pull\n'
+			'    git checkout %s\n'
+			'    python build.py release\n'
+			'    git checkout master\n\n'
+			'on the other OSs now, then come back here and do:\n\n'
+			'    python build.py post_release\n'
+			% release_tag
+		)
 	else:
 		publish()
+
+snapshot_suffix = '-SNAPSHOT'
+
+def post_release():
+	version = OPTIONS['version']
+	assert not version.endswith(snapshot_suffix)
+	cloudfront_items_to_invalidate = []
+	for item in ('fman.deb', 'fman.dmg', 'fmanSetup.exe'):
+		cloudfront_items_to_invalidate.append(item)
+		cloudfront_items_to_invalidate.append('/%s/%s' % (version, item))
+	create_cloudfront_invalidation(cloudfront_items_to_invalidate)
+	git('checkout', 'master')
 
 def _get_suggested_next_version(version):
 	version_parts = version.split('.')
