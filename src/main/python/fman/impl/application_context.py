@@ -285,10 +285,24 @@ class FrozenApplicationContext(ApplicationContext):
 	@property
 	def updater(self):
 		if self._updater is None:
-			if system.is_mac() and self.user.is_entitled_to_updates():
+			if self._should_auto_update():
 				appcast_url = self.constants['update_url'] + '/Appcast.xml'
 				self._updater = MacUpdater(self.app, appcast_url)
 		return self._updater
+	def _should_auto_update(self):
+		if not system.is_mac():
+			# On Windows and Linux, auto-updates are handled by external
+			# technologies. No need for fman itself to update:
+			return False
+		if not self.user.is_entitled_to_updates():
+			return False
+		try:
+			with open(join(DATA_DIRECTORY, 'Local', 'Updates.json'), 'r') as f:
+				data = json.load(f)
+		except (FileNotFoundError, ValueError):
+			return True
+		else:
+			return data.get('enabled', True)
 	def get_resource(self, *rel_path):
 		if system.is_mac():
 			rel_path = (pardir, 'Resources') + rel_path
