@@ -14,7 +14,7 @@ from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath, expanduser
+	isdir, split, dirname, realpath, expanduser, samefile
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy
@@ -268,16 +268,19 @@ class Rename(_CorePaneCommand):
 
 class RenameListener(DirectoryPaneListener):
 	def on_name_edited(self, file_path, new_name):
-		if not new_name or basename(file_path) == new_name:
+		old_name = basename(file_path)
+		if not new_name or new_name == old_name:
 			return
 		new_path = join(dirname(file_path), new_name)
 		do_rename = True
 		if exists(new_path):
-			response = show_alert(
-				'%s already exists. Do you want to overwrite it?' % new_name,
-				buttons=YES|NO, default_button=NO
-			)
-			do_rename = response & YES
+			# Don't show dialog when "Foo" was simply renamed to "foo":
+			if not samefile(new_path, file_path):
+				response = show_alert(
+					new_name + ' already exists. Do you want to overwrite it?',
+					buttons=YES|NO, default_button=NO
+				)
+				do_rename = response & YES
 		if do_rename:
 			try:
 				rename(file_path, new_path)
@@ -286,7 +289,7 @@ class RenameListener(DirectoryPaneListener):
 					message = 'Access was denied trying to rename %s to %s.'
 				else:
 					message = 'Could not rename %s to %s.'
-				show_alert(message % (basename(file_path), new_name))
+				show_alert(message % (old_name, new_name))
 			else:
 				self.pane.place_cursor_at(new_path)
 
