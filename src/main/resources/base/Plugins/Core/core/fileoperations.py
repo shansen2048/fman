@@ -1,7 +1,7 @@
 from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT
 from os import makedirs, listdir
 from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
-	dirname
+	dirname, isabs
 
 # Work around http://bugs.python.org/issue21775.
 # It affects both shutil.copytree(...) and shutil.move(...).
@@ -133,7 +133,10 @@ class FileTreeOperation:
 				) from e
 			is_in_src_dir = not rel_path.startswith(pardir)
 			if is_in_src_dir:
-				return join(self.dest_dir, rel_path)
+				if isabs(self.dest_dir):
+					return join(self.dest_dir, rel_path)
+				else:
+					return join(self.src_dir, self.dest_dir, rel_path)
 		return join(self.dest_dir, dest_name)
 
 class CopyFiles(FileTreeOperation):

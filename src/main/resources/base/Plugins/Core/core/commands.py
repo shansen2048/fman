@@ -14,7 +14,7 @@ from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath, expanduser, samefile
+	isdir, split, dirname, realpath, expanduser, samefile, isabs
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy
@@ -194,7 +194,7 @@ class _TreeCommand(_CorePaneCommand):
 			src_dir=None
 		if dest_dir is None:
 			dest_dir = self.other_pane.get_path()
-		proceed = self._confirm_tree_operation(files, dest_dir)
+		proceed = self._confirm_tree_operation(files, dest_dir, src_dir)
 		if proceed:
 			dest_dir, dest_name = proceed
 			self._call(files, dest_dir, src_dir, dest_name)
@@ -204,7 +204,7 @@ class _TreeCommand(_CorePaneCommand):
 	def other_pane(self):
 		panes = self.pane.window.get_panes()
 		return panes[(panes.index(self.pane) + 1) % len(panes)]
-	def _confirm_tree_operation(self, files, dest_dir):
+	def _confirm_tree_operation(self, files, dest_dir, src_dir):
 		if not files:
 			show_alert('No file is selected!')
 			return
@@ -220,6 +220,8 @@ class _TreeCommand(_CorePaneCommand):
 		dest = normpath(join(dest_dir, dest_name))
 		dest, ok = self.ui.show_prompt(message, dest)
 		if ok:
+			if not isabs(dest):
+				dest = join(src_dir, dest)
 			if exists(dest):
 				if isdir(dest):
 					return dest, None

@@ -188,10 +188,29 @@ class FileTreeOperationAT:
 		self.assertEqual(['bar.txt'] if do_continue else [], listdir(self.dest))
 	def test_error_abort(self):
 		self.test_error_continue(do_continue=False)
+	def test_relative_path_parent_dir(self):
+		src_file = join(self.src, 'test.txt')
+		self._touch(src_file, '1234')
+		self._perform_on(src_file, dest_dir='..')
+		dest_dir_abs = dirname(self.src)
+		self.assertEqual(['src', 'test.txt'], listdir(dest_dir_abs))
+		self._assert_file_contents_equal(join(dest_dir_abs, 'test.txt'), '1234')
+	def test_relative_path_subdir(self):
+		src_file = join(self.src, 'test.txt')
+		self._touch(src_file, '1234')
+		subdir = join(self.src, 'subdir')
+		makedirs(subdir, exist_ok=True)
+		self._perform_on(src_file, dest_dir='subdir')
+		self.assertEqual(['test.txt'], listdir(subdir))
+		self._assert_file_contents_equal(join(subdir, 'test.txt'), '1234')
 	def setUp(self):
 		self.ui = StubUI(self)
 		self._src = TemporaryDirectory()
+		self.src = join(self._src.name, 'src')
+		makedirs(self.src)
 		self._dest = TemporaryDirectory()
+		self.dest = join(self._dest.name, 'dest')
+		makedirs(self.dest)
 		self._external_dir = TemporaryDirectory()
 		# Create a dummy file to test that not _all_ files are copied from src:
 		self._touch(join(self.src, 'dummy'))
@@ -204,12 +223,6 @@ class FileTreeOperationAT:
 		with open(file_path, 'r') as f:
 			self.assertEqual(expected_contents, f.read())
 	@property
-	def src(self):
-		return self._src.name
-	@property
-	def dest(self):
-		return self._dest.name
-	@property
 	def external_dir(self):
 		return self._external_dir.name
 	def tearDown(self):
@@ -217,6 +230,7 @@ class FileTreeOperationAT:
 		self._dest.cleanup()
 		self._external_dir.cleanup()
 	def _touch(self, file_path, contents=None):
+		makedirs(dirname(file_path), exist_ok=True)
 		with open(file_path, 'w') as f:
 			if contents:
 				f.write(contents)
