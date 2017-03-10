@@ -271,7 +271,7 @@ class RenameListener(DirectoryPaneListener):
 		old_name = basename(file_path)
 		if not new_name or new_name == old_name:
 			return
-		if os.sep in new_name:
+		if os.sep in new_name or PLATFORM == 'Windows' and '/' in new_name:
 			show_alert(
 				'Relative paths are not supported. Please use Move (F6) '
 				'instead.'
