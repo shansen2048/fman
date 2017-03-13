@@ -79,7 +79,6 @@ def deb():
 		dest_path = join(icons_root, '%dx%d' % (size, size), 'apps', 'fman.png')
 		makedirs(dirname(dest_path))
 		copy(icon_path, dest_path)
-	deb_path = _get_deb_path()
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman', '-v', OPTIONS['version'],
 		'--description', 'A modern file manager for power users.',
@@ -91,16 +90,15 @@ def deb():
 		# to use apt-key (provided by apt) without depending on gnupg or
 		# gnupg2.":
 		'-d', 'gnupg',
-		'-p', deb_path, '-f', '-C', path('target/deb')
+		'-p', path('target/fman.deb'), '-f', '-C', path('target/deb')
 	])
 	run(['chmod', 'g-r', '-R', path('target/deb')])
-	rename(deb_path, path('target/fman.deb'))
 
 def upload():
 	tmp_dir_local = path('target/upload_%d' % time())
 	makedirs(tmp_dir_local)
-	deb_path = _get_deb_path()
-	copy(deb_path, tmp_dir_local)
+	deb_name = _get_deb_name()
+	copy(path('target/fman.deb'), join(tmp_dir_local, deb_name))
 	copy(path('target/deb-config/private.gpg-key'), tmp_dir_local)
 	copy(path('target/deb-config/public.gpg-key'), tmp_dir_local)
 	_generate_reprepro_distributions_file(tmp_dir_local)
@@ -111,7 +109,7 @@ def upload():
 			'gpg --import "%s/private.gpg-key" "%s/public.gpg-key" || true' %
 			(tmp_dir_remote, tmp_dir_remote)
 		)
-		deb_path_remote = tmp_dir_remote + '/' + basename(deb_path)
+		deb_path_remote = tmp_dir_remote + '/' + deb_name
 		run_on_server(
 			'reprepro --ask-passphrase -b "%s" --confdir %s/reprepro/conf '
 			'includedeb stable "%s"' % (
@@ -145,5 +143,5 @@ def _generate_reprepro_distributions_file(dest_dir):
 			'SignWith: ' + OPTIONS['gpg_key']
 		]) + '\n\n')
 
-def _get_deb_path(architecture='amd64'):
-	return path('target/fman_%s_%s.deb' % (OPTIONS['version'], architecture))
+def _get_deb_name(architecture='amd64'):
+	return 'fman_%s_%s.deb' % (OPTIONS['version'], architecture)
