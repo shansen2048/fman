@@ -1,4 +1,3 @@
-from datetime import date
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.json_io import JsonIO
 from fman.impl.licensing import User
