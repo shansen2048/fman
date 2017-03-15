@@ -14,7 +14,7 @@ from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath, expanduser, samefile, isabs
+	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy
@@ -273,7 +273,10 @@ class RenameListener(DirectoryPaneListener):
 		old_name = basename(file_path)
 		if not new_name or new_name == old_name:
 			return
-		if os.sep in new_name or PLATFORM == 'Windows' and '/' in new_name:
+		is_relative = \
+			os.sep in new_name or new_name in (pardir, '.') \
+			or (PLATFORM == 'Windows' and '/' in new_name)
+		if is_relative:
 			show_alert(
 				'Relative paths are not supported. Please use Move (F6) '
 				'instead.'
