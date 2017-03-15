@@ -17,6 +17,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontDatabase, QColor, QPalette, QIcon
 from PyQt5.QtWidgets import QStyleFactory
 
+import fman
 import json
 import sys
 
@@ -61,6 +62,7 @@ class ApplicationContext:
 		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
 		self._load_fonts()
+		fman.FMAN_VERSION = self.fman_version
 		self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
 	@property

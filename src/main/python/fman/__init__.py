@@ -19,6 +19,8 @@ ABORT = QMessageBox.Abort
 OK = QMessageBox.Ok
 CANCEL = QMessageBox.Cancel
 
+FMAN_VERSION = ''
+
 if is_windows():
 	PLATFORM = 'Windows'
 	DATA_DIRECTORY = join(getenv('APPDATA'), 'fman')
