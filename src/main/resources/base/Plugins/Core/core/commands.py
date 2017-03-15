@@ -18,7 +18,7 @@ from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy
-from subprocess import Popen
+from subprocess import Popen, DEVNULL
 from threading import Thread
 
 import fman
@@ -119,7 +119,18 @@ def _open(pane, file_path):
 	if isdir(file_path):
 		pane.set_path(realpath(file_path))
 	else:
-		QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+		if PLATFORM == 'Linux':
+			use_qt = False
+			try:
+				Popen(
+					[file_path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL
+				)
+			except (OSError, ValueError):
+				use_qt = True
+		else:
+			use_qt = True
+		if use_qt:
+			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
 class OpenWithEditor(_CorePaneCommand):
 	_PLATFORM_APPLICATIONS_FILTER = {
