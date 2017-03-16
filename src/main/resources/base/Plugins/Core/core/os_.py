@@ -48,7 +48,7 @@ def get_popen_kwargs_for_opening(file_, with_):
 
 def is_gnome_based():
 	curr_desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
-	return curr_desktop in ('unity', 'gnome')
+	return curr_desktop in ('unity', 'gnome', 'x-cinnamon')
 
 def is_kde_based():
 	curr_desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
