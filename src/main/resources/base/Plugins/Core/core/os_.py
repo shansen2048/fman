@@ -38,6 +38,13 @@ def _run_app_from_setting(setting_name, gnome_default, kde_default, curr_dir):
 		)
 		return
 	popen_kwargs = strformat_dict_values(app, {'curr_dir': curr_dir})
+	env_not_set = popen_kwargs.get('env', None) is None
+	if PLATFORM == 'Linux' and env_not_set and 'LD_LIBRARY_PATH' in os.environ:
+		env = os.environ.copy()
+		# PyInstaller sets LD_LIBRARY_PATH to /opt/fman.
+		# We do not want this to get inherited by child processes!
+		del env['LD_LIBRARY_PATH']
+		popen_kwargs['env'] = env
 	Popen(**popen_kwargs)
 
 def get_popen_kwargs_for_opening(file_, with_):
