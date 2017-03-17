@@ -83,8 +83,8 @@ class SuggestLocationsTest(TestCase):
 		if highlights is None:
 			highlights = [self._full_range(query)] * len(paths)
 		result = self.instance(query)
-		actual_paths = [suggestion.value for suggestion in result]
-		actual_highlights = [suggestion.highlight for suggestion in result]
+		actual_paths = [item.value for item in result]
+		actual_highlights = [item.highlight for item in result]
 		self.assertEqual(paths, actual_paths)
 		self.assertEqual(highlights, actual_highlights)
 	def _replace_pathsep(self, path):

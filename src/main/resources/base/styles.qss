@@ -83,7 +83,7 @@ Quicksearch QLineEdit {
 	border-right-color: #d0d0d0;
 }
 
-Quicksearch #suggestions-container {
+Quicksearch #items-container {
 	margin-bottom: 4px;
 }
 
@@ -98,18 +98,18 @@ Quicksearch QListView::item:selected {
 	background-color: #575757;
 }
 
-QuicksearchSuggestion {
+QuicksearchItem {
 	border-top: 1px solid #4d4d4d;
 	border-bottom: 1px solid #363636;
 	padding-left: 4px;
 	padding-right: 4px;
 }
 
-QuicksearchSuggestion #title {
+QuicksearchItem #title {
 	color: #c8c8c8;
 }
 
-QuicksearchSuggestion #hint {
+QuicksearchItem #hint {
 	color: white;
 }
 

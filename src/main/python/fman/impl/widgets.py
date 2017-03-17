@@ -196,8 +196,8 @@ class MainWindow(QMainWindow):
 			self, 'fman', str(text), QLineEdit.Normal, str(default)
 		)
 	@run_in_main_thread
-	def show_quicksearch(self, get_suggestions, get_tab_completion=None):
-		return Quicksearch(self, get_suggestions, get_tab_completion).exec()
+	def show_quicksearch(self, get_items, get_tab_completion=None):
+		return Quicksearch(self, get_items, get_tab_completion).exec()
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
 		self.status_bar_text.setText(text)

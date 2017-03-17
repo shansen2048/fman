@@ -276,18 +276,18 @@ class Style(QProxyStyle):
 		super().drawPrimitive(element, option, painter, widget)
 
 class Quicksearch(QDialog):
-	def __init__(self, parent, get_suggestions, get_tab_completion=None):
+	def __init__(self, parent, get_items, get_tab_completion=None):
 		if get_tab_completion is None:
 			get_tab_completion = lambda _: None
 		super().__init__(parent, Qt.FramelessWindowHint)
-		self.get_suggestions = get_suggestions
+		self.get_items = get_items
 		self.get_tab_completion = get_tab_completion
-		self._curr_suggestions = []
+		self._curr_items = []
 		self._result = None
 		self._init_ui()
 	def exec(self):
-		self._update_suggestions('')
-		self._place_cursor_at_first_suggestion()
+		self._update_items('')
+		self._place_cursor_at_first_item()
 		if super().exec():
 			return self._result
 	def _init_ui(self):
@@ -295,69 +295,66 @@ class Quicksearch(QDialog):
 		self._query.keyPressEventFilter = self._on_key_pressed
 		self._query.textChanged.connect(self._on_text_changed)
 		self._query.returnPressed.connect(self._on_return_pressed)
-		self._suggestions = QListWidget()
-		self._suggestions.setFocusPolicy(Qt.NoFocus)
+		self._items = QListWidget()
+		self._items.setFocusPolicy(Qt.NoFocus)
 		div = lambda widget: self._layout_vertically(Div(), widget)
 		query_container = div(div(self._query))
 		query_container.setObjectName('query-container')
-		suggestions_container = div(self._suggestions)
-		suggestions_container.setObjectName('suggestions-container')
-		self._layout_vertically(self, query_container, suggestions_container)
+		items_container = div(self._items)
+		items_container.setObjectName('items-container')
+		self._layout_vertically(self, query_container, items_container)
 		self.layout().setSizeConstraint(QLayout.SetFixedSize)
 	def _on_return_pressed(self):
-		index = self._suggestions.currentIndex()
-		suggestion = \
-			self._curr_suggestions[index.row()] if index.isValid() else None
-		self._result = self._query.text(), suggestion
+		index = self._items.currentIndex()
+		item = self._curr_items[index.row()] if index.isValid() else None
+		self._result = self._query.text(), item
 		self.accept()
 	def _on_key_pressed(self, event):
 		if event.key() == Key_Tab:
-			index = self._suggestions.currentIndex()
+			index = self._items.currentIndex()
 			if index.isValid():
-				suggestion = self._curr_suggestions[index.row()]
-				completion = self.get_tab_completion(suggestion)
+				item = self._curr_items[index.row()]
+				completion = self.get_tab_completion(item)
 				if completion:
 					self._query.setText(completion)
 				return True
 		if event.key() in (Key_Down, Key_Up, Key_PageDown, Key_PageUp) or \
 				is_mac() and event.key() in (Key_Home, Key_End):
-			self._suggestions.keyPressEvent(event)
+			self._items.keyPressEvent(event)
 			return True
 		return False
 	def _on_text_changed(self, text):
-		self._update_suggestions(text)
-		self._place_cursor_at_first_suggestion()
-	def _place_cursor_at_first_suggestion(self):
-		model = self._suggestions.model()
+		self._update_items(text)
+		self._place_cursor_at_first_item()
+	def _place_cursor_at_first_item(self):
+		model = self._items.model()
 		row = 0
-		root = self._suggestions.rootIndex()
+		root = self._items.rootIndex()
 		while True:
 			index = model.index(row, 0, root)
 			if index.isValid():
-				if not self._suggestions.isIndexHidden(index):
-					self._suggestions.setCurrentIndex(index)
+				if not self._items.isIndexHidden(index):
+					self._items.setCurrentIndex(index)
 					break
 			else:
 				break
 			row += 1
-	def _update_suggestions(self, query):
-		self._suggestions.clear()
-		self._curr_suggestions = self.get_suggestions(query)
-		for suggestion in self._curr_suggestions:
-			self._add_suggestion(suggestion)
-		self._shrink_suggestion_list_to_size()
-	def _add_suggestion(self, suggestion):
+	def _update_items(self, query):
+		self._items.clear()
+		self._curr_items = self.get_items(query)
+		for item in self._curr_items:
+			self._add_item(item)
+		self._shrink_item_list_to_size()
+	def _add_item(self, item):
 		widget_item = QListWidgetItem("")
-		widget = QuicksearchSuggestion(
-			suggestion.title, suggestion.highlight, suggestion.hint,
-			self._suggestions
-		)
+		widget = \
+			QuicksearchItem(item.title, item.highlight, item.hint, self._items)
 		widget_item.setSizeHint(widget.sizeHint())
-		self._suggestions.addItem(widget_item)
-		self._suggestions.setItemWidget(widget_item, widget)
-	def _shrink_suggestion_list_to_size(self):
-		height = self._suggestions.count() * self._suggestions.sizeHintForRow(0)
-		self._suggestions.setMaximumHeight(height)
+		self._items.addItem(widget_item)
+		self._items.setItemWidget(widget_item, widget)
+	def _shrink_item_list_to_size(self):
+		height = self._items.count() * self._items.sizeHintForRow(0)
+		self._items.setMaximumHeight(height)
 	def _layout_vertically(self, parent, *widgets):
 		layout = QVBoxLayout()
 		layout.setContentsMargins(0, 0, 0, 0)
@@ -368,7 +365,7 @@ class Quicksearch(QDialog):
 		parent.setLayout(layout)
 		return parent
 
-class QuicksearchSuggestion(QFrame):
+class QuicksearchItem(QFrame):
 	def __init__(self, title, highlight, hint, parent):
 		super().__init__(parent)
 		layout = QHBoxLayout()

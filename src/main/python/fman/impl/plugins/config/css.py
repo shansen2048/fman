@@ -38,6 +38,6 @@ _CSS_TO_QSS = {
 	'th': 'QTreeView QHeaderView::section',
 	'.statusbar': 'QStatusBar, QStatusBar QLabel',
 	'.quicksearch-query': 'Quicksearch QLineEdit',
-	'.quicksearch-item-title': 'QuicksearchSuggestion #title',
-	'.quicksearch-item-hint': 'QuicksearchSuggestion #hint'
+	'.quicksearch-item-title': 'QuicksearchItem #title',
+	'.quicksearch-item-hint': 'QuicksearchItem #hint'
 }

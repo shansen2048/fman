@@ -8,7 +8,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
-	show_alert, QuicksearchSuggestion as Suggestion, DATA_DIRECTORY
+	show_alert, QuicksearchItem, DATA_DIRECTORY
 from getpass import getuser
 from itertools import chain
 from ordered_set import OrderedSet
@@ -494,13 +494,13 @@ class GoTo(_CorePaneCommand):
 			visited_paths.update({
 				path: 0 for path in self._get_default_paths()
 			})
-		get_suggestions = SuggestLocations(visited_paths)
-		result = show_quicksearch(get_suggestions, self._get_tab_completion)
+		get_items = SuggestLocations(visited_paths)
+		result = show_quicksearch(get_items, self._get_tab_completion)
 		if result:
-			text, suggestion = result
+			text, item = result
 			path = ''
-			if suggestion:
-				path = expanduser(suggestion.value)
+			if item:
+				path = expanduser(item.value)
 			if not isdir(path):
 				path = expanduser(text)
 			if isdir(path):
@@ -527,8 +527,8 @@ class GoTo(_CorePaneCommand):
 			if exists('/mnt'):
 				result.append('/mnt')
 		return result
-	def _get_tab_completion(self, suggestion):
-		result = suggestion.value
+	def _get_tab_completion(self, item):
+		result = item.value
 		if not result.endswith(os.sep):
 			result += os.sep
 		return result
@@ -570,8 +570,8 @@ class SuggestLocations:
 		self.fs = file_system
 	def __call__(self, query):
 		possible_dirs = self._gather_dirs(query)
-		suggestions = self._filter_matching(possible_dirs, query)
-		return list(self._remove_nonexistent(suggestions))
+		items = self._filter_matching(possible_dirs, query)
+		return list(self._remove_nonexistent(items))
 	def _gather_dirs(self, query):
 		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
 		path = normpath(self.fs.expanduser(query))
@@ -602,14 +602,14 @@ class SuggestLocations:
 			for i, matcher in enumerate(self._MATCHERS):
 				match = matcher(dir_.lower(), query.lower())
 				if match is not None:
-					result[i].append(Suggestion(dir_, highlight=match))
+					result[i].append(QuicksearchItem(dir_, highlight=match))
 					break
 		return list(chain.from_iterable(result))
-	def _remove_nonexistent(self, suggestions):
-		for suggestion in suggestions:
-			dir_ = suggestion.value
+	def _remove_nonexistent(self, items):
+		for item in items:
+			dir_ = item.value
 			if self.fs.isdir(self.fs.expanduser(dir_)):
-				yield suggestion
+				yield item
 			else:
 				try:
 					del self.visited_paths[dir_]
@@ -650,9 +650,9 @@ class CommandPalette(_CorePaneCommand):
 	def __call__(self):
 		result = show_quicksearch(self._suggest_commands)
 		if result:
-			suggestion = result[1]
-			if suggestion:
-				self.pane.run_command(suggestion.value)
+			item = result[1]
+			if item:
+				self.pane.run_command(item.value)
 	def _suggest_commands(self, query):
 		result = [[] for _ in self._MATCHERS]
 		for command in sorted(self.pane.get_commands(), key=len):
@@ -661,8 +661,8 @@ class CommandPalette(_CorePaneCommand):
 				match = matcher(command_title.lower(), query.lower())
 				if match is not None:
 					hint = ', '.join(self._get_shortcuts_for_command(command))
-					suggestion = Suggestion(command, command_title, match, hint)
-					result[i].append(suggestion)
+					item = QuicksearchItem(command, command_title, match, hint)
+					result[i].append(item)
 					break
 		return list(chain.from_iterable(result))
 	def _get_shortcuts_for_command(self, command):
