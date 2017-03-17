@@ -9,7 +9,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication
-from random import randint
+from random import randint, randrange
 
 class Application(QApplication):
 	def __init__(self, *args, **kwargs):
@@ -255,13 +255,20 @@ class SplashScreen(QDialog):
 		if is_windows():
 			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
 		p_style = '; '.join(p_styles)
+		# Make buy link more enticing on (roughly) every 10th run:
+		if randrange(10):
+			buy_link_style = ""
+		else:
+			buy_link_style = " style='color: #00ff00;'"
 		label.setText(
 			"<center style='line-height: 130%'>"
 				"<h2>Welcome to fman!</h2>"
 			"</center>"
 			"<p style='" + p_style + "'>"
 				"To remove this annoying popup, please "
-				"<a href='https://fman.io/buy'>obtain a license</a>."
+				"<a href='https://fman.io/buy'" + buy_link_style + ">"
+					"obtain a license"
+				"</a>."
 				"<br/>"
 				"It only takes a minute and you'll never be bothered again!"
 			"</p>"
