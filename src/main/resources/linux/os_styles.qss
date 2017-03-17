@@ -1,24 +1,3 @@
-* {
-	font-family: "Open Sans";
-	font-size: 9pt;
-}
-
 PathView {
 	padding: .5ex;
-}
-
-QTreeView QHeaderView::section {
-	font-size: 8pt;
-}
-
-QStatusBar, QStatusBar QLabel {
-	font-size: 8pt;
-}
-
-Quicksearch QLineEdit, QuicksearchSuggestion #title {
-	font-size: 10pt;
-}
-
-QuicksearchSuggestion #hint {
-	font-size: 8pt;
 }

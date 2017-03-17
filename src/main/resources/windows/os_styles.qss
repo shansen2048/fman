@@ -1,28 +1,7 @@
-* {
-	font-family: "Roboto Bold";
-	font-size: 9pt;
-}
-
 PathView {
 	padding: 1ex;
 }
 
-QTreeView QHeaderView::section {
-	font-size: 8pt;
-}
-
 QStatusBar {
 	min-height: 6ex;
-}
-
-QStatusBar, QStatusBar QLabel {
-	font-size: 8pt;
-}
-
-Quicksearch QLineEdit, QuicksearchSuggestion #title {
-	font-size: 10pt;
-}
-
-QuicksearchSuggestion #hint {
-	font-size: 8pt;
 }

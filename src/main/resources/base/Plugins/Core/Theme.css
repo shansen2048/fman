@@ -1,0 +1,19 @@
+* {
+	font-size: 9pt;
+}
+
+th {
+	font-size: 8pt;
+}
+
+.statusbar {
+	font-size: 8pt;
+}
+
+.quicksearch-query, .quicksearch-item-title {
+	font-size: 10pt;
+}
+
+.quicksearch-item-hint {
+	font-size: 8pt;
+}

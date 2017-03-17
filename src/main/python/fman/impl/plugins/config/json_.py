@@ -1,17 +1,16 @@
 from os import makedirs
-from os.path import splitext, dirname, join
+from os.path import dirname
 
 import json
 
 class JsonIO:
-	def __init__(self, json_dirs, platform_):
-		self._json_dirs = json_dirs
-		self._platform = platform_
+	def __init__(self, locate_config_file):
+		self._locate_config_file = locate_config_file
 		self._cache = {}
 		self._save_on_quit = set()
 	def load(self, json_name, default=None, save_on_quit=False):
 		if json_name not in self._cache:
-			result = load_json(*self._get_json_paths(json_name))
+			result = load_json(*self._locate_config_file(json_name))
 			if result is None:
 				result = default
 			self._cache[json_name] = result
@@ -21,7 +20,7 @@ class JsonIO:
 	def save(self, json_name, value=None):
 		if value is None:
 			value = self._cache[json_name]
-		write_differential_json(value, *self._get_json_paths(json_name))
+		write_differential_json(value, *self._locate_config_file(json_name))
 		self._cache[json_name] = value
 	def on_quit(self):
 		for json_name in self._save_on_quit:
@@ -34,14 +33,6 @@ class JsonIO:
 				# computation may fail with a ValueError. Ignore this so we can
 				# at least save the other files in _save_on_quit:
 				pass
-	def _get_json_paths(self, json_name):
-		base, ext = splitext(json_name)
-		platform_specific_name = '%s (%s)%s' % (base, self._platform, ext)
-		result = []
-		for json_dir in self._json_dirs:
-			result.append(join(json_dir, json_name))
-			result.append(join(json_dir, platform_specific_name))
-		return result
 
 def load_json(*paths):
 	result = None

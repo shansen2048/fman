@@ -5,14 +5,17 @@ from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.model import UbuntuFileIconProvider
 from fman.impl.plugins import PluginSupport, USER_PLUGIN_NAME
+from fman.impl.plugins.config import ConfigFileLocator
+from fman.impl.plugins.config.css import css_rules_to_qss, load_css_rules
+from fman.impl.plugins.config.json_ import JsonIO
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
-from fman.impl.plugins.json_io import JsonIO
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from fman.util import system
+from glob import glob
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontDatabase, QColor, QPalette, QIcon
@@ -36,6 +39,7 @@ class ApplicationContext:
 	def __init__(self):
 		self._app = None
 		self._app_icon = None
+		self._config_file_locator = None
 		self._constants = None
 		self._excepthook = None
 		self._icon_provider = None
@@ -75,12 +79,13 @@ class ApplicationContext:
 		if not self.user.is_licensed(self.fman_version):
 			self.splash_screen.exec()
 	def _load_fonts(self):
-		if system.is_linux():
+		fonts_to_load = []
+		for plugin_dir in self.plugin_dirs:
+			fonts_to_load.extend(glob(join(plugin_dir, '*.ttf')))
+		if fonts_to_load:
 			db = QFontDatabase()
-			db.addApplicationFont(self.get_resource('OpenSans-Semibold.ttf'))
-		elif system.is_windows():
-			db = QFontDatabase()
-			db.addApplicationFont(self.get_resource('Roboto-Bold.ttf'))
+			for font in fonts_to_load:
+				db.addApplicationFont(font)
 	@property
 	def app(self):
 		if self._app is None:
@@ -99,6 +104,12 @@ class ApplicationContext:
 		if self._app_icon is None and not system.is_mac():
 			self._app_icon = QIcon(self.get_resource('fman.ico'))
 		return self._app_icon
+	@property
+	def config_file_locator(self):
+		if self._config_file_locator is None:
+			self._config_file_locator = \
+				ConfigFileLocator(self.plugin_dirs, PLATFORM)
+		return self._config_file_locator
 	@property
 	def constants(self):
 		if self._constants is None:
@@ -166,7 +177,7 @@ class ApplicationContext:
 	@property
 	def json_io(self):
 		if self._json_io is None:
-			self._json_io = JsonIO(self._get_json_dirs(), PLATFORM)
+			self._json_io = JsonIO(self.config_file_locator)
 			self.app.aboutToQuit.connect(self._json_io.on_quit)
 		return self._json_io
 	def _get_json_dirs(self):
@@ -257,6 +268,8 @@ class ApplicationContext:
 			if exists(os_styles):
 				with open(os_styles, 'r') as f:
 					self._stylesheet += '\n' + f.read()
+			css_rules = load_css_rules(*self.config_file_locator('Theme.css'))
+			self._stylesheet += '\n' + css_rules_to_qss(css_rules)
 		return self._stylesheet
 	@property
 	def style(self):

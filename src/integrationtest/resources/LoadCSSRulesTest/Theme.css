@@ -1,0 +1,11 @@
+* {
+	font-size: 1pt;
+}
+
+.a {
+	font-size: 2pt;
+}
+
+.a, .b {
+	font-size: 3pt;
+}

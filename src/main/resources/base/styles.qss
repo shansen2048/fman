@@ -12,7 +12,6 @@ QTreeView QHeaderView::section {
 	border: none;
 	padding-top: 1ex;
 	padding-bottom: 1ex;
-	font-size: 12pt;
 }
 
 QTreeView::item {
@@ -111,12 +110,7 @@ QuicksearchSuggestion #title {
 }
 
 QuicksearchSuggestion #hint {
-	font-size: 12pt;
 	color: white;
-}
-
-Quicksearch QLineEdit, QuicksearchSuggestion #title {
-	font-size: 15pt;
 }
 
 QLineEdit:read-only {
@@ -135,7 +129,6 @@ QStatusBar {
 
 QStatusBar, QStatusBar QLabel {
 	color: white;
-	font-size: 11pt;
 }
 
 QStatusBar QLabel {
