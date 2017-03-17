@@ -1,12 +1,13 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
-from fman.impl.json_io import JsonIO
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.model import UbuntuFileIconProvider
-from fman.impl.plugin import PluginSupport, find_plugin_dirs, \
-	PluginErrorHandler, USER_PLUGIN_NAME
+from fman.impl.plugins import PluginSupport, USER_PLUGIN_NAME
+from fman.impl.plugins.discover import find_plugin_dirs
+from fman.impl.plugins.error import PluginErrorHandler
+from fman.impl.plugins.json_io import JsonIO
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style

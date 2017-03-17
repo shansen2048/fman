@@ -1,4 +1,4 @@
-from fman.impl.plugin import _get_command_name, get_command_class_name
+from fman.impl.plugins.plugin import _get_command_name, get_command_class_name
 from unittest import TestCase
 
 class GetCommandNameTest(TestCase):

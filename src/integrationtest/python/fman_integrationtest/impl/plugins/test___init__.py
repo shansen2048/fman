@@ -1,51 +1,14 @@
 from fman import PLATFORM, Window, DirectoryPane
-from fman.impl.json_io import JsonIO
-from fman.impl.plugin import PluginSupport, USER_PLUGIN_NAME, \
-	find_plugin_dirs, PluginErrorHandler, CommandWrapper
+from fman.impl.plugins import PluginSupport, USER_PLUGIN_NAME
+from fman.impl.plugins.json_io import JsonIO
 from fman_integrationtest import get_resource
 from os import mkdir
-from os.path import join, basename, dirname
+from os.path import join
 from shutil import rmtree, copytree
 from tempfile import mkdtemp
 from unittest import TestCase
 
 import json
-import re
-
-class FindPluginDirsTest(TestCase):
-	def test_find_plugins(self):
-		plugin_dirs = \
-			[self.shipped_plugin, self.installed_plugin, self.user_plugin]
-		for plugin_dir in plugin_dirs:
-			mkdir(plugin_dir)
-		self.assertEqual(
-			plugin_dirs,
-			find_plugin_dirs(self.shipped_plugins, self.installed_plugins)
-		)
-	def test_find_plugins_no_user_plugin(self):
-		plugin_dirs = [self.shipped_plugin, self.installed_plugin]
-		for plugin_dir in plugin_dirs:
-			mkdir(plugin_dir)
-		self.assertEqual(
-			plugin_dirs,
-			find_plugin_dirs(self.shipped_plugins, self.installed_plugins)
-		)
-	def setUp(self):
-		self.shipped_plugins = mkdtemp()
-		self.installed_plugins = mkdtemp()
-		self.shipped_plugin = join(self.shipped_plugins, 'Shipped')
-		installed_plugin = 'Very Simple Plugin'
-		assert basename(installed_plugin)[0] > USER_PLUGIN_NAME[0], \
-			"Please ensure that the name of the installed plugin appears in" \
-			"listdir(...) _after_ the User plugin. This lets us test that" \
-			"find_plugins(...) does not simply return plugins in the same " \
-			"order as listdir(...) but ensures that the User plugin appears " \
-			"last."
-		self.installed_plugin = join(self.installed_plugins, installed_plugin)
-		self.user_plugin = join(self.installed_plugins, USER_PLUGIN_NAME)
-	def tearDown(self):
-		rmtree(self.shipped_plugins)
-		rmtree(self.installed_plugins)
 
 class PluginSupportTest(TestCase):
 	def test_load_json_default(self):
@@ -169,37 +132,8 @@ class PluginSupportTest(TestCase):
 		rmtree(self.shipped_plugins)
 		rmtree(self.installed_plugins)
 
-class CommandWrapper_PluginErrorHandler_IntegrationTest(TestCase):
-	def test_traceback(self):
-		wrapper = CommandWrapper(self._RaiseError(), self.error_handler)
-		wrapper()
-		actual_message, = self.error_handler.pending_error_messages
-		# Note how the expected message doesn't contain any traceback entries
-		# from fman's source code tree:
-		expected_message = \
-			"Command '_RaiseError' raised exception.\n\n" \
-			"Traceback (most recent call last):\n" \
-			"  File \"%s\", line 176, in __call__\n" \
-			"    raise ValueError()\n" \
-			"ValueError\n" % __file__
-		expected_msg_re = re.escape(expected_message).replace('176', r'\d+')
-		self.assertRegex(actual_message, expected_msg_re)
-	def setUp(self):
-		plugin_dir = dirname(dirname(__file__))
-		self.error_handler = PluginErrorHandler([plugin_dir], None, None)
-	class _RaiseError:
-		def __call__(self):
-			raise ValueError()
-
 class StubErrorHandler:
 	def __init__(self):
 		self.error_messages = []
 	def report(self, message):
 		self.error_messages.append(message)
-
-class StubSignal:
-	def connect(self, slot):
-		pass
-
-class StubDirectoryPane:
-	path_changed = StubSignal()

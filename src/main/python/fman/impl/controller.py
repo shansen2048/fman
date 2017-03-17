@@ -1,4 +1,4 @@
-from fman.impl.plugin import get_command_class_name
+from fman.impl.plugins.plugin import get_command_class_name
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, Key_Right
 from fman.util.system import is_mac
 from PyQt5.QtGui import QKeySequence
