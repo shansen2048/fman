@@ -695,3 +695,18 @@ class InstallLicenseKey(DirectoryPaneCommand):
 			"Thank you! To complete the registration, please restart fman. You "
 			"should no longer see the annoying popup when it starts."
 		)
+
+class ZenOfFman(DirectoryPaneCommand):
+	def __call__(self):
+		show_alert(
+			"The Zen of fman\n"
+			"https://fman.io/zen\n\n"
+			"Looks matter\n"
+			"Speed counts\n"
+			"Extending must be easy\n"
+			"Customisability is important\n"
+			"But not at the expense of speed\n"
+			"I/O is better asynchronous\n"
+			"Updates should be transparent and continuous\n"
+			"Development speed matters more than program size"
+		)
