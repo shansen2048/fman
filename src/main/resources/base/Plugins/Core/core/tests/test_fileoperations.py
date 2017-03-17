@@ -75,7 +75,7 @@ class FileTreeOperationAT:
 		for i, answer in enumerate(answers):
 			file_name = basename(files[i])
 			self._expect_alert(
-				('%s exists. Do you want to override it?' % file_name,
+				('%s exists. Do you want to overwrite it?' % file_name,
 				 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES),
 				answer=answer
 			)
@@ -257,7 +257,7 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 		chmod(locked_dest_file, 0o444)
 		try:
 			self._expect_alert(
-				('foo.txt exists. Do you want to override it?',
+				('foo.txt exists. Do you want to overwrite it?',
 				 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES), answer=YES
 			)
 			self._expect_alert(
@@ -317,7 +317,7 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		dest_file = join(dest_dir, 'test.txt')
 		self._touch(dest_file, 'dest contents')
 		self._expect_alert(
-			('test.txt exists. Do you want to override it?',
+			('test.txt exists. Do you want to overwrite it?',
 			 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES),
 			answer=NO
 		)

@@ -101,7 +101,7 @@ class FileTreeOperation:
 				return True
 			if self.override_all is None:
 				choice = self.ui.show_alert(
-					"%s exists. Do you want to override it?" % basename(src),
+					"%s exists. Do you want to overwrite it?" % basename(src),
 					YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
 				)
 				if choice & NO:
