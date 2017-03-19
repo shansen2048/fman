@@ -5,9 +5,7 @@ import sys
 def main():
 	appctxt = get_application_context()
 	appctxt.initialize()
-	window = appctxt.main_window
-	window.show_status_message('v%s ready.' % appctxt.constants['version'])
-	window.show()
+	appctxt.main_window.show()
 	exit_code = appctxt.app.exec_()
 	sys.exit(exit_code)
 

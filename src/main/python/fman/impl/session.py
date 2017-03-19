@@ -12,8 +12,9 @@ class SessionManager:
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
 	DEFAULT_WINDOW_SIZE = (800, 450)
 
-	def __init__(self, json_path):
+	def __init__(self, json_path, fman_version):
 		self.json_path = json_path
+		self.fman_version = fman_version
 		self._json_dict = None
 	def on_startup(self, main_window):
 		try:
@@ -23,6 +24,7 @@ class SessionManager:
 			self._json_dict = {}
 		self._restore_panes(main_window, sys.argv[1:])
 		self._restore_window_geometry(main_window)
+		main_window.show_status_message(self._get_startup_message())
 	def _restore_panes(self, main_window, paths_on_command_line):
 		panes = self._json_dict.get('panes', [{}] * self.DEFAULT_NUM_PANES)
 		for i, pane_info in enumerate(panes):
@@ -50,11 +52,19 @@ class SessionManager:
 		window_state_b64 = self._json_dict.get('window_state', None)
 		if window_state_b64:
 			main_window.restoreState(_decode(window_state_b64))
+	def _get_startup_message(self):
+		previous_version = self._json_dict.get('fman_version', '')
+		if not previous_version or previous_version == self.fman_version:
+			return 'v%s ready.' % self.fman_version
+		return 'Updated to v%s. ' \
+			   '<a href="https://fman.io/changelog">Changelog</a>' \
+			   % self.fman_version
 	def on_close(self, main_window):
 		self._json_dict['window_geometry'] = _encode(main_window.saveGeometry())
 		self._json_dict['window_state'] = _encode(main_window.saveState())
 		self._json_dict['panes'] = \
 			list(map(self._read_settings_from_pane, main_window.get_panes()))
+		self._json_dict['fman_version'] = self.fman_version
 		makedirs(dirname(self.json_path), exist_ok=True)
 		with open(self.json_path, 'w') as f:
 			json.dump(self._json_dict, f)

@@ -258,7 +258,7 @@ class ApplicationContext:
 	def session_manager(self):
 		if self._session_manager is None:
 			json_path = join(DATA_DIRECTORY, 'Local', 'Session.json')
-			self._session_manager = SessionManager(json_path)
+			self._session_manager = SessionManager(json_path, self.fman_version)
 		return self._session_manager
 	@property
 	def stylesheet(self):
