@@ -21,7 +21,9 @@ class SessionManager:
 				self._json_dict = json.load(f)
 		except FileNotFoundError:
 			self._json_dict = {}
-		paths_on_command_line = sys.argv[1:]
+		self._restore_panes(main_window, sys.argv[1:])
+		self._restore_window_geometry(main_window)
+	def _restore_panes(self, main_window, paths_on_command_line):
 		panes = self._json_dict.get('panes', [{}] * self.DEFAULT_NUM_PANES)
 		for i, pane_info in enumerate(panes):
 			pane = main_window.add_pane()
@@ -32,7 +34,6 @@ class SessionManager:
 			pane.set_path(path)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
-		self._restore_window_geometry(main_window)
 	def _make_absolute(self, path, cwd):
 		if normpath(path) == '.':
 			return cwd
