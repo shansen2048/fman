@@ -729,3 +729,59 @@ class ZenOfFman(DirectoryPaneCommand):
 class OpenDataDirectory(DirectoryPaneCommand):
 	def __call__(self):
 		self.pane.set_path(DATA_DIRECTORY)
+
+class GoBack(DirectoryPaneCommand):
+	def __call__(self):
+		HistoryListener.INSTANCES[self.pane.id].go_back()
+
+class GoForward(DirectoryPaneCommand):
+	def __call__(self):
+		HistoryListener.INSTANCES[self.pane.id].go_forward()
+
+class HistoryListener(DirectoryPaneListener):
+
+	INSTANCES = {}
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._history = History()
+		self.INSTANCES[self.pane.id] = self
+	def go_back(self):
+		try:
+			path = self._history.go_back()
+		except ValueError:
+			return
+		self.pane.set_path(path)
+	def go_forward(self):
+		try:
+			path = self._history.go_forward()
+		except ValueError:
+			return
+		self.pane.set_path(path)
+	def on_path_changed(self):
+		self._history.path_changed(self.pane.get_path())
+
+class History:
+	def __init__(self):
+		self._paths = []
+		self._curr_path = -1
+		self._ignore_next_path_change = False
+	def go_back(self):
+		if self._curr_path <= 0:
+			raise ValueError()
+		self._curr_path -= 1
+		self._ignore_next_path_change = True
+		return self._paths[self._curr_path]
+	def go_forward(self):
+		if self._curr_path >= len(self._paths) - 1:
+			raise ValueError()
+		self._curr_path += 1
+		self._ignore_next_path_change = True
+		return self._paths[self._curr_path]
+	def path_changed(self, path):
+		if self._ignore_next_path_change:
+			self._ignore_next_path_change = False
+			return
+		self._curr_path += 1
+		del self._paths[self._curr_path:]
+		self._paths.append(path)

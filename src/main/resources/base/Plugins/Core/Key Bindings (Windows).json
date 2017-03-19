@@ -8,5 +8,7 @@
 	{ "keys": ["Alt+F1"], "command": "show_volumes", "args": {"pane_index": 0} },
 	{ "keys": ["Alt+F2"], "command": "show_volumes", "args": {"pane_index": 1} },
 	{ "keys": ["Ctrl+P"], "command": "go_to" },
-	{ "keys": ["Ctrl+Shift+P"], "command": "command_palette" }
+	{ "keys": ["Ctrl+Shift+P"], "command": "command_palette" },
+	{ "keys": ["Alt+Left"], "command": "go_back" },
+	{ "keys": ["Alt+Right"], "command": "go_forward" }
 ]
