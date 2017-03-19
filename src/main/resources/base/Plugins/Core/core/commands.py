@@ -710,3 +710,7 @@ class ZenOfFman(DirectoryPaneCommand):
 			"Updates should be transparent and continuous\n"
 			"Development speed matters more than program size"
 		)
+
+class OpenDataDirectory(DirectoryPaneCommand):
+	def __call__(self):
+		self.pane.set_path(DATA_DIRECTORY)
