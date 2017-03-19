@@ -55,7 +55,11 @@ class DirectoryPane:
 
 	@property
 	def id(self):
-		return self.window.get_panes().index(self)
+		# TODO: Remove this migration after April, 2017.
+		raise AttributeError(
+			"DirectoryPane#id was removed from fman's API. Please update your "
+			"plugins."
+		)
 	def _add_filter(self, filter_):
 		self._widget.add_filter(filter_)
 	def _invalidate_filters(self):
