@@ -1,4 +1,5 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
+from fman.impl.css_to_qss import css_rules_to_qss
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
@@ -6,7 +7,7 @@ from fman.impl.excepthook import Excepthook
 from fman.impl.model import UbuntuFileIconProvider
 from fman.impl.plugins import PluginSupport, USER_PLUGIN_NAME
 from fman.impl.plugins.config import ConfigFileLocator
-from fman.impl.plugins.config.css import css_rules_to_qss, load_css_rules
+from fman.impl.plugins.config.css import load_css_rules
 from fman.impl.plugins.config.json_ import JsonIO
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
