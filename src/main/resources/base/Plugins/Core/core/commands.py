@@ -732,11 +732,11 @@ class OpenDataDirectory(DirectoryPaneCommand):
 
 class GoBack(DirectoryPaneCommand):
 	def __call__(self):
-		HistoryListener.INSTANCES[self.pane.id].go_back()
+		HistoryListener.INSTANCES[self.pane].go_back()
 
 class GoForward(DirectoryPaneCommand):
 	def __call__(self):
-		HistoryListener.INSTANCES[self.pane.id].go_forward()
+		HistoryListener.INSTANCES[self.pane].go_forward()
 
 class HistoryListener(DirectoryPaneListener):
 
@@ -745,7 +745,7 @@ class HistoryListener(DirectoryPaneListener):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._history = History()
-		self.INSTANCES[self.pane.id] = self
+		self.INSTANCES[self.pane] = self
 	def go_back(self):
 		try:
 			path = self._history.go_back()
