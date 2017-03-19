@@ -55,7 +55,7 @@ class DirectoryPane:
 
 	@property
 	def id(self):
-		return id(self._widget)
+		return self.window.get_panes().index(self)
 	def _add_filter(self, filter_):
 		self._widget.add_filter(filter_)
 	def _invalidate_filters(self):
