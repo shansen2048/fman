@@ -19,7 +19,7 @@ class SessionManagerTest(TestCase):
 		self.assertEquals('C:\\', self._make_absolute('C:'))
 	def setUp(self):
 		super().setUp()
-		self.instance = SessionManager('')
+		self.instance = SessionManager('', '')
 		self.cwd = self._make_path('foo/bar')
 	def _make_absolute(self, path):
 		return self.instance._make_absolute(path, self.cwd)
