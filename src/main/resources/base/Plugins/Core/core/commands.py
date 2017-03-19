@@ -8,7 +8,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from core.trash import move_to_trash
 from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
 	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
-	show_alert, QuicksearchItem, DATA_DIRECTORY
+	show_alert, QuicksearchItem, DATA_DIRECTORY, FMAN_VERSION
 from getpass import getuser
 from itertools import chain
 from ordered_set import OrderedSet
@@ -22,8 +22,23 @@ from subprocess import Popen, DEVNULL
 from threading import Thread
 
 import fman
+import json
 import os
 import sys
+
+class About(DirectoryPaneCommand):
+	def __call__(self):
+		msg = "fman version: " + FMAN_VERSION
+		msg += "\n" + self._get_registration_info()
+		show_alert(msg)
+	def _get_registration_info(self):
+		user_json_path = join(DATA_DIRECTORY, 'Local', 'User.json')
+		try:
+			with open(user_json_path, 'r') as f:
+				data = json.load(f)
+			return 'Registered to %s.' % data['email']
+		except (FileNotFoundError, ValueError, KeyError):
+			return 'Not registered.'
 
 class Help(DirectoryPaneCommand):
 	def __call__(self):
