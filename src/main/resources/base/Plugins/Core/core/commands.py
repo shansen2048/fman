@@ -99,9 +99,10 @@ class MoveToTrash(_CorePaneCommand):
 			description = 'these %d items' % len(to_delete)
 		else:
 			description = to_delete[0]
+		trash = 'recycle bin' if PLATFORM == 'Windows' else 'trash'
 		choice = self.ui.show_alert(
-			"Do you really want to move %s to the recycle bin?" %
-			description, YES | NO, YES
+			"Do you really want to move %s to the %s?" %
+			description, YES | NO, YES, trash
 		)
 		if choice & YES:
 			move_to_trash(*to_delete)
