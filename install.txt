@@ -1,6 +1,6 @@
-Build Qt 5.6.1-1:
-=================
-1) Download the 5.6.1-1 source tarball from the official home page.
+Build Qt 5.6.2:
+===============
+1) Download the 5.6.2 source tarball from the official home page.
 
 Windows preparation:
  a) Install Visual Studio 2012 express (actually, 2015 works too. But then you need to correctly set QMAKESPEC and call 2015's vcvarsall.bat in qtvars.cmd. Also, you then need SIP 4.18.1 not just 4.18 below.)
@@ -18,10 +18,6 @@ OS X preparation:
 		qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h:
 			Surround all occurrences of QAccessibleInterface with
 			#ifndef QT_NO_ACCESSIBILITY ... #endif
-		qtwebengine/src/core/media_capture_devices_dispatcher.cpp:
-			Add #include <QtCore/QCoreApplication>
-		qtwebengine/src/webengine/api/qquickwebengineview_p_p.h:
-			Add #include <QtGui/QColor>
 
 Linux preparation:
  sudo apt-get install build-essential libxcb1 libxcb1-dev libx11-xcb1 libx11-xcb-dev libxcb-keysyms1 libxcb-keysyms1-dev libxcb-image0 libxcb-image0-dev libxcb-shm0 libxcb-shm0-dev libxcb-icccm4 libxcb-icccm4-dev libxcb-sync1 libxcb-sync-dev libxcb-xfixes0-dev libxrender-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0 libxcb-render-util0-dev libxcb-glx0-dev libxcb-xinerama0-dev
@@ -54,7 +50,7 @@ The -fontconfig parameter (hopefully) gets rid of error "QFontDatabase: Cannot f
 
 Install SIP:
 ============
- 1) Download SIP 4.18 from https://www.riverbankcomputing.com/software/sip/download
+ 1) Download SIP 4.18.1 from https://www.riverbankcomputing.com/software/sip/download
  2) Unpack
 
 On OS X:
