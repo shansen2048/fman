@@ -23,7 +23,7 @@ Linux preparation:
  sudo apt-get install build-essential libxcb1 libxcb1-dev libx11-xcb1 libx11-xcb-dev libxcb-keysyms1 libxcb-keysyms1-dev libxcb-image0 libxcb-image0-dev libxcb-shm0 libxcb-shm0-dev libxcb-icccm4 libxcb-icccm4-dev libxcb-sync1 libxcb-sync-dev libxcb-xfixes0-dev libxrender-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0 libxcb-render-util0-dev libxcb-glx0-dev libxcb-xinerama0-dev
  sudo apt-get install build-essential libxrender-dev libfontconfig1-dev
  
-Install Python 3.4 from source on Linux:
+Install Python 3.5.3 from source on Linux:
 ========================================
 Download the source tarball
 
