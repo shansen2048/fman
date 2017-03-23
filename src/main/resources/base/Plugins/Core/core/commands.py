@@ -400,13 +400,13 @@ class SelectAll(_CorePaneCommand):
 class ToggleHiddenFiles(_CorePaneCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.pane._add_filter(self.should_display)
 		settings = load_json('Panes.json', default=[], save_on_quit=True)
 		default = {'show_hidden_files': False}
 		pane_index = self.pane.window.get_panes().index(self.pane)
 		for _ in range(pane_index - len(settings) + 1):
 			settings.append(default.copy())
 		self.pane_info = settings[pane_index]
+		self.pane._add_filter(self.should_display)
 	def should_display(self, file_path):
 		if self.show_hidden_files:
 			return True
