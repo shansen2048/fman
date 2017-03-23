@@ -79,7 +79,7 @@ Install PyQT:
 
 OS X:
  3) source venv/bin/activate
- 4) python configure.py --qmake ~/dev/fman/lib/mac/Qt-5.6.1/bin/qmake
+ 4) python configure.py --qmake ~/dev/fman/lib/mac/Qt-5.6.2/bin/qmake
  5) make
  6) make install
 
