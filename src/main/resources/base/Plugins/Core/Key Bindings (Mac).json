@@ -3,6 +3,7 @@
 	{ "keys": ["Cmd+V"], "command": "paste" },
 	{ "keys": ["Cmd+Alt+V"], "command": "paste_cut" },
 	{ "keys": ["Cmd+A"], "command": "select_all" },
+	{ "keys": ["Cmd+D"], "command": "deselect" },
 	{ "keys": ["Space"], "command": "move_cursor_down", "args": {"toggle_selection": true} },
 	{ "keys": ["Cmd+Backspace"], "command": "move_to_trash" },
 	{ "keys": ["Cmd+."], "command": "toggle_hidden_files" },

@@ -397,6 +397,10 @@ class SelectAll(_CorePaneCommand):
 	def __call__(self):
 		self.pane.select_all()
 
+class Deselect(_CorePaneCommand):
+	def __call__(self):
+		self.pane.clear_selection()
+
 class ToggleHiddenFiles(_CorePaneCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)

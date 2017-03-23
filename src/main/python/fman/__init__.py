@@ -91,6 +91,8 @@ class DirectoryPane:
 		self._widget.edit_name(file_path)
 	def select_all(self):
 		self._widget.select_all()
+	def clear_selection(self):
+		self._widget.clear_selection()
 	def toggle_selection(self, file_path):
 		self._widget.toggle_selection(file_path)
 	def focus(self):

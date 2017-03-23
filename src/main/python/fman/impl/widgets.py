@@ -69,6 +69,8 @@ class DirectoryPane(QWidget):
 		self.setFocus()
 	def select_all(self):
 		self._file_view.selectAll()
+	def clear_selection(self):
+		self._file_view.clearSelection()
 	def get_selected_files(self):
 		return self._file_view.get_selected_files()
 	def get_file_under_cursor(self):
