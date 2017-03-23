@@ -10,7 +10,9 @@ import os
 
 def exe():
 	run_pyinstaller(extra_args=[
-		'--windowed', '--icon', path('src/main/resources/base/fman.ico')
+		'--windowed', '--icon', path('src/main/resources/base/fman.ico'),
+		# Required by send2trash, which is used in the Core plugin:
+		'--hidden-import', 'ctypes.wintypes'
 	])
 	generate_resources(dest_dir=path('target/fman'))
 	_add_missing_dlls()
