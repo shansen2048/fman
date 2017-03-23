@@ -2,19 +2,6 @@ from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT
 from os import makedirs, listdir
 from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
 	dirname, isabs
-
-# Work around http://bugs.python.org/issue21775.
-# It affects both shutil.copytree(...) and shutil.move(...).
-# TODO: Remove workaround once we are using a Python version > 3.4
-import shutil
-_copytree_original = shutil.copytree
-def _copytree_patched(*args, **kwargs):
-	try:
-		return _copytree_original(*args, **kwargs)
-	except AttributeError as e:
-		raise OSError() from e
-shutil.copytree = _copytree_patched
-
 from shutil import copy2, move, rmtree, copytree
 
 import os
