@@ -1,12 +1,13 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
 	copy_with_filtering, copy_python_library, run_pyinstaller, upload_to_s3
 from datetime import date
-from os import rename, makedirs
-from os.path import join, splitext
+from os import rename, makedirs, remove
+from os.path import join, splitext, dirname
 from shutil import copy
 from subprocess import call, DEVNULL
 
 import os
+import sys
 
 def exe():
 	run_pyinstaller(extra_args=[
@@ -14,6 +15,11 @@ def exe():
 		# Required by send2trash, which is used in the Core plugin:
 		'--hidden-import', 'ctypes.wintypes'
 	])
+	# PyInstaller somehow corrupts python35.dll - see:
+	# https://github.com/pyinstaller/pyinstaller/issues/2526
+	# Restore the uncorrupted original:
+	remove(path('target/fman/python35.dll'))
+	copy(join(dirname(sys.executable), 'python35.dll'), path('target/fman'))
 	generate_resources(dest_dir=path('target/fman'))
 	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
