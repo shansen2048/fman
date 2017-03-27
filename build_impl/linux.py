@@ -20,6 +20,7 @@ def exe():
 	remove(path('target/fman/libstdc++.so.6'))
 	remove(path('target/fman/libtinfo.so.5'))
 	remove(path('target/fman/libreadline.so.6'))
+	remove(path('target/fman/libdrm.so.2'))
 	# We're using Python library `pgi` instead of `gi`, `GObject` or other more
 	# well-known alternatives. PyInstaller does not know how to handle this
 	# properly and includes .so files it shouldn't include. In particular, we
