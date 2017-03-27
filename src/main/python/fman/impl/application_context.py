@@ -109,8 +109,17 @@ class ApplicationContext:
 	def config_file_locator(self):
 		if self._config_file_locator is None:
 			self._config_file_locator = \
-				ConfigFileLocator(self.plugin_dirs, PLATFORM)
+				ConfigFileLocator(self._get_config_dirs(), PLATFORM)
 		return self._config_file_locator
+	def _get_config_dirs(self):
+		result = list(self.plugin_dirs)
+		user_plugin = join(DATA_DIRECTORY, 'Plugins', USER_PLUGIN_NAME)
+		if user_plugin not in result:
+			# We want the User plugin to appear in the list of config files
+			# even if it does not exist, because it serves as the default
+			# destination for save_json(...):
+			result.append(user_plugin)
+		return result
 	@property
 	def constants(self):
 		if self._constants is None:
@@ -181,15 +190,6 @@ class ApplicationContext:
 			self._json_io = JsonIO(self.config_file_locator)
 			self.app.aboutToQuit.connect(self._json_io.on_quit)
 		return self._json_io
-	def _get_json_dirs(self):
-		result = list(self.plugin_dirs)
-		user_plugin = join(DATA_DIRECTORY, 'Plugins', USER_PLUGIN_NAME)
-		if user_plugin not in result:
-			# We want the User plugin to appear in the list of json dirs
-			# even if it does not exist, because it serves as the default
-			# destination for save_json(...):
-			result.append(user_plugin)
-		return result
 	@property
 	def splash_screen(self):
 		if self._splash_screen is None:
