@@ -31,7 +31,8 @@ def exe():
 def _add_missing_dlls():
 	for dll in (
 		'msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll', 'vcruntime140.dll',
-		'msvcp140.dll', 'concrt140.dll', 'vccorlib140.dll'
+		'msvcp140.dll', 'concrt140.dll', 'vccorlib140.dll',
+		'api-ms-win-crt-multibyte-l1-1-0.dll'
 	):
 		copy(join(r'c:\Windows\System32', dll), path('target/fman'))
 
