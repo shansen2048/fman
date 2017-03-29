@@ -23,11 +23,25 @@ class PluginSupport:
 	def on_pane_added(self, pane):
 		for plugin in self._plugins:
 			plugin.on_pane_added(pane)
+	def get_application_commands(self):
+		result = set()
+		for plugin in self._plugins:
+			for command in plugin.get_application_commands():
+				result.add(command)
+		return result
+	def run_application_command(self, name, args=None):
+		if args is None:
+			args = {}
+		for plugin in self._plugins:
+			if name in plugin.get_application_commands():
+				return plugin.run_application_command(name, args)
+		raise LookupError(name)
 	def _load_plugins(self):
 		result = []
 		for plugin_dir in self._plugin_dirs:
+			plugin = Plugin(plugin_dir, self._error_handler)
 			try:
-				plugin = Plugin.load(plugin_dir, self._error_handler)
+				plugin.load()
 			except:
 				message = 'Plugin %r failed to load.' % basename(plugin_dir)
 				self._error_handler.report(message)
@@ -48,5 +62,5 @@ class PluginSupport:
 			return result
 	def _get_available_commands(self):
 		for plugin in self._plugins:
-			for command_name in plugin.get_command_names():
-				yield command_name
+			yield from plugin.get_directory_pane_commands()
+			yield from plugin.get_application_commands()

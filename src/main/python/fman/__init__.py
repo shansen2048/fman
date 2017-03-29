@@ -4,11 +4,14 @@ from os.path import join, expanduser
 from PyQt5.QtWidgets import QMessageBox
 
 __all__ = [
-	'DirectoryPaneCommand', 'DirectoryPaneListener', 'load_json', 'save_json',
+	'ApplicationCommand', 'DirectoryPaneCommand', 'DirectoryPaneListener',
+	'load_json', 'save_json',
 	'show_alert', 'show_prompt', 'show_status_message', 'clear_status_message',
-	'show_file_open_dialog', 'show_quicksearch',
-	'PLATFORM', 'DATA_DIRECTORY', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL',
-	'ABORT', 'OK', 'CANCEL'
+	'show_file_open_dialog',
+	'show_quicksearch', 'QuicksearchItem',
+	'get_application_commands', 'run_application_command',
+	'PLATFORM', 'FMAN_VERSION', 'DATA_DIRECTORY',
+	'OK', 'CANCEL', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT'
 ]
 
 YES = QMessageBox.Yes
@@ -31,6 +34,10 @@ elif is_linux():
 	PLATFORM = 'Linux'
 	DATA_DIRECTORY = expanduser('~/.config/fman')
 
+class ApplicationCommand:
+	def __call__(self, *args, **kwargs):
+		raise NotImplementedError()
+
 class DirectoryPane:
 	def __init__(self, window, widget):
 		self.window = window
@@ -46,10 +53,10 @@ class DirectoryPane:
 
 	def get_commands(self):
 		return self._commands
-	def run_command(self, command_name, args=None):
+	def run_command(self, name, args=None):
 		if args is None:
 			args = {}
-		return self._commands[command_name](**args)
+		return self._commands[name](**args)
 	def _register_command(self, command_name, command):
 		self._commands[command_name] = command
 
@@ -168,6 +175,14 @@ class QuicksearchItem:
 		self.title = title
 		self.highlight = highlight
 		self.hint = hint
+
+def get_application_commands():
+	return _get_plugin_support().get_application_commands()
+
+def run_application_command(name, args=None):
+	if args is None:
+		args = {}
+	return _get_plugin_support().run_application_command(name, args)
 
 def _get_plugin_support():
 	return _get_app_ctxt().plugin_support

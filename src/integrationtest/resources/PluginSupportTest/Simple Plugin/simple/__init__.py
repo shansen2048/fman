@@ -1,6 +1,6 @@
-from fman import DirectoryPaneCommand, DirectoryPaneListener
+from fman import ApplicationCommand, DirectoryPaneCommand, DirectoryPaneListener
 
-class TestCommand(DirectoryPaneCommand):
+class TestCommand(ApplicationCommand):
 	def __call__(self, success):
 		return success
 

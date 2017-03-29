@@ -74,17 +74,18 @@ class PluginSupportTest(TestCase):
 				'success': True
 			}
 		}, first)
-		def run(key_binding):
-			command = key_binding['command']
-			args = key_binding.get('args', {})
-			return self.left_pane.run_command(command, args)
-		self.assertEqual(True, run(first))
+		self.assertEqual(
+			True,
+			self.plugin_support.run_application_command(
+				'test_command', {'success': True}
+			)
+		)
 		self.assertEqual({
 			'keys': ['Space'],
 			'command': 'command_raising_error'
 		}, second)
 		# Should not raise an exception:
-		run(second)
+		self.left_pane.run_command('command_raising_error')
 		self.assertEqual(
 			["Command 'CommandRaisingError' raised exception."],
 			self.error_handler.error_messages
@@ -101,8 +102,10 @@ class PluginSupportTest(TestCase):
 			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
 			self.error_handler.error_messages
 		)
-	def test_on_on_name_edited_error(self):
-		self.left_pane._broadcast('on_name_edited', self.user_plugin, 'New name')
+	def test_on_name_edited_error(self):
+		self.left_pane._broadcast(
+			'on_name_edited', self.user_plugin, 'New name'
+		)
 		self.assertEqual(
 			["DirectoryPaneListener 'ListenerRaisingError' raised error."],
 			self.error_handler.error_messages

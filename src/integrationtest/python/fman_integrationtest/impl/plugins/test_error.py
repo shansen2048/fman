@@ -1,9 +1,34 @@
-from fman.impl.plugins.error import PluginErrorHandler
+from fman.impl.plugins.error import PluginErrorHandler, format_traceback
 from fman.impl.plugins.plugin import CommandWrapper
+from fman_integrationtest import get_resource
 from os.path import dirname
 from unittest import TestCase
 
 import re
+import sys
+
+class FormatTracebackTest(TestCase):
+	def test_format_traceback(self):
+		import fman_
+		import plugin.module
+		try:
+			fman_.run_plugins()
+		except ValueError as e:
+			exc = e
+		exclude_from_tb = [dirname(__file__), dirname(fman_.__file__)]
+		traceback_ = format_traceback(exc, exclude_from_tb)
+		self.assertEqual(
+			'Traceback (most recent call last):\n'
+			'  File "' + plugin.module.__file__ + '", line 4, in run_plugin\n'
+			'    raise_error()\n'
+			'ValueError\n',
+			traceback_
+		)
+	def setUp(self):
+		sys.path.append(get_resource('FormatTracebackTest'))
+		self.maxDiff = None
+	def tearDown(self):
+		sys.path.pop()
 
 class CommandWrapper_PluginErrorHandler_IntegrationTest(TestCase):
 	def test_traceback(self):
@@ -21,8 +46,7 @@ class CommandWrapper_PluginErrorHandler_IntegrationTest(TestCase):
 		expected_msg_re = re.escape(expected_message).replace('176', r'\d+')
 		self.assertRegex(actual_message, expected_msg_re)
 	def setUp(self):
-		plugin_dir = dirname(dirname(__file__))
-		self.error_handler = PluginErrorHandler([plugin_dir], None, None)
+		self.error_handler = PluginErrorHandler(None, None)
 	class _RaiseError:
 		def __call__(self):
 			raise ValueError()

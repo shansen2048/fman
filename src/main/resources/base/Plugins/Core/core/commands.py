@@ -6,9 +6,7 @@ from core.util import strformat_dict_values
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from core.trash import move_to_trash
-from fman import DirectoryPaneCommand, YES, NO, OK, CANCEL, load_json, \
-	PLATFORM, DirectoryPaneListener, show_quicksearch, show_prompt, save_json, \
-	show_alert, QuicksearchItem, DATA_DIRECTORY, FMAN_VERSION
+from fman import *
 from getpass import getuser
 from itertools import chain
 from ordered_set import OrderedSet
@@ -26,7 +24,7 @@ import json
 import os
 import sys
 
-class About(DirectoryPaneCommand):
+class About(ApplicationCommand):
 	def __call__(self):
 		msg = "fman version: " + FMAN_VERSION
 		msg += "\n" + self._get_registration_info()
@@ -40,7 +38,7 @@ class About(DirectoryPaneCommand):
 		except (FileNotFoundError, ValueError, KeyError):
 			return 'Not registered.'
 
-class Help(DirectoryPaneCommand):
+class Help(ApplicationCommand):
 	def __call__(self):
 		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings'))
 
@@ -672,19 +670,32 @@ class CommandPalette(_CorePaneCommand):
 		if result:
 			item = result[1]
 			if item:
-				self.pane.run_command(item.value)
+				item.value()
 	def _suggest_commands(self, query):
 		result = [[] for _ in self._MATCHERS]
-		for command in sorted(self.pane.get_commands(), key=len):
-			command_title = command.capitalize().replace('_', ' ')
+		commands = self._get_all_commands()
+		for cmd_name in sorted(commands, key=len):
+			command_title = cmd_name.capitalize().replace('_', ' ')
 			for i, matcher in enumerate(self._MATCHERS):
 				match = matcher(command_title.lower(), query.lower())
 				if match is not None:
-					hint = ', '.join(self._get_shortcuts_for_command(command))
+					hint = ', '.join(self._get_shortcuts_for_command(cmd_name))
+					command = commands[cmd_name]
 					item = QuicksearchItem(command, command_title, match, hint)
 					result[i].append(item)
 					break
 		return list(chain.from_iterable(result))
+	def _get_all_commands(self):
+		result = {}
+		for cmd_name in get_application_commands():
+			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
+			# defined-in-a-loop-with-different-values-all-return-the-same-result
+			result[cmd_name] = lambda cmd=cmd_name: run_application_command(cmd)
+		for cmd_name in self.pane.get_commands():
+			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
+			# defined-in-a-loop-with-different-values-all-return-the-same-result
+			result[cmd_name] = lambda cmd=cmd_name: self.pane.run_command(cmd)
+		return result
 	def _get_shortcuts_for_command(self, command):
 		for binding in load_json('Key Bindings.json'):
 			if binding['command'] == command:
@@ -696,7 +707,7 @@ class CommandPalette(_CorePaneCommand):
 		keys = shortcut.split('+')
 		return ''.join(self._KEY_SYMBOLS_MAC.get(key, key) for key in keys)
 
-class Quit(DirectoryPaneCommand):
+class Quit(ApplicationCommand):
 	def __call__(self):
 		sys.exit(0)
 
@@ -716,7 +727,7 @@ class InstallLicenseKey(DirectoryPaneCommand):
 			"should no longer see the annoying popup when it starts."
 		)
 
-class ZenOfFman(DirectoryPaneCommand):
+class ZenOfFman(ApplicationCommand):
 	def __call__(self):
 		show_alert(
 			"The Zen of fman\n"

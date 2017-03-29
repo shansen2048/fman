@@ -1,13 +1,12 @@
 from fman.util import is_in_subdir
-from io import StringIO
 from os.path import dirname
-from traceback import extract_tb, print_exception
+from traceback import StackSummary, _some_str, extract_tb, TracebackException
 
+import fman
 import sys
 
 class PluginErrorHandler:
-	def __init__(self, plugin_dirs, app, main_window):
-		self.plugin_dirs = plugin_dirs
+	def __init__(self, app, main_window):
 		self.app = app
 		self.main_window = main_window
 		self.main_window_initialized = False
@@ -27,19 +26,94 @@ class PluginErrorHandler:
 			self.main_window.show_alert(self.pending_error_messages[0])
 		self.main_window_initialized = True
 	def _get_plugin_traceback(self, exc):
-		tb = exc.__traceback__
-		while tb:
-			plugin_dir = self._get_plugin_dir(tb)
-			if plugin_dir:
-				break
-			tb = tb.tb_next
-		traceback_ = StringIO()
-		print_exception(
-			exc.__class__, exc.with_traceback(tb), tb, file=traceback_
+		return format_traceback(exc, exclude_dirs=[dirname(fman.__file__)])
+
+def format_traceback(exc, exclude_dirs):
+	def tb_filter(tb):
+		tb_file = extract_tb(tb)[0][0]
+		for dir_ in exclude_dirs:
+			if is_in_subdir(tb_file, dir_):
+				return False
+		return True
+	traceback_ = \
+		TracebackExceptionWithTbFilter.from_exception(exc, tb_filter=tb_filter)
+	return ''.join(traceback_.format())
+
+class TracebackExceptionWithTbFilter(TracebackException):
+	"""
+	Copied and adapted from Python 3.5.3's `TracebackException`. Adds one
+	additional constructor arg: `tb_filter`, a boolean predicate that determines
+	which traceback entries should be included.
+	"""
+	@classmethod
+	def from_exception(cls, exc, *args, **kwargs):
+		return cls(type(exc), exc, exc.__traceback__, *args, **kwargs)
+	def __init__(
+		self, exc_type, exc_value, exc_traceback, *, limit=None,
+		lookup_lines=True, capture_locals=False, _seen=None,
+		tb_filter=None
+	):
+		if _seen is None:
+			_seen = set()
+		_seen.add(exc_value)
+		if (exc_value and exc_value.__cause__ is not None
+			and exc_value.__cause__ not in _seen):
+			# This differs from Python 3.5.3's implementation:
+			cause = TracebackExceptionWithTbFilter(
+				type(exc_value.__cause__),
+				exc_value.__cause__,
+				exc_value.__cause__.__traceback__,
+				limit=limit,
+				lookup_lines=False,
+				capture_locals=capture_locals,
+				_seen=_seen,
+				tb_filter=tb_filter
+			)
+		else:
+			cause = None
+		if (exc_value and exc_value.__context__ is not None
+			and exc_value.__context__ not in _seen):
+			# This differs from Python 3.5.3's implementation:
+			context = TracebackExceptionWithTbFilter(
+				type(exc_value.__context__),
+				exc_value.__context__,
+				exc_value.__context__.__traceback__,
+				limit=limit,
+				lookup_lines=False,
+				capture_locals=capture_locals,
+				_seen=_seen,
+				tb_filter=tb_filter
+			)
+		else:
+			context = None
+		self.exc_traceback = exc_traceback
+		self.__cause__ = cause
+		self.__context__ = context
+		# This differs from Python 3.5.3's implementation:
+		self.stack = StackSummary.extract(
+			walk_tb_with_filtering(exc_traceback, tb_filter), limit=limit,
+			lookup_lines=lookup_lines, capture_locals=capture_locals
 		)
-		return traceback_.getvalue()
-	def _get_plugin_dir(self, traceback_):
-		tb_file = extract_tb(traceback_)[0][0]
-		for plugin_dir in self.plugin_dirs:
-			if is_in_subdir(dirname(tb_file), plugin_dir):
-				return plugin_dir
+		# This differs from Python 3.5.3's implementation:
+		if exc_value:
+			# Hide context when all its frames are hidden:
+			self.__suppress_context__ = exc_value.__suppress_context__ or \
+										(context and not context.stack.format())
+		else:
+			self.__suppress_context__ = False
+		self.exc_type = exc_type
+		self._str = _some_str(exc_value)
+		if exc_type and issubclass(exc_type, SyntaxError):
+			self.filename = exc_value.filename
+			self.lineno = str(exc_value.lineno)
+			self.text = exc_value.text
+			self.offset = exc_value.offset
+			self.msg = exc_value.msg
+		if lookup_lines:
+			self._load_lines()
+
+def walk_tb_with_filtering(tb, tb_filter=None):
+	while tb is not None:
+		if tb_filter is None or tb_filter(tb):
+			yield tb.tb_frame, tb.tb_lineno
+		tb = tb.tb_next

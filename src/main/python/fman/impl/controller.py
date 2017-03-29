@@ -26,10 +26,14 @@ class Controller:
 		for key_binding in self.plugin_support.get_sanitized_key_bindings():
 			keys = key_binding['keys']
 			if key_event.matches(keys[0]):
-				command_name = key_binding['command']
+				cmd_name = key_binding['command']
 				args = key_binding.get('args', {})
-				self._panes[pane_widget].run_command(command_name, args)
-				self._track_command(command_name)
+				pane = self._panes[pane_widget]
+				if cmd_name in pane.get_commands():
+					pane.run_command(cmd_name, args)
+				else:
+					self.plugin_support.run_application_command(cmd_name, args)
+				self._track_command(cmd_name)
 				return True
 		event.ignore()
 		return False

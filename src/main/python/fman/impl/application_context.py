@@ -157,8 +157,7 @@ class ApplicationContext:
 			self._main_window = MainWindow(self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			plugin_dirs = self.plugin_dirs
-			error_handler = \
-				PluginErrorHandler(plugin_dirs, self.app, self._main_window)
+			error_handler = PluginErrorHandler(self.app, self._main_window)
 			plugin_support = \
 				PluginSupport(plugin_dirs, self.json_io, error_handler)
 			controller = Controller(self.window, plugin_support, self.metrics)
