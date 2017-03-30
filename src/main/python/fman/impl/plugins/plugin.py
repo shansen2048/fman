@@ -3,6 +3,7 @@ from fman.util import listdir_absolute
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
 from os.path import join, isdir, basename, isfile
+from threading import Thread
 
 import re
 import sys
@@ -81,8 +82,12 @@ class CommandWrapper:
 		self.command = command
 		self.error_handler = error_handler
 	def __call__(self, *args, **kwargs):
+		Thread(
+			target=self._run_in_thread, args=args, kwargs=kwargs, daemon=True
+		).start()
+	def _run_in_thread(self, *args, **kwargs):
 		try:
-			return self.command(*args, **kwargs)
+			self.command(*args, **kwargs)
 		except SystemExit as e:
 			self.error_handler.handle_system_exit(e.code)
 		except:
@@ -104,7 +109,11 @@ class ListenerWrapper:
 		self._notify_listener('on_path_changed')
 	def on_files_dropped(self, *args):
 		self._notify_listener('on_files_dropped', *args)
-	def _notify_listener(self, event, *args):
+	def _notify_listener(self, *args):
+		Thread(
+			target=self._notify_listener_in_thread, args=args, daemon=True
+		).start()
+	def _notify_listener_in_thread(self, event, *args):
 		listener_method = getattr(self.listener, event)
 		try:
 			listener_method(*args)

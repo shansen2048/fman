@@ -1,8 +1,9 @@
 from fman import ApplicationCommand, DirectoryPaneCommand, DirectoryPaneListener
 
 class TestCommand(ApplicationCommand):
-	def __call__(self, success):
-		return success
+	RAN = False
+	def __call__(self, ran):
+		self.__class__.RAN = ran
 
 class CommandRaisingError(DirectoryPaneCommand):
 	def __call__(self):

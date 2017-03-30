@@ -7,6 +7,7 @@ from os import mkdir
 from os.path import join
 from shutil import rmtree, copytree
 from tempfile import mkdtemp
+from time import time, sleep
 from unittest import TestCase
 
 import json
@@ -63,7 +64,7 @@ class PluginSupportTest(TestCase):
 		json_platform = join(self.user_plugin, 'Test (%s).json' % PLATFORM)
 		with open(json_platform, 'r') as f:
 			self.assertEqual(d, json.load(f))
-	def test_key_bindings(self):
+	def test_key_bindings(self, timeout_secs=1):
 		key_bindings = self.plugin_support.get_sanitized_key_bindings()
 		self.assertEqual(2, len(key_bindings))
 		first, second = key_bindings
@@ -74,12 +75,24 @@ class PluginSupportTest(TestCase):
 				'success': True
 			}
 		}, first)
-		self.assertEqual(
-			True,
+		# Can do this now because sys.path has been extended by `Plugin#load()`:
+		from simple import TestCommand
+		self.assertFalse(TestCommand.RAN, 'Sanity check')
+		try:
 			self.plugin_support.run_application_command(
-				'test_command', {'success': True}
+				'test_command', {'ran': True}
 			)
-		)
+			end_time = time() + timeout_secs
+			while time() < end_time:
+				if TestCommand.RAN:
+					# Success.
+					break
+				else:
+					sleep(.1)
+			else:
+				self.fail("TestCommand didn't run.")
+		finally:
+			TestCommand.RAN = False
 		self.assertEqual({
 			'keys': ['Space'],
 			'command': 'command_raising_error'

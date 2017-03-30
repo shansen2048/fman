@@ -51,36 +51,50 @@ class DirectoryPane(QWidget):
 		self._controller = None
 	def set_controller(self, controller):
 		self._controller = controller
+	@run_in_main_thread
 	def move_cursor_up(self, toggle_selection=False):
 		self._file_view.move_cursor_up(toggle_selection)
+	@run_in_main_thread
 	def move_cursor_down(self, toggle_selection=False):
 		self._file_view.move_cursor_down(toggle_selection)
+	@run_in_main_thread
 	def move_cursor_home(self, toggle_selection=False):
 		self._file_view.move_cursor_home(toggle_selection)
+	@run_in_main_thread
 	def move_cursor_end(self, toggle_selection=False):
 		self._file_view.move_cursor_end(toggle_selection)
+	@run_in_main_thread
 	def move_cursor_page_up(self, toggle_selection=False):
 		self._file_view.move_cursor_page_up(toggle_selection)
+	@run_in_main_thread
 	def move_cursor_page_down(self, toggle_selection=False):
 		self._file_view.move_cursor_page_down(toggle_selection)
+	@run_in_main_thread
 	def toggle_selection(self, file_path):
 		self._file_view.toggle_selection(file_path)
+	@run_in_main_thread
 	def focus(self):
 		self.setFocus()
+	@run_in_main_thread
 	def select_all(self):
 		self._file_view.selectAll()
+	@run_in_main_thread
 	def clear_selection(self):
 		self._file_view.clearSelection()
+	@run_in_main_thread
 	def get_selected_files(self):
 		return self._file_view.get_selected_files()
+	@run_in_main_thread
 	def get_file_under_cursor(self):
 		return self._file_view.get_file_under_cursor()
+	@run_in_main_thread
 	def get_path(self):
 		result = self._model.rootPath()
 		if not result:
 			# Displaying "My Computer" - see QFileSystemModel#myComputer()
 			return ''
 		return normpath(result)
+	@run_in_main_thread
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = lambda: None
@@ -114,12 +128,16 @@ class DirectoryPane(QWidget):
 		connect_once(signal, lambda _: callback_())
 		index = self._model_sorted.setRootPath(path)
 		self._file_view.setRootIndex(index)
+	@run_in_main_thread
 	def place_cursor_at(self, file_path):
 		self._file_view.place_cursor_at(file_path)
+	@run_in_main_thread
 	def edit_name(self, file_path):
 		self._file_view.edit_name(file_path)
+	@run_in_main_thread
 	def add_filter(self, filter_):
 		self._model_sorted.add_filter(filter_)
+	@run_in_main_thread
 	def invalidate_filters(self):
 		self._model_sorted.invalidateFilter()
 	@property
@@ -207,6 +225,7 @@ class MainWindow(QMainWindow):
 			self.timer.start(int(timeout_secs * 1000))
 		else:
 			self.timer.stop()
+	@run_in_main_thread
 	def clear_status_message(self):
 		self.show_status_message('Ready.')
 	def add_pane(self):
