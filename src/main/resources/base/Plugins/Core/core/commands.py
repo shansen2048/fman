@@ -363,6 +363,12 @@ class CopyToClipboard(_CorePaneCommand):
 
 class Cut(_CorePaneCommand):
 	def __call__(self):
+		if PLATFORM == 'Mac':
+			show_alert(
+				"Sorry, macOS doesn't support 'cutting' files. Please press "
+				"⌘-C followed by ⌘-⌥-V to move files."
+			)
+			return
 		files = self.get_chosen_files()
 		if files:
 			clipboard.cut_files(files)
