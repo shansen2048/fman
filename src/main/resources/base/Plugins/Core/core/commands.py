@@ -272,13 +272,11 @@ class _TreeCommand(_CorePaneCommand):
 
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		copy = CopyFiles(self.ui, files, dest_dir, src_dir, dest_name)
-		Thread(target=copy).start()
+		CopyFiles(self.ui, files, dest_dir, src_dir, dest_name)()
 
 class Move(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		move = MoveFiles(self.ui, files, dest_dir, src_dir, dest_name)
-		Thread(target=move).start()
+		MoveFiles(self.ui, files, dest_dir, src_dir, dest_name)()
 
 class DragAndDropListener(DirectoryPaneListener):
 	def on_files_dropped(self, files, dest_dir, is_copy_not_move):
