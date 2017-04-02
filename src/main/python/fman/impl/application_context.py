@@ -4,7 +4,7 @@ from fman.impl.licensing import User
 from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
-from fman.impl.model import UbuntuFileIconProvider
+from fman.impl.model import GnomeFileIconProvider
 from fman.impl.plugins import PluginSupport, USER_PLUGIN_NAME
 from fman.impl.plugins.config import ConfigFileLocator
 from fman.impl.plugins.config.css import load_css_rules
@@ -148,8 +148,8 @@ class ApplicationContext:
 		return self._excepthook
 	@property
 	def icon_provider(self):
-		if self._icon_provider is None and system.is_linux():
-			self._icon_provider = UbuntuFileIconProvider()
+		if self._icon_provider is None and system.is_gnome_based():
+			self._icon_provider = GnomeFileIconProvider()
 		return self._icon_provider
 	@property
 	def main_window(self):

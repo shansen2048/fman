@@ -201,7 +201,7 @@ class LastModifiedColumn(ValueComparingColumn):
 _COLUMNS = (NameColumn, SizeColumn, TypeColumn, LastModifiedColumn)
 _LAST_MODIFIED_COLUMN = _COLUMNS.index(LastModifiedColumn)
 
-class UbuntuFileIconProvider(QFileIconProvider):
+class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.Gtk, self.Gio = self._init_pgi()
