@@ -82,7 +82,7 @@ class SuggestLocationsTest(TestCase):
 		paths = list(map(self._replace_pathsep, paths))
 		if highlights is None:
 			highlights = [self._full_range(query)] * len(paths)
-		result = self.instance(query)
+		result = list(self.instance(query))
 		actual_paths = [item.value for item in result]
 		actual_highlights = [item.highlight for item in result]
 		self.assertEqual(paths, actual_paths)
