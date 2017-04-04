@@ -1,17 +1,18 @@
-from fman.impl.plugins import USER_PLUGIN_NAME
+from fman.impl.plugins import SETTINGS_PLUGIN_NAME
 from fman.util import listdir_absolute
-from os.path import basename, isdir, join
+from os.path import isdir, basename
 
-def find_plugin_dirs(shipped_plugins_dir, installed_plugins_dir):
-	shipped_plugins = _list_plugins(shipped_plugins_dir)
-	installed_plugins = [
-		plugin for plugin in _list_plugins(installed_plugins_dir)
-		if basename(plugin) != USER_PLUGIN_NAME
-	]
-	result = shipped_plugins + installed_plugins
-	user_plugin = join(installed_plugins_dir, USER_PLUGIN_NAME)
-	if isdir(user_plugin):
-		result.append(user_plugin)
+def find_plugin_dirs(shipped_plugins, thirdparty_plugins, user_plugins):
+	result = _list_plugins(shipped_plugins)
+	result.extend(_list_plugins(thirdparty_plugins))
+	settings_plugin = None
+	for plugin in _list_plugins(user_plugins):
+		if basename(plugin) == SETTINGS_PLUGIN_NAME:
+			settings_plugin = plugin
+		else:
+			result.append(plugin)
+	if settings_plugin:
+		result.append(settings_plugin)
 	return result
 
 def _list_plugins(dir_path):

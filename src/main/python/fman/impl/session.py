@@ -1,7 +1,10 @@
 from base64 import b64encode, b64decode
-from fman.util import system
-from os import makedirs, getcwd
-from os.path import expanduser, dirname, realpath, normpath, splitdrive
+from fman import DATA_DIRECTORY
+from fman.impl.plugins import SETTINGS_PLUGIN_NAME
+from fman.util import system, parse_version
+from os import makedirs, getcwd, listdir, rename
+from os.path import expanduser, dirname, realpath, normpath, splitdrive, join, \
+	isdir
 
 import json
 import sys
@@ -15,13 +18,42 @@ class SessionManager:
 	def __init__(self, json_path, fman_version):
 		self.json_path = json_path
 		self.fman_version = fman_version
-		self._json_dict = None
-	def on_startup(self, main_window):
 		try:
 			with open(self.json_path, 'r') as f:
 				self._json_dict = json.load(f)
 		except FileNotFoundError:
 			self._json_dict = {}
+	def migrate_old_plugin_structure(self):
+		previous_version = \
+			self._json_dict.get('fman_version', self.fman_version)
+		if parse_version(previous_version) >= (0, 3, 9):
+			return
+		plugins_directory = join(DATA_DIRECTORY, 'Plugins')
+		user_plugin = join(plugins_directory, 'User')
+		try:
+			user_plugin_contents = listdir(user_plugin)
+		except FileNotFoundError:
+			return
+		if SETTINGS_PLUGIN_NAME in user_plugin_contents:
+			# This is not expected. Abort.
+			return
+		# Move everything from the old User plugin to the new Settings plugin:
+		settings_plugin = join(user_plugin, SETTINGS_PLUGIN_NAME)
+		makedirs(settings_plugin)
+		for file_ in user_plugin_contents:
+			rename(join(user_plugin, file_), join(settings_plugin, file_))
+		# Migrate other plugins:
+		other_plugins = [
+			p for p in listdir(plugins_directory)
+			if p != 'User' and isdir(join(plugins_directory, p))
+		]
+		assert 'Third-party' not in other_plugins
+		for other_plugin in other_plugins:
+			rename(
+				join(plugins_directory, other_plugin),
+				join(user_plugin, other_plugin)
+			)
+	def on_startup(self, main_window):
 		self._restore_panes(main_window, sys.argv[1:])
 		self._restore_window_geometry(main_window)
 		main_window.show_status_message(self._get_startup_message())

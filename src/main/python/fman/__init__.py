@@ -166,7 +166,9 @@ def show_quicksearch(get_items, get_tab_completion=None):
 	return _get_ui().show_quicksearch(get_items, get_tab_completion)
 
 class QuicksearchItem:
-	def __init__(self, value, title=None, highlight=None, hint=''):
+	def __init__(
+		self, value, title=None, highlight=None, hint='', description=''
+	):
 		if title is None:
 			title = value
 		if highlight is None:
@@ -175,6 +177,7 @@ class QuicksearchItem:
 		self.title = title
 		self.highlight = highlight
 		self.hint = hint
+		self.description = description
 
 def get_application_commands():
 	return _get_plugin_support().get_application_commands()

@@ -5,7 +5,7 @@ from fman.impl.metrics import Metrics
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.model import GnomeFileIconProvider
-from fman.impl.plugins import PluginSupport, USER_PLUGIN_NAME
+from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME
 from fman.impl.plugins.config import ConfigFileLocator
 from fman.impl.plugins.config.css import load_css_rules
 from fman.impl.plugins.config.json_ import JsonIO
@@ -113,12 +113,13 @@ class ApplicationContext:
 		return self._config_file_locator
 	def _get_config_dirs(self):
 		result = list(self.plugin_dirs)
-		user_plugin = join(DATA_DIRECTORY, 'Plugins', USER_PLUGIN_NAME)
-		if user_plugin not in result:
-			# We want the User plugin to appear in the list of config files
+		settings_plugin = \
+			join(DATA_DIRECTORY, 'Plugins', 'User', SETTINGS_PLUGIN_NAME)
+		if settings_plugin not in result:
+			# We want the Settings plugin to appear in the list of config files
 			# even if it does not exist, because it serves as the default
 			# destination for save_json(...):
-			result.append(user_plugin)
+			result.append(settings_plugin)
 		return result
 	@property
 	def constants(self):
@@ -156,10 +157,9 @@ class ApplicationContext:
 		if self._main_window is None:
 			self._main_window = MainWindow(self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
-			plugin_dirs = self.plugin_dirs
 			error_handler = PluginErrorHandler(self.app, self._main_window)
 			plugin_support = \
-				PluginSupport(plugin_dirs, self.json_io, error_handler)
+				PluginSupport(self.plugin_dirs, self.json_io, error_handler)
 			controller = Controller(self.window, plugin_support, self.metrics)
 			self._main_window.set_controller(controller)
 			self._main_window.setPalette(self.main_window_palette)
@@ -178,10 +178,13 @@ class ApplicationContext:
 	@property
 	def plugin_dirs(self):
 		if self._plugin_dirs is None:
-			shipped_plugins = self.get_resource('Plugins')
-			installed_plugins = join(DATA_DIRECTORY, 'Plugins')
-			self._plugin_dirs = \
-				find_plugin_dirs(shipped_plugins, installed_plugins)
+			# TODO: Remove this migration after May, 2017
+			self.session_manager.migrate_old_plugin_structure()
+			self._plugin_dirs = find_plugin_dirs(
+				self.get_resource('Plugins'),
+				join(DATA_DIRECTORY, 'Plugins', 'Third-party'),
+				join(DATA_DIRECTORY, 'Plugins', 'User')
+			)
 		return self._plugin_dirs
 	@property
 	def json_io(self):

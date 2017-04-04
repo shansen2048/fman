@@ -9,7 +9,7 @@ from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, Qt, QRect
 from PyQt5.QtGui import QKeyEvent, QPen
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QDialog, QLabel, \
-	QLayout, QListWidget, QListWidgetItem, QFrame, QHBoxLayout
+	QLayout, QListWidget, QListWidgetItem, QFrame, QGridLayout
 
 import html
 
@@ -306,15 +306,15 @@ class Quicksearch(QDialog):
 		self.layout().setSizeConstraint(QLayout.SetFixedSize)
 	def _on_return_pressed(self):
 		index = self._items.currentIndex()
-		item = self._curr_items[index.row()] if index.isValid() else None
-		self._result = self._query.text(), item
+		value = self._curr_items[index.row()].value if index.isValid() else None
+		self._result = self._query.text(), value
 		self.accept()
 	def _on_key_pressed(self, event):
 		if event.key() == Key_Tab:
 			index = self._items.currentIndex()
 			if index.isValid():
 				item = self._curr_items[index.row()]
-				completion = self.get_tab_completion(item)
+				completion = self.get_tab_completion(item.value)
 				if completion:
 					self._query.setText(completion)
 				return True
@@ -342,13 +342,16 @@ class Quicksearch(QDialog):
 	def _update_items(self, query):
 		self._items.clear()
 		self._curr_items = self.get_items(query)
+		if not isinstance(self._curr_items, list):
+			self._curr_items = list(self._curr_items)
 		for item in self._curr_items:
 			self._add_item(item)
 		self._shrink_item_list_to_size()
 	def _add_item(self, item):
 		widget_item = QListWidgetItem("")
-		widget = \
-			QuicksearchItem(item.title, item.highlight, item.hint, self._items)
+		widget = QuicksearchItem(
+			self._items, item.title, item.highlight, item.hint, item.description
+		)
 		widget_item.setSizeHint(widget.sizeHint())
 		self._items.addItem(widget_item)
 		self._items.setItemWidget(widget_item, widget)
@@ -366,22 +369,28 @@ class Quicksearch(QDialog):
 		return parent
 
 class QuicksearchItem(QFrame):
-	def __init__(self, title, highlight, hint, parent):
+	def __init__(self, parent, title, highlight=None, hint='', description=''):
 		super().__init__(parent)
-		layout = QHBoxLayout()
+		if highlight is None:
+			highlight = []
+		layout = QGridLayout()
 		layout.setContentsMargins(0, 0, 0, 0)
 		layout.setSpacing(0)
 
-		title_widget = QLabel(self._get_title_html(title, highlight), self)
-		title_widget.setTextFormat(Qt.RichText)
-		title_widget.setObjectName('title')
-		layout.addWidget(title_widget)
+		title_text = QLabel(self._get_title_html(title, highlight), self)
+		title_text.setTextFormat(Qt.RichText)
+		title_text.setObjectName('title')
+		layout.addWidget(title_text, 0, 0)
 
 		if hint:
 			hint_widget = QLabel(hint, self)
 			hint_widget.setObjectName('hint')
-			layout.addWidget(hint_widget)
-			layout.insertStretch(1, 2)
+			layout.addWidget(hint_widget, 0, 1)
+			layout.setColumnStretch(0, 2)
+
+		if description:
+			descr_widget = QLabel(description, self)
+			layout.addWidget(descr_widget, 1, 0)
 
 		self.setLayout(layout)
 	def _get_title_html(self, title, highlight):

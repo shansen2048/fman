@@ -1,5 +1,6 @@
 from core import clipboard
 from core.fileoperations import CopyFiles, MoveFiles
+from core.github import find_repos
 from core.os_ import open_terminal_in_directory, open_native_file_manager, \
 	get_popen_kwargs_for_opening
 from core.util import strformat_dict_values
@@ -8,6 +9,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from core.trash import move_to_trash
 from fman import *
 from getpass import getuser
+from io import BytesIO
 from itertools import chain
 from ordered_set import OrderedSet
 from os import mkdir, rename, listdir
@@ -15,9 +17,10 @@ from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
-from shutil import copy
+from shutil import copy, move, rmtree
 from subprocess import Popen, DEVNULL
-from threading import Thread
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 import fman
 import json
@@ -519,12 +522,12 @@ class GoTo(_CorePaneCommand):
 		get_items = SuggestLocations(visited_paths)
 		result = show_quicksearch(get_items, self._get_tab_completion)
 		if result:
-			text, item = result
+			query, suggested_dir = result
 			path = ''
-			if item:
-				path = expanduser(item.value)
+			if suggested_dir:
+				path = expanduser(suggested_dir)
 			if not isdir(path):
-				path = expanduser(text)
+				path = expanduser(query)
 			if isdir(path):
 				self.pane.set_path(path)
 	def _get_default_paths(self):
@@ -549,8 +552,8 @@ class GoTo(_CorePaneCommand):
 			if exists('/mnt'):
 				result.append('/mnt')
 		return result
-	def _get_tab_completion(self, item):
-		result = item.value
+	def _get_tab_completion(self, curr_suggestion):
+		result = curr_suggestion
 		if not result.endswith(os.sep):
 			result += os.sep
 		return result
@@ -593,7 +596,7 @@ class SuggestLocations:
 	def __call__(self, query):
 		possible_dirs = self._gather_dirs(query)
 		items = self._filter_matching(possible_dirs, query)
-		return list(self._remove_nonexistent(items))
+		return self._remove_nonexistent(items)
 	def _gather_dirs(self, query):
 		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
 		path = normpath(self.fs.expanduser(query))
@@ -672,9 +675,9 @@ class CommandPalette(_CorePaneCommand):
 	def __call__(self):
 		result = show_quicksearch(self._suggest_commands)
 		if result:
-			item = result[1]
-			if item:
-				item.value()
+			command = result[1]
+			if command:
+				command()
 	def _suggest_commands(self, query):
 		result = [[] for _ in self._MATCHERS]
 		commands = self._get_all_commands()
@@ -688,7 +691,7 @@ class CommandPalette(_CorePaneCommand):
 					item = QuicksearchItem(command, command_title, match, hint)
 					result[i].append(item)
 					break
-		return list(chain.from_iterable(result))
+		return chain.from_iterable(result)
 	def _get_all_commands(self):
 		result = {}
 		for cmd_name in get_application_commands():
@@ -805,3 +808,143 @@ class History:
 		self._curr_path += 1
 		del self._paths[self._curr_path:]
 		self._paths.append(path)
+
+_THIRDPARTY_PLUGINS_DIR = join(DATA_DIRECTORY, 'Plugins', 'Third-party')
+
+def _get_thirdparty_plugins():
+	try:
+		return [
+			plugin for plugin in listdir(_THIRDPARTY_PLUGINS_DIR)
+			if isdir(join(_THIRDPARTY_PLUGINS_DIR, plugin))
+		]
+	except FileNotFoundError:
+		return []
+
+class InstallPlugin(ApplicationCommand):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._plugin_repos = None
+	def __call__(self):
+		if self._plugin_repos is None:
+			with StatusMessage('Fetching available plugins...'):
+				self._plugin_repos = find_repos(topics=['fman', 'plugin'])
+		result = show_quicksearch(self._get_matching_repos)
+		if result:
+			repo = result[1]
+			if repo:
+				with StatusMessage('Downloading %s...' % repo.name):
+					try:
+						ref = repo.get_latest_release()
+					except LookupError as no_release_yet:
+						ref = repo.get_latest_commit()
+					zipball_contents = repo.download_zipball(ref)
+				dest_dir = self._install_plugin(repo.name, zipball_contents)
+				# Save some data in case we want to update the plugin later:
+				self._record_plugin_installation(dest_dir, repo.url, ref)
+				show_alert(
+					'Plugin %r was successfully installed. Please restart fman '
+					'for the change to take effect.' % repo.name
+				)
+	def _get_matching_repos(self, query):
+		installed_plugins = _get_thirdparty_plugins()
+		for repo in self._plugin_repos:
+			if repo.name in installed_plugins:
+				continue
+			match = contains_chars(repo.name.lower(), query.lower())
+			if match or not query:
+				hint = '%d ★' % repo.num_stars if repo.num_stars else ''
+				yield QuicksearchItem(
+					repo, repo.name, match, hint=hint,
+					description=repo.description
+				)
+	def _install_plugin(self, name, zipball_contents):
+		dest_dir = join(_THIRDPARTY_PLUGINS_DIR, name)
+		if exists(dest_dir):
+			raise ValueError('Plugin %s seems to already be installed.' % name)
+		with ZipFile(BytesIO(zipball_contents), 'r') as zipfile:
+			with TemporaryDirectory() as temp_dir:
+				zipfile.extractall(temp_dir)
+				dir_in_zip, = listdir(temp_dir)
+				move(join(temp_dir, dir_in_zip), dest_dir)
+		return dest_dir
+	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
+		plugin_json = join(plugin_dir, 'Plugin.json')
+		if exists(plugin_json):
+			with open(plugin_json, 'r') as f:
+				data = json.load(f)
+		else:
+			data = {}
+		data['url'] = repo_url
+		data['ref'] = ref
+		with open(plugin_json, 'w') as f:
+			json.dump(data, f)
+
+class RemovePlugin(ApplicationCommand):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._installed_plugins = None
+	def __call__(self):
+		self._installed_plugins = _get_thirdparty_plugins()
+		if not self._installed_plugins:
+			show_alert("You don't seem to have any plugins installed.")
+		else:
+			result = show_quicksearch(self._get_matching_plugins)
+			if result:
+				plugin = result[1]
+				if plugin:
+					rmtree(join(_THIRDPARTY_PLUGINS_DIR, plugin))
+					show_alert(
+						'Plugin %r was successfully removed. Please restart '
+						'fman for the change to take effect.' % plugin
+					)
+	def _get_matching_plugins(self, query):
+		for plugin in self._installed_plugins:
+			match = contains_chars(plugin.lower(), query.lower())
+			if match or not query:
+				yield QuicksearchItem(plugin, highlight=match)
+
+class ListPlugins(DirectoryPaneCommand):
+	def __call__(self):
+		result = show_quicksearch(self._list_plugins)
+		if result:
+			plugin_dir = result[1]
+			if plugin_dir:
+				self.pane.set_path(plugin_dir)
+	def _list_plugins(self, query):
+		result = []
+		user_plugins_dir = join(DATA_DIRECTORY, 'Plugins', 'User')
+		try:
+			user_plugins = listdir(user_plugins_dir)
+		except FileNotFoundError:
+			user_plugins = []
+		for plugin in user_plugins:
+			plugin_path = join(user_plugins_dir, plugin)
+			if not isdir(plugin_path):
+				continue
+			match = contains_chars(plugin.lower(), query.lower())
+			if match or not query:
+				result.append(
+					QuicksearchItem(plugin_path, plugin, highlight=match)
+				)
+		for plugin in _get_thirdparty_plugins():
+			match = contains_chars(plugin.lower(), query.lower())
+			if match or not query:
+				plugin_path = join(_THIRDPARTY_PLUGINS_DIR, plugin)
+				plugin_json = join(plugin_path, 'Plugin.json')
+				with open(plugin_json, 'r') as f:
+					ref = json.load(f).get('ref', '')
+				is_sha = len(ref) == 40
+				if is_sha:
+					ref = ref[:8]
+				result.append(QuicksearchItem(
+					plugin_path, plugin, highlight=match, hint=ref
+				))
+		return sorted(result, key=lambda qsi: qsi.title)
+
+class StatusMessage:
+	def __init__(self, message):
+		self._message = message
+	def __enter__(self):
+		show_status_message(self._message)
+	def __exit__(self, *_):
+		clear_status_message()

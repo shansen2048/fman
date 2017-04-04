@@ -19,3 +19,8 @@ def is_in_subdir(file_path, directory):
 		return False
 	rel = relpath(realpath(dirname(file_path)), realpath(directory))
 	return not (rel == pardir or rel.startswith(pardir + os.sep))
+
+def parse_version(version_str):
+	if version_str.endswith('-SNAPSHOT'):
+		version_str = version_str[:-len('-SNAPSHOT')]
+	return tuple(map(int, version_str.split('.')))

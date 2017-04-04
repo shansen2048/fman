@@ -1,4 +1,5 @@
 from base64 import b64decode
+from fman.util import parse_version
 from rsa import PublicKey, VerificationError
 from rsa.common import byte_size as get_byte_size
 
@@ -29,11 +30,6 @@ class User:
 
 def unpack_key(key):
 	return json.loads(decrypt(key))
-
-def parse_version(version_str):
-	if version_str.endswith('-SNAPSHOT'):
-		version_str = version_str[:-len('-SNAPSHOT')]
-	return tuple(map(int, version_str.split('.')))
 
 def decrypt(data_b64str):
 	data = b64decode(data_b64str.encode('ascii'))

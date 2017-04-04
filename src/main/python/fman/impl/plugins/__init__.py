@@ -2,7 +2,7 @@ from fman.impl.plugins.plugin import Plugin
 from fman.impl.plugins.key_bindings import sanitize_key_bindings
 from os.path import basename
 
-USER_PLUGIN_NAME = 'User'
+SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
 	def __init__(self, plugin_dirs, json_io, error_handler):
