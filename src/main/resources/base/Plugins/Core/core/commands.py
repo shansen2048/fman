@@ -365,8 +365,8 @@ class Cut(_CorePaneCommand):
 	def __call__(self):
 		if PLATFORM == 'Mac':
 			show_alert(
-				"Sorry, macOS doesn't support 'cutting' files. Please press "
-				"⌘-C followed by ⌘-⌥-V to move files."
+				"Sorry, macOS doesn't support cutting files. Please press "
+				"⌘-C (copy) followed by ⌘-⌥-V (move)."
 			)
 			return
 		files = self.get_chosen_files()
