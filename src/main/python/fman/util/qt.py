@@ -107,3 +107,9 @@ CopyAction = Qt.CopyAction
 MoveAction = Qt.MoveAction
 IgnoreAction = Qt.IgnoreAction
 NoButton = Qt.NoButton
+
+def disable_window_animations_mac(window):
+	from objc import objc_object
+	view = objc_object(c_void_p=int(window.winId()))
+	NSWindowAnimationBehaviorNone = 2
+	view.window().setAnimationBehavior_(NSWindowAnimationBehaviorNone)

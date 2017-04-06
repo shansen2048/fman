@@ -1,8 +1,9 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView, Quicksearch
-from fman.util.system import is_windows
-from fman.util.qt import connect_once, run_in_main_thread
+from fman.util.system import is_windows, is_mac
+from fman.util.qt import connect_once, run_in_main_thread, \
+	disable_window_animations_mac
 from os.path import exists, normpath, dirname, splitdrive
 from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
@@ -196,12 +197,15 @@ class MainWindow(QMainWindow):
 		self.controller = controller
 	@run_in_main_thread
 	def show_alert(self, text, buttons=OK, default_button=OK):
+		self._about_to_show_dialog()
 		msgbox = QMessageBox(self)
 		# API users might pass arbitrary objects as text when trying to debug,
 		# eg. exception instances. Convert to str(...) to allow for this:
 		msgbox.setText(str(text))
 		msgbox.setStandardButtons(buttons)
 		msgbox.setDefaultButton(default_button)
+		if is_mac():
+			disable_window_animations_mac(msgbox)
 		return msgbox.exec()
 	@run_in_main_thread
 	def show_file_open_dialog(self, caption, dir_path, filter_text):
@@ -211,13 +215,34 @@ class MainWindow(QMainWindow):
 		)[0]
 	@run_in_main_thread
 	def show_prompt(self, text, default=''):
+		self._about_to_show_dialog()
+		dialog = QInputDialog(self)
+		if is_mac():
+			disable_window_animations_mac(dialog)
+		dialog.setWindowTitle('fman')
 		# Let API users pass arbitrary objects by converting with str(...):
-		return QInputDialog.getText(
-			self, 'fman', str(text), QLineEdit.Normal, str(default)
-		)
+		dialog.setLabelText(str(text))
+		dialog.setTextEchoMode(QLineEdit.Normal)
+		dialog.setTextValue(default)
+		result = dialog.exec()
+		if result:
+			return dialog.textValue(), True if result else '', False
+		return '', False
 	@run_in_main_thread
 	def show_quicksearch(self, get_items, get_tab_completion=None):
-		return Quicksearch(self, get_items, get_tab_completion).exec()
+		self._about_to_show_dialog()
+		dialog = Quicksearch(self, get_items, get_tab_completion)
+		if is_mac():
+			disable_window_animations_mac(dialog)
+		return dialog.exec()
+	def _about_to_show_dialog(self):
+		# At least on Mac, Qt displays the dialog before clearing the main
+		# window's focus. This leads to an ugly effect: The dialog appears, but
+		# a split second later, in the background, the cursor in the file view
+		# disappears (because the widget lost focus). To prevent this from
+		# happening, we tell Qt to clear the focus *before* launching the
+		# dialog:
+		self.focusWidget().clearFocus()
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
 		self.status_bar_text.setText(text)
