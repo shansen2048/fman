@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
 		dialog.setTextValue(default)
 		result = dialog.exec()
 		if result:
-			return dialog.textValue(), True if result else '', False
+			return dialog.textValue(), True
 		return '', False
 	@run_in_main_thread
 	def show_quicksearch(self, get_items, get_tab_completion=None):
