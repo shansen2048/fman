@@ -1,5 +1,6 @@
 from fman.impl.plugins.plugin import get_command_class_name
-from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, Key_Right
+from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, \
+	Key_Right, Key_Return, Key_Enter
 from fman.util.system import is_mac
 from PyQt5.QtGui import QKeySequence
 from weakref import WeakValueDictionary
@@ -56,10 +57,8 @@ class QtKeyEvent:
 		self.key = key
 		self.modifiers = modifiers
 	def matches(self, keys):
-		def replace_keys(replacements):
-			return '+'.join(replacements.get(k, k) for k in keys.split('+'))
 		if is_mac():
-			keys = replace_keys({'Cmd': 'Ctrl', 'Ctrl': 'Meta'})
+			keys = self._replace(keys, {'Cmd': 'Ctrl', 'Ctrl': 'Meta'})
 		modifiers = self.modifiers
 		if is_mac() and self.key in (Key_Down, Key_Up, Key_Left, Key_Right):
 			# According to the Qt documentation ([1]), the KeypadModifier flag
@@ -69,11 +68,17 @@ class QtKeyEvent:
 			# this behaviour of Qt.
 			# [1]: http://doc.qt.io/qt-5/qt.html#KeyboardModifier-enum
 			modifiers &= ~KeypadModifier
-		this_event = QKeySequence(modifiers | self.key)
-		if 'Enter' in keys.split('+'):
-			# Qt has keys 'Return' as well as 'Enter'. We want to treat them as
-			# the same and expect the user to write 'Enter' in Key Bindings.json
-			keys_return = replace_keys({'Enter': 'Return'})
-			if this_event.matches(QKeySequence(keys_return)):
-				return True
-		return this_event.matches(QKeySequence(keys))
+		key, modifiers, keys = self._alias_return_and_enter(modifiers, keys)
+		return QKeySequence(modifiers | key).matches(QKeySequence(keys))
+	def _alias_return_and_enter(self, modifiers, keys):
+		# Qt has Key_Enter and Key_Return. The former is the Enter key on the
+		# numpad. The latter is next to the characters. We want the user to
+		# specify "Enter" for both:
+		if self.key == Key_Enter:
+			key = Key_Return
+			modifiers &= ~KeypadModifier
+		else:
+			key = self.key
+		return key, modifiers, self._replace(keys, {'Enter': 'Return'})
+	def _replace(self, keys, replacements):
+		return '+'.join(replacements.get(k, k) for k in keys.split('+'))
