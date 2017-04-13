@@ -7,23 +7,11 @@ import os
 def open_terminal_in_directory(dir_path):
 	gnome_default = {'args': ['gnome-terminal'], 'cwd': '{curr_dir}'}
 	kde_default = {'args': ['konsole'], 'cwd': '{curr_dir}'}
-	# TODO: Remove this migration after Feb, 2017.
-	settings = load_json('Core Settings.json', default={})
-	terminal_app = settings.pop('terminal_app', '')
-	if terminal_app:
-		settings['terminal'] = terminal_app
-		# The migration in _run_app_from_setting(...) will now convert the
-		# `terminal` string to a dict that can be used as kwargs for Popen(...).
 	_run_app_from_setting('terminal', gnome_default, kde_default, dir_path)
 
 def _run_app_from_setting(setting_name, gnome_default, kde_default, curr_dir):
 	settings = load_json('Core Settings.json', default={})
 	app = settings.get(setting_name, {})
-	if isinstance(app, str):
-		# TODO: Remove this migration after Feb, 2017.
-		app = get_popen_kwargs_for_opening('{curr_dir}', with_=app)
-		settings[setting_name] = app
-		save_json('Core Settings.json')
 	if not app:
 		if is_gnome_based():
 			app = gnome_default

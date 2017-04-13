@@ -178,11 +178,6 @@ class OpenWithEditor(_CorePaneCommand):
 	def _open_with_editor(self, file_path):
 		settings = load_json('Core Settings.json', default={})
 		editor = settings.get('editor', {})
-		if isinstance(editor, str):
-			# TODO: Remove this migration after Feb, 2017.
-			editor = get_popen_kwargs_for_opening('{file}', with_=editor)
-			settings['editor'] = editor
-			save_json('Core Settings.json')
 		if not editor:
 			choice = self.ui.show_alert(
 				'Editor is currently not configured. Please pick one.',
