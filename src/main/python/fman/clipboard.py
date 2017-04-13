@@ -1,5 +1,6 @@
 from core.os_ import is_gnome_based, is_kde_based
 from fman import PLATFORM
+from fman.util.qt import run_in_main_thread
 from os.path import basename, normpath
 from PyQt5.QtCore import QMimeData, QUrl
 from PyQt5.QtWidgets import QApplication
@@ -11,12 +12,19 @@ _CF_PREFERREDDROPEFFECT = \
 	'application/x-qt-windows-mime;value="%s"' % _CFSTR_PREFERREDDROPEFFECT
 _DROPEFFECT_MOVE = struct.pack('i', 2)
 
+@run_in_main_thread
 def clear():
 	_clipboard().clear()
 
+@run_in_main_thread
 def set_text(text):
 	_clipboard().setText(text)
 
+@run_in_main_thread
+def get_text():
+	return _clipboard().text()
+
+@run_in_main_thread
 def copy_files(files):
 	if PLATFORM == 'Linux':
 		extra_data = _get_extra_copy_cut_data_linux(files, 'copy')
@@ -24,6 +32,7 @@ def copy_files(files):
 		extra_data = {}
 	_place_on_clipboard(files, extra_data)
 
+@run_in_main_thread
 def cut_files(files):
 	if PLATFORM == 'Windows':
 		extra_data = {
@@ -38,6 +47,7 @@ def cut_files(files):
 		raise NotImplementedError(PLATFORM)
 	_place_on_clipboard(files, extra_data)
 
+@run_in_main_thread
 def get_files():
 	result = []
 	for url in _clipboard().mimeData().urls():
@@ -49,6 +59,7 @@ def get_files():
 			result.append(normpath(url.toLocalFile()))
 	return result
 
+@run_in_main_thread
 def files_were_cut():
 	if PLATFORM == 'Windows':
 		data = _clipboard().mimeData().data(_CF_PREFERREDDROPEFFECT)

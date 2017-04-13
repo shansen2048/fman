@@ -1,4 +1,3 @@
-from core import clipboard
 from core.fileoperations import CopyFiles, MoveFiles
 from core.github import find_repos
 from core.os_ import open_terminal_in_directory, open_native_file_manager, \

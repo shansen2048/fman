@@ -10,6 +10,7 @@ __all__ = [
 	'show_file_open_dialog',
 	'show_quicksearch', 'QuicksearchItem',
 	'get_application_commands', 'run_application_command',
+	'clipboard',
 	'PLATFORM', 'FMAN_VERSION', 'DATA_DIRECTORY',
 	'OK', 'CANCEL', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT'
 ]
