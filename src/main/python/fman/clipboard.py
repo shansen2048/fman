@@ -1,5 +1,4 @@
-from core.os_ import is_gnome_based, is_kde_based
-from fman import PLATFORM
+from fman.util.system import is_linux, is_windows, is_gnome_based, is_kde_based
 from fman.util.qt import run_in_main_thread
 from os.path import basename, normpath
 from PyQt5.QtCore import QMimeData, QUrl
@@ -26,7 +25,7 @@ def get_text():
 
 @run_in_main_thread
 def copy_files(files):
-	if PLATFORM == 'Linux':
+	if is_linux():
 		extra_data = _get_extra_copy_cut_data_linux(files, 'copy')
 	else:
 		extra_data = {}
@@ -34,17 +33,17 @@ def copy_files(files):
 
 @run_in_main_thread
 def cut_files(files):
-	if PLATFORM == 'Windows':
+	if is_windows():
 		extra_data = {
 			# Make pasting work in Explorer:
 			_CFSTR_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE,
 			# Make pasting work in Qt:
 			_CF_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE
 		}
-	elif PLATFORM == 'Linux':
+	elif is_linux():
 		extra_data = _get_extra_copy_cut_data_linux(files, 'cut')
 	else:
-		raise NotImplementedError(PLATFORM)
+		raise NotImplementedError('Cutting files is not supported on this OS.')
 	_place_on_clipboard(files, extra_data)
 
 @run_in_main_thread
@@ -61,10 +60,10 @@ def get_files():
 
 @run_in_main_thread
 def files_were_cut():
-	if PLATFORM == 'Windows':
+	if is_windows():
 		data = _clipboard().mimeData().data(_CF_PREFERREDDROPEFFECT)
 		return data == _DROPEFFECT_MOVE
-	elif PLATFORM == 'Linux':
+	elif is_linux():
 		mime_type = _get_linux_copy_cut_mime_type()
 		if mime_type:
 			return _clipboard().mimeData().data(mime_type)[:4] == b'cut\n'
