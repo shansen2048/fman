@@ -11,6 +11,10 @@ def find_repos(topics):
 class GitHubRepo:
 	def __init__(self, data):
 		self._data = data
+	def __str__(self):
+		return self._data['full_name']
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self)
 	@property
 	def num_stars(self):
 		return self._data['stargazers_count']
