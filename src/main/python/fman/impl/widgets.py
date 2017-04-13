@@ -242,7 +242,9 @@ class MainWindow(QMainWindow):
 		# disappears (because the widget lost focus). To prevent this from
 		# happening, we tell Qt to clear the focus *before* launching the
 		# dialog:
-		self.focusWidget().clearFocus()
+		focus_widget = self.focusWidget()
+		if focus_widget:
+			focus_widget.clearFocus()
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
 		self.status_bar_text.setText(text)
