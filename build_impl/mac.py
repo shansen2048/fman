@@ -95,20 +95,20 @@ def create_autoupdate_files():
 	])
 	_create_autoupdate_patches()
 
-def _create_autoupdate_patches():
-	version_files = _sync_cache_with_server()
-	if not version_files:
-		return
+def _create_autoupdate_patches(num=10):
 	get_version = lambda version_file: splitext(basename(version_file))[0]
 	get_version_tpl = lambda vf: _version_str_to_tuple(get_version(vf))
-	latest_version = sorted(version_files, key=get_version_tpl)[-1]
+	version_files = sorted(_sync_cache_with_server(), key=get_version_tpl)
+	if not version_files:
+		return
+	latest_version = version_files[-1]
 	new_version = OPTIONS['version']
 	if _version_str_to_tuple(new_version) <= get_version_tpl(latest_version):
 		raise ValueError(
 			"Version being built (%s) is <= latest version on server (%s)."
 			% (new_version, get_version(latest_version))
 		)
-	for version_file in version_files:
+	for version_file in version_files[-num:]:
 		version = get_version(version_file)
 		print('Creating patch %s -> %s.' % (version, new_version))
 		with TemporaryDirectory() as tmp_dir:
