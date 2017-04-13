@@ -197,54 +197,46 @@ class MainWindow(QMainWindow):
 		self.controller = controller
 	@run_in_main_thread
 	def show_alert(self, text, buttons=OK, default_button=OK):
-		self._about_to_show_dialog()
-		msgbox = QMessageBox(self)
-		# API users might pass arbitrary objects as text when trying to debug,
-		# eg. exception instances. Convert to str(...) to allow for this:
-		msgbox.setText(str(text))
-		msgbox.setStandardButtons(buttons)
-		msgbox.setDefaultButton(default_button)
-		if is_mac():
-			disable_window_animations_mac(msgbox)
-		return msgbox.exec()
+		with ClearFocusEarly(self):
+			msgbox = QMessageBox(self)
+			# API users might pass arbitrary objects as text when trying to
+			# debug, eg. exception instances. Convert to str(...) to allow for
+			# this:
+			msgbox.setText(str(text))
+			msgbox.setStandardButtons(buttons)
+			msgbox.setDefaultButton(default_button)
+			if is_mac():
+				disable_window_animations_mac(msgbox)
+			return msgbox.exec()
 	@run_in_main_thread
 	def show_file_open_dialog(self, caption, dir_path, filter_text):
-		# Let API users pass arbitrary objects by converting with str(...):
-		return QFileDialog.getOpenFileName(
-			self, str(caption), str(dir_path), str(filter_text)
-		)[0]
+		with ClearFocusEarly(self):
+			# Let API users pass arbitrary objects by converting with str(...):
+			return QFileDialog.getOpenFileName(
+				self, str(caption), str(dir_path), str(filter_text)
+			)[0]
 	@run_in_main_thread
 	def show_prompt(self, text, default=''):
-		self._about_to_show_dialog()
-		dialog = QInputDialog(self)
-		if is_mac():
-			disable_window_animations_mac(dialog)
-		dialog.setWindowTitle('fman')
-		# Let API users pass arbitrary objects by converting with str(...):
-		dialog.setLabelText(str(text))
-		dialog.setTextEchoMode(QLineEdit.Normal)
-		dialog.setTextValue(default)
-		result = dialog.exec()
-		if result:
-			return dialog.textValue(), True
-		return '', False
+		with ClearFocusEarly(self):
+			dialog = QInputDialog(self)
+			if is_mac():
+				disable_window_animations_mac(dialog)
+			dialog.setWindowTitle('fman')
+			# Let API users pass arbitrary objects by converting with str(...):
+			dialog.setLabelText(str(text))
+			dialog.setTextEchoMode(QLineEdit.Normal)
+			dialog.setTextValue(default)
+			result = dialog.exec()
+			if result:
+				return dialog.textValue(), True
+			return '', False
 	@run_in_main_thread
 	def show_quicksearch(self, get_items, get_tab_completion=None):
-		self._about_to_show_dialog()
-		dialog = Quicksearch(self, get_items, get_tab_completion)
-		if is_mac():
-			disable_window_animations_mac(dialog)
-		return dialog.exec()
-	def _about_to_show_dialog(self):
-		# At least on Mac, Qt displays the dialog before clearing the main
-		# window's focus. This leads to an ugly effect: The dialog appears, but
-		# a split second later, in the background, the cursor in the file view
-		# disappears (because the widget lost focus). To prevent this from
-		# happening, we tell Qt to clear the focus *before* launching the
-		# dialog:
-		focus_widget = self.focusWidget()
-		if focus_widget:
-			focus_widget.clearFocus()
+		with ClearFocusEarly(self):
+			dialog = Quicksearch(self, get_items, get_tab_completion)
+			if is_mac():
+				disable_window_animations_mac(dialog)
+			return dialog.exec()
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
 		self.status_bar_text.setText(text)
@@ -269,6 +261,26 @@ class MainWindow(QMainWindow):
 		QTimer(self).singleShot(0, self.shown.emit)
 	def closeEvent(self, _):
 		self.closed.emit()
+
+class ClearFocusEarly:
+	"""
+	At least on Mac, Qt displays dialogs before clearing the main window's
+	focus. This leads to an ugly effect: The dialog appears, but a split second
+	later, in the background, the cursor in the file view disappears (because
+	the widget lost focus). To prevent this from happening, we tell Qt to clear
+	the focus *before* launching the dialog. Afterwards, we ensure that the
+	original focus is restored.
+	"""
+	def __init__(self, widget):
+		self.widget = widget
+		self.focus_widget = None
+	def __enter__(self):
+		self.focus_widget = self.widget.focusWidget()
+		if self.focus_widget:
+			self.focus_widget.clearFocus()
+	def __exit__(self, *_, **__):
+		if self.focus_widget:
+			self.focus_widget.setFocus()
 
 class Splitter(QSplitter):
 	def createHandle(self):
