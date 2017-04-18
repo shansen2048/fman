@@ -1,7 +1,8 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.css_to_qss import css_rules_to_qss
 from fman.impl.licensing import User
-from fman.impl.metrics import Metrics
+from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
+	LoggingBackend
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.model import GnomeFileIconProvider
@@ -56,19 +57,17 @@ class ApplicationContext:
 		self._stylesheet = None
 		self._style = None
 		self._metrics = None
+		self._metrics_logging_enabled = None
+		self._metrics_backend = None
 		self._window = None
 	def initialize(self):
+		fman.FMAN_VERSION = self.fman_version
 		self.excepthook.install()
 		self.metrics.initialize()
-		self.excepthook.user_id = self.metrics.user_id
-		self.metrics.super_properties.update({
-			'$os': PLATFORM, '$app_version': self.fman_version
-		})
-		self.metrics.track('Started fman')
+		self.metrics.track('StartedFman')
 		# Ensure QApplication is initialized before anything else Qt-related:
 		_ = self.app
 		self._load_fonts()
-		fman.FMAN_VERSION = self.fman_version
 		self.plugin_support.initialize()
 		self.session_manager.on_startup(self.main_window)
 	@property
@@ -79,6 +78,14 @@ class ApplicationContext:
 			self.updater.start()
 		if not self.user.is_licensed(self.fman_version):
 			self.splash_screen.exec()
+	def on_main_window_close(self):
+		self.session_manager.on_close(self.main_window)
+	def on_quit(self):
+		self.json_io.on_quit()
+		if self.metrics_logging_enabled:
+			log_dir = dirname(self._get_metrics_json_path())
+			log_file_path = join(log_dir, 'Metrics.log')
+			self.metrics_backend.flush(log_file_path)
 	def _load_fonts(self):
 		fonts_to_load = []
 		for plugin_dir in self.plugin_dirs:
@@ -99,6 +106,7 @@ class ApplicationContext:
 			self._app.setPalette(self.palette)
 			if self.app_icon:
 				self._app.setWindowIcon(self.app_icon)
+			self.app.aboutToQuit.connect(self.on_quit)
 		return self._app
 	@property
 	def app_icon(self):
@@ -166,9 +174,7 @@ class ApplicationContext:
 			self._main_window.shown.connect(self.on_main_window_shown)
 			self._main_window.shown.connect(error_handler.on_main_window_shown)
 			self._main_window.pane_added.connect(controller.on_pane_added)
-			self._main_window.closed.connect(
-				lambda: self.session_manager.on_close(self.main_window)
-			)
+			self._main_window.closed.connect(self.on_main_window_close)
 			self.app.set_main_window(self._main_window)
 		return self._main_window
 	def _get_main_window_title(self):
@@ -190,7 +196,6 @@ class ApplicationContext:
 	def json_io(self):
 		if self._json_io is None:
 			self._json_io = JsonIO(self.config_file_locator)
-			self.app.aboutToQuit.connect(self._json_io.on_quit)
 		return self._json_io
 	@property
 	def splash_screen(self):
@@ -209,9 +214,42 @@ class ApplicationContext:
 	@property
 	def metrics(self):
 		if self._metrics is None:
-			json_path = join(DATA_DIRECTORY, 'Local', 'Metrics.json')
-			self._metrics = Metrics(self.constants['mixpanel_token'], json_path)
+			json_path = self._get_metrics_json_path()
+			metrics = Metrics(
+				json_path, self.metrics_backend, PLATFORM, self.fman_version
+			)
+			self._metrics = AsynchronousMetrics(metrics)
 		return self._metrics
+	def _get_metrics_json_path(self):
+		return join(DATA_DIRECTORY, 'Local', 'Metrics.json')
+	@property
+	def metrics_logging_enabled(self):
+		if self._metrics_logging_enabled is None:
+			self._metrics_logging_enabled = self._read_metrics_logging_enabled()
+		return self._metrics_logging_enabled
+	def _read_metrics_logging_enabled(self):
+		json_path = self._get_metrics_json_path()
+		try:
+			with open(json_path, 'r') as f:
+				data = json.load(f)
+		except (FileNotFoundError, ValueError):
+			return False
+		else:
+			try:
+				return data.get('logging_enabled', False)
+			except AttributeError:
+				return False
+	@property
+	def metrics_backend(self):
+		if self._metrics_backend is None:
+			if self.metrics_logging_enabled:
+				self._metrics_backend = LoggingBackend()
+			else:
+				metrics_url = self.constants['server_url'] + '/metrics'
+				self._metrics_backend = ServerBackend(
+					metrics_url + '/users', metrics_url + '/events'
+				)
+		return self._metrics_backend
 	@property
 	def palette(self):
 		if self._palette is None:
@@ -304,7 +342,8 @@ class FrozenApplicationContext(ApplicationContext):
 	def updater(self):
 		if self._updater is None:
 			if self._should_auto_update():
-				appcast_url = self.constants['update_url'] + '/Appcast.xml'
+				appcast_url = \
+					self.constants['server_url'] + '/updates/Appcast.xml'
 				self._updater = MacUpdater(self.app, appcast_url)
 		return self._updater
 	def _should_auto_update(self):

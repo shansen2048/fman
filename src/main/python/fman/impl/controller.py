@@ -39,17 +39,17 @@ class Controller:
 		event.ignore()
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):
-		self.tracker.track('Doubleclicked file')
+		self.tracker.track('DoubleclickedFile')
 		self._panes[pane_widget]._broadcast('on_doubleclicked', file_path)
 	def on_file_renamed(self, pane_widget, *args):
-		self.tracker.track('Renamed file')
+		self.tracker.track('RenamedFile')
 		self._panes[pane_widget]._broadcast('on_name_edited', *args)
 	def on_files_dropped(self, pane_widget, *args):
-		self.tracker.track('Dropped file(s)')
+		self.tracker.track('DroppedFile')
 		self._panes[pane_widget]._broadcast('on_files_dropped', *args)
 	def _track_command(self, command_name):
-		self.tracker.track('Ran command', {
-			'Command': get_command_class_name(command_name)
+		self.tracker.track('RanCommand', {
+			'command': get_command_class_name(command_name)
 		})
 
 class QtKeyEvent:

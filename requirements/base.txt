@@ -1,4 +1,3 @@
-mixpanel==4.3.2
 rollbar==0.13.11
 ordered-set==2.0.1
 PyInstaller==3.2.1

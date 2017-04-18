@@ -1,1 +1,1 @@
-deb [arch=amd64] ${update_url}/ubuntu/ stable main
+deb [arch=amd64] ${server_url}/updates/ubuntu/ stable main
