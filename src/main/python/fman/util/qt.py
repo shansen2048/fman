@@ -85,6 +85,7 @@ Key_Help = Qt.Key_Help
 Key_Backspace = Qt.Key_Backspace
 Key_Enter = Qt.Key_Enter
 Key_Return = Qt.Key_Return
+Key_Escape = Qt.Key_Escape
 Key_F2 = Qt.Key_F2
 Key_F4 = Qt.Key_F4
 Key_F5 = Qt.Key_F5

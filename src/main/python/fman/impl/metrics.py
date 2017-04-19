@@ -22,17 +22,16 @@ class Metrics:
 		self._enabled = True
 	def initialize(self):
 		try:
-			with open(self._json_path, 'r') as f:
-				json_dict = json.load(f)
+			json_dict = self._read_json()
+		except ValueError:
+			self._enabled = False
 		except FileNotFoundError:
 			try:
 				self._user = self._backend.create_user()
 			except MetricsError:
 				self._enabled = False
 			else:
-				makedirs(dirname(self._json_path), exist_ok=True)
-				with open(self._json_path, 'w') as f:
-					json.dump({'user': self._user}, f)
+				self._write_json({'user': self._user})
 		else:
 			self._enabled = json_dict.get('enabled', True)
 			try:
@@ -53,6 +52,14 @@ class Metrics:
 			self._backend.track(self._user, event, data)
 		except MetricsError:
 			pass
+	def disable(self):
+		self._enabled = False
+		try:
+			data = self._read_json()
+		except (ValueError, FileNotFoundError):
+			data = {}
+		data['enabled'] = False
+		self._write_json(data)
 	def _migrate_from_uuid(self, json_dict):
 		try:
 			self._user = json_dict['uuid']
@@ -60,8 +67,14 @@ class Metrics:
 			self._enabled = False
 		else:
 			json_dict['user'] = json_dict.pop('uuid')
-			with open(self._json_path, 'w') as f:
-				json.dump(json_dict, f)
+			self._write_json(json_dict)
+	def _read_json(self):
+		with open(self._json_path, 'r') as f:
+			return json.load(f)
+	def _write_json(self, data):
+		makedirs(dirname(self._json_path), exist_ok=True)
+		with open(self._json_path, 'w') as f:
+			json.dump(data, f)
 
 class ServerBackend:
 	@classmethod
@@ -118,6 +131,8 @@ class AsynchronousMetrics:
 		self._thread.start()
 	def track(self, *args, **kwargs):
 		self._queue.put(('track', args, kwargs))
+	def disable(self):
+		self._metrics.disable()
 	def _work(self):
 		while True:
 			method_name, args, kwargs = self._queue.get()

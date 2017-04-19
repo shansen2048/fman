@@ -1,4 +1,4 @@
-from fman import PLATFORM, DATA_DIRECTORY, Window
+from fman import PLATFORM, DATA_DIRECTORY, Window, YES, NO
 from fman.impl.css_to_qss import css_rules_to_qss
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
@@ -16,7 +16,7 @@ from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
-from fman.util import system
+from fman.util import system, parse_version
 from glob import glob
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
@@ -78,6 +78,23 @@ class ApplicationContext:
 			self.updater.start()
 		if not self.user.is_licensed(self.fman_version):
 			self.splash_screen.exec()
+		previous_version = self.session_manager.previous_fman_version
+		# TODO: Remove this migration After May 2017
+		if parse_version(previous_version or self.fman_version) < (0, 4, 2):
+			result = self.main_window.show_alert(
+				'Sorry to disturb. To improve your experience, we would like '
+				'to collect anonymous data on the features you use. You can '
+				'see what gets shared in '
+				'<a href="https://fman.io/docs/metrics">the docs</a>. '
+				'Allow?',
+				YES | NO, YES, allow_escape=False
+			)
+			should_disable = bool(result & NO)
+			self.metrics.track(
+				'AnsweredMetricsDialog', {'disabled_metrics': should_disable}
+			)
+			if should_disable:
+				self.metrics.disable()
 	def on_main_window_close(self):
 		self.session_manager.on_close(self.main_window)
 	def on_quit(self):

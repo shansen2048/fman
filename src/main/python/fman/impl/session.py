@@ -23,9 +23,11 @@ class SessionManager:
 				self._json_dict = json.load(f)
 		except FileNotFoundError:
 			self._json_dict = {}
+	@property
+	def previous_fman_version(self):
+		return self._json_dict.get('fman_version', None)
 	def migrate_old_plugin_structure(self):
-		previous_version = \
-			self._json_dict.get('fman_version', self._fman_version)
+		previous_version = self.previous_fman_version or self._fman_version
 		if parse_version(previous_version) >= (0, 3, 9):
 			return
 		plugins_directory = join(DATA_DIRECTORY, 'Plugins')
@@ -78,7 +80,7 @@ class SessionManager:
 		if window_state_b64:
 			main_window.restoreState(_decode(window_state_b64))
 	def _get_startup_message(self):
-		previous_version = self._json_dict.get('fman_version', '')
+		previous_version = self.previous_fman_version
 		if not previous_version or previous_version == self._fman_version:
 			return 'v%s ready.' % self._fman_version
 		return 'Updated to v%s. ' \

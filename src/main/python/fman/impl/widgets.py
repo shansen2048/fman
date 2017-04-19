@@ -3,7 +3,7 @@ from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.view import FileListView, Layout, PathView, Quicksearch
 from fman.util.system import is_windows, is_mac
 from fman.util.qt import connect_once, run_in_main_thread, \
-	disable_window_animations_mac
+	disable_window_animations_mac, Key_Escape
 from os.path import exists, normpath, dirname, splitdrive
 from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
@@ -196,9 +196,11 @@ class MainWindow(QMainWindow):
 	def set_controller(self, controller):
 		self.controller = controller
 	@run_in_main_thread
-	def show_alert(self, text, buttons=OK, default_button=OK):
+	def show_alert(
+		self, text, buttons=OK, default_button=OK, allow_escape=True
+	):
 		with ClearFocusEarly(self):
-			msgbox = QMessageBox(self)
+			msgbox = MessageBox(self, allow_escape)
 			# API users might pass arbitrary objects as text when trying to
 			# debug, eg. exception instances. Convert to str(...) to allow for
 			# this:
@@ -261,6 +263,14 @@ class MainWindow(QMainWindow):
 		QTimer(self).singleShot(0, self.shown.emit)
 	def closeEvent(self, _):
 		self.closed.emit()
+
+class MessageBox(QMessageBox):
+	def __init__(self, parent, allow_escape=True):
+		super().__init__(parent)
+		self._allow_escape = allow_escape
+	def keyPressEvent(self, event):
+		if self._allow_escape or event.key() != Key_Escape:
+			super().keyPressEvent(event)
 
 class ClearFocusEarly:
 	"""
