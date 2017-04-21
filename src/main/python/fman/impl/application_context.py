@@ -259,13 +259,12 @@ class ApplicationContext:
 	@property
 	def metrics_backend(self):
 		if self._metrics_backend is None:
+			metrics_url = self.constants['server_url'] + '/metrics'
+			backend = \
+				ServerBackend(metrics_url + '/users', metrics_url + '/events')
 			if self.metrics_logging_enabled:
-				self._metrics_backend = LoggingBackend()
-			else:
-				metrics_url = self.constants['server_url'] + '/metrics'
-				self._metrics_backend = ServerBackend(
-					metrics_url + '/users', metrics_url + '/events'
-				)
+				backend = LoggingBackend(backend)
+			self._metrics_backend = backend
 		return self._metrics_backend
 	@property
 	def palette(self):

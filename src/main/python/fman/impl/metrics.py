@@ -68,15 +68,6 @@ class Metrics:
 			json.dump(data, f)
 
 class ServerBackend:
-	@classmethod
-	def get_data_for_tracking(cls, user, event, properties=None):
-		result = {
-			'uuid': user,
-			'event': event
-		}
-		if properties:
-			result.update(properties)
-		return result
 	def __init__(self, users_url, events_url):
 		self._users_url = users_url
 		self._events_url = events_url
@@ -85,6 +76,14 @@ class ServerBackend:
 	def track(self, user, event, properties=None):
 		data = self.get_data_for_tracking(user, event, properties)
 		self._post(self._events_url, data)
+	def get_data_for_tracking(self, user, event, properties=None):
+		result = {
+			'uuid': user,
+			'event': event
+		}
+		if properties:
+			result.update(properties)
+		return result
 	def _post(self, url, data=None):
 		encoded_data = urlencode(data).encode('utf-8') if data else None
 		try:
@@ -100,12 +99,14 @@ class ServerBackend:
 			raise MetricsError('Unexpected response: %r' % resp_body)
 
 class LoggingBackend:
-	def __init__(self, max_num_logs=1000):
+	def __init__(self, backend, max_num_logs=1000):
+		self._backend = backend
 		self._logs = deque(maxlen=max_num_logs)
 	def create_user(self):
-		raise MetricsError('Not implemented')
+		return self._backend.create_user()
 	def track(self, user, event, properties=None):
-		data = ServerBackend.get_data_for_tracking(user, event, properties)
+		self._backend.track(user, event, properties)
+		data = self._backend.get_data_for_tracking(user, event, properties)
 		self._logs.append(data)
 	def flush(self, log_file_path):
 		with open(log_file_path, 'w') as f:
