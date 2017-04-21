@@ -31,14 +31,13 @@ class Metrics:
 			except MetricsError:
 				self._enabled = False
 			else:
-				self._write_json({'user': self._user})
+				self._write_json({'uuid': self._user})
 		else:
 			self._enabled = json_dict.get('enabled', True)
 			try:
-				self._user = json_dict['user']
+				self._user = json_dict['uuid']
 			except KeyError:
-				# TODO: Replace this by `self._enabled = False` after June 2017
-				self._migrate_from_uuid(json_dict)
+				self._enabled = False
 	def track(self, event, properties=None):
 		if not self._enabled:
 			return
@@ -60,14 +59,6 @@ class Metrics:
 			data = {}
 		data['enabled'] = False
 		self._write_json(data)
-	def _migrate_from_uuid(self, json_dict):
-		try:
-			self._user = json_dict['uuid']
-		except KeyError:
-			self._enabled = False
-		else:
-			json_dict['user'] = json_dict.pop('uuid')
-			self._write_json(json_dict)
 	def _read_json(self):
 		with open(self._json_path, 'r') as f:
 			return json.load(f)
