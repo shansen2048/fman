@@ -71,7 +71,7 @@ class ServerBackend:
 	@classmethod
 	def get_data_for_tracking(cls, user, event, properties=None):
 		result = {
-			'user': user,
+			'uuid': user,
 			'event': event
 		}
 		if properties:
