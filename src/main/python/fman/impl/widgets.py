@@ -1,6 +1,7 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
-from fman.impl.view import FileListView, Layout, PathView, Quicksearch
+from fman.impl.quicksearch import Quicksearch
+from fman.impl.view import FileListView, Layout, PathView
 from fman.util.system import is_windows, is_mac
 from fman.util.qt import connect_once, run_in_main_thread, \
 	disable_window_animations_mac, Key_Escape
