@@ -1,12 +1,11 @@
+from fman import is_mac
+from fman.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, Key_Home, \
+	Key_End, Key_PageUp
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QLabel, QLayout, QListWidget, \
 	QListWidgetItem, QFrame, QGridLayout, QVBoxLayout, QLineEdit
 
 import html
-
-from fman import is_mac
-from fman.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, Key_Home, \
-	Key_End, Key_PageUp
 
 class Quicksearch(QDialog):
 	def __init__(self, parent, get_items, get_tab_completion=None):
