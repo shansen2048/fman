@@ -62,7 +62,8 @@ class ApplicationContext:
 		self._window = None
 	def initialize(self):
 		fman.FMAN_VERSION = self.fman_version
-		self.excepthook.install()
+		if self.excepthook:
+			self.excepthook.install()
 		self.metrics.initialize()
 		self.metrics.track('StartedFman')
 		# Ensure QApplication is initialized before anything else Qt-related:
@@ -166,12 +167,7 @@ class ApplicationContext:
 				self._constants[key] = value
 	@property
 	def excepthook(self):
-		if self._excepthook is None:
-			self._excepthook = Excepthook(
-				self.constants['rollbar_token'], self.constants['environment'],
-				self.fman_version
-			)
-		return self._excepthook
+		return None
 	@property
 	def icon_provider(self):
 		if self._icon_provider is None and system.is_gnome_based():
@@ -354,6 +350,7 @@ class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
 		super().__init__()
 		self._updater = None
+		self._excepthook = None
 	@property
 	def updater(self):
 		if self._updater is None:
@@ -376,6 +373,14 @@ class FrozenApplicationContext(ApplicationContext):
 			return True
 		else:
 			return data.get('enabled', True)
+	@property
+	def excepthook(self):
+		if self._excepthook is None:
+			self._excepthook = Excepthook(
+				self.constants['rollbar_token'], self.constants['environment'],
+				self.fman_version
+			)
+		return self._excepthook
 	def get_resource(self, *rel_path):
 		if system.is_mac():
 			rel_path = (pardir, 'Resources') + rel_path
