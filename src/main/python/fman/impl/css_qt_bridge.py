@@ -56,6 +56,7 @@ class CSSQtBridge:
 		hint = engine.query('.quicksearch-item-hint')
 		description = engine.query('.quicksearch-item-description')
 		return {
+			'padding-top_px': self._parse_px(item['padding-top']),
 			'padding-left_px': self._parse_px(item['padding-left']),
 			'padding-right_px': self._parse_px(item['padding-right']),
 			'border-top-width_px': self._parse_border_width(item['border-top']),

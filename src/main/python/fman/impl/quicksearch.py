@@ -168,6 +168,7 @@ class QuicksearchItemRenderer:
 	def sizeHint(self):
 		width, height = self._layout_title()[1:]
 		height += self._css['border-top-width_px'] + \
+				  self._padding_top + \
 				  self._css['border-bottom-width_px']
 		if self._item.description:
 			w, h = self._layout_description()[1:]
@@ -183,7 +184,7 @@ class QuicksearchItemRenderer:
 		layout = self._layout_title()[0]
 		highlight_formats = self._get_highlight_formats()
 		painter.setPen(self._css['title']['color'])
-		pos = self._option.rect.topLeft() + QPoint(self._padding_left, 0)
+		pos = self._option.rect.topLeft() + QPoint(self._padding_left, self._padding_top)
 		layout.draw(painter, pos, highlight_formats)
 	def _draw_hint(self, painter):
 		hint = self._item.hint
@@ -213,7 +214,7 @@ class QuicksearchItemRenderer:
 		return self._layout_text(self._item.description, font)
 	def _get_title_rect(self):
 		x = self._option.rect.x() + self._padding_left
-		y = self._option.rect.y()
+		y = self._option.rect.y() + self._padding_top
 		height = self._layout_title()[2]
 		padding_width = self._padding_left + self._padding_right
 		width = self._option.rect.width() - padding_width
@@ -264,6 +265,9 @@ class QuicksearchItemRenderer:
 			else:
 				result.append((highlight, 1))
 		return result
+	@property
+	def _padding_top(self):
+		return self._css['padding-top_px']
 	@property
 	def _padding_left(self):
 		return self._css['padding-left_px']
