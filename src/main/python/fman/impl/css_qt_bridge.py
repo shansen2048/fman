@@ -4,6 +4,7 @@ from PyQt5.QtGui import QColor
 class CSSQtBridge:
 
 	_CSS_TO_QSS = {
+		'*': '*',
 		'th': 'QTreeView QHeaderView::section',
 		'.statusbar': 'QStatusBar, QStatusBar QLabel',
 		'.quicksearch-query': 'Quicksearch QLineEdit',
