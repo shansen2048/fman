@@ -88,7 +88,7 @@ class ApplicationContext:
 				'to collect anonymous data on the features you use. You can '
 				'see that no sensitive information is shared in '
 				'<a href="https://fman.io/docs/metrics">the docs</a>. '
-				'Allow?',
+				'Allow? It helps make fman better.',
 				YES | NO, YES, allow_escape=False
 			)
 			should_disable = bool(result & NO)
