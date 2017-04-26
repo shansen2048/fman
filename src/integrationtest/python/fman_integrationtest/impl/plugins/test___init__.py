@@ -1,7 +1,7 @@
 from fman import PLATFORM, Window, DirectoryPane
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME
 from fman.impl.plugins.config import ConfigFileLocator
-from fman.impl.plugins.config.json_ import JsonIO
+from fman.impl.plugins.jsonio import JsonIO
 from fman_integrationtest import get_resource
 from os import mkdir
 from os.path import join

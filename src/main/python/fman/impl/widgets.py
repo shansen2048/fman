@@ -178,24 +178,25 @@ class MainWindow(QMainWindow):
 	shown = pyqtSignal()
 	closed = pyqtSignal()
 
-	def __init__(self, icon_provider=None):
+	def __init__(self, css, icon_provider=None):
 		super().__init__()
-		self.icon_provider = icon_provider
+		# Public - so it can be injected later:
 		self.controller = None
-		self.panes = []
-		self.splitter = Splitter(self)
-		self.setCentralWidget(self.splitter)
-		self.status_bar = QStatusBar(self)
-		self.status_bar_text = QLabel(self.status_bar)
-		self.status_bar_text.setOpenExternalLinks(True)
-		self.status_bar.addWidget(self.status_bar_text)
-		self.status_bar.setSizeGripEnabled(False)
-		self.setStatusBar(self.status_bar)
-		self.timer = QTimer(self)
-		self.timer.timeout.connect(self.clear_status_message)
-		self.timer.setSingleShot(True)
-	def set_controller(self, controller):
-		self.controller = controller
+		self._css = css
+		self._icon_provider = icon_provider
+		self._controller = None
+		self._panes = []
+		self._splitter = Splitter(self)
+		self.setCentralWidget(self._splitter)
+		self._status_bar = QStatusBar(self)
+		self._status_bar_text = QLabel(self._status_bar)
+		self._status_bar_text.setOpenExternalLinks(True)
+		self._status_bar.addWidget(self._status_bar_text)
+		self._status_bar.setSizeGripEnabled(False)
+		self.setStatusBar(self._status_bar)
+		self._timer = QTimer(self)
+		self._timer.timeout.connect(self.clear_status_message)
+		self._timer.setSingleShot(True)
 	@run_in_main_thread
 	def show_alert(
 		self, text, buttons=OK, default_button=OK, allow_escape=True
@@ -236,29 +237,29 @@ class MainWindow(QMainWindow):
 	@run_in_main_thread
 	def show_quicksearch(self, get_items, get_tab_completion=None):
 		with ClearFocusEarly(self):
-			dialog = Quicksearch(self, get_items, get_tab_completion)
+			dialog = Quicksearch(self, self._css, get_items, get_tab_completion)
 			if is_mac():
 				disable_window_animations_mac(dialog)
 			return dialog.exec()
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
-		self.status_bar_text.setText(text)
+		self._status_bar_text.setText(text)
 		if timeout_secs:
-			self.timer.start(int(timeout_secs * 1000))
+			self._timer.start(int(timeout_secs * 1000))
 		else:
-			self.timer.stop()
+			self._timer.stop()
 	@run_in_main_thread
 	def clear_status_message(self):
 		self.show_status_message('Ready.')
 	def add_pane(self):
-		result = DirectoryPane(self.splitter, self.icon_provider)
+		result = DirectoryPane(self._splitter, self._icon_provider)
 		result.set_controller(self.controller)
-		self.panes.append(result)
-		self.splitter.addWidget(result)
+		self._panes.append(result)
+		self._splitter.addWidget(result)
 		self.pane_added.emit(result)
 		return result
 	def get_panes(self):
-		return self.panes
+		return self._panes
 	def showEvent(self, *args):
 		super().showEvent(*args)
 		QTimer(self).singleShot(0, self.shown.emit)

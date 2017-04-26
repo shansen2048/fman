@@ -1,5 +1,5 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window, YES, NO
-from fman.impl.css_to_qss import css_rules_to_qss
+from fman.impl.css_qt_bridge import CSSQtBridge
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
@@ -8,10 +8,9 @@ from fman.impl.excepthook import Excepthook
 from fman.impl.model import GnomeFileIconProvider
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME
 from fman.impl.plugins.config import ConfigFileLocator
-from fman.impl.plugins.config.css import load_css_rules
-from fman.impl.plugins.config.json_ import JsonIO
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
+from fman.impl.plugins.jsonio import JsonIO
 from fman.impl.session import SessionManager
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
@@ -43,6 +42,8 @@ class ApplicationContext:
 		self._app_icon = None
 		self._config_file_locator = None
 		self._constants = None
+		self._css = None
+		self._css_qt_bridge = None
 		self._excepthook = None
 		self._icon_provider = None
 		self._main_window = None
@@ -176,13 +177,13 @@ class ApplicationContext:
 	@property
 	def main_window(self):
 		if self._main_window is None:
-			self._main_window = MainWindow(self.icon_provider)
+			self._main_window = MainWindow(self.css, self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			error_handler = PluginErrorHandler(self.app, self._main_window)
 			plugin_support = \
 				PluginSupport(self.plugin_dirs, self.json_io, error_handler)
 			controller = Controller(self.window, plugin_support, self.metrics)
-			self._main_window.set_controller(controller)
+			self._main_window.controller = controller
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
 			self._main_window.shown.connect(error_handler.on_main_window_shown)
@@ -321,9 +322,19 @@ class ApplicationContext:
 			if exists(os_styles):
 				with open(os_styles, 'r') as f:
 					self._stylesheet += '\n' + f.read()
-			css_rules = load_css_rules(*self.config_file_locator('Theme.css'))
-			self._stylesheet += '\n' + css_rules_to_qss(css_rules)
+			self._stylesheet += '\n' + self.css_qt_bridge.get_qss()
 		return self._stylesheet
+	@property
+	def css(self):
+		if self._css is None:
+			self._css = self.css_qt_bridge.parse_css()
+		return self._css
+	@property
+	def css_qt_bridge(self):
+		if self._css_qt_bridge is None:
+			css_paths = self.config_file_locator('Theme.css')
+			self._css_qt_bridge = CSSQtBridge(css_paths)
+		return self._css_qt_bridge
 	@property
 	def style(self):
 		if self._style is None:

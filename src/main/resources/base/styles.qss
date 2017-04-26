@@ -98,21 +98,6 @@ Quicksearch QListView::item:selected {
 	background-color: #575757;
 }
 
-QuicksearchItem {
-	border-top: 1px solid #4d4d4d;
-	border-bottom: 1px solid #363636;
-	padding-left: 4px;
-	padding-right: 4px;
-}
-
-QuicksearchItem #title {
-	color: #c8c8c8;
-}
-
-QuicksearchItem #hint {
-	color: white;
-}
-
 QLineEdit:read-only {
 	color: #9a9a9a;
 }
