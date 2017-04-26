@@ -86,9 +86,10 @@ class ApplicationContext:
 			result = self.main_window.show_alert(
 				'Sorry to disturb. To improve your experience, we would like '
 				'to collect anonymous data on the features you use. You can '
-				'see that no sensitive information is shared in '
-				'<a href="https://fman.io/docs/metrics">the docs</a>. '
-				'Allow? It helps make fman better.',
+				'see in '
+				'<a href="https://fman.io/docs/metrics">the docs</a> '
+				'that no personal information is shared. Allow? It helps make '
+				'fman better.',
 				YES | NO, YES, allow_escape=False
 			)
 			should_disable = bool(result & NO)
