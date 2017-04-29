@@ -104,3 +104,16 @@ Add c:\Program Files (x86)\Windows Kits\10\bin\x86 to your PATH. This contains
 signtool, which is used for codesigning.
 
 Install Go 1.6.3 *32 bit*.
+
+fmanSetup.exe (Google Omaha installer)
+======================================
+1)
+hammer -c
+set TIMESTAMP_SERVER=http://tsa.startssl.com/rfc3161
+set SHA1_TIMESTAMP_SERVER=%TIMESTAMP_SERVER%
+set SHA2_TIMESTAMP_SERVER=%TIMESTAMP_SERVER%
+set AUTHENTICODE_FILE="c:\Users\Michael\dev\fman\conf\windows\michaelherrmann.pfx"
+set AUTHENTICODE_PASSWORD="..."
+hammer MODE=opt-win --authenticode_file=%AUTHENTICODE_FILE% --authenticode_password=%AUTHENTICODE_PASSWORD% --sha1_authenticode_file=%AUTHENTICODE_FILE% --sha2_authenticode_file=%AUTHENTICODE_FILE% --sha1_authenticode_password=%AUTHENTICODE_PASSWORD% --sha2_authenticode_password=%AUTHENTICODE_PASSWORD%
+
+2) ApplyTag fmanUpdateSetup.exe fmanSetup.exe appguid={91F6D922-553C-4E18-8991-53B3A925ACDA}&appname=fman&needsadmin=False&usagestats=1
