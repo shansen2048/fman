@@ -208,11 +208,19 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):
-		if event.type() == QEvent.KeyPress and \
-				event.key() in (Key_Enter, Key_Return):
-			self.commitData.emit(editor)
-			self.closeEditor.emit(editor)
-			return True
+		if not editor:
+			# Are required to return True iff "editor is a valid QWidget and the
+			# given event is handled". No editor means not valid:
+			return False
+		if event.type() == QEvent.KeyPress:
+			# On Mac, the default implementation of Qt jumps to the first/last
+			# list item when the user presses Home/End while editing a file. We
+			# want to jump to the start/end of the text in the editor instead:
+			key = event.key()
+			if key in (Key_Home, Key_End):
+				update_cursor = editor.home if key == Key_Home else editor.end
+				update_cursor(bool(event.modifiers() & ShiftModifier))
+				return True
 		return super().eventFilter(editor, event)
 
 class Layout(QVBoxLayout):
