@@ -2,12 +2,17 @@ from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
 	copy_with_filtering, collectstatic, check_output_decode, get_icons, \
 	upload_installer_to_aws
-from os import makedirs, remove, rename
+from glob import glob
+from os import makedirs, remove
 from os.path import exists, basename, join, dirname
 from shutil import copytree, rmtree, copy
 from time import time
 
 import re
+
+_FMAN_DESCRIPTION = 'A modern file manager for power users.'
+_FMAN_AUTHOR = 'Michael Herrmann'
+_FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 
 def exe():
 	run_pyinstaller()
@@ -63,46 +68,151 @@ def deb():
 		lambda relpath: path('src/main/resources/linux-deb' + relpath)
 	copy_with_filtering(
 		path('src/main/resources/linux-deb'), path('target/deb'),
-		files_to_filter=[
-			deb_resource('/etc/apt/sources.list.d/fman.list'),
-			deb_resource('/usr/share/applications/fman.desktop'),
-			deb_resource('/usr/bin/fman')
-		]
+		files_to_filter=[deb_resource('/etc/apt/sources.list.d/fman.list')]
 	)
+	_copy_linux_package_resources(path('target/deb'))
 	copy_with_filtering(
 		path('src/main/resources/linux-deb-config'), path('target/deb-config'),
 		files_to_filter=[
 			path('src/main/resources/linux-deb-config/after-install.sh')
 		]
 	)
-	icons_root = path('target/deb/usr/share/icons/hicolor')
+	copy(path('conf/linux/public.gpg-key'), path('target/deb/opt/fman'))
+	_copy_icons(path('target/deb'))
+	run([
+		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',
+		'-v', OPTIONS['version'],
+		'--description', _FMAN_DESCRIPTION,
+		'-m', '%s <%s>' % (_FMAN_AUTHOR, _FMAN_AUTHOR_EMAIL),
+		'--vendor', _FMAN_AUTHOR,
+		'--url', 'https://fman.io',
+		'--after-install', path('target/deb-config/after-install.sh'),
+		'--after-upgrade', path('src/main/resources/fpm/after-upgrade.sh'),
+		# Avoid warning "The postinst maintainerscript of the package fman seems
+		# to use apt-key (provided by apt) without depending on gnupg or
+		# gnupg2.":
+		'-d', 'gnupg',
+		'-p', path('target/fman.deb'),
+		'-f', '-C', path('target/deb')
+	])
+	run(['chmod', 'g-r', '-R', path('target/deb')])
+
+def _copy_linux_package_resources(root_path):
+	source_dir = 'src/main/resources/linux-package'
+	copy_with_filtering(
+		path('src/main/resources/linux-package'), root_path,
+		files_to_filter=[
+			path(source_dir + '/usr/bin/fman'),
+			path(source_dir + '/usr/share/applications/fman.desktop')
+		]
+	)
+
+def _copy_icons(root_path):
+	icons_root = join(root_path, 'usr', 'share', 'icons', 'hicolor')
 	makedirs(icons_root)
 	for size, icon_path in get_icons():
 		dest_path = join(icons_root, '%dx%d' % (size, size), 'apps', 'fman.png')
 		makedirs(dirname(dest_path))
 		copy(icon_path, dest_path)
+
+def arch():
+	pkg_file = _arch_pkg()
+	_sign_arch_pkg(pkg_file)
+	_arch_repo(pkg_file)
+
+def _arch_pkg():
+	if exists(path('target/arch-pkg')):
+		rmtree(path('target/arch-pkg'))
+	copytree(path('target/fman'), path('target/arch-pkg/opt/fman'))
+	_remove_libs_declared_as_pacman_dependencies()
+	copy_with_filtering(
+		path('src/main/resources/linux-pacman'), path('target/arch-pkg'),
+		files_to_filter=[
+			path('src/main/resources/linux-pacman/etc/pacman.d/fman')
+		]
+	)
+	_copy_linux_package_resources(path('target/arch-pkg'))
+	copy_with_filtering(
+		path('src/main/resources/linux-pacman-config'),
+		path('target/pacman-config'),
+		files_to_filter=[
+			path('src/main/resources/linux-pacman-config/after-install.sh')
+		]
+	)
+	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
+	_copy_icons(path('target/arch-pkg'))
+	# Avoid pacman warning "directory permissions differ" when installing:
+	run(['chmod', 'g-w', '-R', path('target/arch-pkg')])
+	version = OPTIONS['version']
+	pkg_file = path('target/fman.pkg.tar.xz')
 	run([
-		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman', '-v', OPTIONS['version'],
-		'--description', 'A modern file manager for power users.',
-		'-m', 'Michael Herrmann <michael@herrmann.io>',
-		'--vendor', 'Michael Herrmann', '--url', 'https://fman.io',
-		'--after-install', path('target/deb-config/after-install.sh'),
-		'--after-upgrade', path('target/deb-config/after-upgrade.sh'),
-		# Avoid warning "The postinst maintainerscript of the package fman seems
-		# to use apt-key (provided by apt) without depending on gnupg or
-		# gnupg2.":
-		'-d', 'gnupg',
-		'-p', path('target/fman.deb'), '-f', '-C', path('target/deb')
+		'fpm', '-s', 'dir', '-t', 'pacman', '-n', 'fman',
+		'-v', version,
+		'--description', _FMAN_DESCRIPTION,
+		'-m', '%s <%s>' % (_FMAN_AUTHOR, _FMAN_AUTHOR_EMAIL),
+		'--vendor', _FMAN_AUTHOR,
+		'--url', 'https://fman.io',
+		'-d', 'qt5-base', '-d', 'openssl',
+		'--after-install', path('target/pacman-config/after-install.sh'),
+		'--after-upgrade', path('src/main/resources/fpm/after-upgrade.sh'),
+		'--after-remove', path('target/pacman-config/after-remove.sh'),
+		'-p', pkg_file,
+		'-f', '-C', path('target/arch-pkg')
 	])
-	run(['chmod', 'g-r', '-R', path('target/deb')])
+	return pkg_file
+
+def _remove_libs_declared_as_pacman_dependencies():
+	# fman normally ships with eg. libQt5Core.so.5. This loads other .so files,
+	# if present, from /usr/lib. If those libraries are Qt libraries of a
+	# different Qt version, errors occur.
+	# For this reason, on systems with pacman, we don't include Qt. Instead, we
+	# declare it as a dependency and leave it up to pacman to fetch it.
+	for qt_lib in glob(path('target/arch-pkg/opt/fman/libQt*.so.*')):
+		remove(qt_lib)
+	# We also declare 'openssl' as a dependency. Remove its .so files:
+	remove(path('target/arch-pkg/opt/fman/libcrypto.so.1.0.0'))
+	remove(path('target/arch-pkg/opt/fman/libssl.so.1.0.0'))
+
+def _sign_arch_pkg(pkg_file):
+	run([
+		'gpg', '--import',
+		path('conf/linux/private.gpg-key'),
+		path('conf/linux/public.gpg-key')
+	# The command fails if the key is already installed - ignore:
+	], check_result=False)
+	run([
+		'gpg', '--yes', '-u', '0x%s!' % OPTIONS['gpg_key'],
+		'--output', pkg_file + '.sig', '--detach-sig', pkg_file
+	])
+
+def _arch_repo(pkg_file):
+	if exists(path('target/arch-repo')):
+		rmtree(path('target/arch-repo'))
+	repo_dir = path('target/arch-repo/arch')
+	makedirs(repo_dir)
+	pkg_file_versioned = 'fman-%s.pkg.tar.xz' % OPTIONS['version']
+	copy(pkg_file, join(repo_dir, pkg_file_versioned))
+	copy(pkg_file + '.sig', join(repo_dir, pkg_file_versioned + '.sig'))
+	run([
+		path('bin/linux/repo-add'), 'fman.db.tar.gz', pkg_file_versioned
+	], cwd=repo_dir)
+	# Ensure the permissions on the server are correct:
+	run(['chmod', 'g-w', '-R', repo_dir])
 
 def upload():
+	_upload_deb()
+	_upload_arch()
+	if OPTIONS['release']:
+		upload_installer_to_aws('fman.deb')
+		upload_installer_to_aws('fman.pkg.tar.xz')
+
+def _upload_deb():
 	tmp_dir_local = path('target/upload_%d' % time())
 	makedirs(tmp_dir_local)
 	deb_name = _get_deb_name()
 	copy(path('target/fman.deb'), join(tmp_dir_local, deb_name))
-	copy(path('target/deb-config/private.gpg-key'), tmp_dir_local)
-	copy(path('target/deb-config/public.gpg-key'), tmp_dir_local)
+	copy(path('conf/linux/private.gpg-key'), tmp_dir_local)
+	copy(path('conf/linux/public.gpg-key'), tmp_dir_local)
 	_generate_reprepro_distributions_file(tmp_dir_local)
 	upload_file(tmp_dir_local, '/tmp')
 	tmp_dir_remote = '/tmp/' + basename(tmp_dir_local)
@@ -119,17 +229,9 @@ def upload():
 				deb_path_remote
 			)
 		)
-		downloads_dir = get_path_on_server('downloads')
-		run_on_server(
-			'mkdir -p "%s" && mv "%s" "%s/fman.deb"' % (
-				downloads_dir, deb_path_remote, downloads_dir
-			)
-		)
 		collectstatic()
 	finally:
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
-	if OPTIONS['release']:
-		upload_installer_to_aws('fman.deb')
 
 def _generate_reprepro_distributions_file(dest_dir):
 	conf_dir = join(dest_dir, 'reprepro', 'conf')
@@ -141,9 +243,12 @@ def _generate_reprepro_distributions_file(dest_dir):
 			'Codename: stable',
 			'Architectures: amd64',
 			'Components: main',
-			'Description: A modern file manager for power users.',
+			'Description: ' + _FMAN_DESCRIPTION,
 			'SignWith: ' + OPTIONS['gpg_key']
 		]) + '\n\n')
 
 def _get_deb_name(architecture='amd64'):
 	return 'fman_%s_%s.deb' % (OPTIONS['version'], architecture)
+
+def _upload_arch():
+	upload_file(path('target/arch-repo/arch'), get_path_on_server('updates'))

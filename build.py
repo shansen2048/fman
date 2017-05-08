@@ -31,7 +31,7 @@ elif is_mac():
 	from build_impl.mac import app, sign_app, dmg, sign_dmg, upload, \
 		create_autoupdate_files
 elif is_linux():
-	from build_impl.linux import exe, deb, upload
+	from build_impl.linux import exe, deb, arch, upload
 
 def test():
 	test_dirs = list(map(path, [
@@ -68,6 +68,7 @@ def publish():
 	elif is_linux():
 		exe()
 		deb()
+		arch()
 		upload()
 	else:
 		raise ValueError('Unknown operating system.')

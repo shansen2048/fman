@@ -105,6 +105,12 @@ signtool, which is used for codesigning.
 
 Install Go 1.6.3 *32 bit*.
 
+Linux (Ubuntu) extra
+====================
+sudo apt-get install bsdtar
+
+If this fails, build https://www.libarchive.org/ from source and place its `bsdtar` on the PATH.
+
 fmanSetup.exe (Google Omaha installer)
 ======================================
 1)

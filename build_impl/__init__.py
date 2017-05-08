@@ -156,15 +156,15 @@ def copy_python_library(name, dest_dir):
 	else:
 		copy(library.__file__, dest_dir)
 
-def run(cmd, extra_env=None):
+def run(cmd, extra_env=None, check_result=True, cwd=None):
 	if extra_env:
 		env = dict(os.environ)
 		env.update(extra_env)
 	else:
 		env = None
-	process = Popen(cmd, env=env, stderr=STDOUT)
+	process = Popen(cmd, env=env, stderr=STDOUT, cwd=cwd)
 	process.wait()
-	if process.returncode:
+	if check_result and process.returncode:
 		raise CalledProcessError(process.returncode, cmd)
 
 def is_windows():
@@ -199,7 +199,7 @@ def upload_file(f, dest_dir):
 	print('Uploading %s...' % basename(f))
 	dest_path = get_path_on_server(dest_dir)
 	if OPTIONS['release']:
-		run(['scp', '-r', f, OPTIONS['server_user'] + ':' + dest_path])
+		run(['rsync', '-ravz', f, OPTIONS['server_user'] + ':' + dest_path])
 	else:
 		if isdir(f):
 			copytree(f, join(dest_dir, basename(f)))
