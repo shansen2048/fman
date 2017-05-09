@@ -8,11 +8,16 @@ from os.path import exists, basename, join, dirname
 from shutil import copytree, rmtree, copy
 from time import time
 
+import hashlib
 import re
 
-_FMAN_DESCRIPTION = 'A modern file manager for power users.'
+_FMAN_DESCRIPTION = \
+	'A modern file manager for power users. Beautiful, fast and extensible'
 _FMAN_AUTHOR = 'Michael Herrmann'
 _FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
+
+_ARCH_DEPENDENCIES = ('qt5-base', 'openssl')
+_ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 
 def exe():
 	run_pyinstaller()
@@ -119,6 +124,7 @@ def arch():
 	pkg_file = _arch_pkg()
 	_sign_arch_pkg(pkg_file)
 	_arch_repo(pkg_file)
+	_pkgbuild(pkg_file)
 
 def _arch_pkg():
 	if exists(path('target/arch-pkg')):
@@ -198,6 +204,27 @@ def _arch_repo(pkg_file):
 	], cwd=repo_dir)
 	# Ensure the permissions on the server are correct:
 	run(['chmod', 'g-w', '-R', repo_dir])
+
+def _pkgbuild(pkg_file):
+	with open(pkg_file, 'rb') as f:
+		sha256 = hashlib.sha256(f.read()).hexdigest()
+	template = path('src/main/resources/linux-AUR/PKGBUILD')
+	copy_with_filtering(
+		template,
+		path('target/pkgbuild'), {
+			'author': _FMAN_AUTHOR,
+			'author_email': _FMAN_AUTHOR_EMAIL,
+			'version': OPTIONS['version'],
+			'description': _FMAN_DESCRIPTION,
+			'deps': ' '.join(map(repr, _ARCH_DEPENDENCIES)),
+			'opt_deps': ' '.join(map(repr, _ARCH_OPT_DEPENDENCIES)),
+			'sha256': sha256
+		},
+		files_to_filter=[template]
+	)
+	run([
+		'tar', 'xf', pkg_file, '-C', path('target/pkgbuild'), '.INSTALL'
+	])
 
 def upload():
 	_upload_deb()
