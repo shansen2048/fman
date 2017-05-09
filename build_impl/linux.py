@@ -2,8 +2,9 @@ from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
 	copy_with_filtering, collectstatic, check_output_decode, get_icons, \
 	upload_installer_to_aws
+from distutils.dir_util import copy_tree
 from glob import glob
-from os import makedirs, remove
+from os import makedirs, remove, rename
 from os.path import exists, basename, join, dirname
 from shutil import copytree, rmtree, copy
 from time import time
@@ -208,23 +209,34 @@ def _arch_repo(pkg_file):
 def _pkgbuild(pkg_file):
 	with open(pkg_file, 'rb') as f:
 		sha256 = hashlib.sha256(f.read()).hexdigest()
-	template = path('src/main/resources/linux-AUR/PKGBUILD')
+	pkgbuild = path('src/main/resources/linux-AUR/PKGBUILD')
+	context = {
+		'author': _FMAN_AUTHOR,
+		'author_email': _FMAN_AUTHOR_EMAIL,
+		'version': OPTIONS['version'],
+		'description': _FMAN_DESCRIPTION,
+		'deps': ' '.join(map(repr, _ARCH_DEPENDENCIES)),
+		'opt_deps': ' '.join(map(repr, _ARCH_OPT_DEPENDENCIES)),
+		'sha256': sha256
+	}
 	copy_with_filtering(
-		template,
-		path('target/pkgbuild'), {
-			'author': _FMAN_AUTHOR,
-			'author_email': _FMAN_AUTHOR_EMAIL,
-			'version': OPTIONS['version'],
-			'description': _FMAN_DESCRIPTION,
-			'deps': ' '.join(map(repr, _ARCH_DEPENDENCIES)),
-			'opt_deps': ' '.join(map(repr, _ARCH_OPT_DEPENDENCIES)),
-			'sha256': sha256
-		},
-		files_to_filter=[template]
+		pkgbuild, path('target/pkgbuild'), context, files_to_filter=[pkgbuild]
+	)
+	srcinfo = path('src/main/resources/linux-AUR/.SRCINFO')
+	context['deps'] = \
+		'\n\t'.join('depends = ' + dep for dep in _ARCH_DEPENDENCIES)
+	context['opt_deps'] = \
+		'\n\t'.join('optdepends = ' + dep for dep in _ARCH_OPT_DEPENDENCIES)
+	copy_with_filtering(
+		srcinfo, path('target/pkgbuild'), context, files_to_filter=[srcinfo]
 	)
 	run([
 		'tar', 'xf', pkg_file, '-C', path('target/pkgbuild'), '.INSTALL'
 	])
+	rename(
+		path('target/pkgbuild/.INSTALL'),
+		path('target/pkgbuild/fman.install')
+	)
 
 def upload():
 	_upload_deb()
@@ -232,6 +244,7 @@ def upload():
 	if OPTIONS['release']:
 		upload_installer_to_aws('fman.deb')
 		upload_installer_to_aws('fman.pkg.tar.xz')
+		_publish_to_AUR()
 
 def _upload_deb():
 	tmp_dir_local = path('target/upload_%d' % time())
@@ -279,3 +292,17 @@ def _get_deb_name(architecture='amd64'):
 
 def _upload_arch():
 	upload_file(path('target/arch-repo/arch'), get_path_on_server('updates'))
+
+def _publish_to_AUR():
+	if exists(path('target/AUR')):
+		rmtree(path('target/AUR'))
+	makedirs(path('target/AUR'))
+	run(
+		['git', 'clone', 'ssh://aur@aur.archlinux.org/fman.git'],
+		cwd=path('target/AUR')
+	)
+	copy_tree(path('target/pkgbuild'), path('target/AUR/fman'))
+	git = lambda *args: run(['git'] + list(args), cwd=path('target/AUR/fman'))
+	git('add', '-A')
+	git('commit', '-m', 'Changes for fman ' + OPTIONS['version'])
+	git('push', '-u', 'origin', 'master')

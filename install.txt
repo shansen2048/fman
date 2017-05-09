@@ -109,7 +109,10 @@ Linux (Ubuntu) extra
 ====================
 sudo apt-get install bsdtar
 
-If this fails, build https://www.libarchive.org/ from source and place its `bsdtar` on the PATH.
+This is required for creating the packages for pacman via fpm.
+If the above fails, build https://www.libarchive.org/ from source and place its `bsdtar` on the PATH.
+
+To be able to upload fman to the Arch User Repository during release, add ~/.ssh/id_rsa.pub to your account there.
 
 fmanSetup.exe (Google Omaha installer)
 ======================================

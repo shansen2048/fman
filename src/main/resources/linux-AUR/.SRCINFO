@@ -1,0 +1,15 @@
+pkgbase = fman
+	pkgdesc = ${description}
+	pkgver = ${version}
+	pkgrel = 1
+	url = https://fman.io
+	install = fman.install
+	arch = x86_64
+	license = custom
+	${deps}
+	${opt_deps}
+	source = https://fman.io/updates/arch/fman-${version}.pkg.tar.xz
+	sha256sums = ${sha256}
+
+pkgname = fman
+
