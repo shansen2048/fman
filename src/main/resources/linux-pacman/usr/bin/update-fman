@@ -1,3 +1,0 @@
-#!/bin/sh
-set -e
-pacman -Syq --needed fman

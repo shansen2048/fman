@@ -132,20 +132,7 @@ def _arch_pkg():
 		rmtree(path('target/arch-pkg'))
 	copytree(path('target/fman'), path('target/arch-pkg/opt/fman'))
 	_remove_libs_declared_as_pacman_dependencies()
-	copy_with_filtering(
-		path('src/main/resources/linux-pacman'), path('target/arch-pkg'),
-		files_to_filter=[
-			path('src/main/resources/linux-pacman/etc/pacman.d/fman')
-		]
-	)
 	_copy_linux_package_resources(path('target/arch-pkg'))
-	copy_with_filtering(
-		path('src/main/resources/linux-pacman-config'),
-		path('target/pacman-config'),
-		files_to_filter=[
-			path('src/main/resources/linux-pacman-config/after-install.sh')
-		]
-	)
 	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
 	_copy_icons(path('target/arch-pkg'))
 	# Avoid pacman warning "directory permissions differ" when installing:
@@ -160,9 +147,6 @@ def _arch_pkg():
 		'--vendor', _FMAN_AUTHOR,
 		'--url', 'https://fman.io',
 		'-d', 'qt5-base', '-d', 'openssl',
-		'--after-install', path('target/pacman-config/after-install.sh'),
-		'--after-upgrade', path('src/main/resources/fpm/after-upgrade.sh'),
-		'--after-remove', path('target/pacman-config/after-remove.sh'),
 		'-p', pkg_file,
 		'-f', '-C', path('target/arch-pkg')
 	])
@@ -229,13 +213,6 @@ def _pkgbuild(pkg_file):
 		'\n\t'.join('optdepends = ' + dep for dep in _ARCH_OPT_DEPENDENCIES)
 	copy_with_filtering(
 		srcinfo, path('target/pkgbuild'), context, files_to_filter=[srcinfo]
-	)
-	run([
-		'tar', 'xf', pkg_file, '-C', path('target/pkgbuild'), '.INSTALL'
-	])
-	rename(
-		path('target/pkgbuild/.INSTALL'),
-		path('target/pkgbuild/fman.install')
 	)
 
 def upload():

@@ -10,12 +10,12 @@ url="https://fman.io"
 license=('custom')
 depends=(${deps})
 optdepends=(${opt_deps})
-install=fman.install
 
 source=('https://fman.io/updates/arch/fman-${version}.pkg.tar.xz')
+noextract=("${source[@]##*/}")
 
 sha256sums=('${sha256}')
 
 package() {
-	tar xf "${srcdir}/fman-${version}.pkg.tar.xz" -C "${pkgdir}"
+	tar xf "${srcdir}/fman-${version}.pkg.tar.xz" -C "${pkgdir}" --exclude='.INSTALL' --exclude='.PKGINFO' --exclude='.MTREE'
 }
