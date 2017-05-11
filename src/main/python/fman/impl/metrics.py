@@ -1,4 +1,5 @@
 from collections import deque
+from fman.util.system import is_linux
 from queue import Queue
 from threading import Thread
 from urllib.error import URLError
@@ -16,9 +17,11 @@ class Metrics:
 	def __init__(self, json_path, backend, os, fman_version):
 		self._json_path = json_path
 		self._backend = backend
-		self._os = os
-		self._fman_version = fman_version
 		self._user = None
+		self._super_properties = {
+			'os': os,
+			'app_version': fman_version
+		}
 		self._enabled = True
 	def initialize(self):
 		try:
@@ -38,13 +41,19 @@ class Metrics:
 				self._user = json_dict['uuid']
 			except KeyError:
 				self._enabled = False
+		if self._enabled and is_linux():
+			# linux_distribution() is expensive. We perform it here (instead of,
+			# say, the application context) because the present method is run
+			# in a separate thread via AsynchronousMetrics.
+			from distro import linux_distribution
+			distribution, version = linux_distribution()[:2]
+			if version:
+				distribution += ' ' + version
+			self._super_properties['distribution'] = distribution
 	def track(self, event, properties=None):
 		if not self._enabled:
 			return
-		data = {
-			'os': self._os,
-			'app_version': self._fman_version
-		}
+		data = dict(self._super_properties)
 		if properties:
 			data.update(properties)
 		try:
@@ -105,9 +114,9 @@ class LoggingBackend:
 	def create_user(self):
 		return self._backend.create_user()
 	def track(self, user, event, properties=None):
-		self._backend.track(user, event, properties)
 		data = self._backend.get_data_for_tracking(user, event, properties)
 		self._logs.append(data)
+		self._backend.track(user, event, properties)
 	def flush(self, log_file_path):
 		with open(log_file_path, 'w') as f:
 			fmt_log = lambda data: json.dumps(data, indent=4)
