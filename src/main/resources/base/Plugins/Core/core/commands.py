@@ -601,10 +601,10 @@ class SuggestLocations:
 		if path != '.' and self.fs.isdir(path) or self.fs.isdir(dirname(path)):
 			result = OrderedSet()
 			if self.fs.isdir(path):
-				result.add(self._unexpand_user(path))
-				dir_ = path
+				dir_ = self._realcase(path)
+				result.add(self._unexpand_user(dir_))
 			else:
-				dir_ = dirname(path)
+				dir_ = self._realcase(dirname(path))
 			dir_items = []
 			for name in self.fs.listdir(dir_):
 				file_path = join(dir_, name)
@@ -615,6 +615,23 @@ class SuggestLocations:
 			return result
 		else:
 			return sorted(self.visited_paths, key=sort_key)
+	def _realcase(self, path):
+		# NB: `path` must exist!
+		is_case_sensitive = PLATFORM == 'Linux'
+		if is_case_sensitive:
+			return path
+		dir_ = dirname(path)
+		if self.fs.samefile(dir_, path):
+			# We're at the root of the file system.
+			return path
+		dir_ = self._realcase(dir_)
+		matching_names = [
+			f for f in self.fs.listdir(dir_)
+			if f.lower() == basename(path).lower()
+		]
+		if not matching_names:
+			return path
+		return join(dir_, matching_names[0])
 	def _filter_matching(self, dirs, query):
 		result = [[] for _ in self._MATCHERS]
 		for dir_ in dirs:
@@ -653,6 +670,8 @@ class FileSystem:
 				# like a symlink to \Users:
 				return listdir(splitdrive(path)[0] + r'\Users')
 			raise
+	def samefile(self, f1, f2):
+		return samefile(f1, f2)
 
 def _is_documents_and_settings(path):
 	return splitdrive(normpath(path))[1].lower() == '\\documents and settings'

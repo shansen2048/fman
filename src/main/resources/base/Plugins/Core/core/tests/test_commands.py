@@ -1,7 +1,7 @@
 from core.commands import SuggestLocations, History
-from fman import PLATFORM
+from fman.util.system import is_linux, is_windows
 from os.path import normpath
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 import os
 
@@ -31,9 +31,14 @@ class SuggestLocationsTest(TestCase):
 			'dp', ['~/Dropbox/Private', '~/Dropbox/Work', '~/Dropbox'],
 			[[2, 10], [2, 5], [2, 5]]
 		)
-	def test_enter_existing_path(self):
+	def test_existing_path(self):
 		self._check_query_returns(
 			'~/Unvisited', ['~/Unvisited', '~/Unvisited/Dir']
+		)
+	@skipIf(is_linux(), 'Case-insensitive file systems only')
+	def test_existing_path_wrong_case(self):
+		self._check_query_returns(
+			'~/unvisited', ['~/Unvisited', '~/Unvisited/Dir']
 		)
 	def test_enter_path_slash(self):
 		highlight = list(range(len('~/Unvisited')))
@@ -53,7 +58,7 @@ class SuggestLocationsTest(TestCase):
 			self._replace_pathsep('~/Dropbox/Work'): 5,
 			self._replace_pathsep('~/Dropbox/Private'): 2
 		}
-		root = 'C:' if PLATFORM == 'Windows' else ''
+		root = 'C:' if is_windows() else ''
 		files = {
 			root: {
 				'Users': {
@@ -71,7 +76,7 @@ class SuggestLocationsTest(TestCase):
 			},
 			'.': {}
 		}
-		if PLATFORM == 'Windows':
+		if is_windows():
 			home_dir = r'C:\Users\michael'
 		else:
 			home_dir = '/Users/michael'
@@ -97,7 +102,7 @@ class StubFileSystem:
 		self.files = files
 		self.home_dir = home_dir
 	def isdir(self, path):
-		if PLATFORM == 'Windows' and path.endswith(' '):
+		if is_windows() and path.endswith(' '):
 			# Strange behaviour on Windows: isdir('X ') returns True if X
 			# (without space) exists.
 			path = path.rstrip(' ')
@@ -109,10 +114,16 @@ class StubFileSystem:
 	def _get_dir(self, path):
 		if not path:
 			raise KeyError(path)
-		parts = normpath(path).split(os.sep)
+		path = normpath(path)
+		parts = path.split(os.sep) if path != os.sep else ['']
 		curr = self.files
 		for part in parts:
-			curr = curr[part]
+			for file_name, items in curr.items():
+				if self._normcase(file_name) == self._normcase(part):
+					curr = items
+					break
+			else:
+				raise KeyError(part)
 		return curr
 	def expanduser(self, path):
 		return path.replace('~', self.home_dir)
@@ -121,6 +132,10 @@ class StubFileSystem:
 			return sorted(list(self._get_dir(path)))
 		except KeyError as e:
 			raise FileNotFoundError(repr(path)) from e
+	def samefile(self, f1, f2):
+		return self._get_dir(f1) == self._get_dir(f2)
+	def _normcase(self, path):
+		return path if is_linux() else path.lower()
 
 class HistoryTest(TestCase):
 	def test_empty_back(self):
