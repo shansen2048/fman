@@ -647,7 +647,7 @@ class FileSystem:
 			return listdir(path)
 		except PermissionError:
 			if PLATFORM == 'Windows' and _is_documents_and_settings(path):
-				# Python can' listdir("C:\Documents and Settings"). In fact, no
+				# Python can't listdir("C:\Documents and Settings"). In fact, no
 				# Windows program can. But "C:\{DaS}\<Username>" does work, and
 				# displays "C:\Users\<Username>". For consistency, treat DaS
 				# like a symlink to \Users:
