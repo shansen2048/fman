@@ -1,10 +1,9 @@
 from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering, collectstatic, check_output_decode, get_icons, \
-	upload_installer_to_aws
+	copy_with_filtering, check_output_decode, get_icons, upload_installer_to_aws
 from distutils.dir_util import copy_tree
 from glob import glob
-from os import makedirs, remove, rename
+from os import makedirs, remove
 from os.path import exists, basename, join, dirname
 from shutil import copytree, rmtree, copy
 from time import time
@@ -246,7 +245,6 @@ def _upload_deb():
 				deb_path_remote
 			)
 		)
-		collectstatic()
 	finally:
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
 

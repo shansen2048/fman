@@ -9,8 +9,8 @@ import re
 import sys
 
 OPTIONS.update({
-	'local_staticfiles_dir': expanduser('~/dev/fman.io/static'),
-	'server_staticfiles_dir': '/home/fman/src/static',
+	'local_media_dir': expanduser('~/dev/fman.io/media'),
+	'server_media_dir': '/home/fman/src/media',
 	'server_user': 'fman@fman.io',
 	'files_to_filter': [
 		path('src/main/resources/base/constants.json'),

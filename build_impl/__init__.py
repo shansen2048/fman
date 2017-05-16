@@ -205,27 +205,14 @@ def upload_file(f, dest_dir):
 			copytree(f, join(dest_dir, basename(f)))
 		else:
 			copy(f, dest_path)
-	# The server serves its static files from static-collected/. The
-	# "Appcast.xml" view looks inside static/. So we need the files in both
-	# locations. Run `collectstatic` to have Django copy them from static/
-	# to static-collected/.
-	collectstatic()
-
-def collectstatic():
-	if OPTIONS['release']:
-		run_on_server(
-			'cd src/ ; '
-			'source venv/bin/activate ; '
-			'python manage.py collectstatic --noinput'
-		)
 
 def get_path_on_server(file_path):
 	if file_path.startswith('/'):
 		return file_path
 	if OPTIONS['release']:
-		staticfiles_dir = OPTIONS['server_staticfiles_dir']
+		staticfiles_dir = OPTIONS['server_media_dir']
 	else:
-		staticfiles_dir = OPTIONS['local_staticfiles_dir']
+		staticfiles_dir = OPTIONS['local_media_dir']
 	return join(staticfiles_dir, file_path)
 
 def run_on_server(command):
