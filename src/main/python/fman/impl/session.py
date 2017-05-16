@@ -2,6 +2,7 @@ from base64 import b64encode, b64decode
 from fman import DATA_DIRECTORY
 from fman.impl.plugins import SETTINGS_PLUGIN_NAME
 from fman.util import system, parse_version
+from json import JSONDecodeError
 from os import makedirs, getcwd, listdir, rename
 from os.path import expanduser, dirname, realpath, normpath, splitdrive, join, \
 	isdir
@@ -23,6 +24,10 @@ class SessionManager:
 				self._json_dict = json.load(f)
 		except FileNotFoundError:
 			self._json_dict = {}
+		except JSONDecodeError:
+			self._json_dict = {
+				'fman_version': self._fman_version
+			}
 	@property
 	def previous_fman_version(self):
 		return self._json_dict.get('fman_version', None)
