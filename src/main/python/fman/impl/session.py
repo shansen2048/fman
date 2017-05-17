@@ -89,7 +89,7 @@ class SessionManager:
 		if not previous_version or previous_version == self._fman_version:
 			return 'v%s ready.' % self._fman_version
 		return 'Updated to v%s. ' \
-			   '<a href="https://fman.io/changelog">Changelog</a>' \
+			   '<a href="https://fman.io/changelog?s=f">Changelog</a>' \
 			   % self._fman_version
 	def on_close(self, main_window):
 		self._json_dict['window_geometry'] = _encode(main_window.saveGeometry())

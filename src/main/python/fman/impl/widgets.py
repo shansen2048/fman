@@ -338,7 +338,7 @@ class SplashScreen(QDialog):
 			"</center>"
 			"<p style='" + p_style + "'>"
 				"To remove this annoying popup, please "
-				"<a href='https://fman.io/buy'" + buy_link_style + ">"
+				"<a href='https://fman.io/buy?s=f'" + buy_link_style + ">"
 					"obtain a license"
 				"</a>."
 				"<br/>"

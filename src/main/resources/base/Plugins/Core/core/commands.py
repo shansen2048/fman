@@ -42,7 +42,7 @@ class About(ApplicationCommand):
 
 class Help(ApplicationCommand):
 	def __call__(self):
-		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings'))
+		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings?s=f'))
 
 class _CorePaneCommand(DirectoryPaneCommand):
 	def __init__(self, *args, **kwargs):
