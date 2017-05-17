@@ -6,11 +6,15 @@ from rsa.common import byte_size as get_byte_size
 import json
 import rsa
 
+DEACTIVATED_KEYS = ('3amunyk@gmail.com',)
+
 class User:
 	def __init__(self, email='', key=''):
 		self.email = email
 		self.key = key
 	def is_licensed(self, fman_version):
+		if self.email in DEACTIVATED_KEYS:
+			return False
 		if 'email' not in self._key_data:
 			return False
 		if self._key_data['email'] != self.email:
