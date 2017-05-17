@@ -1,7 +1,9 @@
 from fman.impl.plugins.plugin import get_command_class_name
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, \
-	Key_Right, Key_Return, Key_Enter
+	Key_Right, Key_Return, Key_Enter, Key_Shift, Key_Control, Key_Meta, \
+	Key_Alt, Key_AltGr, Key_CapsLock, Key_NumLock, Key_ScrollLock, ShiftModifier
 from fman.util.system import is_mac
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from weakref import WeakValueDictionary
 
@@ -36,6 +38,12 @@ class Controller:
 					self.plugin_support.run_application_command(cmd_name, args)
 				self._track_command(cmd_name)
 				return True
+		if not key_event.is_modifier_only() and \
+			not key_event.is_letter_only() and \
+			not key_event.is_digit_only():
+			self.tracker.track('UsedNonexistentShortcut', {
+				'shortcut': str(key_event)
+			})
 		event.ignore()
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):
@@ -70,6 +78,27 @@ class QtKeyEvent:
 			modifiers &= ~KeypadModifier
 		key, modifiers, keys = self._alias_return_and_enter(modifiers, keys)
 		return QKeySequence(modifiers | key).matches(QKeySequence(keys))
+	def __str__(self):
+		result = ''
+		if self.modifiers:
+			result += QKeySequence(self.modifiers).toString()
+		for key in [k for k in dir(Qt) if k.startswith('Key_')]:
+			if self.key == getattr(Qt, key):
+				result += key[len('Key_'):]
+				break
+		else:
+			result += '0x%02x' % self.key
+		return result
+	def is_modifier_only(self):
+		return self.key in (
+			Key_Shift, Key_Control, Key_Meta, Key_Alt, Key_AltGr, Key_CapsLock,
+			Key_NumLock, Key_ScrollLock
+		)
+	def is_letter_only(self):
+		return not self.modifiers & ~ShiftModifier and \
+			   Qt.Key_A <= self.key <= Qt.Key_Z
+	def is_digit_only(self):
+		return not self.modifiers and Qt.Key_0 <= self.key <= Qt.Key_9
 	def _alias_return_and_enter(self, modifiers, keys):
 		# Qt has Key_Enter and Key_Return. The former is the Enter key on the
 		# numpad. The latter is next to the characters. We want the user to
