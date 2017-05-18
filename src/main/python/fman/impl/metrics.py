@@ -60,6 +60,13 @@ class Metrics:
 			self._backend.track(self._user, event, data)
 		except MetricsError:
 			pass
+	def update_user(self, **properties):
+		if not self._enabled:
+			return
+		try:
+			self._backend.update_user(self._user, **properties)
+		except MetricsError:
+			pass
 	def disable(self):
 		self._enabled = False
 		try:
@@ -85,6 +92,8 @@ class ServerBackend:
 	def track(self, user, event, properties=None):
 		data = self.get_data_for_tracking(user, event, properties)
 		self._post(self._events_url, data)
+	def update_user(self, user, **properties):
+		self._put(self._users_url + '/' + user, properties)
 	def get_data_for_tracking(self, user, event, properties=None):
 		result = {
 			'uuid': user,
@@ -94,9 +103,13 @@ class ServerBackend:
 			result.update(properties)
 		return result
 	def _post(self, url, data=None):
+		return self._send(url, 'POST', data)
+	def _put(self, url, data=None):
+		return self._send(url, 'PUT', data)
+	def _send(self, url, method, data):
 		encoded_data = urlencode(data).encode('utf-8') if data else None
 		try:
-			with urlopen(Request(url, encoded_data, method='POST')) as response:
+			with urlopen(Request(url, encoded_data, method=method)) as response:
 				resp_body = response.read()
 		except URLError as e:
 			raise MetricsError() from e
@@ -117,6 +130,8 @@ class LoggingBackend:
 		data = self._backend.get_data_for_tracking(user, event, properties)
 		self._logs.append(data)
 		self._backend.track(user, event, properties)
+	def update_user(self, user, **properties):
+		self._backend.update_user(user, **properties)
 	def flush(self, log_file_path):
 		with open(log_file_path, 'w') as f:
 			fmt_log = lambda data: json.dumps(data, indent=4)
@@ -132,6 +147,8 @@ class AsynchronousMetrics:
 		self._thread.start()
 	def track(self, *args, **kwargs):
 		self._queue.put(('track', args, kwargs))
+	def update_user(self, *args, **kwargs):
+		self._queue.put(('update_user', args, kwargs))
 	def disable(self):
 		self._metrics.disable()
 	def _work(self):

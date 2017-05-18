@@ -50,6 +50,7 @@ class ApplicationContext:
 		self._controller = None
 		self._palette = None
 		self._user = None
+		self._is_licensed = None
 		self._main_window_palette = None
 		self._plugin_dirs = None
 		self._json_io = None
@@ -78,7 +79,13 @@ class ApplicationContext:
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
-		if not self.user.is_licensed(self.fman_version):
+		if self.is_licensed:
+			if not self.session_manager.was_licensed_on_last_run:
+				self.metrics.track('InstalledLicenseKey')
+				self.metrics.update_user(
+					is_licensed=True, email=self.user.email
+				)
+		else:
 			self.splash_screen.exec()
 		previous_version = self.session_manager.previous_fman_version
 		# TODO: Remove this migration After May 2017
@@ -193,7 +200,7 @@ class ApplicationContext:
 			self.app.set_main_window(self._main_window)
 		return self._main_window
 	def _get_main_window_title(self):
-		if self.user.is_licensed(self.fman_version):
+		if self.is_licensed:
 			return 'fman'
 		return 'fman – NOT REGISTERED'
 	@property
@@ -301,6 +308,11 @@ class ApplicationContext:
 			self._user = User(email, key)
 		return self._user
 	@property
+	def is_licensed(self):
+		if self._is_licensed is None:
+			self._is_licensed = self.user.is_licensed(self.fman_version)
+		return self._is_licensed
+	@property
 	def main_window_palette(self):
 		if self._main_window_palette is None:
 			self._main_window_palette = QPalette(self.palette)
@@ -312,7 +324,8 @@ class ApplicationContext:
 	def session_manager(self):
 		if self._session_manager is None:
 			json_path = join(DATA_DIRECTORY, 'Local', 'Session.json')
-			self._session_manager = SessionManager(json_path, self.fman_version)
+			self._session_manager = \
+				SessionManager(json_path, self.fman_version, self.is_licensed)
 		return self._session_manager
 	@property
 	def stylesheet(self):

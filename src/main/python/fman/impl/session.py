@@ -16,9 +16,10 @@ class SessionManager:
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
 	DEFAULT_WINDOW_SIZE = (800, 450)
 
-	def __init__(self, json_path, fman_version):
+	def __init__(self, json_path, fman_version, is_licensed):
 		self._json_path = json_path
 		self._fman_version = fman_version
+		self._is_licensed = is_licensed
 		try:
 			with open(self._json_path, 'r') as f:
 				self._json_dict = json.load(f)
@@ -31,6 +32,9 @@ class SessionManager:
 	@property
 	def previous_fman_version(self):
 		return self._json_dict.get('fman_version', None)
+	@property
+	def was_licensed_on_last_run(self):
+		return self._json_dict.get('is_licensed', None)
 	def migrate_old_plugin_structure(self):
 		previous_version = self.previous_fman_version or self._fman_version
 		if parse_version(previous_version) >= (0, 3, 9):
@@ -97,6 +101,7 @@ class SessionManager:
 		self._json_dict['panes'] = \
 			list(map(self._read_settings_from_pane, main_window.get_panes()))
 		self._json_dict['fman_version'] = self._fman_version
+		self._json_dict['is_licensed'] = self._is_licensed
 		makedirs(dirname(self._json_path), exist_ok=True)
 		with open(self._json_path, 'w') as f:
 			json.dump(self._json_dict, f)
