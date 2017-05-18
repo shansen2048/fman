@@ -62,13 +62,6 @@ class DirectoryPane:
 	def _register_command(self, command_name, command):
 		self._commands[command_name] = command
 
-	@property
-	def id(self):
-		# TODO: Remove this migration after April, 2017.
-		raise AttributeError(
-			"DirectoryPane#id was removed from fman's API. Please update your "
-			"plugins."
-		)
 	def _add_filter(self, filter_):
 		self._widget.add_filter(filter_)
 	def _invalidate_filters(self):
