@@ -13,5 +13,6 @@
 	{ "keys": ["Cmd+P"], "command": "go_to" },
 	{ "keys": ["Cmd+Shift+P"], "command": "command_palette" },
 	{ "keys": ["Cmd+Left"], "command": "go_back" },
-	{ "keys": ["Cmd+Right"], "command": "go_forward" }
+	{ "keys": ["Cmd+Right"], "command": "go_forward" },
+	{ "keys": ["Cmd+I"], "command": "get_info" }
 ]

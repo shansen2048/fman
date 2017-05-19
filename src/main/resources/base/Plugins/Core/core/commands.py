@@ -17,7 +17,7 @@ from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
-from subprocess import Popen, DEVNULL
+from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
@@ -961,3 +961,28 @@ class StatusMessage:
 		show_status_message(self._message)
 	def __exit__(self, *_):
 		clear_status_message()
+
+if PLATFORM == 'Mac':
+	class GetInfo(DirectoryPaneCommand):
+		def __call__(self):
+			files = self.get_chosen_files() or [self.pane.get_path()]
+			self._run_applescript(
+				'on run args\n'
+				'	tell app "Finder"\n'
+				'		activate\n'
+				'		repeat with f in args\n'
+				'			open information window of '
+							'(posix file (contents of f) as alias)\n'
+				'		end\n'
+				'	end\n'
+				'end\n',
+				files
+			)
+		def _run_applescript(self, script, args=None):
+			if args is None:
+				args = []
+			process = Popen(
+				['osascript', '-'] + args, stdin=PIPE,
+				stdout=DEVNULL, stderr=DEVNULL
+			)
+			process.communicate(script.encode('ascii'))
