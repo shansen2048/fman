@@ -16,7 +16,7 @@ _FMAN_DESCRIPTION = \
 _FMAN_AUTHOR = 'Michael Herrmann'
 _FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 
-_ARCH_DEPENDENCIES = ('qt5-base', 'openssl')
+_ARCH_DEPENDENCIES = ('qt5-base',)
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 
 def exe():
@@ -145,7 +145,7 @@ def _arch_pkg():
 		'-m', '%s <%s>' % (_FMAN_AUTHOR, _FMAN_AUTHOR_EMAIL),
 		'--vendor', _FMAN_AUTHOR,
 		'--url', 'https://fman.io',
-		'-d', 'qt5-base', '-d', 'openssl',
+		'-d', 'qt5-base',
 		'-p', pkg_file,
 		'-f', '-C', path('target/arch-pkg')
 	])
@@ -159,9 +159,6 @@ def _remove_libs_declared_as_pacman_dependencies():
 	# declare it as a dependency and leave it up to pacman to fetch it.
 	for qt_lib in glob(path('target/arch-pkg/opt/fman/libQt*.so.*')):
 		remove(qt_lib)
-	# We also declare 'openssl' as a dependency. Remove its .so files:
-	remove(path('target/arch-pkg/opt/fman/libcrypto.so.1.0.0'))
-	remove(path('target/arch-pkg/opt/fman/libssl.so.1.0.0'))
 
 def _sign_arch_pkg(pkg_file):
 	run([

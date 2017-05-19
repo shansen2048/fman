@@ -6,9 +6,10 @@ from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 from os import makedirs
-from os.path import dirname
+from os.path import dirname, exists
 
 import json
+import ssl
 
 class MetricsError(Exception):
 	pass
@@ -108,8 +109,12 @@ class ServerBackend:
 		return self._send(url, 'PUT', data)
 	def _send(self, url, method, data):
 		encoded_data = urlencode(data).encode('utf-8') if data else None
+		cafile_linux = '/etc/ssl/certs/ca-certificates.crt'
+		cafile = cafile_linux if is_linux() and exists(cafile_linux) else None
+		ssl_context = ssl.create_default_context(cafile=cafile)
+		request = Request(url, encoded_data, method=method)
 		try:
-			with urlopen(Request(url, encoded_data, method=method)) as response:
+			with urlopen(request, context=ssl_context) as response:
 				resp_body = response.read()
 		except URLError as e:
 			raise MetricsError() from e
