@@ -1,6 +1,5 @@
 rollbar==0.13.11
 ordered-set==2.0.1
-PyInstaller==3.2.1
 rsa==3.4.2
 tinycss==0.4
 boto3
