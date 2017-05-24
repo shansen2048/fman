@@ -108,7 +108,8 @@ class ServerBackend:
 	def _put(self, url, data=None):
 		return self._send(url, 'PUT', data)
 	def _send(self, url, method, data):
-		encoded_data = urlencode(data).encode('utf-8') if data else None
+		encoded_data = \
+			urlencode(data).encode('utf-8', 'surrogatepass') if data else None
 		cafile_linux = '/etc/ssl/certs/ca-certificates.crt'
 		cafile = cafile_linux if is_linux() and exists(cafile_linux) else None
 		ssl_context = ssl.create_default_context(cafile=cafile)
