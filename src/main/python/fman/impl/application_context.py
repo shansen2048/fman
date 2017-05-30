@@ -380,9 +380,7 @@ class FrozenApplicationContext(ApplicationContext):
 	def updater(self):
 		if self._updater is None:
 			if self._should_auto_update():
-				appcast_url = \
-					self.constants['server_url'] + '/updates/Appcast.xml'
-				self._updater = MacUpdater(self.app, appcast_url)
+				self._updater = MacUpdater(self.app)
 		return self._updater
 	def _should_auto_update(self):
 		if not system.is_mac():
