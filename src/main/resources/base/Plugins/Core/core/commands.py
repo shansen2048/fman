@@ -329,7 +329,13 @@ class CreateDirectory(_CorePaneCommand):
 		name, ok = self.ui.show_prompt("New folder (directory)")
 		if ok and name:
 			dir_path = join(self.pane.get_path(), name)
-			mkdir(dir_path)
+			try:
+				mkdir(dir_path)
+			except FileExistsError:
+				if isdir(dir_path):
+					show_alert("This directory already exists!")
+				else:
+					show_alert("A file with this name already exists!")
 			self.pane.place_cursor_at(dir_path)
 
 class OpenTerminal(_CorePaneCommand):
