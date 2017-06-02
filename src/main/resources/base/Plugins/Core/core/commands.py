@@ -669,7 +669,7 @@ class FileSystem:
 		try:
 			return listdir(path)
 		except PermissionError:
-			if PLATFORM == 'Windows' and _is_documents_and_settings(path):
+			if PLATFORM == 'Windows' and self._is_documents_and_settings(path):
 				# Python can't listdir("C:\Documents and Settings"). In fact, no
 				# Windows program can. But "C:\{DaS}\<Username>" does work, and
 				# displays "C:\Users\<Username>". For consistency, treat DaS
@@ -678,9 +678,9 @@ class FileSystem:
 			raise
 	def samefile(self, f1, f2):
 		return samefile(f1, f2)
-
-def _is_documents_and_settings(path):
-	return splitdrive(normpath(path))[1].lower() == '\\documents and settings'
+	def _is_documents_and_settings(self, path):
+		return splitdrive(normpath(path))[1].lower() == \
+			   '\\documents and settings'
 
 class CommandPalette(_CorePaneCommand):
 
