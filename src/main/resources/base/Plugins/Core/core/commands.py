@@ -599,28 +599,20 @@ class SuggestLocations:
 		return self._remove_nonexistent(items)
 	def _gather_dirs(self, query):
 		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
+		sort = lambda items: sorted(items, key=sort_key)
 		path = normpath(self.fs.expanduser(query))
 		if PLATFORM == 'Windows':
 			# Windows completely ignores trailing spaces in directory names at
 			# all times. Make our implementation reflect this:
 			path = path.rstrip(' ')
-		if path != '.' and self.fs.isdir(path) or self.fs.isdir(dirname(path)):
-			result = OrderedSet()
+		if path != '.':
+			get_subdirs = lambda dir_: sort(self._gather_subdirs(dir_))
 			if self.fs.isdir(path):
 				dir_ = self._realcase(path)
-				result.add(self._unexpand_user(dir_))
-			else:
-				dir_ = self._realcase(dirname(path))
-			dir_items = []
-			for name in self.fs.listdir(dir_):
-				file_path = join(dir_, name)
-				if self.fs.isdir(file_path):
-					dir_items.append(join(self._unexpand_user(dir_), name))
-			dir_items.sort(key=sort_key)
-			result.update(dir_items)
-			return result
-		else:
-			return sorted(self.visited_paths, key=sort_key)
+				return [self._unexpand_user(dir_)] + get_subdirs(dir_)
+			elif self.fs.isdir(dirname(path)):
+				return get_subdirs(self._realcase(dirname(path)))
+		return sort(self.visited_paths)
 	def _filter_matching(self, dirs, query):
 		result = [[] for _ in self._MATCHERS]
 		for dir_ in dirs:
@@ -640,6 +632,11 @@ class SuggestLocations:
 					del self.visited_paths[dir_]
 				except KeyError:
 					pass
+	def _gather_subdirs(self, dir_):
+		for name in self.fs.listdir(dir_):
+			file_path = join(dir_, name)
+			if self.fs.isdir(file_path):
+				yield self._unexpand_user(file_path)
 	def _realcase(self, path):
 		# NB: `path` must exist!
 		is_case_sensitive = PLATFORM == 'Linux'
