@@ -621,23 +621,6 @@ class SuggestLocations:
 			return result
 		else:
 			return sorted(self.visited_paths, key=sort_key)
-	def _realcase(self, path):
-		# NB: `path` must exist!
-		is_case_sensitive = PLATFORM == 'Linux'
-		if is_case_sensitive:
-			return path
-		dir_ = dirname(path)
-		if self.fs.samefile(dir_, path):
-			# We're at the root of the file system.
-			return path
-		dir_ = self._realcase(dir_)
-		matching_names = [
-			f for f in self.fs.listdir(dir_)
-			if f.lower() == basename(path).lower()
-		]
-		if not matching_names:
-			return path
-		return join(dir_, matching_names[0])
 	def _filter_matching(self, dirs, query):
 		result = [[] for _ in self._MATCHERS]
 		for dir_ in dirs:
@@ -657,6 +640,23 @@ class SuggestLocations:
 					del self.visited_paths[dir_]
 				except KeyError:
 					pass
+	def _realcase(self, path):
+		# NB: `path` must exist!
+		is_case_sensitive = PLATFORM == 'Linux'
+		if is_case_sensitive:
+			return path
+		dir_ = dirname(path)
+		if self.fs.samefile(dir_, path):
+			# We're at the root of the file system.
+			return path
+		dir_ = self._realcase(dir_)
+		matching_names = [
+			f for f in self.fs.listdir(dir_)
+			if f.lower() == basename(path).lower()
+		]
+		if not matching_names:
+			return path
+		return join(dir_, matching_names[0])
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 
