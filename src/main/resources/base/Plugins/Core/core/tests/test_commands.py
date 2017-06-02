@@ -120,7 +120,9 @@ class StubFileSystem:
 		if not path:
 			raise KeyError(path)
 		path = normpath(path)
-		parts = [p for p in path.split(os.sep) if p] if path != os.sep else ['']
+		parts = path.split(os.sep) if path != os.sep else ['']
+		if len(parts) > 1 and parts[-1] == '':
+			parts = parts[:-1]
 		curr = self.files
 		for part in parts:
 			for file_name, items in curr.items():
