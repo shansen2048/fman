@@ -23,6 +23,7 @@ from zipfile import ZipFile
 import fman
 import json
 import os
+import re
 import sys
 
 class About(ApplicationCommand):
@@ -695,6 +696,33 @@ class FileSystem:
 			else:
 				for line in iter(process.stdout.readline, ''):
 					yield line.rstrip()
+		elif PLATFORM == 'Windows':
+			import adodbapi
+			try:
+				conn = adodbapi.connect(
+					"Provider=Search.CollatorDSO;"
+					"Extended Properties='Application=Windows';"
+				)
+				cursor = conn.cursor()
+				# adodbapi claims to support "paramstyles", which would let us
+				# pass parameters as an extra arg to .execute(...), without
+				# having to worry about escaping them. Alas, adodbapi raises an
+				# error when this feature is used. We thus have to escape the
+				# param ourselves:
+				def escape(param):
+					return re.subn(r'([%_\[\]\^])', r'[\1]', param)[0]
+				cursor.execute(
+					"SELECT TOP 5 System.ItemPathDisplay FROM SYSTEMINDEX "
+					"WHERE "
+					"System.ItemType = 'Directory' AND "
+					"System.ItemNameDisplay LIKE %r "
+					"ORDER BY System.ItemPathDisplay"
+					% (escape(pattern) + '%')
+				)
+				for row in iter(cursor.fetchone, None):
+					yield row['System.ItemPathDisplay']
+			except adodbapi.Error:
+				pass
 	def _is_documents_and_settings(self, path):
 		return splitdrive(normpath(path))[1].lower() == \
 			   '\\documents and settings'
