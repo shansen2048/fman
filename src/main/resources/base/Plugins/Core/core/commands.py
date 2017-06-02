@@ -9,8 +9,7 @@ from core.trash import move_to_trash
 from fman import *
 from getpass import getuser
 from io import BytesIO
-from itertools import chain
-from ordered_set import OrderedSet
+from itertools import chain, islice
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir
@@ -598,21 +597,28 @@ class SuggestLocations:
 		items = self._filter_matching(possible_dirs, query)
 		return self._remove_nonexistent(items)
 	def _gather_dirs(self, query):
-		sort_key = lambda path: (-self.visited_paths.get(path, 0), path.lower())
-		sort = lambda items: sorted(items, key=sort_key)
 		path = normpath(self.fs.expanduser(query))
 		if PLATFORM == 'Windows':
 			# Windows completely ignores trailing spaces in directory names at
 			# all times. Make our implementation reflect this:
 			path = path.rstrip(' ')
 		if path != '.':
-			get_subdirs = lambda dir_: sort(self._gather_subdirs(dir_))
+			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
 			if self.fs.isdir(path):
 				dir_ = self._realcase(path)
 				return [self._unexpand_user(dir_)] + get_subdirs(dir_)
 			elif self.fs.isdir(dirname(path)):
 				return get_subdirs(self._realcase(dirname(path)))
-		return sort(self.visited_paths)
+		result = set(self.visited_paths)
+		if len(query) > 1:
+			"""Compensate for directories not yet in self.visited_paths:"""
+			fs_folders = islice(self.fs.find_folders_starting_with(query), 100)
+			result.update(self._sort(map(self._unexpand_user, fs_folders))[:10])
+		return self._sort(result)
+	def _sort(self, dirs):
+		return sorted(dirs, key=lambda dir_: (
+			-self.visited_paths.get(dir_, 0), len(dir_), dir_.lower()
+		))
 	def _filter_matching(self, dirs, query):
 		result = [[] for _ in self._MATCHERS]
 		for dir_ in dirs:
@@ -675,6 +681,20 @@ class FileSystem:
 			raise
 	def samefile(self, f1, f2):
 		return samefile(f1, f2)
+	def find_folders_starting_with(self, pattern):
+		if PLATFORM == 'Mac':
+			try:
+				process = Popen([
+					'mdfind',
+					"kMDItemContentType == 'public.folder' "
+					"&& kMDItemFSName == %rc"
+					% (pattern.replace('*', r'\*') + '*')
+				], stdout=PIPE, universal_newlines=True)
+			except OSError:
+				pass
+			else:
+				for line in iter(process.stdout.readline, ''):
+					yield line.rstrip()
 	def _is_documents_and_settings(self, path):
 		return splitdrive(normpath(path))[1].lower() == \
 			   '\\documents and settings'

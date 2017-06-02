@@ -50,8 +50,13 @@ class SuggestLocationsTest(TestCase):
 		self._check_query_returns('~/Downloads ', [])
 	def test_hidden(self):
 		self._check_query_returns('~/.', ['~/.hidden'])
+	def test_filesystem_search(self):
+		# No visited paths:
+		self.instance = SuggestLocations({}, self.file_system)
+		# Should still find Downloads by prefix:
+		self._check_query_returns('dow', ['~/Downloads'], [[2, 3, 4]])
 	def setUp(self):
-		recent_locations = {
+		visited_paths = {
 			'~': 1,
 			self._replace_pathsep('~/Downloads'): 3,
 			self._replace_pathsep('~/Dropbox'): 4,
@@ -81,7 +86,7 @@ class SuggestLocationsTest(TestCase):
 		else:
 			home_dir = '/Users/michael'
 		self.file_system = StubFileSystem(files, home_dir=home_dir)
-		self.instance = SuggestLocations(recent_locations, self.file_system)
+		self.instance = SuggestLocations(visited_paths, self.file_system)
 	def _check_query_returns(self, query, paths, highlights=None):
 		query = self._replace_pathsep(query)
 		paths = list(map(self._replace_pathsep, paths))
@@ -134,6 +139,16 @@ class StubFileSystem:
 			raise FileNotFoundError(repr(path)) from e
 	def samefile(self, f1, f2):
 		return self._get_dir(f1) == self._get_dir(f2)
+	def find_folders_starting_with(self, prefix):
+		return list(self._find_folders_recursive(self.files, prefix.lower()))
+	def _find_folders_recursive(self, files, prefix):
+		for f, subfiles in files.items():
+			if f.lower().startswith(prefix):
+				yield f
+			for sub_f in self._find_folders_recursive(subfiles, prefix):
+				# We don't use join(...) here because of the case f=''. We want
+				# '/sub_f' but join(f, sub_f) would give just 'sub_f'.
+				yield f + os.sep + sub_f
 	def _normcase(self, path):
 		return path if is_linux() else path.lower()
 
