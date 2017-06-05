@@ -4,15 +4,17 @@ from fman.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, Key_Home, \
 	FramelessWindowHint, AlignTop
 from PyQt5.QtCore import QAbstractListModel, QVariant, QModelIndex, QSize, \
 	QPointF, QRectF, QPoint
-from PyQt5.QtGui import QFont, QTextLayout, QTextCharFormat, QBrush
+from PyQt5.QtGui import QFont, QTextLayout, QTextCharFormat, QBrush, \
+	QKeySequence
 from PyQt5.QtWidgets import QDialog, QLayout, QFrame, QVBoxLayout, QLineEdit, \
 	QListView, QStyledItemDelegate, QApplication, QStyle
 
 class Quicksearch(QDialog):
-	def __init__(self, parent, css, get_items, get_tab_completion=None):
+	def __init__(self, parent, app, css, get_items, get_tab_completion=None):
 		if get_tab_completion is None:
 			get_tab_completion = lambda _: None
 		super().__init__(parent, FramelessWindowHint)
+		self._app = app
 		self._css = css
 		self._get_items = get_items
 		self._get_tab_completion = get_tab_completion
@@ -58,6 +60,9 @@ class Quicksearch(QDialog):
 		if event.key() in (Key_Down, Key_Up, Key_PageDown, Key_PageUp) or \
 				is_mac() and event.key() in (Key_Home, Key_End):
 			self._items.keyPressEvent(event)
+			return True
+		if event.matches(QKeySequence.Quit):
+			self._app.exit(0)
 			return True
 		return False
 	def _on_text_changed(self, text):

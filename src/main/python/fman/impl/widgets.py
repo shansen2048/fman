@@ -10,7 +10,8 @@ from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
-	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication
+	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
+	QFrame
 from random import randint, randrange
 
 class Application(QApplication):
@@ -178,10 +179,11 @@ class MainWindow(QMainWindow):
 	shown = pyqtSignal()
 	closed = pyqtSignal()
 
-	def __init__(self, css, icon_provider=None):
+	def __init__(self, app, css, icon_provider=None):
 		super().__init__()
 		# Public - so it can be injected later:
 		self.controller = None
+		self._app = app
 		self._css = css
 		self._icon_provider = icon_provider
 		self._controller = None
@@ -197,6 +199,9 @@ class MainWindow(QMainWindow):
 		self._timer = QTimer(self)
 		self._timer.timeout.connect(self.clear_status_message)
 		self._timer.setSingleShot(True)
+		self._timer_2 = QTimer(self)
+		self._timer_2.timeout.connect(lambda: print(QApplication.instance().focusWidget()))
+		self._timer_2.start(1000)
 	@run_in_main_thread
 	def show_alert(
 		self, text, buttons=OK, default_button=OK, allow_escape=True
@@ -237,7 +242,9 @@ class MainWindow(QMainWindow):
 	@run_in_main_thread
 	def show_quicksearch(self, get_items, get_tab_completion=None):
 		with ClearFocusEarly(self):
-			dialog = Quicksearch(self, self._css, get_items, get_tab_completion)
+			dialog = Quicksearch(
+				self, self._app, self._css, get_items, get_tab_completion
+			)
 			if is_mac():
 				disable_window_animations_mac(dialog)
 			return dialog.exec()
@@ -373,3 +380,57 @@ class SplashScreen(QDialog):
 	def _finished(self, result):
 		if result != self.Accepted:
 			self.app.exit(0)
+
+class TutorialScreen(QFrame):
+	def __init__(self, parent, title, paragraphs, buttons=None):
+		super().__init__(parent)
+
+		# self.setWindowFlags(Qt.Widget | Qt.WindowTransparentForInput)
+		self.setFrameShape(QFrame.Box)
+		self.setFrameShadow(QFrame.Raised)
+		# self.setAttribute(Qt.WA_ShowWithoutActivating)
+		self.setFocusPolicy(Qt.NoFocus)
+		# self.setEnabled(False)
+
+		self.setWindowTitle('Tour')
+
+		layout = QVBoxLayout()
+		layout.setContentsMargins(20, 20, 20, 20)
+
+		self.label = QLabel(self)
+		self.label.setWordWrap(True)
+
+		p_styles = ['line-height: 115%']
+		if is_windows():
+			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
+		p_style = '; '.join(p_styles)
+		self.label.setText(
+			"<center style='line-height: 130%'>"
+				"<h2 style='color: #bbbbbb;'>" + title + "</h2>"
+			"</center>"
+			+
+			''.join(
+				"<p style='" + p_style + "'>" + line + "</p>"
+				for line in paragraphs
+			)
+		)
+
+		layout.addWidget(self.label)
+
+		if buttons:
+			button_container = QWidget(self)
+			button_layout = QHBoxLayout()
+			for button_label, action in buttons:
+				button = QPushButton(button_label, button_container)
+				button.setFocusPolicy(Qt.NoFocus)
+				def clicked(action=action):
+					self.parent().setFocus()
+					action()
+				button.clicked.connect(action)
+				button_layout.addWidget(button)
+			button_container.setLayout(button_layout)
+			layout.addWidget(button_container)
+
+		self.setLayout(layout)
+	def close(self):
+		self.setParent(None)

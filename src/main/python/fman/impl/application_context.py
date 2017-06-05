@@ -6,12 +6,14 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.model import GnomeFileIconProvider
-from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME
+from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
+	CommandCallback
 from fman.impl.plugins.config import ConfigFileLocator
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.jsonio import JsonIO
 from fman.impl.session import SessionManager
+from fman.impl.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
@@ -40,6 +42,7 @@ class ApplicationContext:
 	def __init__(self):
 		self._app = None
 		self._app_icon = None
+		self._command_callback = None
 		self._config_file_locator = None
 		self._constants = None
 		self._css = None
@@ -55,6 +58,7 @@ class ApplicationContext:
 		self._plugin_dirs = None
 		self._json_io = None
 		self._splash_screen = None
+		self._tutorial = None
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
@@ -79,6 +83,7 @@ class ApplicationContext:
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
+		self.tutorial.exec()
 		if self.is_licensed:
 			if not self.session_manager.was_licensed_on_last_run:
 				self.metrics.track('InstalledLicenseKey')
@@ -86,7 +91,10 @@ class ApplicationContext:
 					is_licensed=True, email=self.user.email
 				)
 		else:
-			self.splash_screen.exec()
+			if self.session_manager.is_first_run:
+				self.tutorial.exec()
+			else:
+				self.splash_screen.exec()
 		previous_version = self.session_manager.previous_fman_version
 		# TODO: Remove this migration After May 2017
 		if parse_version(previous_version or self.fman_version) < (0, 4, 2):
@@ -140,6 +148,11 @@ class ApplicationContext:
 			self._app_icon = QIcon(self.get_resource('fman.ico'))
 		return self._app_icon
 	@property
+	def command_callback(self):
+		if self._command_callback is None:
+			self._command_callback = CommandCallback(self.metrics)
+		return self._command_callback
+	@property
 	def config_file_locator(self):
 		if self._config_file_locator is None:
 			self._config_file_locator = \
@@ -184,11 +197,14 @@ class ApplicationContext:
 	@property
 	def main_window(self):
 		if self._main_window is None:
-			self._main_window = MainWindow(self.css, self.icon_provider)
+			self._main_window = \
+				MainWindow(self.app, self.css, self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			error_handler = PluginErrorHandler(self.app, self._main_window)
-			plugin_support = \
-				PluginSupport(self.plugin_dirs, self.json_io, error_handler)
+			plugin_support = PluginSupport(
+				self.plugin_dirs, self.json_io, error_handler,
+				self.command_callback
+			)
 			controller = Controller(self.window, plugin_support, self.metrics)
 			self._main_window.controller = controller
 			self._main_window.setPalette(self.main_window_palette)
@@ -223,6 +239,12 @@ class ApplicationContext:
 		if self._splash_screen is None:
 			self._splash_screen = SplashScreen(self.main_window, self.app)
 		return self._splash_screen
+	@property
+	def tutorial(self):
+		if self._tutorial is None:
+			self._tutorial = \
+				Tutorial(self.main_window, self.app, self.command_callback)
+		return self._tutorial
 	@property
 	def plugin_support(self):
 		return self.controller.plugin_support
