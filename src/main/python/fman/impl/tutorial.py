@@ -2,6 +2,7 @@ from fman.impl.widgets import Overlay
 from fman.util import listdir_absolute
 from fman.util.qt import run_in_main_thread
 from fman.util.system import is_mac
+from os import listdir
 from os.path import expanduser, isdir, join, getmtime, basename, samefile
 
 import os
@@ -52,11 +53,17 @@ class Tutorial:
 		for candidate in candidates:
 			if isdir(candidate):
 				return candidate
-		home_dirs = [
-			d for d in listdir_absolute(expanduser('~'))
-			if isdir(d) and not basename(d).startswith('.')
-		]
-		return sorted(home_dirs, key=getmtime)[0]
+		home_dir_candidates = []
+		for d in listdir_absolute(expanduser('~')):
+			if basename(d).startswith('.') or not isdir(d):
+				continue
+			try:
+				sort_key = not listdir(d), len(basename(d)), getmtime(d)
+			except OSError:
+				pass
+			else:
+				home_dir_candidates.append((sort_key, d))
+		return sorted(home_dir_candidates)[0][1]
 	def _get_steps(self):
 		goto_directory = basename(self._directory_for_goto)
 		cmd_p = '⌘P' if is_mac() else 'Ctrl+P'
