@@ -8,10 +8,11 @@ import os
 import re
 
 class Tutorial:
-	def __init__(self, main_window, app, command_callback):
+	def __init__(self, main_window, app, command_callback, metrics):
 		self._main_window = main_window
 		self._app = app
 		self._command_callback = command_callback
+		self._metrics = metrics
 		self._curr_step_index = -1
 		self._curr_step = None
 		self._directory_for_goto = self._get_directory_for_goto()
@@ -19,15 +20,21 @@ class Tutorial:
 	def start(self):
 		self._curr_step_index = -1
 		self._next_step()
+	def reject(self):
+		self._metrics.track('AbortedTutorial', {'step': self._curr_step_index})
+		self.close()
+	def complete(self):
+		self._metrics.track('CompletedTutorial')
+		self.close()
 	def close(self):
 		self._curr_step.close()
 		self._command_callback.remove_listener(self._curr_step)
 		self._curr_step = None
 	def _next_step(self):
 		self._curr_step_index += 1
-		self._show_current_screen()
-	def _prev_step(self):
-		self._curr_step_index -= 1
+		self._metrics.track(
+			'StartedTutorialStep', {'step': self._curr_step_index}
+		)
 		self._show_current_screen()
 	def _show_current_screen(self):
 		if self._curr_step:
@@ -62,7 +69,7 @@ class Tutorial:
 					"features? It only takes ~2 minutes and lets you hit the "
 					"ground running."
 				],
-				buttons=[('No', self.close), ('Yes', self._next_step)]
+				buttons=[('No', self.reject), ('Yes', self._next_step)]
 			),
 			TutorialStep(
 				'Awesome!',
@@ -159,7 +166,7 @@ class Tutorial:
 					"features, that's all you need to know.",
 					"Have fun with fman! :-)"
 				],
-				buttons=[('Close', self.close)]
+				buttons=[('Close', self.complete)]
 			)
 		]
 	def _after_goto(self):

@@ -261,8 +261,9 @@ class ApplicationContext:
 	@property
 	def tutorial(self):
 		if self._tutorial is None:
-			self._tutorial = \
-				Tutorial(self.main_window, self.app, self.command_callback)
+			self._tutorial = Tutorial(
+				self.main_window, self.app, self.command_callback, self.metrics
+			)
 		return self._tutorial
 	@property
 	def plugin_support(self):
