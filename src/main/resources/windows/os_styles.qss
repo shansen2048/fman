@@ -5,3 +5,7 @@ PathView {
 QStatusBar {
 	min-height: 6ex;
 }
+
+Overlay {
+	max-width: 25em;
+}

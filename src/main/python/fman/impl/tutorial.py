@@ -1,7 +1,7 @@
 from fman.impl.widgets import Overlay
 from fman.util import listdir_absolute
-from fman.util.system import is_windows
 from fman.util.qt import run_in_main_thread
+from fman.util.system import is_mac
 from os.path import expanduser, isdir, join, getmtime, basename, samefile
 
 import os
@@ -52,6 +52,8 @@ class Tutorial:
 		return sorted(home_dirs, key=getmtime)[0]
 	def _get_steps(self):
 		goto_directory = basename(self._directory_for_goto)
+		cmd_p = '⌘P' if is_mac() else 'Ctrl+P'
+		cmd_shift_p = '⌘⇧P' if is_mac() else 'Ctrl+Shift+P'
 		return [
 			TutorialStep(
 				'Welcome to fman!',
@@ -69,7 +71,7 @@ class Tutorial:
 					"use fman with the keyboard. Try to resort to the mouse as "
 					"little as possible.",
 					"Ready? Let's try fman's most useful shortcut: "
-					"Press&nbsp;*⌘P*."
+					"Press&nbsp;*%s*." % cmd_p
 				],
 				{
 					'before': {
@@ -98,8 +100,8 @@ class Tutorial:
 					"used to it, you'll never want to manually navigate "
 					"directory trees again.",
 					"Feel free to jump to a few other directories (the "
-					"shortcut was ⌘P). When you're ready to continue, "
-					"click *Next*."
+					"shortcut was %s). When you're ready to continue, "
+					"click *Next*." % cmd_p
 				],
 				buttons=[('Next', self._next_step)]
 			),
@@ -107,7 +109,7 @@ class Tutorial:
 				'',
 				[
 					"Next, let's try the \"mother of all shortcuts\". Press "
-					"*⌘⇧P*."
+					"*%s*." % cmd_shift_p
 				],
 				{
 					'before': {
@@ -137,7 +139,8 @@ class Tutorial:
 				[
 					"Perfect! The files were selected. Here's a little "
 					"challenge for you: _De_select the files!",
-					"Hint: The shortcut for the Command Palette is ⌘⇧P."
+					"Hint: The shortcut for the Command Palette is %s."
+					% cmd_shift_p
 				],
 				{
 					'after': {
@@ -149,14 +152,11 @@ class Tutorial:
 				'Great Work!',
 				[
 					"This concludes the tutorial. Remember:",
-					"* *⌘P* lets you go to any _P_ath.",
-					"* *⌘⇧P* opens the Command _P_alette.",
+					"* *%s* lets you go to any _P_ath." % cmd_p,
+					"* *%s* opens the Command _P_alette." % cmd_shift_p,
 					"* fman is best used with the keyboard.",
 					"Because the Command Palette lets you look up other "
-					"features, that's all you really need to know.",
-					"You can start the tutorial again any time from the "
-					"Command Palette. Have fun with fman!"
-
+					"features, that's all you need to know. Have fun! :-)"
 				],
 				buttons=[('Close', self.close)]
 			)
