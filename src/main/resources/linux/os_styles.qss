@@ -1,3 +1,8 @@
 PathView {
 	padding: .5ex;
 }
+
+Overlay {
+	min-width: 18em;
+	max-width: 20em;
+}

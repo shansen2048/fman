@@ -70,7 +70,7 @@ class Tutorial:
 					"First things first: You'll be most productive when you "
 					"use fman with the keyboard. Try to resort to the mouse as "
 					"little as possible.",
-					"Ready? Let's try fman's most useful shortcut: Press&nbsp;"
+					"Ready? Let's try fman's most useful shortcut:<br/>Press "
 					"*%s*." % cmd_p
 				],
 				{
@@ -139,7 +139,7 @@ class Tutorial:
 				[
 					"Perfect! The files were selected. Here's a little "
 					"challenge for you: _De_select the files!",
-					"Hint: The shortcut for the Command Palette is&nbsp;*%s*."
+					"Hint: The shortcut for the Command Palette is *%s*."
 					% cmd_shift_p
 				],
 				{
