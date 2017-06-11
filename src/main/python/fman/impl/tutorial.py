@@ -70,8 +70,8 @@ class Tutorial:
 					"First things first: You'll be most productive when you "
 					"use fman with the keyboard. Try to resort to the mouse as "
 					"little as possible.",
-					"Ready? Let's try fman's most useful shortcut:<br/>"
-					"Press *%s*." % cmd_p
+					"Ready? Let's try fman's most useful shortcut: Press&nbsp;"
+					"*%s*." % cmd_p
 				],
 				{
 					'before': {
@@ -139,7 +139,7 @@ class Tutorial:
 				[
 					"Perfect! The files were selected. Here's a little "
 					"challenge for you: _De_select the files!",
-					"Hint: The shortcut for the Command Palette is <br/>*%s*."
+					"Hint: The shortcut for the Command Palette is&nbsp;*%s*."
 					% cmd_shift_p
 				],
 				{
@@ -156,7 +156,8 @@ class Tutorial:
 					"* *%s* opens the Command _P_alette." % cmd_shift_p,
 					"* fman is best used with the keyboard.",
 					"Because the Command Palette lets you look up other "
-					"features, that's all you need to know. Have fun! :-)"
+					"features, that's all you need to know.",
+					"Have fun with fman! :-)"
 				],
 				buttons=[('Close', self.close)]
 			)
