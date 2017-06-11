@@ -13,7 +13,9 @@ def exe():
 	run_pyinstaller(extra_args=[
 		'--windowed', '--icon', path('src/main/resources/base/fman.ico'),
 		# Required by send2trash, which is used in the Core plugin:
-		'--hidden-import', 'ctypes.wintypes'
+		'--hidden-import', 'ctypes.wintypes',
+		# Required by the Core plugin:
+		'--hidden-import', 'adodbapi'
 	])
 	# PyInstaller somehow corrupts python35.dll - see:
 	# https://github.com/pyinstaller/pyinstaller/issues/2526

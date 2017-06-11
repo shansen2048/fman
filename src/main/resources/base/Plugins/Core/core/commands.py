@@ -557,7 +557,9 @@ class GoTo(_CorePaneCommand):
 			# search functionality:
 			result.extend(islice(self._traverse_by_mtime(home_dir), 500))
 			result.extend(
-				islice(self._traverse_by_mtime('/', exclude={'/proc', '/sys'}), 500)
+				islice(self._traverse_by_mtime(
+					'/', exclude={'/proc', '/sys'}), 500
+				)
 			)
 		return result
 	def _get_nonhidden_subdirs(self, dir_path):
