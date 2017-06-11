@@ -12,7 +12,7 @@ from io import BytesIO
 from itertools import chain, islice
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir
+	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir, islink
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -530,13 +530,14 @@ class GoTo(_CorePaneCommand):
 				path = expanduser(query)
 			if isdir(path):
 				self.pane.set_path(path)
+	def _get_tab_completion(self, curr_suggestion):
+		result = curr_suggestion
+		if not result.endswith(os.sep):
+			result += os.sep
+		return result
 	def _get_default_paths(self):
-		result = []
 		home_dir = expanduser('~')
-		for file_name in listdir(home_dir):
-			file_path = join(home_dir, file_name)
-			if isdir(file_path) and not _is_hidden(file_path):
-				result.append(join('~', file_name))
+		result = list(self._get_nonhidden_subdirs(home_dir))
 		if PLATFORM == 'Windows':
 			for candidate in (r'C:\Program Files', r'C:\Program Files (x86)'):
 				if isdir(candidate):
@@ -551,12 +552,44 @@ class GoTo(_CorePaneCommand):
 				result.append('/media')
 			if exists('/mnt'):
 				result.append('/mnt')
+			# We need to add more suggestions on Linux, because unlike Windows
+			# and Mac, we (currently) do not integrate with the OS's native
+			# search functionality:
+			result.extend(islice(self._traverse_by_mtime(home_dir), 500))
+			result.extend(islice(self._traverse_by_mtime('/'), 500))
 		return result
-	def _get_tab_completion(self, curr_suggestion):
-		result = curr_suggestion
-		if not result.endswith(os.sep):
-			result += os.sep
-		return result
+	def _get_nonhidden_subdirs(self, dir_path):
+		for file_name in listdir(dir_path):
+			file_path = join(dir_path, file_name)
+			if isdir(file_path) and not _is_hidden(file_path):
+				yield join(dir_path, file_name)
+	def _traverse_by_mtime(self, dir_path):
+		to_visit = [(os.stat(dir_path), dir_path)]
+		already_yielded = set()
+		while to_visit:
+			stat, parent = to_visit.pop()
+			yield parent
+			try:
+				parent_contents = listdir(parent)
+			except OSError:
+				continue
+			for file_name in parent_contents:
+				if file_name.startswith('.'):
+					continue
+				file_path = join(parent, file_name)
+				try:
+					if not isdir(file_path) or islink(file_path):
+						continue
+				except OSError:
+					continue
+				try:
+					stat = os.stat(file_path)
+				except OSError:
+					pass
+				else:
+					already_yielded.add(stat.st_ino)
+					to_visit.append((stat, file_path))
+			to_visit.sort(key=lambda tpl: tpl[0].st_mtime)
 
 class GoToListener(DirectoryPaneListener):
 	def __init__(self, *args, **kwargs):
