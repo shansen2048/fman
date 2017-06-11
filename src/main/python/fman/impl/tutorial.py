@@ -228,10 +228,6 @@ class TutorialStep:
 		highlight = lambda text: "<span style='color: white;'>%s</span>" % text
 		def underline(text):
 			return "<span style='text-decoration: underline;'>%s</span>" % text
-		p_styles = ['line-height: 115%']
-		if is_windows():
-			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
-		p_style = '; '.join(p_styles)
 		result = ''
 		is_list = False
 		for line in self._paragraphs:
@@ -242,7 +238,7 @@ class TutorialStep:
 					line = '<ul>' + line
 					is_list = True
 			else:
-				line = '<p style="%s">%s</p>' % (p_style, line)
+				line = '<p style="line-height: 115%%;">%s</p>' % line
 				if is_list:
 					line = '</ul>' + line
 					is_list = False
