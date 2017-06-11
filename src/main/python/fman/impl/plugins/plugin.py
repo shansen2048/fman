@@ -5,26 +5,22 @@ from inspect import getmro
 from os.path import join, isdir, basename, isfile
 from threading import Thread
 
+import inspect
 import re
 import sys
 
 class Plugin:
-	def __init__(self, path, error_handler):
-		self._path = path
+	def __init__(self, error_handler, command_callback):
 		self._error_handler = error_handler
+		self._command_callback = command_callback
 		self._application_command_instances = {}
 		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
+	@property
+	def name(self):
+		raise NotImplementedError()
 	def load(self):
-		for cls, superclasses in self._load_classes():
-			if ApplicationCommand in superclasses:
-				name = _get_command_name(cls)
-				instance = self._instantiate_command(name, cls)
-				self._application_command_instances[name] = instance
-			elif DirectoryPaneCommand in superclasses:
-				self._directory_pane_commands[_get_command_name(cls)] = cls
-			elif DirectoryPaneListener in superclasses:
-				self._directory_pane_listeners.append(cls)
+		pass
 	def on_pane_added(self, pane):
 		for cmd_name, cmd_class in self._directory_pane_commands.items():
 			command = self._instantiate_command(cmd_name, cmd_class, pane)
@@ -40,21 +36,10 @@ class Plugin:
 		if args is None:
 			args = {}
 		return self._application_command_instances[name](**args)
-	def _load_classes(self):
-		for package in self._load_packages():
-			for member in [getattr(package, name) for name in dir(package)]:
-				try:
-					mro = getmro(member)
-				except Exception as not_a_class:
-					continue
-				yield member, mro[1:]
-	def _load_packages(self):
-		sys.path.append(self._path)
-		for dir_ in [d for d in listdir_absolute(self._path) if isdir(d)]:
-			init = join(dir_, '__init__.py')
-			if isfile(init):
-				package_name = basename(dir_)
-				yield SourceFileLoader(package_name, init).load_module()
+	def _register_application_command(self, cls, *args):
+		name = _get_command_name(cls)
+		instance = self._instantiate_command(name, cls, *args)
+		self._application_command_instances[name] = instance
 	def _instantiate_command(self, cmd_name, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -63,9 +48,11 @@ class Plugin:
 				'Could not instantiate command %r.' % cmd_name
 			)
 			command = lambda *_, **__: None
-		return CommandWrapper(command, self._error_handler)
+		return CommandWrapper(
+			command, self._error_handler, self._command_callback
+		)
 	def __str__(self):
-		return '<Plugin %r>' % basename(self._path)
+		return '<%s %r>' % (self.__class__.__name__, self.name)
 
 def _get_command_name(command_class):
 	try:
@@ -74,18 +61,49 @@ def _get_command_name(command_class):
 		assert isinstance(command_class, str)
 	return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class).lower()
 
+class ExternalPlugin(Plugin):
+	def __init__(self, error_handler, command_callback, path):
+		super().__init__(error_handler, command_callback)
+		self._path = path
+	@property
+	def name(self):
+		return basename(self._path)
+	def load(self):
+		for cls in self._load_classes():
+			superclasses = getmro(cls)[1:]
+			if ApplicationCommand in superclasses:
+				self._register_application_command(cls)
+			elif DirectoryPaneCommand in superclasses:
+				self._directory_pane_commands[_get_command_name(cls)] = cls
+			elif DirectoryPaneListener in superclasses:
+				self._directory_pane_listeners.append(cls)
+	def _load_classes(self):
+		for package in self._load_packages():
+			for member in [getattr(package, name) for name in dir(package)]:
+				if inspect.isclass(member):
+					yield member
+	def _load_packages(self):
+		sys.path.append(self._path)
+		for dir_ in [d for d in listdir_absolute(self._path) if isdir(d)]:
+			init = join(dir_, '__init__.py')
+			if isfile(init):
+				package_name = basename(dir_)
+				yield SourceFileLoader(package_name, init).load_module()
+
 def get_command_class_name(command_name):
 	return ''.join(part.title() for part in command_name.split('_'))
 
 class CommandWrapper:
-	def __init__(self, command, error_handler):
+	def __init__(self, command, error_handler, callback):
 		self.command = command
 		self.error_handler = error_handler
+		self.callback = callback
 	def __call__(self, *args, **kwargs):
 		Thread(
 			target=self._run_in_thread, args=args, kwargs=kwargs, daemon=True
 		).start()
 	def _run_in_thread(self, *args, **kwargs):
+		self.callback.before_command(self.name)
 		try:
 			self.command(*args, **kwargs)
 		except SystemExit as e:
@@ -93,6 +111,8 @@ class CommandWrapper:
 		except:
 			message = 'Command %r raised exception.' % self.name
 			self.error_handler.report(message)
+		else:
+			self.callback.after_command(self.name)
 	@property
 	def name(self):
 		return self.command.__class__.__name__

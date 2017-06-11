@@ -123,3 +123,14 @@ QStatusBar QLabel {
 SplashScreen QPushButton {
 	max-width: 70px;
 }
+
+Overlay {
+	min-width: 20em;
+	max-width: 22em;
+	background-color: #272822;
+	border: 1px solid #7d7d7d;
+}
+
+Overlay QPushButton {
+	max-width: 10em;
+}

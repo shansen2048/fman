@@ -178,6 +178,7 @@ class MainWindow(QMainWindow):
 	pane_added = pyqtSignal(DirectoryPane)
 	shown = pyqtSignal()
 	closed = pyqtSignal()
+	before_quicksearch = pyqtSignal(Quicksearch)
 
 	def __init__(self, app, css, icon_provider=None):
 		super().__init__()
@@ -199,9 +200,7 @@ class MainWindow(QMainWindow):
 		self._timer = QTimer(self)
 		self._timer.timeout.connect(self.clear_status_message)
 		self._timer.setSingleShot(True)
-		self._timer_2 = QTimer(self)
-		self._timer_2.timeout.connect(lambda: print(QApplication.instance().focusWidget()))
-		self._timer_2.start(1000)
+		self._dialog = None
 	@run_in_main_thread
 	def show_alert(
 		self, text, buttons=OK, default_button=OK, allow_escape=True
@@ -242,12 +241,15 @@ class MainWindow(QMainWindow):
 	@run_in_main_thread
 	def show_quicksearch(self, get_items, get_tab_completion=None):
 		with ClearFocusEarly(self):
-			dialog = Quicksearch(
+			self._dialog = Quicksearch(
 				self, self._app, self._css, get_items, get_tab_completion
 			)
+			self.before_quicksearch.emit(self._dialog)
 			if is_mac():
-				disable_window_animations_mac(dialog)
-			return dialog.exec()
+				disable_window_animations_mac(self._dialog)
+			result = self._dialog.exec()
+			self._dialog = None
+			return result
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
 		self._status_bar_text.setText(text)
@@ -272,6 +274,23 @@ class MainWindow(QMainWindow):
 		QTimer(self).singleShot(0, self.shown.emit)
 	def closeEvent(self, _):
 		self.closed.emit()
+	@run_in_main_thread
+	def show_overlay(self, overlay):
+		overlay.resize(overlay.sizeHint())
+		self._position_overlay(overlay)
+		overlay.show()
+	def _position_overlay(self, overlay):
+		if self._dialog is None:
+			pos_x = (self.width() - overlay.width()) / 2
+			pos_y = (self.height() - overlay.height()) / 2
+		else:
+			dialog_pos = self._dialog.pos()
+			pos_x = dialog_pos.x() - self.pos().x() + self._dialog.width() + 30
+			pos_y = dialog_pos.y() - self.pos().y() + self._dialog.height() + 30
+			right_margin = self.width() - pos_x - overlay.width()
+			if right_margin / self.width() < 0.1:
+				pos_x = 0.9 * self.width() - overlay.width()
+		overlay.move(pos_x, pos_y)
 
 class MessageBox(QMessageBox):
 	def __init__(self, parent, allow_escape=True):
@@ -381,39 +400,20 @@ class SplashScreen(QDialog):
 		if result != self.Accepted:
 			self.app.exit(0)
 
-class TutorialScreen(QFrame):
-	def __init__(self, parent, title, paragraphs, buttons=None):
+class Overlay(QFrame):
+	def __init__(self, parent, html, buttons=None):
 		super().__init__(parent)
 
-		# self.setWindowFlags(Qt.Widget | Qt.WindowTransparentForInput)
 		self.setFrameShape(QFrame.Box)
 		self.setFrameShadow(QFrame.Raised)
-		# self.setAttribute(Qt.WA_ShowWithoutActivating)
 		self.setFocusPolicy(Qt.NoFocus)
-		# self.setEnabled(False)
-
-		self.setWindowTitle('Tour')
 
 		layout = QVBoxLayout()
 		layout.setContentsMargins(20, 20, 20, 20)
 
 		self.label = QLabel(self)
 		self.label.setWordWrap(True)
-
-		p_styles = ['line-height: 115%']
-		if is_windows():
-			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
-		p_style = '; '.join(p_styles)
-		self.label.setText(
-			"<center style='line-height: 130%'>"
-				"<h2 style='color: #bbbbbb;'>" + title + "</h2>"
-			"</center>"
-			+
-			''.join(
-				"<p style='" + p_style + "'>" + line + "</p>"
-				for line in paragraphs
-			)
-		)
+		self.label.setText(html)
 
 		layout.addWidget(self.label)
 
@@ -422,11 +422,7 @@ class TutorialScreen(QFrame):
 			button_layout = QHBoxLayout()
 			for button_label, action in buttons:
 				button = QPushButton(button_label, button_container)
-				button.setFocusPolicy(Qt.NoFocus)
-				def clicked(action=action):
-					self.parent().setFocus()
-					action()
-				button.clicked.connect(action)
+				button.clicked.connect(lambda *_, action=action: action())
 				button_layout.addWidget(button)
 			button_container.setLayout(button_layout)
 			layout.addWidget(button_container)

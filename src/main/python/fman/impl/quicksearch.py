@@ -3,13 +3,16 @@ from fman.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, Key_Home, \
 	Key_End, Key_PageUp, UserRole, AlignRight, AlignVCenter, NoFocus, \
 	FramelessWindowHint, AlignTop
 from PyQt5.QtCore import QAbstractListModel, QVariant, QModelIndex, QSize, \
-	QPointF, QRectF, QPoint
+	QPointF, QRectF, QPoint, pyqtSignal
 from PyQt5.QtGui import QFont, QTextLayout, QTextCharFormat, QBrush, \
 	QKeySequence
 from PyQt5.QtWidgets import QDialog, QLayout, QFrame, QVBoxLayout, QLineEdit, \
 	QListView, QStyledItemDelegate, QApplication, QStyle
 
 class Quicksearch(QDialog):
+
+	shown = pyqtSignal()
+
 	def __init__(self, parent, app, css, get_items, get_tab_completion=None):
 		if get_tab_completion is None:
 			get_tab_completion = lambda _: None
@@ -26,6 +29,9 @@ class Quicksearch(QDialog):
 		self._place_cursor_at_first_item()
 		if super().exec():
 			return self._result
+	def showEvent(self, event):
+		super().showEvent(event)
+		self.shown.emit()
 	def _init_ui(self):
 		self._query = LineEdit()
 		self._query.keyPressEventFilter = self._on_key_pressed

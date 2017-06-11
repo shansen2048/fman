@@ -8,10 +8,12 @@ from fman.impl.excepthook import Excepthook
 from fman.impl.model import GnomeFileIconProvider
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 	CommandCallback
+from fman.impl.plugins.builtin import BuiltinPlugin
 from fman.impl.plugins.config import ConfigFileLocator
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.jsonio import JsonIO
+from fman.impl.plugins.plugin import ExternalPlugin
 from fman.impl.session import SessionManager
 from fman.impl.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
@@ -55,6 +57,9 @@ class ApplicationContext:
 		self._user = None
 		self._is_licensed = None
 		self._main_window_palette = None
+		self._plugins = None
+		self._builtin_plugin = None
+		self._plugin_error_handler = None
 		self._plugin_dirs = None
 		self._json_io = None
 		self._splash_screen = None
@@ -66,7 +71,7 @@ class ApplicationContext:
 		self._metrics_logging_enabled = None
 		self._metrics_backend = None
 		self._window = None
-	def initialize(self):
+	def run(self):
 		fman.FMAN_VERSION = self.fman_version
 		if self.excepthook:
 			self.excepthook.install()
@@ -76,14 +81,14 @@ class ApplicationContext:
 		_ = self.app
 		self._load_fonts()
 		self.plugin_support.initialize()
-		self.session_manager.on_startup(self.main_window)
+		self.session_manager.show_main_window(self.main_window)
+		return self.app.exec_()
 	@property
 	def fman_version(self):
 		return self.constants['version']
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
-		self.tutorial.exec()
 		if self.is_licensed:
 			if not self.session_manager.was_licensed_on_last_run:
 				self.metrics.track('InstalledLicenseKey')
@@ -92,7 +97,7 @@ class ApplicationContext:
 				)
 		else:
 			if self.session_manager.is_first_run:
-				self.tutorial.exec()
+				self.tutorial.start()
 			else:
 				self.splash_screen.exec()
 		previous_version = self.session_manager.previous_fman_version
@@ -200,11 +205,9 @@ class ApplicationContext:
 			self._main_window = \
 				MainWindow(self.app, self.css, self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
-			error_handler = PluginErrorHandler(self.app, self._main_window)
-			plugin_support = PluginSupport(
-				self.plugin_dirs, self.json_io, error_handler,
-				self.command_callback
-			)
+			error_handler = self.plugin_error_handler
+			plugin_support = \
+				PluginSupport(self.plugins, self.json_io, error_handler)
 			controller = Controller(self.window, plugin_support, self.metrics)
 			self._main_window.controller = controller
 			self._main_window.setPalette(self.main_window_palette)
@@ -218,6 +221,22 @@ class ApplicationContext:
 		if self.is_licensed:
 			return 'fman'
 		return 'fman – NOT REGISTERED'
+	@property
+	def plugins(self):
+		if self._plugins is None:
+			def external_plugin(dir_):
+				return self._instantiate_plugin(ExternalPlugin, dir_)
+			self._plugins = [self.builtin_plugin] + \
+							list(map(external_plugin, self._plugin_dirs))
+		return self._plugins
+	@property
+	def builtin_plugin(self):
+		if self._builtin_plugin is None:
+			self._builtin_plugin = \
+				self._instantiate_plugin(BuiltinPlugin, self.tutorial)
+		return self._builtin_plugin
+	def _instantiate_plugin(self, cls, *args):
+		return cls(self.plugin_error_handler, self.command_callback, *args)
 	@property
 	def plugin_dirs(self):
 		if self._plugin_dirs is None:
@@ -250,7 +269,10 @@ class ApplicationContext:
 		return self.controller.plugin_support
 	@property
 	def plugin_error_handler(self):
-		return self.plugin_support.error_handler
+		if self._plugin_error_handler is None:
+			self._plugin_error_handler = \
+				PluginErrorHandler(self.app, self.main_window)
+		return self._plugin_error_handler
 	@property
 	def controller(self):
 		return self.main_window.controller

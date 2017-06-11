@@ -1,5 +1,5 @@
 from functools import wraps
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QEvent
 from PyQt5.QtWidgets import QApplication
 
 def connect_once(signal, slot):
@@ -124,7 +124,26 @@ IgnoreAction = Qt.IgnoreAction
 NoButton = Qt.NoButton
 
 def disable_window_animations_mac(window):
-	from objc import objc_object
-	view = objc_object(c_void_p=int(window.winId()))
-	NSWindowAnimationBehaviorNone = 2
-	view.window().setAnimationBehavior_(NSWindowAnimationBehaviorNone)
+	# We need to access `.winId()` below. This method has an unwanted (and not
+	# very well-documented) side effect: Calling it before the window is shown
+	# makes Qt turn the window into a "native window". This incurs performance
+	# penalties and leads to subtle changes in behaviour. We therefore wait for
+	# the Show event:
+	def eventFilter(target, event):
+		from objc import objc_object
+		view = objc_object(c_void_p=int(target.winId()))
+		NSWindowAnimationBehaviorNone = 2
+		view.window().setAnimationBehavior_(NSWindowAnimationBehaviorNone)
+	FilterEventOnce(window, QEvent.Show, eventFilter)
+
+class FilterEventOnce(QObject):
+	def __init__(self, parent, event_type, callback):
+		super().__init__(parent)
+		self._event_type = event_type
+		self._callback = callback
+		parent.installEventFilter(self)
+	def eventFilter(self, target, event):
+		if event.type() == self._event_type:
+			self.parent().removeEventFilter(self)
+			self._callback(target, event)
+		return False

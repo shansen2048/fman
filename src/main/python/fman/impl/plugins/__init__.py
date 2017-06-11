@@ -1,15 +1,13 @@
-from fman.impl.plugins.plugin import Plugin
+from fman.impl.plugins.plugin import ExternalPlugin
 from fman.impl.plugins.key_bindings import sanitize_key_bindings
-from os.path import basename
 
 SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
-	def __init__(self, plugin_dirs, json_io, error_handler):
-		self._plugin_dirs = plugin_dirs
+	def __init__(self, plugins, json_io, error_handler):
+		self._plugins = plugins
 		self._json_io = json_io
 		self._error_handler = error_handler
-		self._plugins = None
 		self._key_bindings = None
 	def initialize(self):
 		self._plugins = self._load_plugins()
@@ -38,12 +36,11 @@ class PluginSupport:
 		raise LookupError(name)
 	def _load_plugins(self):
 		result = []
-		for plugin_dir in self._plugin_dirs:
-			plugin = Plugin(plugin_dir, self._error_handler)
+		for plugin in self._plugins:
 			try:
 				plugin.load()
 			except:
-				message = 'Plugin %r failed to load.' % basename(plugin_dir)
+				message = 'Plugin %r failed to load.' % plugin.name
 				self._error_handler.report(message)
 			else:
 				result.append(plugin)
@@ -64,3 +61,21 @@ class PluginSupport:
 		for plugin in self._plugins:
 			yield from plugin.get_directory_pane_commands()
 			yield from plugin.get_application_commands()
+
+class CommandCallback:
+	def __init__(self, metrics):
+		self._metrics = metrics
+		self._listeners = []
+	def add_listener(self, listener):
+		self._listeners.append(listener)
+	def remove_listener(self, listener):
+		self._listeners.remove(listener)
+	def before_command(self, name):
+		self._metrics.track('RanCommand', {
+			'command': name
+		})
+		for listener in self._listeners[:]:
+			listener.before_command(name)
+	def after_command(self, name):
+		for listener in self._listeners[:]:
+			listener.after_command(name)

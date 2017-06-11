@@ -1,5 +1,6 @@
 from fman import PLATFORM, Window, DirectoryPane
-from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME
+from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
+	ExternalPlugin
 from fman.impl.plugins.config import ConfigFileLocator
 from fman.impl.plugins.jsonio import JsonIO
 from fman_integrationtest import get_resource
@@ -135,12 +136,17 @@ class PluginSupportTest(TestCase):
 		self.thirdparty_plugin = join(self.thirdparty_plugins, 'Simple Plugin')
 		src_dir = get_resource('PluginSupportTest/Simple Plugin')
 		copytree(src_dir, self.thirdparty_plugin)
-		self.plugin_dirs = \
+		plugin_dirs = \
 			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin]
-		json_io = JsonIO(ConfigFileLocator(self.plugin_dirs, PLATFORM))
+		json_io = JsonIO(ConfigFileLocator(plugin_dirs, PLATFORM))
 		self.error_handler = StubErrorHandler()
+		self.command_callback = StubCommandCallback()
+		plugins = [
+			ExternalPlugin(self.error_handler, self.command_callback, dir_)
+			for dir_ in plugin_dirs
+		]
 		self.plugin_support = \
-			PluginSupport(self.plugin_dirs, json_io, self.error_handler)
+			PluginSupport(plugins, json_io, self.error_handler)
 		self.plugin_support.initialize()
 		self.window = Window()
 		self.left_pane = DirectoryPane(self.window, None)
@@ -157,3 +163,9 @@ class StubErrorHandler:
 		self.error_messages = []
 	def report(self, message):
 		self.error_messages.append(message)
+
+class StubCommandCallback:
+	def before_command(self, command_name):
+		pass
+	def after_command(self, command_name):
+		pass

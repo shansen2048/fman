@@ -4,9 +4,7 @@ import sys
 
 def main():
 	appctxt = get_application_context()
-	appctxt.initialize()
-	appctxt.main_window.show()
-	exit_code = appctxt.app.exec_()
+	exit_code = appctxt.run()
 	sys.exit(exit_code)
 
 if __name__ == '__main__':

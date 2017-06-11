@@ -14,17 +14,18 @@ class SessionManager:
 
 	DEFAULT_NUM_PANES = 2
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
-	DEFAULT_WINDOW_SIZE = (800, 450)
 
 	def __init__(self, json_path, fman_version, is_licensed):
 		self._json_path = json_path
 		self._fman_version = fman_version
 		self._is_licensed = is_licensed
+		self.is_first_run = False
 		try:
 			with open(self._json_path, 'r') as f:
 				self._json_dict = json.load(f)
 		except FileNotFoundError:
 			self._json_dict = {}
+			self.is_first_run = True
 		except JSONDecodeError:
 			self._json_dict = {
 				'fman_version': self._fman_version
@@ -64,10 +65,17 @@ class SessionManager:
 				join(plugins_directory, other_plugin),
 				join(user_plugin, other_plugin)
 			)
-	def on_startup(self, main_window):
+	def show_main_window(self, main_window):
 		self._restore_panes(main_window, sys.argv[1:])
 		self._restore_window_geometry(main_window)
 		main_window.show_status_message(self._get_startup_message())
+		if self.is_first_run:
+			main_window.showMaximized()
+		else:
+			# In this case, we assume that _restore_window_geometry restored the
+			# window to its previous size/location. We don't want to overwrite
+			# these, so call show() instead of showMaximized():
+			main_window.show()
 	def _restore_panes(self, main_window, paths_on_command_line):
 		panes = self._json_dict.get('panes', [{}] * self.DEFAULT_NUM_PANES)
 		for i, pane_info in enumerate(panes):
@@ -83,8 +91,6 @@ class SessionManager:
 		geometry_b64 = self._json_dict.get('window_geometry', None)
 		if geometry_b64:
 			main_window.restoreGeometry(_decode(geometry_b64))
-		else:
-			main_window.resize(*self.DEFAULT_WINDOW_SIZE)
 		window_state_b64 = self._json_dict.get('window_state', None)
 		if window_state_b64:
 			main_window.restoreState(_decode(window_state_b64))

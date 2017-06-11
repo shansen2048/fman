@@ -1,4 +1,3 @@
-from fman.impl.plugins.plugin import get_command_class_name
 from fman.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, \
 	Key_Right, Key_Return, Key_Enter, Key_Shift, Key_Control, Key_Meta, \
 	Key_Alt, Key_AltGr, Key_CapsLock, Key_NumLock, Key_ScrollLock, ShiftModifier
@@ -36,7 +35,6 @@ class Controller:
 					pane.run_command(cmd_name, args)
 				else:
 					self.plugin_support.run_application_command(cmd_name, args)
-				self._track_command(cmd_name)
 				return True
 		if not key_event.is_modifier_only() and \
 			not key_event.is_letter_only() and \
@@ -55,10 +53,6 @@ class Controller:
 	def on_files_dropped(self, pane_widget, *args):
 		self.tracker.track('DroppedFile')
 		self._panes[pane_widget]._broadcast('on_files_dropped', *args)
-	def _track_command(self, command_name):
-		self.tracker.track('RanCommand', {
-			'command': get_command_class_name(command_name)
-		})
 
 class QtKeyEvent:
 	def __init__(self, key, modifiers):
