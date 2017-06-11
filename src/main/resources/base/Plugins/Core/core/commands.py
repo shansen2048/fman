@@ -556,18 +556,24 @@ class GoTo(_CorePaneCommand):
 			# and Mac, we (currently) do not integrate with the OS's native
 			# search functionality:
 			result.extend(islice(self._traverse_by_mtime(home_dir), 500))
-			result.extend(islice(self._traverse_by_mtime('/'), 500))
+			result.extend(
+				islice(self._traverse_by_mtime('/', exclude={'/proc', '/sys'}), 500)
+			)
 		return result
 	def _get_nonhidden_subdirs(self, dir_path):
 		for file_name in listdir(dir_path):
 			file_path = join(dir_path, file_name)
 			if isdir(file_path) and not _is_hidden(file_path):
 				yield join(dir_path, file_name)
-	def _traverse_by_mtime(self, dir_path):
+	def _traverse_by_mtime(self, dir_path, exclude=None):
+		if exclude is None:
+			exclude = set()
 		to_visit = [(os.stat(dir_path), dir_path)]
 		already_yielded = set()
 		while to_visit:
 			stat, parent = to_visit.pop()
+			if parent in exclude:
+				continue
 			yield parent
 			try:
 				parent_contents = listdir(parent)
