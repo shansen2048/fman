@@ -15,6 +15,7 @@ from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.jsonio import JsonIO
 from fman.impl.plugins.plugin import ExternalPlugin
 from fman.impl.session import SessionManager
+from fman.impl.signal_ import SignalWakeupHandler
 from fman.impl.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
@@ -25,6 +26,7 @@ from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontDatabase, QColor, QPalette, QIcon
 from PyQt5.QtWidgets import QStyleFactory
+from signal import signal, SIGINT
 
 import fman
 import json
@@ -65,6 +67,7 @@ class ApplicationContext:
 		self._json_io = None
 		self._splash_screen = None
 		self._tutorial = None
+		self._signal_wakeup_handler = None
 		self._session_manager = None
 		self._stylesheet = None
 		self._style = None
@@ -72,6 +75,9 @@ class ApplicationContext:
 		self._metrics_logging_enabled = None
 		self._metrics_backend = None
 		self._window = None
+	def setup_signals(self):
+		_ = self.signal_wakeup_handler
+		signal(SIGINT, lambda *_: self.app.exit(130))
 	def run(self):
 		fman.FMAN_VERSION = self.fman_version
 		self.excepthook.install()
@@ -375,6 +381,11 @@ class ApplicationContext:
 				QPalette.Window, QColor(0x44, 0x44, 0x44)
 			)
 		return self._main_window_palette
+	@property
+	def signal_wakeup_handler(self):
+		if self._signal_wakeup_handler is None:
+			self._signal_wakeup_handler = SignalWakeupHandler(self.app)
+		return self._signal_wakeup_handler
 	@property
 	def session_manager(self):
 		if self._session_manager is None:
