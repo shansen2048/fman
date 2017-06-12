@@ -88,9 +88,7 @@ class Quicksearch(QDialog):
 				break
 			row += 1
 	def _update_items(self, query):
-		self._curr_items = self._get_items(query)
-		if not isinstance(self._curr_items, list):
-			self._curr_items = list(self._curr_items)
+		self._curr_items = list(self._get_items(query))
 		model = self._items.model()
 		model.clear()
 		model.extend(self._curr_items)
