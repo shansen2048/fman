@@ -1,5 +1,6 @@
 from collections import deque
 from fman.util.system import is_linux
+from http.client import HTTPException
 from queue import Queue
 from threading import Thread
 from urllib.error import URLError
@@ -117,7 +118,7 @@ class ServerBackend:
 		try:
 			with urlopen(request, context=ssl_context) as response:
 				resp_body = response.read()
-		except URLError as e:
+		except (URLError, HTTPException) as e:
 			raise MetricsError() from e
 		if response.status // 100 != 2:
 			raise MetricsError('Unexpected HTTP status %d.' % response.status)
