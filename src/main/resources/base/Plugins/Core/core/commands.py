@@ -740,6 +740,7 @@ class FileSystem:
 					yield line.rstrip()
 		elif PLATFORM == 'Windows':
 			import adodbapi
+			from pythoncom import com_error
 			try:
 				conn = adodbapi.connect(
 					"Provider=Search.CollatorDSO;"
@@ -763,7 +764,7 @@ class FileSystem:
 				)
 				for row in iter(cursor.fetchone, None):
 					yield row['System.ItemPathDisplay']
-			except adodbapi.Error:
+			except (adodbapi.Error, com_error):
 				pass
 	def _is_documents_and_settings(self, path):
 		return splitdrive(normpath(path))[1].lower() == \
