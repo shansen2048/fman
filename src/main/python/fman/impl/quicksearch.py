@@ -195,7 +195,8 @@ class QuicksearchItemRenderer:
 		layout = self._layout_title()[0]
 		highlight_formats = self._get_highlight_formats()
 		painter.setPen(self._css['title']['color'])
-		pos = self._option.rect.topLeft() + QPoint(self._padding_left, self._padding_top)
+		pos = self._option.rect.topLeft() \
+			  + QPoint(self._padding_left, self._padding_top)
 		layout.draw(painter, pos, highlight_formats)
 	def _draw_hint(self, painter):
 		hint = self._item.hint
