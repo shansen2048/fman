@@ -185,7 +185,8 @@ class Tutorial:
 			)
 		]
 	def _after_goto(self):
-		if samefile(self._get_pane_path(), self._directory_for_goto):
+		path = self._get_pane_path()
+		if path and samefile(path, self._directory_for_goto):
 			self._next_step()
 	def _get_pane_path(self):
 		return self._main_window.get_panes()[0].get_path()
