@@ -682,10 +682,15 @@ class SuggestLocations:
 				except KeyError:
 					pass
 	def _gather_subdirs(self, dir_):
-		for name in self.fs.listdir(dir_):
-			file_path = join(dir_, name)
-			if self.fs.isdir(file_path):
-				yield self._unexpand_user(file_path)
+		try:
+			dir_contents = self.fs.listdir(dir_)
+		except OSError:
+			pass
+		else:
+			for name in dir_contents:
+				file_path = join(dir_, name)
+				if self.fs.isdir(file_path):
+					yield self._unexpand_user(file_path)
 	def _realcase(self, path):
 		# NB: `path` must exist!
 		is_case_sensitive = PLATFORM == 'Linux'
@@ -696,10 +701,13 @@ class SuggestLocations:
 			# We're at the root of the file system.
 			return path
 		dir_ = self._realcase(dir_)
-		matching_names = [
-			f for f in self.fs.listdir(dir_)
-			if f.lower() == basename(path).lower()
-		]
+		try:
+			dir_contents = self.fs.listdir(dir_)
+		except OSError:
+			matching_names = []
+		else:
+			matching_names = \
+				[f for f in dir_contents if f.lower() == basename(path).lower()]
 		if not matching_names:
 			return path
 		return join(dir_, matching_names[0])
