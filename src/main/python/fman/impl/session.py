@@ -108,9 +108,12 @@ class SessionManager:
 			list(map(self._read_settings_from_pane, main_window.get_panes()))
 		self._json_dict['fman_version'] = self._fman_version
 		self._json_dict['is_licensed'] = self._is_licensed
-		makedirs(dirname(self._json_path), exist_ok=True)
-		with open(self._json_path, 'w') as f:
-			json.dump(self._json_dict, f)
+		try:
+			makedirs(dirname(self._json_path), exist_ok=True)
+			with open(self._json_path, 'w') as f:
+				json.dump(self._json_dict, f)
+		except OSError:
+			pass
 	def _read_settings_from_pane(self, pane):
 		return {
 			'location': pane.get_path(),
