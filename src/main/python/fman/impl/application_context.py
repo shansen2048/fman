@@ -76,8 +76,11 @@ class ApplicationContext:
 		self._metrics_backend = None
 		self._window = None
 	def setup_signals(self):
-		_ = self.signal_wakeup_handler
-		signal(SIGINT, lambda *_: self.app.exit(130))
+		# We don't build fman as a console app on Windows, so no point in
+		# installing the SIGINT handler:
+		if not system.is_windows():
+			_ = self.signal_wakeup_handler
+			signal(SIGINT, lambda *_: self.app.exit(130))
 	def run(self):
 		fman.FMAN_VERSION = self.fman_version
 		self.excepthook.install()
