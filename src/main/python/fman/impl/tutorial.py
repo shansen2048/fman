@@ -3,7 +3,8 @@ from fman.util import listdir_absolute
 from fman.util.qt import run_in_main_thread
 from fman.util.system import is_mac
 from os import listdir
-from os.path import expanduser, isdir, join, getmtime, basename, samefile
+from os.path import expanduser, isdir, join, getmtime, basename, samefile, \
+	abspath
 
 import os
 import re
@@ -44,17 +45,23 @@ class Tutorial:
 		self._command_callback.add_listener(self._curr_step)
 		self._curr_step.show(self._main_window)
 	def _get_directory_for_goto(self):
-		home_dir = lambda name: join(expanduser('~'), name)
+		home_dir = expanduser('~')
 		candidates = (
-			home_dir('Dropbox'), home_dir('Downloads'),
+			join(home_dir, 'Dropbox'), join(home_dir, 'Downloads'),
 			os.environ.get('PROGRAMW6432', r'C:\Program Files'),
 			os.environ.get('PROGRAMFILES', r'C:\Program Files (x86)')
 		)
 		for candidate in candidates:
 			if isdir(candidate):
 				return candidate
-		home_dir_candidates = []
-		for d in listdir_absolute(expanduser('~')):
+		other_candidate_in_home = self._get_best_directory_for_goto(home_dir)
+		if other_candidate_in_home:
+			return other_candidate_in_home
+		root_drive = abspath(os.sep)
+		return self._get_best_directory_for_goto(root_drive)
+	def _get_best_directory_for_goto(self, root_path):
+		result = []
+		for d in listdir_absolute(root_path):
 			if basename(d).startswith('.') or not isdir(d):
 				continue
 			try:
@@ -62,8 +69,9 @@ class Tutorial:
 			except OSError:
 				pass
 			else:
-				home_dir_candidates.append((sort_key, d))
-		return sorted(home_dir_candidates)[0][1]
+				result.append((sort_key, d))
+		if result:
+			return sorted(result)[0][1]
 	def _get_steps(self):
 		goto_directory = basename(self._directory_for_goto)
 		cmd_p = '⌘P' if is_mac() else 'Ctrl+P'
