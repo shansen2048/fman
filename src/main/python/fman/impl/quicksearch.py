@@ -162,7 +162,12 @@ class QuicksearchItemDelegate(QStyledItemDelegate):
 
 class QuicksearchItemRenderer:
 	def __init__(self, item, option, css):
-		self._item = item
+		# Convert to str(...) in case the (fman API) user didn't pass a string:
+		self._title = str(item.title)
+		self._hint = str(item.hint)
+		self._description = str(item.description)
+
+		self._highlight = item.highlight
 		self._option = option
 		self._css = css['quicksearch']['item']
 		self._widget = option.widget
@@ -181,7 +186,7 @@ class QuicksearchItemRenderer:
 		height += self._css['border-top-width_px'] + \
 				  self._padding_top + \
 				  self._css['border-bottom-width_px']
-		if self._item.description:
+		if self._description:
 			w, h = self._layout_description()[1:]
 			width = max(width, w)
 			height += h
@@ -199,18 +204,16 @@ class QuicksearchItemRenderer:
 			  + QPoint(self._padding_left, self._padding_top)
 		layout.draw(painter, pos, highlight_formats)
 	def _draw_hint(self, painter):
-		hint = self._item.hint
-		if not hint:
+		if not self._hint:
 			return
 		font = QFont(self._option.font)
 		font.setPointSize(self._css['hint']['font-size_pts'])
 		painter.setFont(font)
 		painter.setPen(self._css['hint']['color'])
 		rect = self._get_title_rect()
-		painter.drawText(rect, AlignRight | AlignVCenter, hint)
+		painter.drawText(rect, AlignRight | AlignVCenter, self._hint)
 	def _draw_description(self, painter):
-		description = self._item.description
-		if not description:
+		if not self._description:
 			return
 		layout = self._layout_description()[0]
 		painter.setPen(self._css['description']['color'])
@@ -219,11 +222,11 @@ class QuicksearchItemRenderer:
 	def _layout_title(self):
 		font = QFont(self._option.font)
 		font.setPointSize(self._css['title']['font-size_pts'])
-		return self._layout_text(self._item.title, font)
+		return self._layout_text(self._title, font)
 	def _layout_description(self):
 		font = QFont(self._option.font)
 		font.setPointSize(self._css['description']['font-size_pts'])
-		return self._layout_text(self._item.description, font)
+		return self._layout_text(self._description, font)
 	def _get_title_rect(self):
 		x = self._option.rect.x() + self._padding_left
 		y = self._option.rect.y() + self._padding_top
@@ -266,11 +269,10 @@ class QuicksearchItemRenderer:
 		Qt. Unfortunately, this doesn't work - char 3 isn't highlighted. We need
 		to pass [(start=2, length=2)] instead. This function computes it.
 		"""
-		highlights = self._item.highlight
-		if not highlights:
+		if not self._highlight:
 			return []
-		result = [(highlights[0], 1)]
-		for highlight in highlights[1:]:
+		result = [(self._highlight[0], 1)]
+		for highlight in self._highlight[1:]:
 			start, length = result[-1]
 			if start + length == highlight:
 				result[-1] = (start, length + 1)
