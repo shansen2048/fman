@@ -12,7 +12,8 @@ from io import BytesIO
 from itertools import chain, islice
 from os import mkdir, rename, listdir
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir, islink
+	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir, \
+	islink, abspath
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -239,7 +240,7 @@ class _TreeCommand(_CorePaneCommand):
 			files_descr = '%d files' % len(files)
 		descr_verb = self.__class__.__name__
 		message = '%s %s to' % (descr_verb, files_descr)
-		dest = normpath(join(dest_dir, dest_name))
+		dest = abspath(join(dest_dir, dest_name))
 		dest, ok = self.ui.show_prompt(message, dest)
 		if ok:
 			if not isabs(dest):
@@ -639,7 +640,7 @@ class SuggestLocations:
 		items = self._filter_matching(possible_dirs, query)
 		return self._remove_nonexistent(items)
 	def _gather_dirs(self, query):
-		path = normpath(self.fs.expanduser(query))
+		path = abspath(self.fs.expanduser(query))
 		if PLATFORM == 'Windows':
 			# Windows completely ignores trailing spaces in directory names at
 			# all times. Make our implementation reflect this:
