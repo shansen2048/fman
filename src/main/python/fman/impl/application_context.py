@@ -59,6 +59,7 @@ class ApplicationContext:
 		self._main_window_palette = None
 		self._plugins = None
 		self._builtin_plugin = None
+		self._plugin_support = None
 		self._plugin_error_handler = None
 		self._plugin_dirs = None
 		self._json_io = None
@@ -73,13 +74,13 @@ class ApplicationContext:
 		self._window = None
 	def run(self):
 		fman.FMAN_VERSION = self.fman_version
-		if self.excepthook:
-			self.excepthook.install()
+		self.excepthook.install()
 		self.metrics.initialize()
 		self.metrics.track('StartedFman')
-		# Ensure QApplication is initialized before anything else Qt-related:
-		_ = self.app
 		self._load_fonts()
+		# Ensure main_window is instantiated before plugin_support, or else
+		# plugin_support gets instantiated twice:
+		_ = self.main_window
 		self.plugin_support.initialize()
 		self.session_manager.show_main_window(self.main_window)
 		return self.app.exec_()
@@ -193,7 +194,12 @@ class ApplicationContext:
 				self._constants[key] = value
 	@property
 	def excepthook(self):
-		return None
+		if self._excepthook is None:
+			self._excepthook = Excepthook(
+				self.constants['rollbar_token'], self.constants['environment'],
+				self.fman_version, self.plugin_dirs, self.plugin_error_handler
+			)
+		return self._excepthook
 	@property
 	def icon_provider(self):
 		if self._icon_provider is None and system.is_gnome_based():
@@ -205,15 +211,14 @@ class ApplicationContext:
 			self._main_window = \
 				MainWindow(self.app, self.css, self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
-			error_handler = self.plugin_error_handler
-			plugin_support = \
-				PluginSupport(self.plugins, self.json_io, error_handler)
-			controller = Controller(self.window, plugin_support, self.metrics)
-			self._main_window.controller = controller
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
-			self._main_window.shown.connect(error_handler.on_main_window_shown)
-			self._main_window.pane_added.connect(controller.on_pane_added)
+			self._main_window.shown.connect(
+				lambda: self.plugin_error_handler.on_main_window_shown(
+					self.main_window
+				)
+			)
+			self._main_window.pane_added.connect(self.controller.on_pane_added)
 			self._main_window.closed.connect(self.on_main_window_close)
 			self.app.set_main_window(self._main_window)
 		return self._main_window
@@ -267,16 +272,22 @@ class ApplicationContext:
 		return self._tutorial
 	@property
 	def plugin_support(self):
-		return self.controller.plugin_support
+		if self._plugin_support is None:
+			self._plugin_support = PluginSupport(
+				self.plugins, self.json_io, self.plugin_error_handler
+			)
+		return self._plugin_support
 	@property
 	def plugin_error_handler(self):
 		if self._plugin_error_handler is None:
-			self._plugin_error_handler = \
-				PluginErrorHandler(self.app, self.main_window)
+			self._plugin_error_handler = PluginErrorHandler(self.app)
 		return self._plugin_error_handler
 	@property
 	def controller(self):
-		return self.main_window.controller
+		if self._controller is None:
+			self._controller = \
+				Controller(self.window, self.plugin_support, self.metrics)
+		return self._controller
 	@property
 	def metrics(self):
 		if self._metrics is None:
@@ -440,14 +451,6 @@ class FrozenApplicationContext(ApplicationContext):
 			return True
 		else:
 			return data.get('enabled', True)
-	@property
-	def excepthook(self):
-		if self._excepthook is None:
-			self._excepthook = Excepthook(
-				self.constants['rollbar_token'], self.constants['environment'],
-				self.fman_version
-			)
-		return self._excepthook
 	def get_resource(self, *rel_path):
 		if system.is_mac():
 			rel_path = (pardir, 'Resources') + rel_path

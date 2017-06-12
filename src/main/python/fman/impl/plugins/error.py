@@ -6,26 +6,25 @@ import fman
 import sys
 
 class PluginErrorHandler:
-	def __init__(self, app, main_window):
-		self.app = app
-		self.main_window = main_window
-		self.main_window_initialized = False
-		self.pending_error_messages = []
+	def __init__(self, app):
+		self._app = app
+		self._main_window = None
+		self._pending_error_messages = []
 	def report(self, message, exc=None):
 		if exc is None:
 			exc = sys.exc_info()[1]
 		if exc:
 			message += '\n\n' + self._get_plugin_traceback(exc)
-		if self.main_window_initialized:
-			self.main_window.show_alert(message)
+		if self._main_window:
+			self._main_window.show_alert(message)
 		else:
-			self.pending_error_messages.append(message)
+			self._pending_error_messages.append(message)
 	def handle_system_exit(self, code=0):
-		self.app.exit(code)
-	def on_main_window_shown(self):
-		if self.pending_error_messages:
-			self.main_window.show_alert(self.pending_error_messages[0])
-		self.main_window_initialized = True
+		self._app.exit(code)
+	def on_main_window_shown(self, main_window):
+		self._main_window = main_window
+		if self._pending_error_messages:
+			self._main_window.show_alert(self._pending_error_messages[0])
 	def _get_plugin_traceback(self, exc):
 		return format_traceback(exc, exclude_dirs=[dirname(fman.__file__)])
 

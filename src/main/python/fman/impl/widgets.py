@@ -182,12 +182,9 @@ class MainWindow(QMainWindow):
 
 	def __init__(self, app, css, icon_provider=None):
 		super().__init__()
-		# Public - so it can be injected later:
-		self.controller = None
 		self._app = app
 		self._css = css
 		self._icon_provider = icon_provider
-		self._controller = None
 		self._panes = []
 		self._splitter = Splitter(self)
 		self.setCentralWidget(self._splitter)
@@ -262,7 +259,6 @@ class MainWindow(QMainWindow):
 		self.show_status_message('Ready.')
 	def add_pane(self):
 		result = DirectoryPane(self._splitter, self._icon_provider)
-		result.set_controller(self.controller)
 		self._panes.append(result)
 		self._splitter.addWidget(result)
 		self.pane_added.emit(result)

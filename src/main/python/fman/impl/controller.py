@@ -17,6 +17,7 @@ class Controller:
 		self.tracker = tracker
 		self._panes = WeakValueDictionary()
 	def on_pane_added(self, pane_widget):
+		pane_widget.set_controller(self)
 		pane = self.window.add_pane(pane_widget)
 		self._panes[pane_widget] = pane
 		pane_widget.path_changed.connect(self.on_path_changed)
