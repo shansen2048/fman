@@ -161,7 +161,7 @@ class PluginSupportTest(TestCase):
 class StubErrorHandler:
 	def __init__(self):
 		self.error_messages = []
-	def report(self, message):
+	def report(self, message, exc=None):
 		self.error_messages.append(message)
 
 class StubCommandCallback:

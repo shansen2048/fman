@@ -11,8 +11,9 @@ class PluginErrorHandler:
 		self.main_window = main_window
 		self.main_window_initialized = False
 		self.pending_error_messages = []
-	def report(self, message):
-		exc = sys.exc_info()[1]
+	def report(self, message, exc=None):
+		if exc is None:
+			exc = sys.exc_info()[1]
 		if exc:
 			message += '\n\n' + self._get_plugin_traceback(exc)
 		if self.main_window_initialized:

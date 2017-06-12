@@ -1,5 +1,6 @@
 from fman.impl.plugins.plugin import ExternalPlugin
 from fman.impl.plugins.key_bindings import sanitize_key_bindings
+from json import JSONDecodeError
 
 SETTINGS_PLUGIN_NAME = 'Settings'
 
@@ -48,8 +49,13 @@ class PluginSupport:
 	def _load_key_bindings(self):
 		try:
 			bindings = self.load_json('Key Bindings.json', [])
+		except JSONDecodeError as e:
+			self._error_handler.report(
+				'Could not load key bindings: ' + e.args[0], exc=False
+			)
+			return []
 		except:
-			self._error_handler.report('Error: Could not load key bindings.')
+			self._error_handler.report('Could not load key bindings.')
 			return []
 		else:
 			available_commands = set(self._get_available_commands())
