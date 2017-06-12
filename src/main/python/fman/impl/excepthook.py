@@ -26,7 +26,7 @@ class Excepthook:
 	def __call__(self, type, value, traceback):
 		sys.__excepthook__(type, value, traceback)
 		causing_plugin = self._get_plugin_causing_error(traceback)
-		if causing_plugin:
+		if causing_plugin and basename(causing_plugin) != 'Core':
 			self._plugin_error_handler.report(
 				'Plugin %r raised an error.' % basename(causing_plugin)
 			)
