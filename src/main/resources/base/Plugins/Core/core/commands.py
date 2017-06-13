@@ -697,7 +697,7 @@ class SuggestLocations:
 		if is_case_sensitive:
 			return path
 		dir_ = dirname(path)
-		if self.fs.samefile(dir_, path):
+		if dir_ == path:
 			# We're at the root of the file system.
 			return path
 		dir_ = self._realcase(dir_)
