@@ -20,7 +20,7 @@ from fman.impl.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
-from fman.util import system, parse_version
+from fman.util import system
 from glob import glob
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
@@ -110,24 +110,6 @@ class ApplicationContext:
 				self.tutorial.start()
 			else:
 				self.splash_screen.exec()
-		previous_version = self.session_manager.previous_fman_version
-		# TODO: Remove this migration After May 2017
-		if parse_version(previous_version or self.fman_version) < (0, 4, 2):
-			result = self.main_window.show_alert(
-				'Sorry to disturb. To improve your experience, we would like '
-				'to collect anonymous data on the features you use. You can '
-				'see in '
-				'<a href="https://fman.io/docs/metrics">the docs</a> '
-				'that no personal information is shared. Allow? It helps make '
-				'fman better.',
-				YES | NO, YES, allow_escape=False
-			)
-			should_disable = bool(result & NO)
-			self.metrics.track(
-				'AnsweredMetricsDialog', {'disabled_metrics': should_disable}
-			)
-			if should_disable:
-				self.metrics.disable()
 	def on_main_window_close(self):
 		self.session_manager.on_close(self.main_window)
 	def on_quit(self):
