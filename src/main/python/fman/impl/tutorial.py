@@ -1,6 +1,6 @@
 from fman.impl.widgets import Overlay
 from fman.util import listdir_absolute
-from fman.util.qt import run_in_main_thread
+from fman.util.qt import run_in_main_thread, connect_once
 from fman.util.system import is_mac
 from os import listdir
 from os.path import expanduser, isdir, join, getmtime, basename, samefile, \
@@ -200,11 +200,10 @@ class AfterQuicksearchShown:
 		self._quicksearch = None
 	@run_in_main_thread
 	def __call__(self):
-		self._main_window.before_quicksearch.connect(self._before_quicksearch)
-	def _before_quicksearch(self, quicksearch):
-		self._main_window.before_quicksearch.disconnect(
-			self._before_quicksearch
+		connect_once(
+			self._main_window.before_quicksearch, self._before_quicksearch
 		)
+	def _before_quicksearch(self, quicksearch):
 		quicksearch.shown.connect(self._on_quicksearch_shown)
 		self._quicksearch = quicksearch
 	def _on_quicksearch_shown(self):
