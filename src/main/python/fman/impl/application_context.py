@@ -254,8 +254,6 @@ class ApplicationContext:
 	@property
 	def plugin_dirs(self):
 		if self._plugin_dirs is None:
-			# TODO: Remove this migration after May, 2017
-			self.session_manager.migrate_old_plugin_structure()
 			self._plugin_dirs = find_plugin_dirs(
 				self.get_resource('Plugins'),
 				join(DATA_DIRECTORY, 'Plugins', 'Third-party'),

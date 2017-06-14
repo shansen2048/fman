@@ -1,11 +1,8 @@
 from base64 import b64encode, b64decode
-from fman import DATA_DIRECTORY
-from fman.impl.plugins import SETTINGS_PLUGIN_NAME
-from fman.util import system, parse_version
+from fman.util import system
 from json import JSONDecodeError
-from os import makedirs, getcwd, listdir, rename
-from os.path import expanduser, dirname, realpath, normpath, splitdrive, join, \
-	isdir
+from os import makedirs, getcwd
+from os.path import expanduser, dirname, realpath, normpath, splitdrive
 
 import json
 import sys
@@ -36,35 +33,6 @@ class SessionManager:
 	@property
 	def was_licensed_on_last_run(self):
 		return self._json_dict.get('is_licensed', None)
-	def migrate_old_plugin_structure(self):
-		previous_version = self.previous_fman_version or self._fman_version
-		if parse_version(previous_version) >= (0, 3, 9):
-			return
-		plugins_directory = join(DATA_DIRECTORY, 'Plugins')
-		user_plugin = join(plugins_directory, 'User')
-		try:
-			user_plugin_contents = listdir(user_plugin)
-		except FileNotFoundError:
-			return
-		if SETTINGS_PLUGIN_NAME in user_plugin_contents:
-			# This is not expected. Abort.
-			return
-		# Move everything from the old User plugin to the new Settings plugin:
-		settings_plugin = join(user_plugin, SETTINGS_PLUGIN_NAME)
-		makedirs(settings_plugin)
-		for file_ in user_plugin_contents:
-			rename(join(user_plugin, file_), join(settings_plugin, file_))
-		# Migrate other plugins:
-		other_plugins = [
-			p for p in listdir(plugins_directory)
-			if p != 'User' and isdir(join(plugins_directory, p))
-		]
-		assert 'Third-party' not in other_plugins
-		for other_plugin in other_plugins:
-			rename(
-				join(plugins_directory, other_plugin),
-				join(user_plugin, other_plugin)
-			)
 	def show_main_window(self, main_window):
 		self._restore_panes(main_window, sys.argv[1:])
 		self._restore_window_geometry(main_window)
