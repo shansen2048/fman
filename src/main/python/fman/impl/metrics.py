@@ -37,6 +37,12 @@ class Metrics:
 				self._enabled = False
 			else:
 				self._write_json({'uuid': self._user})
+		except NotADirectoryError:
+			# This happens when part of a path isn't a dir. Eg. install.txt/foo.
+			# In this case, we will also not be able to save a generated UUID to
+			# the file. So instead of generating a new UUID with every start, we
+			# simply disable Metrics:
+			self._enabled = False
 		else:
 			self._enabled = json_dict.get('enabled', True)
 			try:
