@@ -653,7 +653,7 @@ class SuggestLocations:
 			elif self.fs.isdir(dirname(path)):
 				return get_subdirs(self._realcase(dirname(path)))
 		result = set(self.visited_paths)
-		if len(query) > 1:
+		if len(query) > 2:
 			"""Compensate for directories not yet in self.visited_paths:"""
 			fs_folders = islice(self.fs.find_folders_starting_with(query), 100)
 			result.update(self._sort(map(self._unexpand_user, fs_folders))[:10])
@@ -732,20 +732,28 @@ class FileSystem:
 			raise
 	def samefile(self, f1, f2):
 		return samefile(f1, f2)
-	def find_folders_starting_with(self, pattern):
+	def find_folders_starting_with(self, pattern, timeout_secs=0.02):
 		if PLATFORM == 'Mac':
-			try:
-				process = Popen([
-					'mdfind',
-					"kMDItemContentType == 'public.folder' "
-					"&& kMDItemFSName == %rc"
-					% (pattern.replace('*', r'\*') + '*')
-				], stdout=PIPE, universal_newlines=True)
-			except OSError:
-				pass
-			else:
-				for line in iter(process.stdout.readline, ''):
-					yield line.rstrip()
+			from objc import loadBundle
+			ns = {}
+			loadBundle(
+				'CoreServices.framework', ns,
+				bundle_identifier='com.apple.CoreServices'
+			)
+			pred = ns['NSPredicate'].predicateWithFormat_(
+				"kMDItemContentType == 'public.folder' && "
+				"kMDItemFSName BEGINSWITH[c] %r" % pattern
+			)
+			query = ns['NSMetadataQuery'].alloc().init()
+			query.setPredicate_(pred)
+			query.setSearchScopes_(ns['NSArray'].arrayWithObject_('/'))
+			query.startQuery()
+			ns['NSRunLoop'].currentRunLoop().runUntilDate_(
+				ns['NSDate'].dateWithTimeIntervalSinceNow_(timeout_secs)
+			)
+			query.stopQuery()
+			for item in query.results():
+				yield (item.valueForAttribute_("kMDItemPath"))
 		elif PLATFORM == 'Windows':
 			import adodbapi
 			from pythoncom import com_error
