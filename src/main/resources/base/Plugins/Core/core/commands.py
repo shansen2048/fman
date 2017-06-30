@@ -375,7 +375,7 @@ class CopyPathsToClipboard(_CorePaneCommand):
 		if not chosen_files:
 			show_alert('No file is selected!')
 			return
-		files = '\n'.join(chosen_files)
+		files = '\n'.join(map(normpath, chosen_files))
 		clipboard.clear()
 		clipboard.set_text(files)
 
