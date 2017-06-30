@@ -551,7 +551,12 @@ class GoTo(_CorePaneCommand):
 				path = expanduser(suggested_dir)
 			if not isdir(path):
 				path = expanduser(query)
-			if isdir(path):
+			if isfile(path):
+				self.pane.set_path(
+					dirname(path),
+					callback=lambda path=path: self.pane.place_cursor_at(path)
+				)
+			elif isdir(path):
 				self.pane.set_path(path)
 	def _get_tab_completion(self, curr_suggestion):
 		result = curr_suggestion
