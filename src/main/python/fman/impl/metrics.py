@@ -3,7 +3,6 @@ from fman.util.system import is_linux
 from http.client import HTTPException
 from queue import Queue
 from threading import Thread
-from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 from os import makedirs
