@@ -27,5 +27,6 @@
 	{ "keys": ["F10"], "command": "open_native_file_manager" },
 	{ "keys": ["F11"], "command": "copy_paths_to_clipboard" },
 	{ "keys": ["Ctrl+Right"], "command": "open_in_right_pane" },
-	{ "keys": ["Ctrl+Left"], "command": "open_in_left_pane" }
+	{ "keys": ["Ctrl+Left"], "command": "open_in_left_pane" },
+	{ "keys": ["Shift+Delete"], "command": "delete_permanently" }
 ]

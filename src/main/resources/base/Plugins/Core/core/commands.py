@@ -10,7 +10,7 @@ from fman import *
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
-from os import mkdir, rename, listdir
+from os import mkdir, rename, listdir, remove
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir, \
 	islink
@@ -107,6 +107,28 @@ class MoveToTrash(_CorePaneCommand):
 		)
 		if choice & YES:
 			move_to_trash(*to_delete)
+
+class DeletePermanently(DirectoryPaneCommand):
+	def __call__(self):
+		to_delete = self.get_chosen_files()
+		if not to_delete:
+			show_alert('No file is selected!')
+			return
+		if len(to_delete) > 1:
+			description = 'these %d items' % len(to_delete)
+		else:
+			description = to_delete[0]
+		choice = show_alert(
+			"Do you really want to PERMANENTLY delete %s? This action cannot "
+			"be undone!" % description,
+			YES | NO, YES
+		)
+		if choice & YES:
+			for file_path in to_delete:
+				if isdir(file_path):
+					rmtree(file_path)
+				else:
+					remove(file_path)
 
 class GoUp(_CorePaneCommand):
 	def __call__(self):
