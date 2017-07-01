@@ -92,10 +92,17 @@ class Quicksearch(QDialog):
 		model = self._items.model()
 		model.clear()
 		model.extend(self._curr_items)
-		self._shrink_item_list_to_size()
-	def _shrink_item_list_to_size(self):
-		height = len(self._curr_items) * self._items.sizeHintForRow(0)
-		self._items.setMaximumHeight(height)
+		self._adjust_item_list_ize()
+	def _adjust_item_list_ize(self, min_num_items_to_display=7):
+		num_items = len(self._curr_items)
+		row_height = self._items.sizeHintForRow(0)
+		max_height = num_items * row_height
+		self._items.setMaximumHeight(max_height)
+		if num_items >= min_num_items_to_display:
+			min_height = min_num_items_to_display * row_height
+		else:
+			min_height = 0
+		self._items.setMinimumHeight(min_height)
 	def _layout_vertically(self, parent, *widgets):
 		layout = QVBoxLayout()
 		layout.setContentsMargins(0, 0, 0, 0)
