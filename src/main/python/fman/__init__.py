@@ -173,6 +173,8 @@ class QuicksearchItem:
 		self.highlight = highlight
 		self.hint = hint
 		self.description = description
+	def __repr__(self):
+		return '<%s: %s>' % (self.__class__.__name__, self.title)
 
 def get_application_commands():
 	return _get_plugin_support().get_application_commands()
