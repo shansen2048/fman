@@ -551,6 +551,9 @@ class GoTo(_CorePaneCommand):
 				path = expanduser(suggested_dir)
 			if not isdir(path):
 				path = expanduser(query)
+			if not exists(path):
+				# Maybe the user copy-pasted and there's some extra whitespace:
+				path = path.rstrip()
 			if isfile(path):
 				self.pane.set_path(
 					dirname(path),
