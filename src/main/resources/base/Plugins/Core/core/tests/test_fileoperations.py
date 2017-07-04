@@ -193,7 +193,7 @@ class FileTreeOperationAT:
 		self._touch(src_file, '1234')
 		self._perform_on(src_file, dest_dir='..')
 		dest_dir_abs = dirname(self.src)
-		self.assertEqual(['src', 'test.txt'], listdir(dest_dir_abs))
+		self.assertEqual({'src', 'test.txt'}, set(listdir(dest_dir_abs)))
 		self._assert_file_contents_equal(join(dest_dir_abs, 'test.txt'), '1234')
 	def test_relative_path_subdir(self):
 		src_file = join(self.src, 'test.txt')
