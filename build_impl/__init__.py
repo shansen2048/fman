@@ -1,6 +1,6 @@
 from glob import glob
 from importlib import import_module
-from os import makedirs, readlink, symlink
+from os import makedirs, readlink, symlink, remove
 from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
 	isfile, pardir, exists, normpath, splitext
 from shutil import copy, copytree, copymode
@@ -131,6 +131,12 @@ def _copy_files(src_dir, dest_dir, files):
 			copytree(src, dst, symlinks=True)
 		else:
 			copy(src, dst, follow_symlinks=False)
+
+def remove_if_exists(file_path):
+	try:
+		remove(file_path)
+	except FileNotFoundError:
+		pass
 
 def run_pyinstaller(extra_args=None):
 	if extra_args is None:

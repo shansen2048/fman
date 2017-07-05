@@ -1,6 +1,7 @@
 from build_impl import run, path, generate_resources, copy_python_library, \
 	OPTIONS, upload_file, run_on_server, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering, check_output_decode, get_icons, upload_installer_to_aws
+	copy_with_filtering, check_output_decode, get_icons, remove_if_exists, \
+	upload_installer_to_aws
 from distutils.dir_util import copy_tree
 from glob import glob
 from os import makedirs, remove
@@ -58,10 +59,7 @@ def _remove_gtk_dependencies():
 			raise ValueError(repr(line))
 		so_name, so_path = match.groups()
 		if so_name and so_path:
-			try:
-				remove(path('target/fman/' + so_name))
-			except FileNotFoundError:
-				pass
+			remove_if_exists(path('target/fman/' + so_name))
 
 def deb():
 	if exists(path('target/deb')):
