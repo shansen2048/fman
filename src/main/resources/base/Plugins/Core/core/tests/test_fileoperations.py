@@ -1,9 +1,10 @@
 from core.fileoperations import CopyFiles, MoveFiles
 from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, PLATFORM
-from os import listdir, mkdir, chmod, makedirs, readlink
+from fman.util.system import is_linux
+from os import listdir, mkdir, chmod, makedirs, readlink, geteuid
 from os.path import basename, join, dirname, exists, islink, realpath, samefile
 from tempfile import TemporaryDirectory
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 import os
 import stat
@@ -240,6 +241,7 @@ class FileTreeOperationAT:
 class CopyFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
 		super().__init__(CopyFiles, 'copy', methodName)
+	@skipIf(is_linux() and geteuid() == 0, 'Skip this test when run by root')
 	def test_overwrite_locked_file(self):
 		# Would also like to have this as a test case in MoveFilesTest but the
 		# call to chmod(0o444) which we use to lock the file doesn't prevent the

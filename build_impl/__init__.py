@@ -7,7 +7,6 @@ from shutil import copy, copytree, copymode
 from subprocess import Popen, STDOUT, CalledProcessError, check_output
 from time import time
 
-import boto3
 import json
 import os
 import re
@@ -110,6 +109,29 @@ class _paths:
 	def __contains__(self, item):
 		return any(samefile(item, p) for p in self.paths)
 
+def replace_in_files(dir_, string, replacement):
+	for subdir, _, files in os.walk(dir_):
+		for file_ in files:
+			ext = splitext(file_)[1]
+			if ext in (
+				'.exe', '.lib', '.dll', '.pyc', '.dmp', '.cer', '.pfx', '.idb',
+				'.dblite', '.avi', '.bmp', '.msi', '.ico', '.pdb', '.res', '.rc'
+			):
+				continue
+			f_path = join(subdir, file_)
+			try:
+				replace_in_file(f_path, string, replacement, check_found=False)
+			except UnicodeDecodeError:
+				pass
+
+def replace_in_file(path, string, replacement, check_found=True):
+	with open(path, 'r') as f:
+		contents = f.read()
+	if check_found:
+		assert string in contents, contents
+	with open(path, 'w') as f:
+		f.write(contents.replace(string, replacement))
+
 def copy_framework(src_dir, dest_dir):
 	assert basename(src_dir).endswith('.framework')
 	name = basename(src_dir)[:-len('.framework')]
@@ -191,6 +213,14 @@ def get_canonical_os_name():
 		return 'linux'
 	raise ValueError('Unknown operating system.')
 
+def is_ubuntu():
+	with open('/etc/issue', 'r') as f:
+		return f.read().startswith('Ubuntu ')
+
+def is_arch_linux():
+	with open('/etc/issue', 'r') as f:
+		return f.read().startswith('Arch Linux ')
+
 def get_icons():
 	result = {}
 	for icons_dir in (
@@ -205,7 +235,10 @@ def upload_file(f, dest_dir):
 	print('Uploading %s...' % basename(f))
 	dest_path = get_path_on_server(dest_dir)
 	if OPTIONS['release']:
-		run(['rsync', '-ravz', f, OPTIONS['server_user'] + ':' + dest_path])
+		run([
+			'rsync', '-ravz', '-e', 'ssh -i ' + OPTIONS['ssh_key'],
+			f, OPTIONS['server_user'] + ':' + dest_path
+		])
 	else:
 		if isdir(f):
 			copytree(f, join(dest_dir, basename(f)))
@@ -223,7 +256,9 @@ def get_path_on_server(file_path):
 
 def run_on_server(command):
 	if OPTIONS['release']:
-		return check_output_decode(['ssh', OPTIONS['server_user'], command])
+		return check_output_decode([
+			'ssh', '-i', OPTIONS['ssh_key'], OPTIONS['server_user'], command
+		])
 	else:
 		return check_output_decode(command, shell=True)
 
@@ -241,12 +276,14 @@ def git(cmd, *args):
 	run(['git', cmd] + list(args))
 
 def upload_to_s3(src_path, dest_path):
+	import boto3
 	s3 = boto3.resource('s3', **_get_aws_credentials())
 	s3.Bucket(OPTIONS['aws_bucket']).upload_file(
 		src_path, dest_path, ExtraArgs={'ACL': 'public-read'}
 	)
 
 def create_cloudfront_invalidation(items):
+	import boto3
 	cloudfront = boto3.client('cloudfront', **_get_aws_credentials())
 	cloudfront.create_invalidation(
 		DistributionId=OPTIONS['aws_distribution_id'],

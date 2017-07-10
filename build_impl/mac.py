@@ -124,9 +124,9 @@ def _create_autoupdate_patches(num=10):
 def _sync_cache_with_server():
 	result = []
 	if OPTIONS['release']:
-		cache_dir = path('target/cache/server')
+		cache_dir = path('cache/server')
 	else:
-		cache_dir = path('target/cache/local')
+		cache_dir = path('cache/local')
 	makedirs(cache_dir, exist_ok=True)
 	versions_on_server = _get_versions_on_server()
 	for version_file, shasum in versions_on_server:
@@ -171,7 +171,10 @@ def _shasum(path_):
 def _download_from_server(file_path, dest_dir):
 	print('Downloading %s.' % file_path)
 	if OPTIONS['release']:
-		run(['scp', OPTIONS['server_user'] + ':' + file_path, dest_dir])
+		run([
+			'scp', '-i', OPTIONS['ssh_key'],
+			OPTIONS['server_user'] + ':' + file_path, dest_dir
+		])
 	else:
 		copy(file_path, dest_dir)
 

@@ -1,0 +1,2 @@
+-r linux.txt
+git+https://github.com/pyinstaller/pyinstaller@abfc806

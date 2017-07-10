@@ -1,5 +1,7 @@
 from build_impl import run, path, generate_resources, OPTIONS, \
 	copy_with_filtering, copy_python_library, run_pyinstaller, upload_to_s3
+from build_impl.init import create_venv, install_sip, install_pyqt, \
+	install_requirements
 from datetime import date
 from os import rename, makedirs, remove
 from os.path import join, splitext, dirname
@@ -8,6 +10,12 @@ from subprocess import call, DEVNULL
 
 import os
 import sys
+
+def init():
+	create_venv()
+	install_sip()
+	install_pyqt()
+	install_requirements(path('requirements/windows.txt'))
 
 def exe():
 	run_pyinstaller(extra_args=[
