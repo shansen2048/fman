@@ -137,5 +137,5 @@ def _publish_to_AUR():
 
 def _add_to_known_hosts(host):
 	p = subprocess.run(['ssh-keyscan', '-H', host], stdout=PIPE, stderr=PIPE)
-	with open(expanduser('~/.ssh/known_hosts', 'ab')) as f:
+	with open(expanduser('~/.ssh/known_hosts'), 'ab') as f:
 		f.write(b'\n' + p.stdout)
