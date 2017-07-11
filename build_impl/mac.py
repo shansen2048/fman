@@ -2,11 +2,19 @@ from build_impl import run, path, copy_framework, get_canonical_os_name, \
 	OPTIONS, copy_python_library, upload_file, run_on_server,\
 	check_output_decode, get_path_on_server, run_pyinstaller, \
 	copy_with_filtering, get_icons, upload_installer_to_aws
+from build_impl.init import create_venv, install_requirements, install_sip, \
+	install_pyqt
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
 from shutil import rmtree, copy
 from tempfile import TemporaryDirectory
+
+def init():
+	create_venv()
+	install_sip()
+	install_pyqt()
+	install_requirements(path('requirements/mac.txt'))
 
 def app():
 	if not exists(path('target/fman.icns')):

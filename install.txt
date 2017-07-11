@@ -43,7 +43,7 @@ We build without accessibility to work around https://bugreports.qt.io/browse/QT
 We build with qtsvg because on Ubuntu, the icons for files/directories are only available in SVG.
 The -fontconfig parameter (hopefully) gets rid of error "QFontDatabase: Cannot find font directory" when deploying to a Linux system without Qt installed.
 
-	./configure -prefix ~/dev/fman/lib/linux/Qt-5.6.2 -release -opensource -no-accessibility -nomake examples -nomake tests -fontconfig
+	./configure -prefix ~/dev/fman/cache/Qt-5.6.2 -release -opensource -no-accessibility -nomake examples -nomake tests -fontconfig
 	Add lib/mac/ to .gitignore
 	make -j4 module-qtbase module-qtsvg (on Windows use jom module-qtbase)
 	make module-qtbase-install_subtargets module-qtsvg-install_subtargets (on Windows use jom ...)

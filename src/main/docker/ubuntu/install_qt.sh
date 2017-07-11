@@ -7,8 +7,6 @@ if [ -z $1 ]; then
 	exit 1
 fi
 
-echo "$1"
-
 # Install Qt's dependencies:
 sudo apt-get install \
     build-essential libxcb1 libxcb1-dev libx11-xcb1 \

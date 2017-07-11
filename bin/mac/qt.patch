@@ -1,0 +1,71 @@
+diff -cr qt-everywhere-opensource-src-5.6.2/qtbase/src/gui/kernel/qwindow.cpp qt-everywhere-opensource-src-5.6.2_patched/qtbase/src/gui/kernel/qwindow.cpp
+*** qt-everywhere-opensource-src-5.6.2/qtbase/src/gui/kernel/qwindow.cpp	2016-09-16 07:49:42.000000000 +0200
+--- qt-everywhere-opensource-src-5.6.2_patched/qtbase/src/gui/kernel/qwindow.cpp	2017-07-11 09:15:19.000000000 +0200
+***************
+*** 1780,1790 ****
+    \internal
+    \sa QAccessible
+    */
+  QAccessibleInterface *QWindow::accessibleRoot() const
+  {
+      return 0;
+  }
+! 
+  /*!
+      \fn QWindow::focusObjectChanged(QObject *object)
+  
+--- 1780,1791 ----
+    \internal
+    \sa QAccessible
+    */
++ #ifndef QT_NO_ACCESSIBILITY
+  QAccessibleInterface *QWindow::accessibleRoot() const
+  {
+      return 0;
+  }
+! #endif
+  /*!
+      \fn QWindow::focusObjectChanged(QObject *object)
+  
+diff -cr qt-everywhere-opensource-src-5.6.2/qtbase/src/gui/kernel/qwindow.h qt-everywhere-opensource-src-5.6.2_patched/qtbase/src/gui/kernel/qwindow.h
+*** qt-everywhere-opensource-src-5.6.2/qtbase/src/gui/kernel/qwindow.h	2016-09-16 07:49:42.000000000 +0200
+--- qt-everywhere-opensource-src-5.6.2_patched/qtbase/src/gui/kernel/qwindow.h	2017-07-11 09:15:19.000000000 +0200
+***************
+*** 76,82 ****
+--- 76,84 ----
+  class QPlatformWindow;
+  class QBackingStore;
+  class QScreen;
++ #ifndef QT_NO_ACCESSIBILITY
+  class QAccessibleInterface;
++ #endif
+  class QWindowContainer;
+  #ifndef QT_NO_DEBUG_STREAM
+  class QDebug;
+***************
+*** 243,249 ****
+--- 245,253 ----
+      QScreen *screen() const;
+      void setScreen(QScreen *screen);
+  
++     #ifndef QT_NO_ACCESSIBILITY
+      virtual QAccessibleInterface *accessibleRoot() const;
++     #endif
+      virtual QObject *focusObject() const;
+  
+      QPoint mapToGlobal(const QPoint &pos) const;
+diff -cr qt-everywhere-opensource-src-5.6.2/qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h qt-everywhere-opensource-src-5.6.2_patched/qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h
+*** qt-everywhere-opensource-src-5.6.2/qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h	2016-09-16 07:49:42.000000000 +0200
+--- qt-everywhere-opensource-src-5.6.2_patched/qtbase/src/widgets/accessible/qaccessiblewidgetfactory_p.h	2017-07-11 09:15:19.000000000 +0200
+***************
+*** 49,55 ****
+--- 49,57 ----
+  
+  QT_BEGIN_NAMESPACE
+  
++ #ifndef QT_NO_ACCESSIBILITY
+  QAccessibleInterface *qAccessibleFactory(const QString &classname, QObject *object);
++ #endif
+  
+  QT_END_NAMESPACE
+  

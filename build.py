@@ -32,7 +32,7 @@ if is_windows():
 	from build_impl.windows import init, exe, installer, sign_exe, \
 		sign_installer, add_installer_manifest, upload
 elif is_mac():
-	from build_impl.mac import app, sign_app, dmg, sign_dmg, upload, \
+	from build_impl.mac import init, app, sign_app, dmg, sign_dmg, upload, \
 		create_autoupdate_files
 elif is_linux():
 	if is_ubuntu():

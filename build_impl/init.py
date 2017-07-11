@@ -1,4 +1,5 @@
-from build_impl import is_windows, path, replace_in_file, replace_in_files
+from build_impl import is_windows, path, replace_in_file, replace_in_files, \
+	is_mac
 from io import BytesIO
 from os import listdir
 from os.path import join, dirname
@@ -36,7 +37,7 @@ def install_sip():
 	with TemporaryDirectory() as tmp_dir:
 		z.extractall(tmp_dir)
 		sip_dir = join(tmp_dir, listdir(tmp_dir)[0])
-		_run_in_venv('python configure.py', cwd=sip_dir)
+		_run_in_venv('python configure.py' + _EXTRA_FLAGS, cwd=sip_dir)
 		if is_windows():
 			siplib_makefile = join(sip_dir, 'siplib', 'Makefile')
 			python35lib_absolute = _find_python_library('python35.lib')
@@ -51,6 +52,14 @@ def install_sip():
 		_run_make(cwd=sip_dir)
 		_run_make('install', cwd=sip_dir)
 
+if is_mac():
+	_EXTRA_FLAGS = \
+		' LFLAGS="-mmacosx-version-min=10.9" ' \
+		'CFLAGS="-mmacosx-version-min=10.9" ' \
+		'CXXFLAGS="-mmacosx-version-min=10.9"'
+else:
+	_EXTRA_FLAGS = ''
+
 def install_pyqt():
 	data = _download_file(_PYQT_DOWNLOAD_URL)
 	z = ZipFile(BytesIO(data))
@@ -64,8 +73,8 @@ def install_pyqt():
 		else:
 			sip_exe_path = join(_VENV_DIR, 'bin', 'sip')
 		_run_in_venv(
-			"python configure.py --confirm-license --qmake %s --sip %s"
-			% (qmake_path, sip_exe_path), cwd=pyqt_dir
+			"python configure.py --confirm-license --qmake %s --sip %s%s"
+			% (qmake_path, sip_exe_path, _EXTRA_FLAGS), cwd=pyqt_dir
 		)
 		if is_windows():
 			python35lib_absolute = _find_python_library('python35.lib')
