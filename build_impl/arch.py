@@ -5,11 +5,12 @@ from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons, remove_shared_libraries
 from distutils.dir_util import copy_tree
 from os import makedirs
-from os.path import exists, join
+from os.path import exists, join, expanduser
 from shutil import rmtree, copytree, copy
 from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError
 
 import hashlib
+import subprocess
 
 _ARCH_DEPENDENCIES = ('qt5-base',)
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
@@ -126,9 +127,15 @@ def _publish_to_AUR():
 	cwd = path('target/AUR')
 	def git(*args):
 		run(['git'] + list(args), cwd=cwd, extra_env=env)
+	_add_to_known_hosts('aur.archlinux.org')
 	git('clone', 'ssh://aur@aur.archlinux.org/fman.git')
 	copy_tree(path('target/pkgbuild'), path('target/AUR/fman'))
 	cwd = path('target/AUR/fman')
 	git('add', '-A')
 	git('commit', '-m', 'Changes for fman ' + OPTIONS['version'])
 	git('push', '-u', 'origin', 'master')
+
+def _add_to_known_hosts(host):
+	p = subprocess.run(['ssh-keyscan', '-H', host], stdout=PIPE, stderr=PIPE)
+	with open(expanduser('~/.ssh/known_hosts', 'ab')) as f:
+		f.write(b'\n' + p.stdout)

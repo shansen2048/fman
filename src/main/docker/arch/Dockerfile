@@ -7,9 +7,15 @@ RUN gpgconf --kill gpg-agent
 
 ADD .bashrc /root/.bashrc
 
-RUN pacman -S --noconfirm python-pyqt5 git ruby && \
+RUN pacman -S --noconfirm python-pyqt5
+
+RUN pacman -S --noconfirm ruby && \
     source ~/.bashrc && \
     gem install --no-ri --no-rdoc fpm
+
+RUN pacman -S --noconfirm git && \
+    git config --global user.email "michael@herrmann.io" && \
+    git config --global user.name "Michael Herrmann"
 
 ADD id_rsa /root/.ssh/id_rsa
 ADD id_rsa.pub /root/.ssh/id_rsa.pub

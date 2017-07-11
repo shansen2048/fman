@@ -20,7 +20,9 @@ RUN apt-get install openssh-client -y && \
     ssh-keyscan -H fman.io >> ~/.ssh/known_hosts && \
     chmod 600 ~/.ssh/known_hosts
 
-RUN apt-get install git -y
+RUN apt-get install git -y && \
+    git config --global user.email "michael@herrmann.io" && \
+    git config --global user.name "Michael Herrmann"
 
 RUN apt-get install ruby ruby-dev build-essential -y && \
     gem install --no-ri --no-rdoc fpm
