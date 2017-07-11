@@ -239,7 +239,7 @@ def _get_docker_mounts(image_name, cache_dir):
 	}
 	for file_name in listdir(path('.')):
 		file_path = path(file_name)
-		if file_name == '.git' or _is_in_gitignore(file_path):
+		if _is_in_gitignore(file_path):
 			continue
 		result[file_path] = '/root/dev/fman/' + file_name
 	return result
