@@ -123,10 +123,12 @@ def _publish_to_AUR():
 	env = {
 		'GIT_SSH_COMMAND': 'ssh -i ' + OPTIONS['ssh_key']
 	}
+	cwd = path('target/AUR')
 	def git(*args):
-		run(['git'] + list(args), cwd=path('target/AUR/fman'), extra_env=env)
+		run(['git'] + list(args), cwd=cwd, extra_env=env)
 	git('clone', 'ssh://aur@aur.archlinux.org/fman.git')
 	copy_tree(path('target/pkgbuild'), path('target/AUR/fman'))
+	cwd = path('target/AUR/fman')
 	git('add', '-A')
 	git('commit', '-m', 'Changes for fman ' + OPTIONS['version'])
 	git('push', '-u', 'origin', 'master')
