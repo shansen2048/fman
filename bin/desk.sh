@@ -26,6 +26,10 @@ source venv/bin/activate
 
 PS1="(fman) \h:\W \u\$ "
 
+function build {
+	python build.py "$@"
+}
+
 alias clean='python build.py clean'
 alias exe='python build.py exe'
 alias installer='python build.py installer'
