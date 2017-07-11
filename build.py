@@ -2,7 +2,7 @@ from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, git, \
 	create_cloudfront_invalidation, is_ubuntu, is_arch_linux
 from os import unlink, listdir, remove, makedirs
 from os.path import join, isdir, isfile, islink, expanduser
-from shutil import rmtree
+from shutil import rmtree, copytree, copy
 from subprocess import DEVNULL
 from unittest import TestSuite, TextTestRunner, defaultTestLoader
 
@@ -195,15 +195,19 @@ def clean():
 					unlink(fpath)
 
 def arch_docker_image():
-	_build_docker_image(
-		'fman/arch', path('src/main/docker/arch'), path('cache/arch')
-	)
+	build_dir = path('target/arch-docker-image')
+	copytree(path('src/main/docker/arch'), build_dir)
+	copy(path('conf/ssh/id_rsa'), build_dir)
+	copy(path('conf/ssh/id_rsa.pub'), build_dir)
+	_build_docker_image('fman/arch', build_dir, path('cache/arch'))
 	arch(['/bin/bash', '-c', 'python build.py init'])
 
 def ubuntu_docker_image():
-	_build_docker_image(
-		'fman/ubuntu', path('src/main/docker/ubuntu'), path('cache/ubuntu')
-	)
+	build_dir = path('target/ubuntu-docker-image')
+	copytree(path('src/main/docker/ubuntu'), build_dir)
+	copy(path('conf/ssh/id_rsa'), build_dir)
+	copy(path('conf/ssh/id_rsa.pub'), build_dir)
+	_build_docker_image('fman/ubuntu', build_dir, path('cache/ubuntu'))
 	ubuntu(['/bin/bash', '-c', 'python3.5 build.py init'])
 
 def ubuntu(extra_args=None):
