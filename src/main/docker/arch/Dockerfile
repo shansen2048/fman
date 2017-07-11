@@ -14,7 +14,9 @@ RUN pacman -S --noconfirm python-pyqt5 git ruby && \
 ADD id_rsa /root/.ssh/id_rsa
 ADD id_rsa.pub /root/.ssh/id_rsa.pub
 RUN pacman -S --noconfirm openssh && \
-    ssh-keyscan -H dev.herrmann.io >> ~/.ssh/known_hosts ; chmod 600 ~/.ssh/known_hosts
+    ssh-keyscan -H dev.herrmann.io >> ~/.ssh/known_hosts && \
+    ssh-keyscan -H fman.io >> ~/.ssh/known_hosts && \
+    chmod 600 ~/.ssh/known_hosts
 
 RUN pacman -S --noconfirm rsync
 

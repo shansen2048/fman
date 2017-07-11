@@ -16,7 +16,9 @@ ENV LD_LIBRARY_PATH /usr/local/lib
 ADD id_rsa /root/.ssh/id_rsa
 ADD id_rsa.pub /root/.ssh/id_rsa.pub
 RUN apt-get install openssh-client -y && \
-    ssh-keyscan -H dev.herrmann.io >> ~/.ssh/known_hosts ; chmod 600 ~/.ssh/known_hosts
+    ssh-keyscan -H dev.herrmann.io >> ~/.ssh/known_hosts && \
+    ssh-keyscan -H fman.io >> ~/.ssh/known_hosts && \
+    chmod 600 ~/.ssh/known_hosts
 
 RUN apt-get install git -y
 
