@@ -1,4 +1,4 @@
-from fman import PLATFORM, DATA_DIRECTORY, Window, YES, NO
+from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.css_qt_bridge import CSSQtBridge
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
@@ -193,8 +193,11 @@ class ApplicationContext:
 		return self._excepthook
 	@property
 	def icon_provider(self):
-		if self._icon_provider is None and system.is_gnome_based():
-			self._icon_provider = GnomeFileIconProvider()
+		if self._icon_provider is None:
+			try:
+				self._icon_provider = GnomeFileIconProvider()
+			except ImportError:
+				pass
 		return self._icon_provider
 	@property
 	def main_window(self):
