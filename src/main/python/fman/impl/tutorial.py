@@ -75,7 +75,7 @@ class Tutorial:
 	def _get_steps(self):
 		goto_directory = basename(self._directory_for_goto)
 		cmd_p = '⌘P' if is_mac() else 'Ctrl+P'
-		cmd_shift_p = '⌘⇧P' if is_mac() else 'Ctrl+Shift+P'
+		cmd_shift_p = 'Cmd+Shift+P' if is_mac() else 'Ctrl+Shift+P'
 		return [
 			TutorialStep(
 				'Welcome to fman!',
