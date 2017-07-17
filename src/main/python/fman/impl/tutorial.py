@@ -17,9 +17,11 @@ class Tutorial:
 		self._metrics = metrics
 		self._curr_step_index = -1
 		self._curr_step = None
+		self._starting_directory = None
 		self._directory_for_goto = self._get_directory_for_goto()
 		self._steps = self._get_steps()
 	def start(self):
+		self._starting_directory = self._get_pane_path()
 		self._curr_step_index = -1
 		self._next_step()
 	def reject(self):
@@ -106,8 +108,9 @@ class Tutorial:
 				[
 					"This is fman's *GoTo* dialog. It lets you quickly jump to "
 					"directories.",
-					"Try navigating to your %s folder:<br/>" % goto_directory +
-					"Type *%s*" % goto_directory[:4] + " followed by *Enter*."
+					"Type *%s* into the dialog. Then, press *Enter*. "
+					"This should open your %s folder." %
+					(goto_directory[:4], goto_directory)
 				],
 				{
 					'after': {
@@ -186,7 +189,7 @@ class Tutorial:
 		]
 	def _after_goto(self):
 		path = self._get_pane_path()
-		if path and samefile(path, self._directory_for_goto):
+		if path != self._starting_directory:
 			self._next_step()
 	def _get_pane_path(self):
 		return self._main_window.get_panes()[0].get_path()
