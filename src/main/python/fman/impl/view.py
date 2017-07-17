@@ -1,7 +1,7 @@
 from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
 	Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, \
 	ShiftModifier, ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
-	KeyboardModifier, Key_Enter, Key_Return, MoveAction, NoButton, CopyAction
+	KeyboardModifier, MoveAction, NoButton, CopyAction
 from fman.util.system import is_mac
 from os.path import normpath
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, QRect
