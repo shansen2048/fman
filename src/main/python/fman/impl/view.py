@@ -4,7 +4,7 @@ from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
 	KeyboardModifier, MoveAction, NoButton, CopyAction
 from fman.util.system import is_mac
 from os.path import normpath
-from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, QRect
+from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, QRect, Qt
 from PyQt5.QtGui import QKeyEvent, QPen
 from PyQt5.QtWidgets import QTreeView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView
@@ -100,6 +100,7 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		# Double click should not open editor:
 		self.setEditTriggers(self.NoEditTriggers)
 		self._init_for_drag_and_drop()
+		self._would_have_focus = False
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		model = self.model()
@@ -124,15 +125,31 @@ class FileListView(TreeViewWithNiceCursorAndSelectionAPI):
 		if not filter_ or not filter_(self, event):
 			super().keyPressEvent(event)
 	def drawRow(self, painter, option, index):
-		# Even with allColumnsShowFocus set to True, QTreeView::item:focus only
-		# styles the first column. Fix this:
-		if self.hasFocus() and index.row() == self.currentIndex().row():
-			option.state |= QStyle.State_HasFocus
+		if index.row() == self.currentIndex().row():
+			# 1) Even with allColumnsShowFocus set to True,
+			#    QTreeView::item:focus only styles the first column. Fix this.
+			# 2) QTreeView::item:focus is only applied when the window has
+			#    focus. This means that the cursor disappears when the window
+			#    is in the background (or behind a modal). This leads to non-
+			#    pleasant flickering effects. So we always highlight the cursor
+			#    even when the window doesn't have focus:
+			if self._should_draw_cursor():
+				option.state |= QStyle.State_HasFocus
 		super().drawRow(painter, option, index)
+	def _should_draw_cursor(self):
+		return self.hasFocus() or \
+			   (not self.isActiveWindow() and self._would_have_focus)
+	def focusOutEvent(self, event):
+		super().focusOutEvent(event)
+		self._would_have_focus = event.reason() in (
+			Qt.ActiveWindowFocusReason, Qt.PopupFocusReason,
+			Qt.MenuBarFocusReason
+		)
 	def focusInEvent(self, event):
 		if not self.currentIndex().isValid():
 			self.reset_cursor()
 		super().focusInEvent(event)
+		self._would_have_focus = True
 	def reset_cursor(self):
 		index = self.rootIndex().child(0, 0)
 		is_displaying_my_computer = not self.model().sourceModel().rootPath()
