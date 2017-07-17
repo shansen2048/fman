@@ -33,7 +33,7 @@ QTreeView::item:first {
 	padding-left: 0.25em;
 }
 
-QTreeView::item:focus:active {
+QTreeView::item:focus {
 	background-color: #49483e;
 }
 
