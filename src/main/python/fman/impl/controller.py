@@ -12,21 +12,21 @@ class Controller:
 	implementation from having to know about Qt.
 	"""
 	def __init__(self, window, plugin_support, tracker):
-		self.window = window
-		self.plugin_support = plugin_support
-		self.tracker = tracker
+		self._window = window
+		self._plugin_support = plugin_support
+		self._metrics = tracker
 		self._panes = WeakValueDictionary()
 	def on_pane_added(self, pane_widget):
 		pane_widget.set_controller(self)
-		pane = self.window.add_pane(pane_widget)
+		pane = self._window.add_pane(pane_widget)
 		self._panes[pane_widget] = pane
 		pane_widget.path_changed.connect(self.on_path_changed)
-		self.plugin_support.on_pane_added(pane)
+		self._plugin_support.on_pane_added(pane)
 	def on_path_changed(self, pane_widget):
 		self._panes[pane_widget]._broadcast('on_path_changed')
 	def on_key_pressed(self, pane_widget, event):
 		key_event = QtKeyEvent(event.key(), event.modifiers())
-		for key_binding in self.plugin_support.get_sanitized_key_bindings():
+		for key_binding in self._plugin_support.get_sanitized_key_bindings():
 			keys = key_binding['keys']
 			if key_event.matches(keys[0]):
 				cmd_name = key_binding['command']
@@ -35,24 +35,24 @@ class Controller:
 				if cmd_name in pane.get_commands():
 					pane.run_command(cmd_name, args)
 				else:
-					self.plugin_support.run_application_command(cmd_name, args)
+					self._plugin_support.run_application_command(cmd_name, args)
 				return True
 		if not key_event.is_modifier_only() and \
 			not key_event.is_letter_only() and \
 			not key_event.is_digit_only():
-			self.tracker.track('UsedNonexistentShortcut', {
+			self._metrics.track('UsedNonexistentShortcut', {
 				'shortcut': str(key_event)
 			})
 		event.ignore()
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):
-		self.tracker.track('DoubleclickedFile')
+		self._metrics.track('DoubleclickedFile')
 		self._panes[pane_widget]._broadcast('on_doubleclicked', file_path)
 	def on_file_renamed(self, pane_widget, *args):
-		self.tracker.track('RenamedFile')
+		self._metrics.track('RenamedFile')
 		self._panes[pane_widget]._broadcast('on_name_edited', *args)
 	def on_files_dropped(self, pane_widget, *args):
-		self.tracker.track('DroppedFile')
+		self._metrics.track('DroppedFile')
 		self._panes[pane_widget]._broadcast('on_files_dropped', *args)
 
 class QtKeyEvent:
