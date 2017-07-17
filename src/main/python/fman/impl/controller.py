@@ -11,10 +11,10 @@ class Controller:
 	The main purpose of this class is to shield the rest of the `plugin`
 	implementation from having to know about Qt.
 	"""
-	def __init__(self, window, plugin_support, tracker):
+	def __init__(self, window, plugin_support, metrics):
 		self._window = window
 		self._plugin_support = plugin_support
-		self._metrics = tracker
+		self._metrics = metrics
 		self._panes = WeakValueDictionary()
 	def on_pane_added(self, pane_widget):
 		pane_widget.set_controller(self)
