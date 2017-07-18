@@ -91,6 +91,9 @@ class ToggleSelection(_CorePaneCommand):
 		self.toggle_selection()
 
 class MoveToTrash(_CorePaneCommand):
+
+	aliases = ('Delete', 'Move to trash', 'Move to recycle bin')
+
 	def __call__(self):
 		to_delete = self.get_chosen_files()
 		if not to_delete:
@@ -131,6 +134,9 @@ class DeletePermanently(DirectoryPaneCommand):
 					remove(file_path)
 
 class GoUp(_CorePaneCommand):
+
+	aliases = ('Go up', 'Go to parent directory')
+
 	def __call__(self):
 		current_dir = self.pane.get_path()
 		if current_dir == '/':
@@ -172,33 +178,28 @@ def _open(pane, file_path):
 			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
 
 class OpenWithEditor(_CorePaneCommand):
+
+	aliases = ('Edit',)
+
 	_PLATFORM_APPLICATIONS_FILTER = {
 		'Mac': 'Applications (*.app)',
 		'Windows': 'Applications (*.exe)',
 		'Linux': 'Applications (*)'
 	}
-	def __call__(self, create_new=False):
-		file_under_cursor = self.pane.get_file_under_cursor()
-		file_to_edit = file_under_cursor
-		if create_new:
-			if isfile(file_under_cursor):
-				default_name = basename(file_under_cursor)
-			else:
-				default_name = ''
-			file_name, ok = \
-				show_prompt('Enter file name to create/edit:', default_name)
-			if not ok or not file_name:
-				return
-			if ok and file_name:
-				file_to_edit = join(self.pane.get_path(), file_name)
-				if not exists(file_to_edit):
-					open(file_to_edit, 'w').close()
-				self.pane.place_cursor_at(file_to_edit)
-		if exists(file_to_edit):
-			self._open_with_editor(file_to_edit)
-		else:
-			show_alert('No file is selected!')
+	def __call__(self, create_new=None):
+		if create_new is not None:
+			# TODO: Remove this migration in October 2017
+			show_alert(
+				'Error: Command open_with_editor no longer supports argument '
+				'`create_new`. Please update your Key Bindings.json to use '
+				'the new command create_and_edit_file instead.'
+			)
+			return
+		self._open_with_editor(self.pane.get_file_under_cursor())
 	def _open_with_editor(self, file_path):
+		if not exists(file_path):
+			show_alert('No file is selected!')
+			return
 		settings = load_json('Core Settings.json', default={})
 		editor = settings.get('editor', {})
 		if not editor:
@@ -229,6 +230,29 @@ class OpenWithEditor(_CorePaneCommand):
 		elif PLATFORM == 'Linux':
 			return '/usr/bin'
 		raise NotImplementedError(PLATFORM)
+
+class CreateAndEditFile(OpenWithEditor):
+
+	aliases = ('New file', 'Create file', 'Create and edit file')
+
+	def __call__(self):
+		file_under_cursor = self.pane.get_file_under_cursor()
+		if isfile(file_under_cursor):
+			default_name = basename(file_under_cursor)
+		else:
+			default_name = ''
+		file_name, ok = \
+			show_prompt('Enter file name to create/edit:', default_name)
+		if not ok or not file_name:
+			return
+		if ok and file_name:
+			file_to_edit = join(self.pane.get_path(), file_name)
+			if not exists(file_to_edit):
+				open(file_to_edit, 'w').close()
+			self.pane.place_cursor_at(file_to_edit)
+		else:
+			file_to_edit = file_under_cursor
+		self._open_with_editor(file_to_edit)
 
 class _TreeCommand(_CorePaneCommand):
 	def __call__(self, files=None, dest_dir=None):
@@ -348,6 +372,11 @@ class RenameListener(DirectoryPaneListener):
 				self.pane.place_cursor_at(new_path)
 
 class CreateDirectory(_CorePaneCommand):
+
+	aliases = (
+		'New folder', 'Create folder', 'New directory', 'Create directory'
+	)
+
 	def __call__(self):
 		name, ok = self.ui.show_prompt("New folder (directory)")
 		if ok and name:
@@ -362,6 +391,11 @@ class CreateDirectory(_CorePaneCommand):
 			self.pane.place_cursor_at(dir_path)
 
 class OpenTerminal(_CorePaneCommand):
+
+	aliases = (
+		'Terminal', 'Shell', 'Open terminal', 'Open shell'
+	)
+
 	def __call__(self):
 		open_terminal_in_directory(self.pane.get_path())
 
@@ -430,6 +464,9 @@ class Deselect(_CorePaneCommand):
 		self.pane.clear_selection()
 
 class ToggleHiddenFiles(_CorePaneCommand):
+
+	aliases = ('Toggle hidden files', 'Show / hide hidden files')
+
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		settings = load_json('Panes.json', default=[], save_on_quit=True)
@@ -503,6 +540,9 @@ class OpenInLeftPane(_OpenInPaneCommand):
 		return max(this_pane - 1, 0)
 
 class ShowVolumes(_CorePaneCommand):
+
+	aliases = ('Show volumes', 'Show drives')
+
 	def __call__(self, pane_index=None):
 		if pane_index is None:
 			pane = self.pane
@@ -833,28 +873,37 @@ class CommandPalette(_CorePaneCommand):
 				command()
 	def _suggest_commands(self, query):
 		result = [[] for _ in self._MATCHERS]
-		commands = self._get_all_commands()
-		for cmd_name in sorted(commands, key=len):
-			command_title = cmd_name.capitalize().replace('_', ' ')
-			for i, matcher in enumerate(self._MATCHERS):
-				match = matcher(command_title.lower(), query.lower())
-				if match is not None:
-					hint = ', '.join(self._get_shortcuts_for_command(cmd_name))
-					command = commands[cmd_name]
-					item = QuicksearchItem(command, command_title, match, hint)
-					result[i].append(item)
+		for cmd_name, aliases, command in self._get_all_commands():
+			for alias in aliases:
+				this_alias_matched = False
+				for i, matcher in enumerate(self._MATCHERS):
+					match = matcher(alias.lower(), query.lower())
+					if match is not None:
+						hint = ', '.join(self._get_shortcuts_for_command(cmd_name))
+						item = QuicksearchItem(command, alias, match, hint)
+						result[i].append(item)
+						this_alias_matched = True
+						break
+				if this_alias_matched:
+					# Don't check the other aliases:
 					break
+		for results in result:
+			results.sort(key=lambda item: (len(item.title), item.title))
 		return chain.from_iterable(result)
 	def _get_all_commands(self):
-		result = {}
-		for cmd_name in get_application_commands():
-			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
-			# defined-in-a-loop-with-different-values-all-return-the-same-result
-			result[cmd_name] = lambda cmd=cmd_name: run_application_command(cmd)
+		result = []
 		for cmd_name in self.pane.get_commands():
 			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
 			# defined-in-a-loop-with-different-values-all-return-the-same-result
-			result[cmd_name] = lambda cmd=cmd_name: self.pane.run_command(cmd)
+			aliases = self.pane.get_command_aliases(cmd_name)
+			command = lambda cmd=cmd_name: self.pane.run_command(cmd)
+			result.append((cmd_name, aliases, command))
+		for cmd_name in get_application_commands():
+			aliases = get_application_command_aliases(cmd_name)
+			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
+			# defined-in-a-loop-with-different-values-all-return-the-same-result
+			command = lambda cmd=cmd_name: run_application_command(cmd)
+			result.append((cmd_name, aliases, command))
 		return result
 	def _get_shortcuts_for_command(self, command):
 		for binding in load_json('Key Bindings.json'):
@@ -868,6 +917,9 @@ class CommandPalette(_CorePaneCommand):
 		return ''.join(self._KEY_SYMBOLS_MAC.get(key, key) for key in keys)
 
 class Quit(ApplicationCommand):
+
+	aliases = ('Quit', 'Exit')
+
 	def __call__(self):
 		sys.exit(0)
 
@@ -1033,6 +1085,9 @@ class InstallPlugin(ApplicationCommand):
 			json.dump(data, f)
 
 class RemovePlugin(ApplicationCommand):
+
+	aliases = ('Remove plugin', 'Uninstall plugin')
+
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._installed_plugins = None

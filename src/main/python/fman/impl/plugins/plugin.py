@@ -29,9 +29,9 @@ class Plugin:
 			listener = listener_class(pane)
 			pane._add_listener(ListenerWrapper(listener, self._error_handler))
 	def get_application_commands(self):
-		return set(self._application_command_instances)
+		return self._application_command_instances
 	def get_directory_pane_commands(self):
-		return set(self._directory_pane_commands)
+		return self._directory_pane_commands
 	def run_application_command(self, name, args=None):
 		if args is None:
 			args = {}
@@ -116,6 +116,13 @@ class CommandWrapper:
 	@property
 	def name(self):
 		return self.command.__class__.__name__
+	def get_aliases(self):
+		try:
+			return self.command.aliases
+		except AttributeError:
+			class_name = self.command.__class__.__name__
+			return re.sub(r'([a-z])([A-Z])', r'\1 \2', class_name)\
+					   .lower().capitalize(),
 
 class ListenerWrapper:
 	def __init__(self, listener, error_handler):

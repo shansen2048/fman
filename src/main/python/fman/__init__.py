@@ -11,6 +11,7 @@ __all__ = [
 	'show_file_open_dialog',
 	'show_quicksearch', 'QuicksearchItem',
 	'get_application_commands', 'run_application_command',
+	'get_application_command_aliases',
 	'clipboard',
 	'PLATFORM', 'FMAN_VERSION', 'DATA_DIRECTORY',
 	'OK', 'CANCEL', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT'
@@ -54,11 +55,13 @@ class DirectoryPane:
 			getattr(listener, event)(*args)
 
 	def get_commands(self):
-		return self._commands
+		return set(self._commands)
 	def run_command(self, name, args=None):
 		if args is None:
 			args = {}
 		return self._commands[name](**args)
+	def get_command_aliases(self, command_name):
+		return self._commands[command_name].get_aliases()
 	def _register_command(self, command_name, command):
 		self._commands[command_name] = command
 
@@ -183,6 +186,9 @@ def run_application_command(name, args=None):
 	if args is None:
 		args = {}
 	return _get_plugin_support().run_application_command(name, args)
+
+def get_application_command_aliases(command_name):
+	return _get_plugin_support().get_application_command_aliases(command_name)
 
 def _get_plugin_support():
 	return _get_app_ctxt().plugin_support

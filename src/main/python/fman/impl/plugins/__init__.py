@@ -28,6 +28,15 @@ class PluginSupport:
 			for command in plugin.get_application_commands():
 				result.add(command)
 		return result
+	def get_application_command_aliases(self, command_name):
+		for plugin in self._plugins:
+			try:
+				command = plugin.get_application_commands()[command_name]
+			except KeyError:
+				continue
+			else:
+				return command.get_aliases()
+		raise LookupError(command_name)
 	def run_application_command(self, name, args=None):
 		if args is None:
 			args = {}

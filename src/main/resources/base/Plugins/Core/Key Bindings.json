@@ -16,7 +16,7 @@
 	{ "keys": ["Enter"], "command": "open" },
 	{ "keys": ["F1"], "command": "help" },
 	{ "keys": ["F4"], "command": "open_with_editor" },
-	{ "keys": ["Shift+F4"], "command": "open_with_editor", "args": {"create_new": true} },
+	{ "keys": ["Shift+F4"], "command": "create_and_edit_file" },
 	{ "keys": ["F5"], "command": "copy" },
 	{ "keys": ["Shift+F6"], "command": "rename" },
 	{ "keys": ["F6"], "command": "move" },
