@@ -1,6 +1,6 @@
 {
 	"environment": "local",
-	"version": "0.5.5",
+	"version": "0.5.6-SNAPSHOT",
 	"server_url": "http://127.0.0.1:8000",
 	"info_plist_extra": "<key>NSAppTransportSecurity</key>\n\t<dict>\n\t\t<key>NSAllowsArbitraryLoads</key>\n\t\t<true/>\n\t</dict>"
 }
