@@ -11,9 +11,12 @@ class Controller:
 	The main purpose of this class is to shield the rest of the `plugin`
 	implementation from having to know about Qt.
 	"""
-	def __init__(self, window, plugin_support, metrics):
+	def __init__(
+			self, window, plugin_support, nonexistent_shortcut_handler, metrics
+	):
 		self._window = window
 		self._plugin_support = plugin_support
+		self._nonexistent_shortcut_handler = nonexistent_shortcut_handler
 		self._metrics = metrics
 		self._panes = WeakValueDictionary()
 	def on_pane_added(self, pane_widget):
@@ -25,13 +28,13 @@ class Controller:
 	def on_path_changed(self, pane_widget):
 		self._panes[pane_widget]._broadcast('on_path_changed')
 	def on_key_pressed(self, pane_widget, event):
+		pane = self._panes[pane_widget]
 		key_event = QtKeyEvent(event.key(), event.modifiers())
 		for key_binding in self._plugin_support.get_sanitized_key_bindings():
 			keys = key_binding['keys']
 			if key_event.matches(keys[0]):
 				cmd_name = key_binding['command']
 				args = key_binding.get('args', {})
-				pane = self._panes[pane_widget]
 				if cmd_name in pane.get_commands():
 					pane.run_command(cmd_name, args)
 				else:
@@ -40,9 +43,7 @@ class Controller:
 		if not key_event.is_modifier_only() and \
 			not key_event.is_letter_only() and \
 			not key_event.is_digit_only():
-			self._metrics.track('UsedNonexistentShortcut', {
-				'shortcut': str(key_event)
-			})
+			self._nonexistent_shortcut_handler(key_event, pane)
 		event.ignore()
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):
@@ -106,3 +107,11 @@ class QtKeyEvent:
 		return key, modifiers, self._replace(keys, {'Enter': 'Return'})
 	def _replace(self, keys, replacements):
 		return '+'.join(replacements.get(k, k) for k in keys.split('+'))
+	def __hash__(self):
+		return hash((int(self.key), int(self.modifiers)))
+	def __eq__(self, other):
+		if not isinstance(other, QtKeyEvent):
+			return False
+		return self.key == other.key and self.modifiers == other.modifiers
+	def __ne__(self, other):
+		return not self == other

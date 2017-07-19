@@ -1,10 +1,10 @@
+from fman.impl.html_style import highlight, underline
 from fman.impl.widgets import Overlay
 from fman.util import listdir_absolute
 from fman.util.qt import run_in_main_thread, connect_once
 from fman.util.system import is_mac
 from os import listdir
-from os.path import expanduser, isdir, join, getmtime, basename, samefile, \
-	abspath
+from os.path import expanduser, isdir, join, getmtime, basename, abspath
 
 import os
 import re
@@ -251,9 +251,6 @@ class TutorialStep:
 					"<h2 style='color: #bbbbbb;'>" + self._title + "</h2>" \
 				"</center>"
 	def _get_body_html(self):
-		highlight = lambda text: "<span style='color: white;'>%s</span>" % text
-		def underline(text):
-			return "<span style='text-decoration: underline;'>%s</span>" % text
 		result = ''
 		is_list = False
 		for line in self._paragraphs:

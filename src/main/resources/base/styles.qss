@@ -41,7 +41,7 @@ QTreeView::item:selected {
 	color: #f92672;
 }
 
-QLabel {
+QLabel, QRadioButton, QCheckBox {
 	color: #8f908a;
 }
 
@@ -133,4 +133,21 @@ Overlay {
 
 Overlay QPushButton {
 	max-width: 10em;
+}
+
+NonexistentShortcutDialog {
+	min-width: 15em;
+}
+
+NonexistentShortcutDialog QRadioButton {
+	margin-left: 1em;
+}
+
+NonexistentShortcutDialog QLineEdit {
+	margin-left: 2.25em;
+	margin-right: 1em;
+}
+
+QRadioButton::checked {
+	color: white;
 }

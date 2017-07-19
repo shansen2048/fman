@@ -1,6 +1,5 @@
 from base64 import b64encode, b64decode
 from fman.util import system
-from fman.util.settings import Settings
 from os import getcwd
 from os.path import expanduser, realpath, normpath, splitdrive
 
@@ -11,8 +10,9 @@ class SessionManager:
 	DEFAULT_NUM_PANES = 2
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
 
-	def __init__(self, json_path, fman_version, is_licensed):
-		self._settings = Settings(json_path)
+	def __init__(self, settings, fman_version, is_licensed):
+		self.is_first_run = not settings
+		self._settings = settings
 		self._fman_version = fman_version
 		self._is_licensed = is_licensed
 	@property

@@ -1,5 +1,5 @@
 from core.fileoperations import CopyFiles, MoveFiles
-from core.github import find_repos
+from core.github import find_repos, GitHubRepo
 from core.os_ import open_terminal_in_directory, open_native_file_manager, \
 	get_popen_kwargs_for_opening
 from core.util import strformat_dict_values
@@ -1029,27 +1029,30 @@ class InstallPlugin(ApplicationCommand):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._plugin_repos = None
-	def __call__(self):
-		if self._plugin_repos is None:
-			with StatusMessage('Fetching available plugins...'):
-				self._plugin_repos = find_repos(topics=['fman', 'plugin'])
-		result = show_quicksearch(self._get_matching_repos)
-		if result:
-			repo = result[1]
-			if repo:
-				with StatusMessage('Downloading %s...' % repo.name):
-					try:
-						ref = repo.get_latest_release()
-					except LookupError as no_release_yet:
-						ref = repo.get_latest_commit()
-					zipball_contents = repo.download_zipball(ref)
-				dest_dir = self._install_plugin(repo.name, zipball_contents)
-				# Save some data in case we want to update the plugin later:
-				self._record_plugin_installation(dest_dir, repo.url, ref)
-				show_alert(
-					'Plugin %r was successfully installed. Please restart fman '
-					'for the change to take effect.' % repo.name
-				)
+	def __call__(self, github_repo=None):
+		if github_repo:
+			with StatusMessage('Fetching GitHub repo %s...' % github_repo):
+				repo = GitHubRepo.fetch(github_repo)
+		else:
+			if self._plugin_repos is None:
+				with StatusMessage('Fetching available plugins...'):
+					self._plugin_repos = find_repos(topics=['fman', 'plugin'])
+			result = show_quicksearch(self._get_matching_repos)
+			repo = result[1] if result else None
+		if repo:
+			with StatusMessage('Downloading %s...' % repo.name):
+				try:
+					ref = repo.get_latest_release()
+				except LookupError as no_release_yet:
+					ref = repo.get_latest_commit()
+				zipball_contents = repo.download_zipball(ref)
+			dest_dir = self._install_plugin(repo.name, zipball_contents)
+			# Save some data in case we want to update the plugin later:
+			self._record_plugin_installation(dest_dir, repo.url, ref)
+			show_alert(
+				'Plugin %r was successfully installed. Please restart fman '
+				'for the change to take effect.' % repo.name
+			)
 	def _get_matching_repos(self, query):
 		installed_plugins = _get_thirdparty_plugins()
 		for repo in self._plugin_repos:

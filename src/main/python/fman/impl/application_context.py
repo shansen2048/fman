@@ -6,6 +6,7 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook
 from fman.impl.model import GnomeFileIconProvider
+from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 	CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -21,6 +22,7 @@ from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from fman.util import system
+from fman.util.settings import Settings
 from glob import glob
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
@@ -55,6 +57,7 @@ class ApplicationContext:
 		self._icon_provider = None
 		self._main_window = None
 		self._controller = None
+		self._nonexistent_shortcut_handler = None
 		self._palette = None
 		self._user = None
 		self._is_licensed = None
@@ -142,7 +145,7 @@ class ApplicationContext:
 	@property
 	def app_icon(self):
 		if self._app_icon is None and not system.is_mac():
-			self._app_icon = QIcon(self.get_resource('fman.ico'))
+			self._app_icon = QIcon(self._get_resource('fman.ico'))
 		return self._app_icon
 	@property
 	def command_callback(self):
@@ -168,13 +171,13 @@ class ApplicationContext:
 	@property
 	def constants(self):
 		if self._constants is None:
-			with open(self.get_resource('constants.json'), 'r') as f:
+			with open(self._get_resource('constants.json'), 'r') as f:
 				self._constants = json.load(f)
 			self._postprocess_constants()
 		return self._constants
 	def _postprocess_constants(self):
 		filter_path = join(
-			self.get_resource(), pardir, pardir, 'filters', 'filter-local.json'
+			self._get_resource(), pardir, pardir, 'filters', 'filter-local.json'
 		)
 		with open(filter_path, 'r') as f:
 			filter_ = json.load(f)
@@ -240,7 +243,7 @@ class ApplicationContext:
 	def plugin_dirs(self):
 		if self._plugin_dirs is None:
 			self._plugin_dirs = find_plugin_dirs(
-				self.get_resource('Plugins'),
+				self._get_resource('Plugins'),
 				join(DATA_DIRECTORY, 'Plugins', 'Third-party'),
 				join(DATA_DIRECTORY, 'Plugins', 'User')
 			)
@@ -277,9 +280,19 @@ class ApplicationContext:
 	@property
 	def controller(self):
 		if self._controller is None:
-			self._controller = \
-				Controller(self.window, self.plugin_support, self.metrics)
+			self._controller = Controller(
+				self.window, self.plugin_support,
+				self.nonexistent_shortcut_handler, self.metrics
+			)
 		return self._controller
+	@property
+	def nonexistent_shortcut_handler(self):
+		if self._nonexistent_shortcut_handler is None:
+			settings = Settings(self._get_local_data_file('Dialogs.json'))
+			self._nonexistent_shortcut_handler = NonexistentShortcutHandler(
+				self.main_window, settings, self.metrics
+			)
+		return self._nonexistent_shortcut_handler
 	@property
 	def metrics(self):
 		if self._metrics is None:
@@ -290,7 +303,7 @@ class ApplicationContext:
 			self._metrics = AsynchronousMetrics(metrics)
 		return self._metrics
 	def _get_metrics_json_path(self):
-		return join(DATA_DIRECTORY, 'Local', 'Metrics.json')
+		return self._get_local_data_file('Metrics.json')
 	@property
 	def metrics_logging_enabled(self):
 		if self._metrics_logging_enabled is None:
@@ -344,7 +357,7 @@ class ApplicationContext:
 	@property
 	def user(self):
 		if self._user is None:
-			json_path = join(DATA_DIRECTORY, 'Local', 'User.json')
+			json_path = self._get_local_data_file('User.json')
 			try:
 				with open(json_path, 'r') as f:
 					data = json.load(f)
@@ -375,16 +388,16 @@ class ApplicationContext:
 	@property
 	def session_manager(self):
 		if self._session_manager is None:
-			json_path = join(DATA_DIRECTORY, 'Local', 'Session.json')
+			settings = Settings(self._get_local_data_file('Session.json'))
 			self._session_manager = \
-				SessionManager(json_path, self.fman_version, self.is_licensed)
+				SessionManager(settings, self.fman_version, self.is_licensed)
 		return self._session_manager
 	@property
 	def stylesheet(self):
 		if self._stylesheet is None:
-			with open(self.get_resource('styles.qss'), 'r') as f:
+			with open(self._get_resource('styles.qss'), 'r') as f:
 				self._stylesheet = f.read()
-			os_styles = self.get_resource('os_styles.qss')
+			os_styles = self._get_resource('os_styles.qss')
 			if exists(os_styles):
 				with open(os_styles, 'r') as f:
 					self._stylesheet += '\n' + f.read()
@@ -414,7 +427,7 @@ class ApplicationContext:
 		if self._window is None:
 			self._window = Window()
 		return self._window
-	def get_resource(self, *rel_path):
+	def _get_resource(self, *rel_path):
 		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
 		os_dir = join(res_dir, PLATFORM.lower())
 		os_path = normpath(join(os_dir, *rel_path))
@@ -422,6 +435,8 @@ class ApplicationContext:
 			return os_path
 		base_dir = join(res_dir, 'base')
 		return normpath(join(base_dir, *rel_path))
+	def _get_local_data_file(self, file_name):
+		return join(DATA_DIRECTORY, 'Local', file_name)
 
 class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
@@ -448,7 +463,7 @@ class FrozenApplicationContext(ApplicationContext):
 			return True
 		else:
 			return data.get('enabled', True)
-	def get_resource(self, *rel_path):
+	def _get_resource(self, *rel_path):
 		if system.is_mac():
 			rel_path = (pardir, 'Resources') + rel_path
 		return normpath(join(dirname(sys.executable), *rel_path))

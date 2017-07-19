@@ -9,6 +9,10 @@ def find_repos(topics):
 	return list(map(GitHubRepo, data['items']))
 
 class GitHubRepo:
+	@classmethod
+	def fetch(cls, repo):
+		url = 'https://api.github.com/repos/' + repo
+		return cls(_get_json(url))
 	def __init__(self, data):
 		self._data = data
 	def __str__(self):
