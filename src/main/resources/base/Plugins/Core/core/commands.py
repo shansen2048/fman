@@ -1050,8 +1050,8 @@ class InstallPlugin(ApplicationCommand):
 			# Save some data in case we want to update the plugin later:
 			self._record_plugin_installation(dest_dir, repo.url, ref)
 			show_alert(
-				'Plugin %r was successfully installed. Please restart fman '
-				'for the change to take effect.' % repo.name
+				'Please restart fman to complete the installation of plugin %r.'
+				% repo.name
 			)
 	def _get_matching_repos(self, query):
 		installed_plugins = _get_thirdparty_plugins()
@@ -1105,8 +1105,8 @@ class RemovePlugin(ApplicationCommand):
 				if plugin:
 					rmtree(join(_THIRDPARTY_PLUGINS_DIR, plugin))
 					show_alert(
-						'Plugin %r was successfully removed. Please restart '
-						'fman for the change to take effect.' % plugin
+						'Please restart fman to complete the removal of plugin '
+						'%r.' % plugin
 					)
 	def _get_matching_plugins(self, query):
 		for plugin in self._installed_plugins:
