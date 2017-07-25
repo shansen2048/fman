@@ -4,7 +4,7 @@ from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
 from fman.impl.controller import Controller
-from fman.impl.excepthook import Excepthook
+from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model import GnomeFileIconProvider
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
@@ -189,10 +189,8 @@ class ApplicationContext:
 	@property
 	def excepthook(self):
 		if self._excepthook is None:
-			self._excepthook = Excepthook(
-				self.constants['rollbar_token'], self.constants['environment'],
-				self.fman_version, self.plugin_dirs, self.plugin_error_handler
-			)
+			self._excepthook = \
+				Excepthook(self.plugin_dirs, self.plugin_error_handler)
 		return self._excepthook
 	@property
 	def icon_provider(self):
@@ -442,13 +440,20 @@ class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
 		super().__init__()
 		self._updater = None
-		self._excepthook = None
 	@property
 	def updater(self):
 		if self._updater is None:
 			if self._should_auto_update():
 				self._updater = MacUpdater(self.app)
 		return self._updater
+	@property
+	def excepthook(self):
+		if self._excepthook is None:
+			self._excepthook = RollbarExcepthook(
+				self.constants['rollbar_token'], self.constants['environment'],
+				self.fman_version, self.plugin_dirs, self.plugin_error_handler
+			)
+		return self._excepthook
 	def _should_auto_update(self):
 		if not system.is_mac():
 			# On Windows and Linux, auto-updates are handled by external
