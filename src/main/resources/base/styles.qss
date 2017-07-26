@@ -1,44 +1,45 @@
-QTreeView, QMessageBox, QDialog, QListView {
+QTableView, QMessageBox, QDialog, QListView {
 	background-color: #272822;
 	border: none;
 }
 
-QTreeView QHeaderView, QTreeView QHeaderView::section {
+QHeaderView, QHeaderView::section {
 	background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #363731, stop: 1 #272822);
 }
 
-QTreeView QHeaderView::section {
+QHeaderView::section {
 	color: #8f908a;
 	border: none;
 	padding-top: 1ex;
 	padding-bottom: 1ex;
 }
 
-QTreeView::item {
+QTableView::item {
 	color: #75715e;
 	padding-top: 1px;
 	padding-bottom: 1px;
-	/*
-	 * This definition should actually not be required as the bg color is set
-	 * on QTreeView. However, setting the bg color on `item` results in an
-	 * increased indent of the first column. Since item:focus below sets the bg
-	 * color as well, this leads to an ugly "shifting" effect. So we set bg
-	 * color here as well so the items are always shifted.
-	 */
-	background-color: transparent;
 }
 
-QTreeView::item:first {
+/*
+ * Hack: Unlike QTreeView::item, QTableView::item has no :first selector. To
+ * work around this, our backend sets State_Children, which we can catch here as
+ * :has-children
+ */
+QTableView::item:has-children {
 	color: white;
 	padding-left: 0.25em;
+	/* The padding directive has no effect unless we specify a background: */
+	background: transparent;
 }
 
-QTreeView::item:focus {
-	background-color: #49483e;
-}
-
-QTreeView::item:selected {
+QTableView::item:selected {
 	color: #f92672;
+	/* Avoid the ugly default blue background color for selected cells: */
+	background-color: #272822;
+}
+
+QTableView::item:focus {
+	background-color: #49483e;
 }
 
 QLabel, QRadioButton, QCheckBox {

@@ -97,9 +97,14 @@ class FileSystemModel(QFileSystemModel):
 			return 'Modified'
 		return result
 	def flags(self, index):
-		result = ItemIsEnabled | ItemIsEditable | ItemIsSelectable
+		# Need to set ItemIsEnabled - in particular for the last column - to
+		# make keyboard shortcut "End" work. When we press this shortcut in a
+		# QTableView, Qt jumps to the last column of the last row. But only if
+		# this cell is enabled. If it isn't enabled, Qt simply does nothing.
+		# So we set the cell to enabled.
+		result = ItemIsSelectable | ItemIsEnabled
 		if index.column() == 0:
-			result |= ItemIsDragEnabled
+			result |= ItemIsEditable | ItemIsDragEnabled
 			if self.isDir(index):
 				result |= ItemIsDropEnabled
 		return result

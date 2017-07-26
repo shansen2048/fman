@@ -75,6 +75,7 @@ ShiftModifier = Qt.ShiftModifier
 AltModifier = Qt.AltModifier
 MetaModifier = Qt.MetaModifier
 KeypadModifier = Qt.KeypadModifier
+GroupSwitchModifier = Qt.GroupSwitchModifier
 Key_Down = Qt.Key_Down
 Key_Up = Qt.Key_Up
 Key_Left = Qt.Key_Left

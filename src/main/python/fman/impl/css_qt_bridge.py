@@ -5,7 +5,7 @@ class CSSQtBridge:
 
 	_CSS_TO_QSS = {
 		'*': '*',
-		'th': 'QTreeView QHeaderView::section',
+		'th': 'QTableView QHeaderView::section',
 		'.statusbar': 'QStatusBar, QStatusBar QLabel',
 		'.quicksearch-query': 'Quicksearch QLineEdit',
 		'.quicksearch-item': 'Quicksearch QListView::item'
