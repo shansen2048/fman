@@ -125,9 +125,8 @@ class ApplicationContext:
 		fonts_to_load = []
 		for plugin_dir in self.plugin_dirs:
 			fonts_to_load.extend(glob(join(plugin_dir, '*.ttf')))
-		if fonts_to_load:
-			for font in fonts_to_load:
-				QFontDatabase.addApplicationFont(font)
+		for font in fonts_to_load:
+			QFontDatabase.addApplicationFont(font)
 	@property
 	def app(self):
 		if self._app is None:
