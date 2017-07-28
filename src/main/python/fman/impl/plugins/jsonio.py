@@ -1,16 +1,17 @@
 from os import makedirs
-from os.path import dirname
+from os.path import dirname, splitext, join
 
 import json
 
 class JsonIO:
-	def __init__(self, locate_config_file):
-		self._locate_config_file = locate_config_file
+	def __init__(self, plugin_dirs, platform):
+		self._plugin_dirs = plugin_dirs
+		self._platform = platform
 		self._cache = {}
 		self._save_on_quit = set()
 	def load(self, json_name, default=None, save_on_quit=False):
 		if json_name not in self._cache:
-			result = load_json(*self._locate_config_file(json_name))
+			result = load_json(*self.locate(json_name))
 			if result is None:
 				result = default
 			self._cache[json_name] = result
@@ -20,8 +21,16 @@ class JsonIO:
 	def save(self, json_name, value=None):
 		if value is None:
 			value = self._cache[json_name]
-		write_differential_json(value, *self._locate_config_file(json_name))
+		write_differential_json(value, *self.locate(json_name))
 		self._cache[json_name] = value
+	def locate(self, file_name):
+		base, ext = splitext(file_name)
+		platform_specific_name = '%s (%s)%s' % (base, self._platform, ext)
+		result = []
+		for plugin_dir in self._plugin_dirs:
+			result.append(join(plugin_dir, file_name))
+			result.append(join(plugin_dir, platform_specific_name))
+		return result
 	def on_quit(self):
 		for json_name in self._save_on_quit:
 			try:

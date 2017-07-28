@@ -10,7 +10,6 @@ from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 	CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
-from fman.impl.plugins.config import ConfigFileLocator
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.jsonio import JsonIO
@@ -152,22 +151,6 @@ class ApplicationContext:
 			self._command_callback = CommandCallback(self.metrics)
 		return self._command_callback
 	@property
-	def config_file_locator(self):
-		if self._config_file_locator is None:
-			self._config_file_locator = \
-				ConfigFileLocator(self._get_config_dirs(), PLATFORM)
-		return self._config_file_locator
-	def _get_config_dirs(self):
-		result = list(self.plugin_dirs)
-		settings_plugin = \
-			join(DATA_DIRECTORY, 'Plugins', 'User', SETTINGS_PLUGIN_NAME)
-		if settings_plugin not in result:
-			# We want the Settings plugin to appear in the list of config files
-			# even if it does not exist, because it serves as the default
-			# destination for save_json(...):
-			result.append(settings_plugin)
-		return result
-	@property
 	def constants(self):
 		if self._constants is None:
 			with open(self._get_resource('constants.json'), 'r') as f:
@@ -248,8 +231,18 @@ class ApplicationContext:
 	@property
 	def json_io(self):
 		if self._json_io is None:
-			self._json_io = JsonIO(self.config_file_locator)
+			self._json_io = JsonIO(self._get_config_dirs(), PLATFORM)
 		return self._json_io
+	def _get_config_dirs(self):
+		result = list(self.plugin_dirs)
+		settings_plugin = \
+			join(DATA_DIRECTORY, 'Plugins', 'User', SETTINGS_PLUGIN_NAME)
+		if settings_plugin not in result:
+			# We want the Settings plugin to appear in the list of config files
+			# even if it does not exist, because it serves as the default
+			# destination for save_json(...):
+			result.append(settings_plugin)
+		return result
 	@property
 	def splash_screen(self):
 		if self._splash_screen is None:
@@ -408,7 +401,7 @@ class ApplicationContext:
 	@property
 	def css_qt_bridge(self):
 		if self._css_qt_bridge is None:
-			css_paths = self.config_file_locator('Theme.css')
+			css_paths = self.json_io.locate('Theme.css')
 			self._css_qt_bridge = CSSQtBridge(css_paths)
 		return self._css_qt_bridge
 	@property

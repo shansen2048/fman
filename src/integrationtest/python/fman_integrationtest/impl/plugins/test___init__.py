@@ -1,7 +1,6 @@
 from fman import PLATFORM, Window, DirectoryPane
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 	ExternalPlugin
-from fman.impl.plugins.config import ConfigFileLocator
 from fman.impl.plugins.jsonio import JsonIO
 from fman_integrationtest import get_resource
 from os import mkdir
@@ -138,7 +137,7 @@ class PluginSupportTest(TestCase):
 		copytree(src_dir, self.thirdparty_plugin)
 		plugin_dirs = \
 			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin]
-		json_io = JsonIO(ConfigFileLocator(plugin_dirs, PLATFORM))
+		json_io = JsonIO(plugin_dirs, PLATFORM)
 		self.error_handler = StubErrorHandler()
 		self.command_callback = StubCommandCallback()
 		plugins = [
