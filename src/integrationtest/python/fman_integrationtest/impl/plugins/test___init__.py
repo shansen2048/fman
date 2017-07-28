@@ -1,7 +1,7 @@
 from fman import PLATFORM, Window, DirectoryPane
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 	ExternalPlugin
-from fman.impl.plugins.jsonio import JsonIO
+from fman.impl.plugins.config import Config
 from fman_integrationtest import get_resource
 from os import mkdir
 from os.path import join
@@ -137,15 +137,14 @@ class PluginSupportTest(TestCase):
 		copytree(src_dir, self.thirdparty_plugin)
 		plugin_dirs = \
 			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin]
-		json_io = JsonIO(plugin_dirs, PLATFORM)
+		config = Config(plugin_dirs, PLATFORM)
 		self.error_handler = StubErrorHandler()
 		self.command_callback = StubCommandCallback()
 		plugins = [
 			ExternalPlugin(self.error_handler, self.command_callback, dir_)
 			for dir_ in plugin_dirs
 		]
-		self.plugin_support = \
-			PluginSupport(plugins, json_io, self.error_handler)
+		self.plugin_support = PluginSupport(plugins, config, self.error_handler)
 		self.plugin_support.initialize()
 		self.window = Window()
 		self.left_pane = DirectoryPane(self.window, None)

@@ -5,18 +5,18 @@ from json import JSONDecodeError
 SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
-	def __init__(self, plugins, json_io, error_handler):
+	def __init__(self, plugins, config, error_handler):
 		self._plugins = plugins
-		self._json_io = json_io
+		self._config = config
 		self._error_handler = error_handler
 		self._key_bindings = None
 	def initialize(self):
 		self._plugins = self._load_plugins()
 		self._key_bindings = self._load_key_bindings()
 	def load_json(self, name, default=None, save_on_quit=False):
-		return self._json_io.load(name, default, save_on_quit)
+		return self._config.load(name, default, save_on_quit)
 	def save_json(self, name, value=None):
-		self._json_io.save(name, value)
+		self._config.save(name, value)
 	def get_sanitized_key_bindings(self):
 		return self._key_bindings
 	def on_pane_added(self, pane):

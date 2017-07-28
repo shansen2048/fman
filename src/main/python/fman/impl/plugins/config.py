@@ -3,7 +3,7 @@ from os.path import dirname, splitext, join
 
 import json
 
-class JsonIO:
+class Config:
 	def __init__(self, plugin_dirs, platform):
 		self._plugin_dirs = plugin_dirs
 		self._platform = platform

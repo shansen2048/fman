@@ -12,7 +12,7 @@ from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 from fman.impl.plugins.builtin import BuiltinPlugin
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
-from fman.impl.plugins.jsonio import JsonIO
+from fman.impl.plugins.config import Config
 from fman.impl.plugins.plugin import ExternalPlugin
 from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
@@ -66,7 +66,7 @@ class ApplicationContext:
 		self._plugin_support = None
 		self._plugin_error_handler = None
 		self._plugin_dirs = None
-		self._json_io = None
+		self._config = None
 		self._splash_screen = None
 		self._tutorial = None
 		self._signal_wakeup_handler = None
@@ -115,7 +115,7 @@ class ApplicationContext:
 	def on_main_window_close(self):
 		self.session_manager.on_close(self.main_window)
 	def on_quit(self):
-		self.json_io.on_quit()
+		self.config.on_quit()
 		if self.metrics_logging_enabled:
 			log_dir = dirname(self._get_metrics_json_path())
 			log_file_path = join(log_dir, 'Metrics.log')
@@ -229,10 +229,10 @@ class ApplicationContext:
 			)
 		return self._plugin_dirs
 	@property
-	def json_io(self):
-		if self._json_io is None:
-			self._json_io = JsonIO(self._get_config_dirs(), PLATFORM)
-		return self._json_io
+	def config(self):
+		if self._config is None:
+			self._config = Config(self._get_config_dirs(), PLATFORM)
+		return self._config
 	def _get_config_dirs(self):
 		result = list(self.plugin_dirs)
 		settings_plugin = \
@@ -259,7 +259,7 @@ class ApplicationContext:
 	def plugin_support(self):
 		if self._plugin_support is None:
 			self._plugin_support = PluginSupport(
-				self.plugins, self.json_io, self.plugin_error_handler
+				self.plugins, self.config, self.plugin_error_handler
 			)
 		return self._plugin_support
 	@property
@@ -401,7 +401,7 @@ class ApplicationContext:
 	@property
 	def css_qt_bridge(self):
 		if self._css_qt_bridge is None:
-			css_paths = self.json_io.locate('Theme.css')
+			css_paths = self.config.locate('Theme.css')
 			self._css_qt_bridge = CSSQtBridge(css_paths)
 		return self._css_qt_bridge
 	@property

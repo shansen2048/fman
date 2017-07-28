@@ -1,4 +1,4 @@
-from fman.impl.plugins.jsonio import load_json, write_differential_json
+from fman.impl.plugins.config import load_json, write_differential_json
 from os.path import join, exists
 from shutil import rmtree
 from tempfile import mkdtemp
