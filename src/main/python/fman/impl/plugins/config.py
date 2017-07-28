@@ -9,7 +9,7 @@ class Config:
 		self._platform = platform
 		self._cache = {}
 		self._save_on_quit = set()
-	def load(self, json_name, default=None, save_on_quit=False):
+	def load_json(self, json_name, default=None, save_on_quit=False):
 		if json_name not in self._cache:
 			result = load_json(*self.locate(json_name))
 			if result is None:
@@ -18,7 +18,7 @@ class Config:
 		if save_on_quit:
 			self._save_on_quit.add(json_name)
 		return self._cache[json_name]
-	def save(self, json_name, value=None):
+	def save_json(self, json_name, value=None):
 		if value is None:
 			value = self._cache[json_name]
 		write_differential_json(value, *self.locate(json_name))
@@ -34,7 +34,7 @@ class Config:
 	def on_quit(self):
 		for json_name in self._save_on_quit:
 			try:
-				self.save(json_name)
+				self.save_json(json_name)
 			except ValueError as error_computing_delta:
 				# This can happen for a variety of reasons. One example: When
 				# multiple instances of fman are open and another instance has

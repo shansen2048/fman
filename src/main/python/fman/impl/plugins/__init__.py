@@ -14,9 +14,9 @@ class PluginSupport:
 		self._plugins = self._load_plugins()
 		self._key_bindings = self._load_key_bindings()
 	def load_json(self, name, default=None, save_on_quit=False):
-		return self._config.load(name, default, save_on_quit)
+		return self._config.load_json(name, default, save_on_quit)
 	def save_json(self, name, value=None):
-		self._config.save(name, value)
+		self._config.save_json(name, value)
 	def get_sanitized_key_bindings(self):
 		return self._key_bindings
 	def on_pane_added(self, pane):
