@@ -55,12 +55,6 @@ class NonexistentShortcutHandler:
 				'Open in left pane',
 				'Open "%s" in the left pane' % basename(file_under_cursor)
 			))
-		file_above_cursor = self._get_file_above_cursor(pane)
-		if file_above_cursor:
-			options.append((
-				'Move cursor up',
-				'Move the cursor up (to "%s")' % basename(file_above_cursor)
-			))
 		prev_in_history = self._get_previous_folder_in_history(pane)
 		if prev_in_history:
 			options.append((
@@ -118,12 +112,6 @@ class NonexistentShortcutHandler:
 					'Open in right pane',
 					'Open "%s" in the right pane' % dir_name
 				))
-		file_below_cursor = self._get_file_below_cursor(pane)
-		if file_below_cursor:
-			options.append((
-				'Move cursor down',
-				'Move the cursor down (to "%s")' % basename(file_below_cursor)
-			))
 		next_in_history = self._get_next_folder_in_history(pane)
 		if next_in_history:
 			options.append((
@@ -162,18 +150,6 @@ class NonexistentShortcutHandler:
 			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
 	def _should_show_suggestions(self, dialog_id):
 		return not self._settings.get(dialog_id, {}).get('suppress', False)
-	def _get_file_above_cursor(self, pane):
-		file_view = pane._widget._file_view
-		prev_index = file_view.indexAbove(file_view.currentIndex())
-		if prev_index.isValid():
-			model = file_view.model()
-			return model.sourceModel().filePath(model.mapToSource(prev_index))
-	def _get_file_below_cursor(self, pane):
-		file_view = pane._widget._file_view
-		next_index = file_view.indexBelow(file_view.currentIndex())
-		if next_index.isValid():
-			model = file_view.model()
-			return model.sourceModel().filePath(model.mapToSource(next_index))
 	def _get_previous_folder_in_history(self, pane):
 		history = self._get_history(pane)
 		if history._curr_path > 0:
