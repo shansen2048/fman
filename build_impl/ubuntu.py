@@ -51,22 +51,6 @@ def _remove_gtk_dependencies():
 			if so_name != 'libpng12.so.0':
 				remove_if_exists(path('target/fman/' + so_name))
 
-def _copy_shared_library(so_name, dest_dir):
-	so_path = _find_shared_library(so_name)
-	if not so_path:
-		raise LookupError(
-			'Could not find shared library %s on this system' % so_name
-		)
-	copy(so_path, dest_dir)
-
-def _find_shared_library(so_name):
-	ldconfig = run(
-		['ldconfig', '-p'], stdout=PIPE, check=True, universal_newlines=True
-	)
-	for line in ldconfig.stdout.split('\n'):
-		if so_name in line:
-			return line.split(' => ')[1]
-
 def deb():
 	if exists(path('target/deb')):
 		rmtree(path('target/deb'))
