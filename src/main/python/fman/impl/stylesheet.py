@@ -1,7 +1,7 @@
 from fman.util.css import parse_css, CSSEngine
 from PyQt5.QtGui import QColor
 
-class CSSQtBridge:
+class Stylesheet:
 
 	_CSS_TO_QSS = {
 		'*': '*',
@@ -11,8 +11,12 @@ class CSSQtBridge:
 		'.quicksearch-item': 'Quicksearch QListView::item'
 	}
 
-	def __init__(self, css_file_paths):
+	def __init__(self, qss_file_paths, css_file_paths):
 		self._css_rules = self._load_css_rules(css_file_paths)
+		self._qss = self._load_qss(qss_file_paths)
+	@property
+	def qss(self):
+		return self._qss
 	def _load_css_rules(self, css_file_paths):
 		result = []
 		for path in css_file_paths:
@@ -23,8 +27,11 @@ class CSSQtBridge:
 				continue
 			result.extend(parse_css(f_contents))
 		return result
-	def get_qss(self):
+	def _load_qss(self, qss_files):
 		result_lines = []
+		for qss_file in qss_files:
+			with open(qss_file, 'r') as f:
+				result_lines.append(f.read())
 		for rule in self._css_rules:
 			qss_selectors = self._get_qss_selectors(rule.selectors)
 			if not qss_selectors:

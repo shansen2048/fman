@@ -1,5 +1,5 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
-from fman.impl.css_qt_bridge import CSSQtBridge
+from fman.impl.stylesheet import Stylesheet
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
@@ -50,8 +50,6 @@ class ApplicationContext:
 		self._command_callback = None
 		self._config_file_locator = None
 		self._constants = None
-		self._css = None
-		self._css_qt_bridge = None
 		self._excepthook = None
 		self._icon_provider = None
 		self._main_window = None
@@ -133,7 +131,7 @@ class ApplicationContext:
 			self._app.setOrganizationName('fman.io')
 			self._app.setOrganizationDomain('fman.io')
 			self._app.setApplicationName('fman')
-			self._app.setStyleSheet(self.stylesheet)
+			self._app.setStyleSheet(self.stylesheet.qss)
 			self._app.setStyle(self.style)
 			self._app.setPalette(self.palette)
 			if self.app_icon:
@@ -186,7 +184,7 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = \
-				MainWindow(self.app, self.css, self.icon_provider)
+				MainWindow(self.app, self.stylesheet, self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
@@ -385,25 +383,13 @@ class ApplicationContext:
 	@property
 	def stylesheet(self):
 		if self._stylesheet is None:
-			with open(self._get_resource('styles.qss'), 'r') as f:
-				self._stylesheet = f.read()
+			qss_files = [self._get_resource('styles.qss')]
 			os_styles = self._get_resource('os_styles.qss')
 			if exists(os_styles):
-				with open(os_styles, 'r') as f:
-					self._stylesheet += '\n' + f.read()
-			self._stylesheet += '\n' + self.css_qt_bridge.get_qss()
-		return self._stylesheet
-	@property
-	def css(self):
-		if self._css is None:
-			self._css = self.css_qt_bridge.parse_css()
-		return self._css
-	@property
-	def css_qt_bridge(self):
-		if self._css_qt_bridge is None:
+				qss_files.append(os_styles)
 			css_paths = self.config.locate('Theme.css')
-			self._css_qt_bridge = CSSQtBridge(css_paths)
-		return self._css_qt_bridge
+			self._stylesheet = Stylesheet(qss_files, css_paths)
+		return self._stylesheet
 	@property
 	def style(self):
 		if self._style is None:
