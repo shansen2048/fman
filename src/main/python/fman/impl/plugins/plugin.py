@@ -88,7 +88,8 @@ class ExternalPlugin(Plugin):
 			init = join(dir_, '__init__.py')
 			if isfile(init):
 				package_name = basename(dir_)
-				yield SourceFileLoader(package_name, init).load_module()
+				loader = SourceFileLoader(package_name, init)
+				yield loader.load_module()
 
 def get_command_class_name(command_name):
 	return ''.join(part.title() for part in command_name.split('_'))
