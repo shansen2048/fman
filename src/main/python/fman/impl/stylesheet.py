@@ -49,13 +49,7 @@ class Stylesheet:
 			except KeyError:
 				continue
 		return result
-	def parse_css(self):
-		return {
-			'quicksearch': {
-				'item': self._parse_quicksearch_item_css()
-			}
-		}
-	def _parse_quicksearch_item_css(self):
+	def get_quicksearch_item_css(self):
 		engine = CSSEngine(self._css_rules)
 		item = engine.query('.quicksearch-item')
 		title = engine.query('.quicksearch-item-title')

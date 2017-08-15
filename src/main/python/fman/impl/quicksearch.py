@@ -178,7 +178,7 @@ class QuicksearchItemRenderer:
 
 		self._highlight = item.highlight
 		self._option = option
-		self._css = stylesheet.parse_css()['quicksearch']['item']
+		self._css = stylesheet.get_quicksearch_item_css()
 		self._widget = option.widget
 		style = self._widget.style() if self._widget else QApplication.style()
 		self._proxy = style.proxy()
