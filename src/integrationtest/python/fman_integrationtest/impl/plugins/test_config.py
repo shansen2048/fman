@@ -8,41 +8,41 @@ import json
 
 class LoadJsonTest(TestCase):
 	def test_nonexistent_file(self):
-		self.assertIsNone(load_json('non-existent'))
+		self.assertIsNone(load_json(['non-existent']))
 	def test_dict(self):
 		d = {'a': 1, 'b': 1}
 		json_path = self._save_to_json(d)
-		self.assertEqual(d, load_json(json_path))
+		self.assertEqual(d, load_json([json_path]))
 	def test_dict_multiple_files(self):
 		d1 = {'a': 1, 'b': 1}
 		d2 = {'b': 2, 'c': 2}
 		json1 = self._save_to_json(d1)
 		json2 = self._save_to_json(d2)
-		self.assertEqual({'a': 1, 'b': 2, 'c': 2}, load_json(json1, json2))
+		self.assertEqual({'a': 1, 'b': 2, 'c': 2}, load_json([json1, json2]))
 	def test_list(self):
 		l = [1, 2]
 		json_path = self._save_to_json(l)
-		self.assertEqual(l, load_json(json_path))
+		self.assertEqual(l, load_json([json_path]))
 	def test_list_multiple_files(self):
 		l1 = [1, 2]
 		l2 = [3]
 		json1 = self._save_to_json(l1)
 		json2 = self._save_to_json(l2)
-		self.assertEqual(l2 + l1, load_json(json1, json2))
+		self.assertEqual(l2 + l1, load_json([json1, json2]))
 	def test_string(self):
 		string = 'test'
 		json_path = self._save_to_json(string)
-		self.assertEqual(string, load_json(json_path))
+		self.assertEqual(string, load_json([json_path]))
 	def test_string_multiple_files(self):
 		s1 = 'test1'
 		s2 = 'test2'
 		json1 = self._save_to_json(s1)
 		json2 = self._save_to_json(s2)
-		self.assertEqual(s2, load_json(json2, json1))
+		self.assertEqual(s2, load_json([json2, json1]))
 	def test_multiple_files_first_does_not_exist(self):
 		value = {'a': 1}
 		json_path = self._save_to_json(value)
-		self.assertEqual(value, load_json('non-existent', json_path))
+		self.assertEqual(value, load_json(['non-existent', json_path]))
 	def setUp(self):
 		self.temp_dir = mkdtemp()
 		self.num_files = 0
@@ -135,6 +135,6 @@ class WriteDifferentialJsonTest(TestCase):
 		rmtree(self.temp_dir)
 	def _check_write(self, obj):
 		write_differential_json(obj, self._json_file())
-		self.assertEqual(obj, load_json(self._json_file()))
+		self.assertEqual(obj, load_json([self._json_file()]))
 	def _json_file(self, i=0):
 		return join(self.temp_dir, '%d.json' % i)

@@ -11,7 +11,7 @@ class Config:
 		self._save_on_quit = set()
 	def load_json(self, json_name, default=None, save_on_quit=False):
 		if json_name not in self._cache:
-			result = load_json(*self.locate(json_name))
+			result = load_json(self.locate(json_name))
 			if result is None:
 				result = default
 			self._cache[json_name] = result
@@ -44,7 +44,7 @@ class Config:
 				# at least save the other files in _save_on_quit:
 				pass
 
-def load_json(*paths):
+def load_json(paths):
 	result = None
 	for path in paths:
 		try:
@@ -68,7 +68,7 @@ def load_json(*paths):
 
 def write_differential_json(obj, *paths):
 	dest_path = paths[-1]
-	old_obj = load_json(*paths)
+	old_obj = load_json(paths)
 	if obj == old_obj:
 		return
 	if old_obj is None:
@@ -81,19 +81,19 @@ def write_differential_json(obj, *paths):
 			)
 		if isinstance(obj, dict):
 			deleted = set(key for key in old_obj if key not in obj)
-			not_deletable = set(load_json(*paths[:-1]) or {})
+			not_deletable = set(load_json(paths[:-1]) or {})
 			wrongly_deleted = deleted.intersection(not_deletable)
 			if wrongly_deleted:
 				raise ValueError(
 					'Deleting keys %r is not supported.' % wrongly_deleted
 				)
-			base = load_json(*paths[:-1]) or {}
+			base = load_json(paths[:-1]) or {}
 			difference = {
 				key: value for key, value in obj.items()
 				if key not in base or base[key] != value
 			}
 		elif isinstance(obj, list):
-			changeable = load_json(dest_path) or []
+			changeable = load_json([dest_path]) or []
 			remainder = old_obj[len(changeable):]
 			if remainder:
 				if obj[-len(remainder):] != remainder:
