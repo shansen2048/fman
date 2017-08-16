@@ -1,3 +1,17 @@
+class KeyBindings:
+	def __init__(self):
+		self._sanitized_bindings = []
+		self._available_commands = []
+	def register_command(self, command):
+		self._available_commands.append(command)
+	def load(self, bindings):
+		sanitized, errors = \
+			sanitize_key_bindings(bindings, self._available_commands)
+		self._sanitized_bindings = sanitized + self._sanitized_bindings
+		return errors
+	def get_sanitized_bindings(self):
+		return self._sanitized_bindings
+
 def sanitize_key_bindings(bindings, available_commands):
 	if not isinstance(bindings, list):
 		return [], [('Error: Key bindings should be a list [...], not %s.' %

@@ -1,24 +1,22 @@
 from fman.impl.plugins.plugin import ExternalPlugin
 from fman.impl.plugins.key_bindings import sanitize_key_bindings
-from json import JSONDecodeError
 
 SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
-	def __init__(self, plugins, config, error_handler):
+	def __init__(self, plugins, config, error_handler, key_bindings):
 		self._plugins = plugins
 		self._config = config
 		self._error_handler = error_handler
-		self._key_bindings = None
+		self._key_bindings = key_bindings
 	def initialize(self):
 		self._plugins = self._load_plugins()
-		self._key_bindings = self._load_key_bindings()
 	def load_json(self, name, default=None, save_on_quit=False):
 		return self._config.load_json(name, default, save_on_quit)
 	def save_json(self, name, value=None):
 		self._config.save_json(name, value)
 	def get_sanitized_key_bindings(self):
-		return self._key_bindings
+		return self._key_bindings.get_sanitized_bindings()
 	def on_pane_added(self, pane):
 		for plugin in self._plugins:
 			plugin.on_pane_added(pane)
@@ -55,27 +53,6 @@ class PluginSupport:
 			else:
 				result.append(plugin)
 		return result
-	def _load_key_bindings(self):
-		try:
-			bindings = self.load_json('Key Bindings.json', [])
-		except JSONDecodeError as e:
-			self._error_handler.report(
-				'Could not load key bindings: ' + e.args[0], exc=False
-			)
-			return []
-		except:
-			self._error_handler.report('Could not load key bindings.')
-			return []
-		else:
-			available_commands = set(self._get_available_commands())
-			result, errors = sanitize_key_bindings(bindings, available_commands)
-			for error in errors:
-				self._error_handler.report(error)
-			return result
-	def _get_available_commands(self):
-		for plugin in self._plugins:
-			yield from plugin.get_directory_pane_commands()
-			yield from plugin.get_application_commands()
 
 class CommandCallback:
 	def __init__(self, metrics):

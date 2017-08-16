@@ -23,13 +23,14 @@ class Config:
 			value = self._cache[json_name]
 		write_differential_json(value, *self.locate(json_name))
 		self._cache[json_name] = value
-	def locate(self, file_name):
+	def locate(self, file_name, in_dir=None):
 		base, ext = splitext(file_name)
 		platform_specific_name = '%s (%s)%s' % (base, self._platform, ext)
 		result = []
-		for plugin_dir in self._plugin_dirs:
-			result.append(join(plugin_dir, file_name))
-			result.append(join(plugin_dir, platform_specific_name))
+		dirs_to_search = [in_dir] if in_dir else self._plugin_dirs
+		for dir_ in dirs_to_search:
+			result.append(join(dir_, file_name))
+			result.append(join(dir_, platform_specific_name))
 		return result
 	def on_quit(self):
 		for json_name in self._save_on_quit:

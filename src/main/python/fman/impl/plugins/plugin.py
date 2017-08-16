@@ -2,17 +2,20 @@ from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
 from fman.util import listdir_absolute
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
+from json import JSONDecodeError
 from os.path import join, isdir, basename, isfile
 from threading import Thread
 
 import inspect
+import json
 import re
 import sys
 
 class Plugin:
-	def __init__(self, error_handler, command_callback):
+	def __init__(self, error_handler, command_callback, key_bindings):
 		self._error_handler = error_handler
 		self._command_callback = command_callback
+		self._key_bindings = key_bindings
 		self._application_command_instances = {}
 		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
@@ -38,8 +41,15 @@ class Plugin:
 		return self._application_command_instances[name](**args)
 	def _register_application_command(self, cls, *args):
 		name = _get_command_name(cls)
+		self._key_bindings.register_command(name)
 		instance = self._instantiate_command(name, cls, *args)
 		self._application_command_instances[name] = instance
+	def _register_directory_pane_command(self, cls):
+		name = _get_command_name(cls)
+		self._key_bindings.register_command(name)
+		self._directory_pane_commands[name] = cls
+	def _register_directory_pane_listener(self, cls):
+		self._directory_pane_listeners.append(cls)
 	def _instantiate_command(self, cmd_name, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -62,26 +72,46 @@ def _get_command_name(command_class):
 	return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class).lower()
 
 class ExternalPlugin(Plugin):
-	def __init__(self, error_handler, command_callback, path):
-		super().__init__(error_handler, command_callback)
+	def __init__(
+		self, error_handler, command_callback, key_bindings, path, config
+	):
+		super().__init__(error_handler, command_callback, key_bindings)
 		self._path = path
+		self._config = config
 	@property
 	def name(self):
 		return basename(self._path)
 	def load(self):
-		for cls in self._load_classes():
-			superclasses = getmro(cls)[1:]
-			if ApplicationCommand in superclasses:
-				self._register_application_command(cls)
-			elif DirectoryPaneCommand in superclasses:
-				self._directory_pane_commands[_get_command_name(cls)] = cls
-			elif DirectoryPaneListener in superclasses:
-				self._directory_pane_listeners.append(cls)
+		self._load_classes()
+		self._load_key_bindings()
 	def _load_classes(self):
 		for package in self._load_packages():
-			for member in [getattr(package, name) for name in dir(package)]:
-				if inspect.isclass(member):
-					yield member
+			for cls in [getattr(package, name) for name in dir(package)]:
+				if inspect.isclass(cls):
+					superclasses = getmro(cls)[1:]
+					if ApplicationCommand in superclasses:
+						self._register_application_command(cls)
+					elif DirectoryPaneCommand in superclasses:
+						self._register_directory_pane_command(cls)
+					elif DirectoryPaneListener in superclasses:
+						self._register_directory_pane_listener(cls)
+	def _load_key_bindings(self):
+		for json_file in self._config.locate('Key Bindings.json', self._path):
+			try:
+				with open(json_file, 'r') as f:
+					bindings = json.load(f)
+			except FileNotFoundError:
+				pass
+			except JSONDecodeError as e:
+				self._error_handler.report(
+					'Could not load key bindings: ' + e.args[0], exc=False
+				)
+			except:
+				self._error_handler.report('Could not load key bindings.')
+			else:
+				errors = self._key_bindings.load(bindings)
+				for error in errors:
+					self._error_handler.report(error)
 	def _load_packages(self):
 		sys.path.append(self._path)
 		for dir_ in [d for d in listdir_absolute(self._path) if isdir(d)]:

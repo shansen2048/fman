@@ -2,6 +2,7 @@ from fman import PLATFORM, Window, DirectoryPane
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 	ExternalPlugin
 from fman.impl.plugins.config import Config
+from fman.impl.plugins.key_bindings import KeyBindings
 from fman_integrationtest import get_resource
 from os import mkdir
 from os.path import join
@@ -140,11 +141,16 @@ class PluginSupportTest(TestCase):
 		config = Config(plugin_dirs, PLATFORM)
 		self.error_handler = StubErrorHandler()
 		self.command_callback = StubCommandCallback()
+		key_bindings = KeyBindings()
 		plugins = [
-			ExternalPlugin(self.error_handler, self.command_callback, dir_)
+			ExternalPlugin(
+				self.error_handler, self.command_callback, key_bindings, dir_,
+				config
+			)
 			for dir_ in plugin_dirs
 		]
-		self.plugin_support = PluginSupport(plugins, config, self.error_handler)
+		self.plugin_support = \
+			PluginSupport(plugins, config, self.error_handler, key_bindings)
 		self.plugin_support.initialize()
 		self.window = Window()
 		self.left_pane = DirectoryPane(self.window, None)
