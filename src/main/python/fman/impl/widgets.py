@@ -180,10 +180,10 @@ class MainWindow(QMainWindow):
 	closed = pyqtSignal()
 	before_quicksearch = pyqtSignal(Quicksearch)
 
-	def __init__(self, app, stylesheet, icon_provider=None):
+	def __init__(self, app, theme, icon_provider=None):
 		super().__init__()
 		self._app = app
-		self._stylesheet = stylesheet
+		self._theme = theme
 		self._icon_provider = icon_provider
 		self._panes = []
 		self._splitter = Splitter(self)
@@ -231,7 +231,7 @@ class MainWindow(QMainWindow):
 	@run_in_main_thread
 	def show_quicksearch(self, get_items, get_tab_completion=None):
 		self._dialog = Quicksearch(
-			self, self._app, self._stylesheet, get_items, get_tab_completion
+			self, self._app, self._theme, get_items, get_tab_completion
 		)
 		self.before_quicksearch.emit(self._dialog)
 		result = self.exec_dialog(self._dialog)

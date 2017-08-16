@@ -1,6 +1,6 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.plugins.key_bindings import KeyBindings
-from fman.impl.stylesheet import Stylesheet
+from fman.impl.theme import Theme
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
@@ -70,7 +70,7 @@ class ApplicationContext:
 		self._tutorial = None
 		self._signal_wakeup_handler = None
 		self._session_manager = None
-		self._stylesheet = None
+		self._theme = None
 		self._style = None
 		self._metrics = None
 		self._metrics_logging_enabled = None
@@ -134,7 +134,7 @@ class ApplicationContext:
 			self._app.setApplicationName('fman')
 			# TODO: This currently doesn't respect Theme.css from plugins
 			# because at the time this line executes, plugins aren't yet loaded.
-			self._app.setStyleSheet(self.stylesheet.qss)
+			self._app.setStyleSheet(self.theme.qss)
 			self._app.setStyle(self.style)
 			self._app.setPalette(self.palette)
 			if self.app_icon:
@@ -187,7 +187,7 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = \
-				MainWindow(self.app, self.stylesheet, self.icon_provider)
+				MainWindow(self.app, self.theme, self.icon_provider)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
@@ -208,8 +208,9 @@ class ApplicationContext:
 	def plugins(self):
 		if self._plugins is None:
 			def external_plugin(dir_):
-				return \
-					self._instantiate_plugin(ExternalPlugin, dir_, self.config)
+				return self._instantiate_plugin(
+					ExternalPlugin, dir_, self.config, self.theme
+				)
 			self._plugins = [self.builtin_plugin] + \
 							list(map(external_plugin, self.plugin_dirs))
 		return self._plugins
@@ -384,15 +385,14 @@ class ApplicationContext:
 				SessionManager(settings, self.fman_version, self.is_licensed)
 		return self._session_manager
 	@property
-	def stylesheet(self):
-		if self._stylesheet is None:
+	def theme(self):
+		if self._theme is None:
 			qss_files = [self._get_resource('styles.qss')]
 			os_styles = self._get_resource('os_styles.qss')
 			if exists(os_styles):
 				qss_files.append(os_styles)
-			css_paths = self.config.locate('Theme.css')
-			self._stylesheet = Stylesheet(qss_files, css_paths)
-		return self._stylesheet
+			self._theme = Theme(qss_files)
+		return self._theme
 	@property
 	def style(self):
 		if self._style is None:

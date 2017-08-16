@@ -73,16 +73,22 @@ def _get_command_name(command_class):
 
 class ExternalPlugin(Plugin):
 	def __init__(
-		self, error_handler, command_callback, key_bindings, path, config
+		self, error_handler, command_callback, key_bindings, path, config, theme
 	):
 		super().__init__(error_handler, command_callback, key_bindings)
 		self._path = path
 		self._config = config
+		self._theme = theme
 	@property
 	def name(self):
 		return basename(self._path)
 	def load(self):
 		self._config.add_dir(self._path)
+		for css_file in self._config.locate('Theme.css', self._path):
+			try:
+				self._theme.load(css_file)
+			except FileNotFoundError:
+				pass
 		self._load_classes()
 		self._load_key_bindings()
 	def _load_classes(self):

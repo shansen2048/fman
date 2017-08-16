@@ -1,7 +1,7 @@
 from fman.util.css import parse_css, CSSEngine
 from PyQt5.QtGui import QColor
 
-class Stylesheet:
+class Theme:
 
 	_CSS_TO_QSS = {
 		'*': '*',
@@ -11,22 +11,16 @@ class Stylesheet:
 		'.quicksearch-item': 'Quicksearch QListView::item'
 	}
 
-	def __init__(self, qss_file_paths, css_file_paths):
-		self._css_rules = self._load_css_rules(css_file_paths)
+	def __init__(self, qss_file_paths):
+		self._css_rules = []
 		self._qss = self._load_qss(qss_file_paths)
 	@property
 	def qss(self):
 		return self._qss
-	def _load_css_rules(self, css_file_paths):
-		result = []
-		for path in css_file_paths:
-			try:
-				with open(path, 'rb') as f:
-					f_contents = f.read()
-			except FileNotFoundError:
-				continue
-			result.extend(parse_css(f_contents))
-		return result
+	def load(self, css_file_path):
+		with open(css_file_path, 'rb') as f:
+			f_contents = f.read()
+		self._css_rules.extend(parse_css(f_contents))
 	def _load_qss(self, qss_files):
 		result_lines = []
 		for qss_file in qss_files:

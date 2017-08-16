@@ -14,13 +14,13 @@ class Quicksearch(QDialog):
 	shown = pyqtSignal()
 
 	def __init__(
-			self, parent, app, stylesheet, get_items, get_tab_completion=None
+			self, parent, app, theme, get_items, get_tab_completion=None
 	):
 		if get_tab_completion is None:
 			get_tab_completion = lambda _: None
 		super().__init__(parent, FramelessWindowHint)
 		self._app = app
-		self._stylesheet = stylesheet
+		self._theme = theme
 		self._get_items = get_items
 		self._get_tab_completion = get_tab_completion
 		self._curr_items = []
@@ -43,7 +43,7 @@ class Quicksearch(QDialog):
 		self._items.setUniformItemSizes(True)
 		self._items.setModel(QuicksearchListModel(self))
 		self._items.setItemDelegate(
-			QuicksearchItemDelegate(self, self._stylesheet)
+			QuicksearchItemDelegate(self, self._theme)
 		)
 		self._items.setFocusPolicy(NoFocus)
 		div = lambda widget: self._layout_vertically(Div(), widget)
@@ -157,9 +157,9 @@ class QuicksearchListModel(QAbstractListModel):
 ItemRole = UserRole
 
 class QuicksearchItemDelegate(QStyledItemDelegate):
-	def __init__(self, parent, stylesheet):
+	def __init__(self, parent, theme):
 		super().__init__(parent)
-		self._stylesheet = stylesheet
+		self._theme = theme
 	def paint(self, painter, option, index):
 		self._get_renderer(option, index).render(painter)
 	def sizeHint(self, option, index):
@@ -167,10 +167,10 @@ class QuicksearchItemDelegate(QStyledItemDelegate):
 	def _get_renderer(self, option, index):
 		item = index.data(ItemRole)
 		self.initStyleOption(option, index)
-		return QuicksearchItemRenderer(item, option, self._stylesheet)
+		return QuicksearchItemRenderer(item, option, self._theme)
 
 class QuicksearchItemRenderer:
-	def __init__(self, item, option, stylesheet):
+	def __init__(self, item, option, theme):
 		# Convert to str(...) in case the (fman API) user didn't pass a string:
 		self._title = str(item.title)
 		self._hint = str(item.hint)
@@ -178,7 +178,7 @@ class QuicksearchItemRenderer:
 
 		self._highlight = item.highlight
 		self._option = option
-		self._css = stylesheet.get_quicksearch_item_css()
+		self._css = theme.get_quicksearch_item_css()
 		self._widget = option.widget
 		style = self._widget.style() if self._widget else QApplication.style()
 		self._proxy = style.proxy()
