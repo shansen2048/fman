@@ -21,7 +21,7 @@ class Config:
 	def save_json(self, json_name, value=None):
 		if value is None:
 			value = self._cache[json_name]
-		write_differential_json(value, *self.locate(json_name))
+		write_differential_json(value, self.locate(json_name))
 		self._cache[json_name] = value
 	def locate(self, file_name, in_dir=None):
 		base, ext = splitext(file_name)
@@ -66,7 +66,7 @@ def load_json(paths):
 			result = next_value + result
 	return result
 
-def write_differential_json(obj, *paths):
+def write_differential_json(obj, paths):
 	dest_path = paths[-1]
 	old_obj = load_json(paths)
 	if obj == old_obj:
