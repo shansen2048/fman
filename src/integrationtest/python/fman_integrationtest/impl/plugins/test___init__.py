@@ -4,6 +4,8 @@ from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman_integrationtest import get_resource
+from fman_integrationtest.impl.plugins import StubErrorHandler, \
+	StubCommandCallback
 from os import mkdir
 from os.path import join
 from shutil import rmtree, copytree
@@ -134,14 +136,14 @@ class PluginSupportTest(TestCase):
 		self.shipped_plugin = join(self.shipped_plugins, 'Shipped')
 		mkdir(self.shipped_plugin)
 		self.thirdparty_plugin = join(self.thirdparty_plugins, 'Simple Plugin')
-		src_dir = get_resource('PluginSupportTest/Simple Plugin')
+		src_dir = get_resource('Simple Plugin')
 		copytree(src_dir, self.thirdparty_plugin)
-		plugin_dirs = \
-			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin]
-		config = Config(plugin_dirs, PLATFORM)
+		config = Config(PLATFORM)
 		self.error_handler = StubErrorHandler()
 		self.command_callback = StubCommandCallback()
 		key_bindings = KeyBindings()
+		plugin_dirs = \
+			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin]
 		plugins = [
 			ExternalPlugin(
 				self.error_handler, self.command_callback, key_bindings, dir_,
@@ -161,15 +163,3 @@ class PluginSupportTest(TestCase):
 		rmtree(self.shipped_plugins)
 		rmtree(self.thirdparty_plugins)
 		rmtree(self.user_plugins)
-
-class StubErrorHandler:
-	def __init__(self):
-		self.error_messages = []
-	def report(self, message, exc=None):
-		self.error_messages.append(message)
-
-class StubCommandCallback:
-	def before_command(self, command_name):
-		pass
-	def after_command(self, command_name):
-		pass

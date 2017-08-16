@@ -1,10 +1,25 @@
-from fman.impl.plugins.config import load_json, write_differential_json
+from fman import PLATFORM
+from fman.impl.plugins.config import load_json, write_differential_json, Config
+from fman_integrationtest import get_resource
 from os.path import join, exists
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
 
 import json
+
+class ConfigTest(TestCase):
+	def test_add_dir(self):
+		config = Config(PLATFORM)
+		config.add_dir(get_resource('ConfigTest/1'))
+		self.assertEquals([1], config.load_json('Test.json'))
+		return config
+	def test_add_dir_updates_existing(self):
+		config = self.test_add_dir()
+		value = config.load_json('Test.json')
+		config.add_dir(get_resource('ConfigTest/2'))
+		self.assertEquals([2, 1], value)
+		self.assertIs(value, config.load_json('Test.json'))
 
 class LoadJsonTest(TestCase):
 	def test_nonexistent_file(self):

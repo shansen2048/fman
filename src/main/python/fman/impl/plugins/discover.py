@@ -1,6 +1,6 @@
 from fman.impl.plugins import SETTINGS_PLUGIN_NAME
 from fman.util import listdir_absolute
-from os.path import isdir, basename
+from os.path import isdir, basename, join
 
 def find_plugin_dirs(shipped_plugins, thirdparty_plugins, user_plugins):
 	result = _list_plugins(shipped_plugins)
@@ -11,8 +11,12 @@ def find_plugin_dirs(shipped_plugins, thirdparty_plugins, user_plugins):
 			settings_plugin = plugin
 		else:
 			result.append(plugin)
-	if settings_plugin:
-		result.append(settings_plugin)
+	if settings_plugin is None:
+		# We want the Settings plugin to appear in the list of config files even
+		# if it does not exist, because it serves as the default  destination
+		# for save_json(...):
+		settings_plugin = join(user_plugins, SETTINGS_PLUGIN_NAME)
+	result.append(settings_plugin)
 	return result
 
 def _list_plugins(dir_path):

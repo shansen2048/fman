@@ -8,8 +8,7 @@ from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model import GnomeFileIconProvider
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
-from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
-	CommandCallback
+from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
@@ -133,6 +132,8 @@ class ApplicationContext:
 			self._app.setOrganizationName('fman.io')
 			self._app.setOrganizationDomain('fman.io')
 			self._app.setApplicationName('fman')
+			# TODO: This currently doesn't respect Theme.css from plugins
+			# because at the time this line executes, plugins aren't yet loaded.
 			self._app.setStyleSheet(self.stylesheet.qss)
 			self._app.setStyle(self.style)
 			self._app.setPalette(self.palette)
@@ -210,7 +211,7 @@ class ApplicationContext:
 				return \
 					self._instantiate_plugin(ExternalPlugin, dir_, self.config)
 			self._plugins = [self.builtin_plugin] + \
-							list(map(external_plugin, self._plugin_dirs))
+							list(map(external_plugin, self.plugin_dirs))
 		return self._plugins
 	@property
 	def key_bindings(self):
@@ -240,18 +241,8 @@ class ApplicationContext:
 	@property
 	def config(self):
 		if self._config is None:
-			self._config = Config(self._get_config_dirs(), PLATFORM)
+			self._config = Config(PLATFORM)
 		return self._config
-	def _get_config_dirs(self):
-		result = list(self.plugin_dirs)
-		settings_plugin = \
-			join(DATA_DIRECTORY, 'Plugins', 'User', SETTINGS_PLUGIN_NAME)
-		if settings_plugin not in result:
-			# We want the Settings plugin to appear in the list of config files
-			# even if it does not exist, because it serves as the default
-			# destination for save_json(...):
-			result.append(settings_plugin)
-		return result
 	@property
 	def splash_screen(self):
 		if self._splash_screen is None:

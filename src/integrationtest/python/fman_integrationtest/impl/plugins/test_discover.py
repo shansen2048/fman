@@ -19,11 +19,10 @@ class FindPluginDirsTest(TestCase):
 			)
 		)
 	def test_find_plugins_no_settings_plugin(self):
-		plugin_dirs = [self.shipped_plugin, self.thirdparty_plugin]
-		for plugin_dir in plugin_dirs:
-			mkdir(plugin_dir)
+		mkdir(self.shipped_plugin)
+		mkdir(self.thirdparty_plugin)
 		self.assertEqual(
-			plugin_dirs,
+			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin],
 			find_plugin_dirs(
 				self.shipped_plugins, self.thirdparty_plugins, self.user_plugins
 			)

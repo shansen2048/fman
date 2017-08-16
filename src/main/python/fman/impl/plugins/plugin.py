@@ -82,6 +82,7 @@ class ExternalPlugin(Plugin):
 	def name(self):
 		return basename(self._path)
 	def load(self):
+		self._config.add_dir(self._path)
 		self._load_classes()
 		self._load_key_bindings()
 	def _load_classes(self):
