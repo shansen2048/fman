@@ -112,39 +112,15 @@ def _upload_deb():
 			(OPTIONS['gpg_pass'], tmp_dir_remote, tmp_dir_remote)
 		)
 		deb_path_remote = tmp_dir_remote + '/' + deb_name
-		expect_script = \
-			_EXPECT_SCRIPT_TEMPLATE % (
-				OPTIONS['gpg_pass'], get_path_on_server('updates/ubuntu'),
-				tmp_dir_remote, deb_path_remote
+		run_on_server(
+			'reprepro --ask-passphrase -b "%s" --confdir %s/reprepro/conf '
+			'includedeb stable "%s"' % (
+				get_path_on_server('updates/ubuntu'), tmp_dir_remote,
+				deb_path_remote
 			)
-		try:
-			run_on_server("echo -e %r | expect" % expect_script)
-		except:
-			input('Tried to run on server:\n' + expect_script)
-			raise
+		)
 	finally:
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
-
-_EXPECT_SCRIPT_TEMPLATE = r"""set timeout 2
-set gpg_pass "%s"
-set base_dir "%s"
-set tmp_dir "%s"
-set deb_path "%s"
-
-spawn reprepro --ask-passphrase -b "$base_dir" --confdir "$tmp_dir/reprepro/conf" includedeb stable "$deb_path"
-
-expect {
-    "*passphrase:*" {
-        send -- "$gpg_pass\r"
-    }
-}
-expect {
-    "*passphrase:*" {
-        send -- "$gpg_pass\r"
-    }
-}
-interact
-"""
 
 def _get_deb_name(architecture='amd64'):
 	return 'fman_%s_%s.deb' % (OPTIONS['version'], architecture)
