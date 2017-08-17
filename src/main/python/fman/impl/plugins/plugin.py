@@ -23,8 +23,6 @@ class Plugin:
 	@property
 	def name(self):
 		raise NotImplementedError()
-	def load(self):
-		pass
 	def on_pane_added(self, pane):
 		for cmd_name, cmd_class in self._directory_pane_commands.items():
 			command = self._instantiate_command(cmd_name, cmd_class, pane)
@@ -86,6 +84,14 @@ class ExternalPlugin(Plugin):
 	def name(self):
 		return basename(self._path)
 	def load(self):
+		try:
+			self._load()
+		except:
+			message = 'Plugin %r failed to load.' % self.name
+			self._error_handler.report(message)
+			return False
+		return True
+	def _load(self):
 		self._config.add_dir(self._path)
 		for font in glob(join(self._path, '*.ttf')):
 			self._font_database.load(font)

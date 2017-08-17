@@ -1,6 +1,5 @@
 from fman import PLATFORM, Window, DirectoryPane
-from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, \
-	ExternalPlugin
+from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman_integrationtest import get_resource
@@ -142,20 +141,15 @@ class PluginSupportTest(TestCase):
 		self.error_handler = StubErrorHandler()
 		self.command_callback = StubCommandCallback()
 		key_bindings = KeyBindings()
-		plugin_dirs = \
-			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin]
 		theme = StubTheme()
 		font_db = StubFontDatabase()
-		plugins = [
-			ExternalPlugin(
-				self.error_handler, self.command_callback, key_bindings, dir_,
-				config, theme, font_db
-			)
-			for dir_ in plugin_dirs
-		]
-		self.plugin_support = \
-			PluginSupport(plugins, config, self.error_handler, key_bindings)
-		self.plugin_support.initialize()
+		self.plugin_support = PluginSupport(
+			[], self.error_handler, self.command_callback, key_bindings, config,
+			theme, font_db
+		)
+		self.plugin_support.load_plugin(self.shipped_plugin)
+		self.plugin_support.load_plugin(self.thirdparty_plugin)
+		self.plugin_support.load_plugin(self.settings_plugin)
 		self.window = Window()
 		self.left_pane = DirectoryPane(self.window, None)
 		self.right_pane = DirectoryPane(self.window, None)

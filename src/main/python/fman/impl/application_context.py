@@ -14,7 +14,6 @@ from fman.impl.plugins.builtin import BuiltinPlugin
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.config import Config
-from fman.impl.plugins.plugin import ExternalPlugin
 from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
 from fman.impl.tutorial import Tutorial
@@ -60,7 +59,6 @@ class ApplicationContext:
 		self._user = None
 		self._is_licensed = None
 		self._main_window_palette = None
-		self._plugins = None
 		self._key_bindings = None
 		self._builtin_plugin = None
 		self._plugin_support = None
@@ -91,7 +89,8 @@ class ApplicationContext:
 		# Ensure main_window is instantiated before plugin_support, or else
 		# plugin_support gets instantiated twice:
 		_ = self.main_window
-		self.plugin_support.initialize()
+		for plugin_dir in self.plugin_dirs:
+			self.plugin_support.load_plugin(plugin_dir)
 		self.session_manager.show_main_window(self.main_window)
 		return self.app.exec_()
 	@property
@@ -196,17 +195,6 @@ class ApplicationContext:
 			return 'fman'
 		return 'fman – NOT REGISTERED'
 	@property
-	def plugins(self):
-		if self._plugins is None:
-			def external_plugin(dir_):
-				return self._instantiate_plugin(
-					ExternalPlugin, dir_, self.config, self.theme,
-					self.font_database
-				)
-			self._plugins = [self.builtin_plugin] + \
-							list(map(external_plugin, self.plugin_dirs))
-		return self._plugins
-	@property
 	def font_database(self):
 		if self._font_database is None:
 			self._font_database = FontDatabase()
@@ -219,14 +207,11 @@ class ApplicationContext:
 	@property
 	def builtin_plugin(self):
 		if self._builtin_plugin is None:
-			self._builtin_plugin = \
-				self._instantiate_plugin(BuiltinPlugin, self.tutorial)
+			self._builtin_plugin = BuiltinPlugin(
+				self.plugin_error_handler, self.command_callback,
+				self.key_bindings, self.tutorial
+			)
 		return self._builtin_plugin
-	def _instantiate_plugin(self, cls, *args):
-		return cls(
-			self.plugin_error_handler, self.command_callback, self.key_bindings,
-			*args
-		)
 	@property
 	def plugin_dirs(self):
 		if self._plugin_dirs is None:
@@ -257,8 +242,9 @@ class ApplicationContext:
 	def plugin_support(self):
 		if self._plugin_support is None:
 			self._plugin_support = PluginSupport(
-				self.plugins, self.config, self.plugin_error_handler,
-				self.key_bindings
+				[self.builtin_plugin], self.plugin_error_handler,
+				self.command_callback, self.key_bindings, self.config,
+				self.theme, self.font_database
 			)
 		return self._plugin_support
 	@property

@@ -4,13 +4,24 @@ from fman.impl.plugins.key_bindings import sanitize_key_bindings
 SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
-	def __init__(self, plugins, config, error_handler, key_bindings):
-		self._plugins = plugins
-		self._config = config
+	def __init__(
+		self, builtin_plugins, error_handler, command_callback, key_bindings,
+		config, theme, font_database
+	):
+		self._plugins = builtin_plugins
 		self._error_handler = error_handler
+		self._command_callback = command_callback
 		self._key_bindings = key_bindings
-	def initialize(self):
-		self._plugins = self._load_plugins()
+		self._config = config
+		self._theme = theme
+		self._font_database = font_database
+	def load_plugin(self, plugin_dir):
+		plugin = ExternalPlugin(
+			self._error_handler, self._command_callback, self._key_bindings,
+			plugin_dir, self._config, self._theme, self._font_database
+		)
+		if plugin.load():
+			self._plugins.append(plugin)
 	def load_json(self, name, default=None, save_on_quit=False):
 		return self._config.load_json(name, default, save_on_quit)
 	def save_json(self, name, value=None):
@@ -42,17 +53,6 @@ class PluginSupport:
 			if name in plugin.get_application_commands():
 				return plugin.run_application_command(name, args)
 		raise LookupError(name)
-	def _load_plugins(self):
-		result = []
-		for plugin in self._plugins:
-			try:
-				plugin.load()
-			except:
-				message = 'Plugin %r failed to load.' % plugin.name
-				self._error_handler.report(message)
-			else:
-				result.append(plugin)
-		return result
 
 class CommandCallback:
 	def __init__(self, metrics):
