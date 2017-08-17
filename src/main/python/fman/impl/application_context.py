@@ -1,4 +1,5 @@
 from fman import PLATFORM, DATA_DIRECTORY, Window
+from fman.impl.font_database import FontDatabase
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.theme import Theme
 from fman.impl.licensing import User
@@ -22,10 +23,9 @@ from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from fman.util import system
 from fman.util.settings import Settings
-from glob import glob
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFontDatabase, QColor, QPalette, QIcon
+from PyQt5.QtGui import QColor, QPalette, QIcon
 from PyQt5.QtWidgets import QStyleFactory
 from signal import signal, SIGINT
 
@@ -51,6 +51,7 @@ class ApplicationContext:
 		self._config_file_locator = None
 		self._constants = None
 		self._excepthook = None
+		self._font_database = None
 		self._icon_provider = None
 		self._main_window = None
 		self._controller = None
@@ -87,7 +88,6 @@ class ApplicationContext:
 		self.excepthook.install()
 		self.metrics.initialize()
 		self.metrics.track('StartedFman')
-		self._load_fonts()
 		# Ensure main_window is instantiated before plugin_support, or else
 		# plugin_support gets instantiated twice:
 		_ = self.main_window
@@ -119,12 +119,6 @@ class ApplicationContext:
 			log_dir = dirname(self._get_metrics_json_path())
 			log_file_path = join(log_dir, 'Metrics.log')
 			self.metrics_backend.flush(log_file_path)
-	def _load_fonts(self):
-		fonts_to_load = []
-		for plugin_dir in self.plugin_dirs:
-			fonts_to_load.extend(glob(join(plugin_dir, '*.ttf')))
-		for font in fonts_to_load:
-			QFontDatabase.addApplicationFont(font)
 	@property
 	def app(self):
 		if self._app is None:
@@ -206,11 +200,17 @@ class ApplicationContext:
 		if self._plugins is None:
 			def external_plugin(dir_):
 				return self._instantiate_plugin(
-					ExternalPlugin, dir_, self.config, self.theme
+					ExternalPlugin, dir_, self.config, self.theme,
+					self.font_database
 				)
 			self._plugins = [self.builtin_plugin] + \
 							list(map(external_plugin, self.plugin_dirs))
 		return self._plugins
+	@property
+	def font_database(self):
+		if self._font_database is None:
+			self._font_database = FontDatabase()
+		return self._font_database
 	@property
 	def key_bindings(self):
 		if self._key_bindings is None:

@@ -1,5 +1,6 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
 from fman.util import listdir_absolute
+from glob import glob
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
 from json import JSONDecodeError
@@ -73,17 +74,21 @@ def _get_command_name(command_class):
 
 class ExternalPlugin(Plugin):
 	def __init__(
-		self, error_handler, command_callback, key_bindings, path, config, theme
+		self, error_handler, command_callback, key_bindings, path, config,
+		theme, font_database
 	):
 		super().__init__(error_handler, command_callback, key_bindings)
 		self._path = path
 		self._config = config
 		self._theme = theme
+		self._font_database = font_database
 	@property
 	def name(self):
 		return basename(self._path)
 	def load(self):
 		self._config.add_dir(self._path)
+		for font in glob(join(self._path, '*.ttf')):
+			self._font_database.load(font)
 		for css_file in self._config.locate('Theme.css', self._path):
 			try:
 				self._theme.load(css_file)
