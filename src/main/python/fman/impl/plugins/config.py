@@ -11,18 +11,7 @@ class Config:
 		self._save_on_quit = set()
 	def add_dir(self, dir_path):
 		self._plugin_dirs.append(dir_path)
-		for json_name in self._cache:
-			existing = self._cache.pop(json_name)
-			new = self.load_json(json_name)
-			if isinstance(existing, dict) and isinstance(new, dict):
-				existing.clear()
-				existing.update(new)
-				new = existing
-			elif isinstance(existing, list) and isinstance(new, list):
-				existing.clear()
-				existing.extend(new)
-				new = existing
-			self._cache[json_name] = new
+		self._reload_cache()
 	def load_json(self, json_name, default=None, save_on_quit=False):
 		if json_name not in self._cache:
 			result = load_json(self.locate(json_name))
@@ -57,6 +46,19 @@ class Config:
 				# computation may fail with a ValueError. Ignore this so we can
 				# at least save the other files in _save_on_quit:
 				pass
+	def _reload_cache(self):
+		for json_name in self._cache:
+			existing = self._cache.pop(json_name)
+			new = self.load_json(json_name)
+			if isinstance(existing, dict) and isinstance(new, dict):
+				existing.clear()
+				existing.update(new)
+				new = existing
+			elif isinstance(existing, list) and isinstance(new, list):
+				existing.clear()
+				existing.extend(new)
+				new = existing
+			self._cache[json_name] = new
 
 def load_json(paths):
 	result = None
