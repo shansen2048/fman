@@ -132,9 +132,6 @@ class ApplicationContext:
 			self._app.setOrganizationName('fman.io')
 			self._app.setOrganizationDomain('fman.io')
 			self._app.setApplicationName('fman')
-			# TODO: This currently doesn't respect Theme.css from plugins
-			# because at the time this line executes, plugins aren't yet loaded.
-			self._app.setStyleSheet(self.theme.qss)
 			self._app.setStyle(self.style)
 			self._app.setPalette(self.palette)
 			if self.app_icon:
@@ -391,7 +388,7 @@ class ApplicationContext:
 			os_styles = self._get_resource('os_styles.qss')
 			if exists(os_styles):
 				qss_files.append(os_styles)
-			self._theme = Theme(qss_files)
+			self._theme = Theme(self.app, qss_files)
 		return self._theme
 	@property
 	def style(self):

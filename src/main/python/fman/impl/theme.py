@@ -11,30 +11,31 @@ class Theme:
 		'.quicksearch-item': 'Quicksearch QListView::item'
 	}
 
-	def __init__(self, qss_file_paths):
+	def __init__(self, app, qss_file_paths):
+		self._app = app
+		self._qss_base = ''
+		for qss_file_path in qss_file_paths:
+			with open(qss_file_path, 'r') as f:
+				self._qss_base += f.read() + '\n'
 		self._css_rules = []
-		self._qss = self._load_qss(qss_file_paths)
+		self._extra_qss_from_css = ''
 	@property
 	def qss(self):
-		return self._qss
+		return self._qss_base + self._extra_qss_from_css
 	def load(self, css_file_path):
 		with open(css_file_path, 'rb') as f:
 			f_contents = f.read()
-		self._css_rules.extend(parse_css(f_contents))
-	def _load_qss(self, qss_files):
-		result_lines = []
-		for qss_file in qss_files:
-			with open(qss_file, 'r') as f:
-				result_lines.append(f.read())
-		for rule in self._css_rules:
+		new_rules = parse_css(f_contents)
+		self._css_rules.extend(new_rules)
+		for rule in new_rules:
 			qss_selectors = self._get_qss_selectors(rule.selectors)
 			if not qss_selectors:
 				continue
-			result_lines.append(', '.join(qss_selectors) + ' {')
+			self._extra_qss_from_css += ', '.join(qss_selectors) + ' {'
 			for decl in rule.declarations:
-				result_lines.append('\t%s: %s;' % decl)
-			result_lines.append('}')
-		return '\n'.join(result_lines)
+				self._extra_qss_from_css += '\n\t%s: %s;' % decl
+			self._extra_qss_from_css += '\n}\n'
+		self._app.setStyleSheet(self._qss_base + self._extra_qss_from_css)
 	def _get_qss_selectors(self, css_selectors):
 		result = []
 		for css_selector in css_selectors:
