@@ -22,6 +22,7 @@ from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from fman.util import system
 from fman.util.settings import Settings
+from os import makedirs
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette, QIcon
@@ -220,6 +221,9 @@ class ApplicationContext:
 				join(DATA_DIRECTORY, 'Plugins', 'Third-party'),
 				join(DATA_DIRECTORY, 'Plugins', 'User')
 			)
+			settings_plugin = self._plugin_dirs[-1]
+			if not exists(settings_plugin):
+				makedirs(settings_plugin)
 		return self._plugin_dirs
 	@property
 	def config(self):
