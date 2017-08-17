@@ -1049,10 +1049,9 @@ class InstallPlugin(ApplicationCommand):
 			dest_dir = self._install_plugin(repo.name, zipball_contents)
 			# Save some data in case we want to update the plugin later:
 			self._record_plugin_installation(dest_dir, repo.url, ref)
-			show_alert(
-				'Please restart fman to complete the installation of plugin %r.'
-				% repo.name
-			)
+			success = load_plugin(dest_dir)
+			if success:
+				show_alert('Plugin %r was successfully installed.' % repo.name)
 	def _get_matching_repos(self, query):
 		installed_plugins = _get_thirdparty_plugins()
 		for repo in self._plugin_repos:

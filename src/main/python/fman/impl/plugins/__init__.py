@@ -15,13 +15,20 @@ class PluginSupport:
 		self._config = config
 		self._theme = theme
 		self._font_database = font_database
+		self._panes = []
 	def load_plugin(self, plugin_dir):
 		plugin = ExternalPlugin(
 			self._error_handler, self._command_callback, self._key_bindings,
 			plugin_dir, self._config, self._theme, self._font_database
 		)
-		if plugin.load():
+		success = plugin.load()
+		if success:
 			self._plugins.append(plugin)
+			# Give the plugin a chance to register DirectoryPaneCommands and
+			# ...Listeners:
+			for pane in self._panes:
+				plugin.on_pane_added(pane)
+		return success
 	def load_json(self, name, default=None, save_on_quit=False):
 		return self._config.load_json(name, default, save_on_quit)
 	def save_json(self, name, value=None):
@@ -31,6 +38,7 @@ class PluginSupport:
 	def on_pane_added(self, pane):
 		for plugin in self._plugins:
 			plugin.on_pane_added(pane)
+		self._panes.append(pane)
 	def get_application_commands(self):
 		result = set()
 		for plugin in self._plugins:
