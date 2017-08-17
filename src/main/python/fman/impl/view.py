@@ -294,15 +294,6 @@ class FileListView(
 		filter_ = self.keyPressEventFilter
 		if not filter_ or not filter_(self, event):
 			super().keyPressEvent(event)
-	def reset_cursor(self):
-		index = self.rootIndex().child(0, 0)
-		is_displaying_my_computer = not self.model().sourceModel().rootPath()
-		if not index.isValid() and is_displaying_my_computer:
-			# This happens when displaying the contents of "My Computer" on
-			# Windows. See QFileSystemModel#myComputer().
-			self.place_cursor_at(QDir.drives()[0].absolutePath())
-		else:
-			self.setCurrentIndex(index)
 	def _init_vertical_header(self):
 		# The vertical header is what would in Excel be displayed as the row
 		# numbers 0, 1, ... to the left of the table. Qt displays it by default.

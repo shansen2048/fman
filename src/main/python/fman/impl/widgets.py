@@ -126,7 +126,7 @@ class DirectoryPane(QWidget):
 		else:
 			signal = self._model.directoryLoaded
 		def callback_():
-			self._file_view.reset_cursor()
+			self._file_view.move_cursor_home()
 			self.path_changed.emit(self)
 			callback()
 		connect_once(signal, lambda _: callback_())
