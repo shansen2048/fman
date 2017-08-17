@@ -280,15 +280,9 @@ class FileListView(
 		self.add_delegate(FileListItemDelegate())
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
-		model = self.model()
-		return [
-			normpath(model.sourceModel().filePath(model.mapToSource(index)))
-			for index in indexes
-		]
+		return [normpath(self._get_path(index)) for index in indexes]
 	def get_file_under_cursor(self):
-		model = self.model()
-		index = self.currentIndex()
-		return model.sourceModel().filePath(model.mapToSource(index))
+		return self._get_path(self.currentIndex())
 	def place_cursor_at(self, file_path):
 		self.setCurrentIndex(self._get_index(file_path))
 	def toggle_selection(self, file_path):
@@ -322,6 +316,9 @@ class FileListView(
 	def _get_index(self, file_path):
 		model = self.model()
 		return model.mapFromSource(model.sourceModel().index(file_path))
+	def _get_path(self, index):
+		model = self.model()
+		return model.sourceModel().filePath(model.mapToSource(index))
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):
