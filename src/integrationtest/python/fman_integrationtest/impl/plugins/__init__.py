@@ -13,3 +13,7 @@ class StubCommandCallback:
 class StubTheme:
 	def load(self, css_file_path):
 		pass
+
+class StubFontDatabase:
+	def load(self, font_file):
+		pass

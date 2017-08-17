@@ -5,7 +5,7 @@ from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman_integrationtest import get_resource
 from fman_integrationtest.impl.plugins import StubErrorHandler, \
-	StubCommandCallback, StubTheme
+	StubCommandCallback, StubTheme, StubFontDatabase
 from os import mkdir
 from os.path import join
 from shutil import rmtree, copytree
@@ -145,10 +145,11 @@ class PluginSupportTest(TestCase):
 		plugin_dirs = \
 			[self.shipped_plugin, self.thirdparty_plugin, self.settings_plugin]
 		theme = StubTheme()
+		font_db = StubFontDatabase()
 		plugins = [
 			ExternalPlugin(
 				self.error_handler, self.command_callback, key_bindings, dir_,
-				config, theme
+				config, theme, font_db
 			)
 			for dir_ in plugin_dirs
 		]

@@ -4,7 +4,7 @@ from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman_integrationtest import get_resource
 from fman_integrationtest.impl.plugins import StubErrorHandler, \
-	StubCommandCallback, StubTheme
+	StubCommandCallback, StubTheme, StubFontDatabase
 from os.path import join
 from unittest import TestCase
 
@@ -19,7 +19,7 @@ class ExternalPluginTest(TestCase):
 		config = Config(PLATFORM)
 		plugin = ExternalPlugin(
 			error_handler, command_callback, key_bindings, plugin_dir, config,
-			StubTheme()
+			StubTheme(), StubFontDatabase()
 		)
 
 		plugin.load()
