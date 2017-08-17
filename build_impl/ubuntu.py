@@ -118,7 +118,7 @@ def _upload_deb():
 				tmp_dir_remote, deb_path_remote
 			)
 		try:
-			run_on_server("echo %r | expect" % expect_script)
+			run_on_server("echo -e %r | expect" % expect_script)
 		except:
 			input('Tried to run on server:\n' + expect_script)
 			raise
