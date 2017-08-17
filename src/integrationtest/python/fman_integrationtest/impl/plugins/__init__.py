@@ -9,3 +9,7 @@ class StubCommandCallback:
 		pass
 	def after_command(self, command_name):
 		pass
+
+class StubTheme:
+	def load(self, css_file_path):
+		pass
