@@ -1,6 +1,6 @@
-from fman.util.qt import AscendingOrder, WA_MacShowFocusRect, ClickFocus, \
-	Key_Down, Key_Up, Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, \
-	ShiftModifier, ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
+from fman.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Down, Key_Up, \
+	Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, ShiftModifier, \
+	ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
 	KeyboardModifier, GroupSwitchModifier, MoveAction, NoButton, CopyAction
 from fman.util.system import is_mac
 from os.path import normpath
@@ -268,7 +268,6 @@ class FileListView(
 		self.keyPressEventFilter = None
 		self.setShowGrid(False)
 		self.setSortingEnabled(True)
-		self.sortByColumn(0, AscendingOrder)
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.horizontalHeader().setStretchLastSection(True)
 		self.horizontalHeader().setHighlightSections(False)

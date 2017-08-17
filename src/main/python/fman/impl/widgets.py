@@ -4,7 +4,7 @@ from fman.impl.quicksearch import Quicksearch
 from fman.impl.view import FileListView, Layout, PathView
 from fman.util.system import is_windows, is_mac
 from fman.util.qt import connect_once, run_in_main_thread, \
-	disable_window_animations_mac, Key_Escape
+	disable_window_animations_mac, Key_Escape, AscendingOrder
 from os.path import exists, normpath, dirname, splitdrive
 from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
@@ -43,6 +43,7 @@ class DirectoryPane(QWidget):
 		self._model.files_dropped.connect(self._on_files_dropped)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
 		self._model_sorted.setSourceModel(self._model)
+		self._model_sorted.sort(0, AscendingOrder)
 		self._file_view = FileListView(self)
 		self._file_view.setModel(self._model_sorted)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
