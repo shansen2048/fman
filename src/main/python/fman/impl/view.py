@@ -144,7 +144,7 @@ class SingleRowModeMixin(
 		self.add_delegate(self._single_row_delegate)
 	def focusInEvent(self, event):
 		if not self.currentIndex().isValid():
-			self.reset_cursor()
+			self.move_cursor_home()
 		super().focusInEvent(event)
 		self._would_have_focus = True
 	def focusOutEvent(self, event):
