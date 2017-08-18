@@ -4,7 +4,7 @@ from fman.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Down, Key_Up, \
 	KeyboardModifier, GroupSwitchModifier, MoveAction, NoButton, CopyAction
 from fman.util.system import is_mac
 from os.path import normpath
-from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QDir, QRect, Qt
+from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt
 from PyQt5.QtGui import QKeyEvent, QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QHeaderView
