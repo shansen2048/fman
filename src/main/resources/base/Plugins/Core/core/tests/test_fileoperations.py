@@ -1,6 +1,5 @@
 from core.fileoperations import CopyFiles, MoveFiles
 from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, PLATFORM
-from fman.util.system import is_linux
 from os import listdir, mkdir, chmod, makedirs, readlink
 from os.path import basename, join, dirname, exists, islink, realpath, samefile
 from tempfile import TemporaryDirectory
