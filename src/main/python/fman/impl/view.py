@@ -1,7 +1,8 @@
 from fman.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Down, Key_Up, \
 	Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, ShiftModifier, \
 	ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
-	KeyboardModifier, GroupSwitchModifier, MoveAction, NoButton, CopyAction
+	KeyboardModifier, GroupSwitchModifier, MoveAction, NoButton, CopyAction, \
+	Key_Return, Key_Enter
 from fman.util.system import is_mac
 from os.path import normpath
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt
@@ -265,7 +266,7 @@ class FileListView(
 ):
 	def __init__(self, parent):
 		super().__init__(parent)
-		self.keyPressEventFilter = None
+		self.key_press_event_filter = lambda source, event: False
 		self.setShowGrid(False)
 		self.setSortingEnabled(True)
 		self.setAttribute(WA_MacShowFocusRect, 0)
@@ -291,8 +292,13 @@ class FileListView(
 	def edit_name(self, file_path):
 		self.edit(self._get_index(file_path))
 	def keyPressEvent(self, event):
-		filter_ = self.keyPressEventFilter
-		if not filter_ or not filter_(self, event):
+		if event.key() in (Key_Return, Key_Enter) \
+			and self.state() == self.EditingState:
+			# When we're editing - ie. renaming a file - and the user presses
+			# Enter, we don't want that key stroke to propagate because it's
+			# already "handled" by the editor closing. So "ignore" the event:
+			return
+		if not self.key_press_event_filter(self, event):
 			super().keyPressEvent(event)
 	def _init_vertical_header(self):
 		# The vertical header is what would in Excel be displayed as the row

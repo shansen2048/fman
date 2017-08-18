@@ -47,7 +47,7 @@ class DirectoryPane(QWidget):
 		self._file_view = FileListView(self)
 		self._file_view.setModel(self._model_sorted)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
-		self._file_view.keyPressEventFilter = self._on_key_pressed
+		self._file_view.key_press_event_filter = self._on_key_pressed
 		self._file_view.hideColumn(2)
 		self.setLayout(Layout(self._path_view, self._file_view))
 		self._path_view.setFocusProxy(self._file_view)
