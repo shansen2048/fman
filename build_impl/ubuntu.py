@@ -102,21 +102,26 @@ def _upload_deb():
 	copy(path('target/fman.deb'), join(tmp_dir_local, deb_name))
 	copy(path('conf/linux/private.gpg-key'), tmp_dir_local)
 	copy(path('conf/linux/public.gpg-key'), tmp_dir_local)
+	copy(
+		path('src/main/resources/linux-deb-upload/reprepro_no_pw_prompt.sh'),
+		tmp_dir_local
+	)
 	_generate_reprepro_distributions_file(tmp_dir_local)
 	upload_file(tmp_dir_local, '/tmp')
 	tmp_dir_remote = '/tmp/' + basename(tmp_dir_local)
 	try:
+		gpg_pass = OPTIONS['gpg_pass']
 		run_on_server(
 			'gpg --batch --yes --passphrase %s --import "%s/private.gpg-key" '
 			'"%s/public.gpg-key" || true' %
-			(OPTIONS['gpg_pass'], tmp_dir_remote, tmp_dir_remote)
+			(gpg_pass, tmp_dir_remote, tmp_dir_remote)
 		)
 		deb_path_remote = tmp_dir_remote + '/' + deb_name
 		run_on_server(
-			'reprepro --ask-passphrase -b "%s" --confdir %s/reprepro/conf '
+			'%s/reprepro_no_pw_prompt.sh "%s" "%s" "%s/reprepro/conf" '
 			'includedeb stable "%s"' % (
-				get_path_on_server('updates/ubuntu'), tmp_dir_remote,
-				deb_path_remote
+				tmp_dir_remote, gpg_pass, get_path_on_server('updates/ubuntu'),
+				tmp_dir_remote, deb_path_remote
 			)
 		)
 	finally:
