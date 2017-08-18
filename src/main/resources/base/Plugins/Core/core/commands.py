@@ -139,7 +139,8 @@ class GoUp(_CorePaneCommand):
 
 	def __call__(self):
 		current_dir = self.pane.get_path()
-		if current_dir == '/':
+		drive = splitdrive(current_dir)[1]
+		if not drive or drive == os.sep:
 			# We catch this case because the callback below doesn't handle it.
 			# Consider: current_dir is '/'. Say the cursor is at /bin. We want
 			# it to stay there. But the callback would attempt to place it at /.
