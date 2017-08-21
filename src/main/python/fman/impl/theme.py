@@ -19,9 +19,6 @@ class Theme:
 				self._qss_base += f.read() + '\n'
 		self._css_rules = []
 		self._extra_qss_from_css = ''
-	@property
-	def qss(self):
-		return self._qss_base + self._extra_qss_from_css
 	def load(self, css_file_path):
 		with open(css_file_path, 'rb') as f:
 			f_contents = f.read()
