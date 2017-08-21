@@ -202,14 +202,19 @@ class ApplicationContext:
 		if self._help_menu_actions is None:
 			if system.is_mac():
 				def app_command(name):
-					def result(_):
+					return lambda _: \
 						self.plugin_support.run_application_command(name)
+				def directory_pane_command(name):
+					def result(_):
+						active_pane = self.plugin_support.get_active_pane()
+						if active_pane:
+							active_pane.run_command(name)
 					return result
 				self._help_menu_actions = [
 					('Keyboard shortcuts', 'F1', app_command('help')),
 					(
 						'Command Palette', 'Ctrl+Shift+P',
-						app_command('command_palette')
+						directory_pane_command('command_palette')
 					),
 					('Tutorial', '', app_command('tutorial'))
 				]

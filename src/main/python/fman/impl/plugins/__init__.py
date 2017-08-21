@@ -61,6 +61,10 @@ class PluginSupport:
 			if name in plugin.get_application_commands():
 				return plugin.run_application_command(name, args)
 		raise LookupError(name)
+	def get_active_pane(self):
+		for pane in self._panes:
+			if pane._has_focus():
+				return pane
 
 class CommandCallback:
 	def __init__(self, metrics):
