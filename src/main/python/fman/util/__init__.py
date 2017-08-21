@@ -1,3 +1,4 @@
+from functools import lru_cache
 from getpass import getuser
 from os import listdir
 from os.path import join, basename, expanduser, dirname, realpath, relpath, \
@@ -24,3 +25,6 @@ def parse_version(version_str):
 	if version_str.endswith('-SNAPSHOT'):
 		version_str = version_str[:-len('-SNAPSHOT')]
 	return tuple(map(int, version_str.split('.')))
+
+def cached_property(getter):
+	return property(lru_cache()(getter))
