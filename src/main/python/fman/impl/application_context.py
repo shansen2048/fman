@@ -54,6 +54,7 @@ class ApplicationContext:
 		self._font_database = None
 		self._icon_provider = None
 		self._main_window = None
+		self._help_menu_actions = None
 		self._controller = None
 		self._nonexistent_shortcut_handler = None
 		self._palette = None
@@ -177,8 +178,9 @@ class ApplicationContext:
 	@property
 	def main_window(self):
 		if self._main_window is None:
-			self._main_window = \
-				MainWindow(self.app, self.theme, self.icon_provider)
+			self._main_window = MainWindow(
+				self.app, self.help_menu_actions, self.theme, self.icon_provider
+			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
 			self._main_window.shown.connect(self.on_main_window_shown)
@@ -195,6 +197,22 @@ class ApplicationContext:
 		if self.is_licensed:
 			return 'fman'
 		return 'fman – NOT REGISTERED'
+	@property
+	def help_menu_actions(self):
+		if self._help_menu_actions is None:
+			if system.is_mac():
+				def app_command(name):
+					def result(_):
+						self.plugin_support.run_application_command(name)
+					return result
+				self._help_menu_actions = [
+					('Keyboard shortcuts', app_command('help')),
+					('Command Palette', app_command('command_palette')),
+					('Tutorial', app_command('tutorial'))
+				]
+			else:
+				self._help_menu_actions = {}
+		return self._help_menu_actions
 	@property
 	def font_database(self):
 		if self._font_database is None:

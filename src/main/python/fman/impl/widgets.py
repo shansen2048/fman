@@ -11,7 +11,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
-	QFrame
+	QFrame, QAction
 from random import randint, randrange
 
 class Application(QApplication):
@@ -181,7 +181,7 @@ class MainWindow(QMainWindow):
 	closed = pyqtSignal()
 	before_quicksearch = pyqtSignal(Quicksearch)
 
-	def __init__(self, app, theme, icon_provider=None):
+	def __init__(self, app, help_menu_actions, theme, icon_provider=None):
 		super().__init__()
 		self._app = app
 		self._theme = theme
@@ -199,6 +199,22 @@ class MainWindow(QMainWindow):
 		self._timer.timeout.connect(self.clear_status_message)
 		self._timer.setSingleShot(True)
 		self._dialog = None
+		self._init_help_menu(help_menu_actions)
+	def _init_help_menu(self, help_menu_actions):
+		if not help_menu_actions:
+			return
+		help_menu_text = 'Help'
+		if is_mac():
+				# On OS X, any menu named "Help" has the "Spotlight search for
+				# Help" bar displayed in it. We don't need or want this. Add an
+				# invisible character to fool OS X into not treating it as
+				# "Help" (' ' doesn't work):
+				help_menu_text += '\u2063'
+		help_menu = self.menuBar().addMenu(help_menu_text)
+		for action_name, handler in help_menu_actions:
+			action = QAction(action_name, help_menu)
+			action.triggered.connect(handler)
+			help_menu.addAction(action)
 	@run_in_main_thread
 	def show_alert(
 		self, text, buttons=OK, default_button=OK, allow_escape=True
