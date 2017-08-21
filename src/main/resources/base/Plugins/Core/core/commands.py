@@ -42,6 +42,9 @@ class About(ApplicationCommand):
 			return 'Not registered.'
 
 class Help(ApplicationCommand):
+
+	aliases = ('Help', 'Show keyboard shortcuts', 'Show key bindings')
+
 	def __call__(self):
 		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings?s=f'))
 
