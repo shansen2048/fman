@@ -211,10 +211,24 @@ class MainWindow(QMainWindow):
 				# "Help" (' ' doesn't work):
 				help_menu_text += '\u2063'
 		help_menu = self.menuBar().addMenu(help_menu_text)
-		for action_name, handler in help_menu_actions:
+		actions = []
+		for action_name, shortcut, handler in help_menu_actions:
 			action = QAction(action_name, help_menu)
 			action.triggered.connect(handler)
 			help_menu.addAction(action)
+			actions.append(action)
+		# On at least Mac, pressing a shortcut from a menu briefly highlights
+		# the menu. We don't want this - especially for the Command Palette.
+		# We therefore only enable the shortcuts when the menu is open:
+		def enable_shortcuts():
+			for i, (_, shortcut, _) in enumerate(help_menu_actions):
+				if shortcut:
+					actions[i].setShortcut(QKeySequence(shortcut))
+		help_menu.aboutToShow.connect(enable_shortcuts)
+		def disable_shortcuts():
+			for action in actions:
+				action.setShortcut(QKeySequence())
+		help_menu.aboutToHide.connect(disable_shortcuts)
 	@run_in_main_thread
 	def show_alert(
 		self, text, buttons=OK, default_button=OK, allow_escape=True

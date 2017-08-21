@@ -206,9 +206,12 @@ class ApplicationContext:
 						self.plugin_support.run_application_command(name)
 					return result
 				self._help_menu_actions = [
-					('Keyboard shortcuts', app_command('help')),
-					('Command Palette', app_command('command_palette')),
-					('Tutorial', app_command('tutorial'))
+					('Keyboard shortcuts', 'F1', app_command('help')),
+					(
+						'Command Palette', 'Ctrl+Shift+P',
+						app_command('command_palette')
+					),
+					('Tutorial', '', app_command('tutorial'))
 				]
 			else:
 				self._help_menu_actions = {}
