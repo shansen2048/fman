@@ -100,19 +100,18 @@ class ExternalPlugin(Plugin):
 				self._theme.load(css_file)
 			except FileNotFoundError:
 				pass
-		self._load_classes()
+		sys.path.append(self._path)
+		self._register_api_classes()
 		self._load_key_bindings()
-	def _load_classes(self):
-		for package in self._load_packages():
-			for cls in [getattr(package, name) for name in dir(package)]:
-				if inspect.isclass(cls):
-					superclasses = getmro(cls)[1:]
-					if ApplicationCommand in superclasses:
-						self._register_application_command(cls)
-					elif DirectoryPaneCommand in superclasses:
-						self._register_directory_pane_command(cls)
-					elif DirectoryPaneListener in superclasses:
-						self._register_directory_pane_listener(cls)
+	def _register_api_classes(self):
+		for cls in self._load_classes():
+			superclasses = getmro(cls)[1:]
+			if ApplicationCommand in superclasses:
+				self._register_application_command(cls)
+			elif DirectoryPaneCommand in superclasses:
+				self._register_directory_pane_command(cls)
+			elif DirectoryPaneListener in superclasses:
+				self._register_directory_pane_listener(cls)
 	def _load_key_bindings(self):
 		for json_file in self._config.locate('Key Bindings.json', self._path):
 			try:
@@ -130,8 +129,12 @@ class ExternalPlugin(Plugin):
 				errors = self._key_bindings.load(bindings)
 				for error in errors:
 					self._error_handler.report(error)
+	def _load_classes(self):
+		for package in self._load_packages():
+			for cls in [getattr(package, name) for name in dir(package)]:
+				if inspect.isclass(cls):
+					yield cls
 	def _load_packages(self):
-		sys.path.append(self._path)
 		for dir_ in [d for d in listdir_absolute(self._path) if isdir(d)]:
 			init = join(dir_, '__init__.py')
 			if isfile(init):
