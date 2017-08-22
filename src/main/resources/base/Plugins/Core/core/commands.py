@@ -827,7 +827,7 @@ class FileSystem:
 			)
 			query.stopQuery()
 			for item in query.results():
-				yield (item.valueForAttribute_("kMDItemPath"))
+				yield item.valueForAttribute_("kMDItemPath")
 		elif PLATFORM == 'Windows':
 			import adodbapi
 			from pythoncom import com_error
