@@ -853,7 +853,10 @@ class FileSystem:
 					% (escape(pattern) + '%')
 				)
 				for row in iter(cursor.fetchone, None):
-					yield row['System.ItemPathDisplay']
+					value = row['System.ItemPathDisplay']
+					# Seems to be None sometimes:
+					if value:
+						yield value
 			except (adodbapi.Error, com_error):
 				pass
 	def _is_documents_and_settings(self, path):
