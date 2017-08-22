@@ -209,7 +209,10 @@ _LAST_MODIFIED_COLUMN = _COLUMNS.index(LastModifiedColumn)
 class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self.Gtk, self.Gio = self._init_pgi()
+		try:
+			self.Gtk, self.Gio = self._init_pgi()
+		except (ImportError, ValueError) as e:
+			raise GnomeNotAvailable() from e
 	def _init_pgi(self):
 		import pgi
 		pgi.install_as_gi()
@@ -254,3 +257,6 @@ class GnomeFileIconProvider(QFileIconProvider):
 			icon = theme.lookup_icon(name, size, 0)
 			if icon:
 				return QIcon(icon.get_filename())
+
+class GnomeNotAvailable(RuntimeError):
+	pass

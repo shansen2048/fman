@@ -7,7 +7,7 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
-from fman.impl.model import GnomeFileIconProvider
+from fman.impl.model import GnomeFileIconProvider, GnomeNotAvailable
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -132,7 +132,7 @@ class ApplicationContext:
 	def icon_provider(self):
 		try:
 			return GnomeFileIconProvider()
-		except ImportError:
+		except GnomeNotAvailable:
 			pass
 	@property
 	def main_window(self):
