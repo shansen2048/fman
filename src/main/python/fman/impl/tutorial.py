@@ -207,8 +207,8 @@ class AfterQuicksearchShown:
 			self._main_window.before_quicksearch, self._before_quicksearch
 		)
 	def _before_quicksearch(self, quicksearch):
-		quicksearch.shown.connect(self._on_quicksearch_shown)
 		self._quicksearch = quicksearch
+		quicksearch.shown.connect(self._on_quicksearch_shown)
 	def _on_quicksearch_shown(self):
 		self._quicksearch.shown.disconnect(self._on_quicksearch_shown)
 		self._callback()
