@@ -12,6 +12,9 @@ class Config:
 	def add_dir(self, dir_path):
 		self._plugin_dirs.append(dir_path)
 		self._reload_cache()
+	def remove_dir(self, dir_path):
+		self._plugin_dirs.remove(dir_path)
+		self._reload_cache()
 	def load_json(self, json_name, default=None, save_on_quit=False):
 		if json_name not in self._cache:
 			result = load_json(self.locate(json_name))
@@ -58,7 +61,8 @@ class Config:
 				existing.clear()
 				existing.extend(new)
 				new = existing
-			self._cache[json_name] = new
+			if new is not None:
+				self._cache[json_name] = new
 
 def load_json(paths):
 	result = None

@@ -215,9 +215,8 @@ class ApplicationContext:
 	@cached_property
 	def plugin_support(self):
 		return PluginSupport(
-			[self.builtin_plugin], self.plugin_error_handler,
-			self.command_callback, self.key_bindings, self.config,
-			self.theme, self.font_database
+			self.plugin_error_handler, self.command_callback, self.key_bindings,
+			self.config, self.theme, self.font_database, self.builtin_plugin
 		)
 	@cached_property
 	def plugin_error_handler(self):

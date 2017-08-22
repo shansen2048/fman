@@ -20,6 +20,12 @@ class ConfigTest(TestCase):
 		config.add_dir(get_resource('ConfigTest/2'))
 		self.assertEquals([2, 1], value)
 		self.assertIs(value, config.load_json('Test.json'))
+	def test_remove_dir(self):
+		config = self.test_add_dir()
+		config.remove_dir(config._plugin_dirs[0])
+		self.assertIsNone(config.load_json('Test.json'))
+		config.add_dir(get_resource('ConfigTest/2'))
+		self.assertEquals([2], config.load_json('Test.json'))
 
 class LoadJsonTest(TestCase):
 	def test_nonexistent_file(self):

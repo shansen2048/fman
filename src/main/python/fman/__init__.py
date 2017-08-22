@@ -11,7 +11,7 @@ __all__ = [
 	'show_file_open_dialog',
 	'show_quicksearch', 'QuicksearchItem',
 	'get_application_commands', 'run_application_command',
-	'get_application_command_aliases', 'load_plugin',
+	'get_application_command_aliases', 'load_plugin', 'unload_plugin',
 	'clipboard',
 	'PLATFORM', 'FMAN_VERSION', 'DATA_DIRECTORY',
 	'OK', 'CANCEL', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT'
@@ -194,6 +194,9 @@ def get_application_command_aliases(command_name):
 
 def load_plugin(plugin_dir):
 	return _get_plugin_support().load_plugin(plugin_dir)
+
+def unload_plugin(plugin_dir):
+	_get_plugin_support().unload_plugin(plugin_dir)
 
 def _get_plugin_support():
 	return _get_app_ctxt().plugin_support

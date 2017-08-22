@@ -1106,10 +1106,11 @@ class RemovePlugin(ApplicationCommand):
 			if result:
 				plugin = result[1]
 				if plugin:
-					rmtree(join(_THIRDPARTY_PLUGINS_DIR, plugin))
+					plugin_dir = join(_THIRDPARTY_PLUGINS_DIR, plugin)
+					rmtree(plugin_dir)
+					unload_plugin(plugin_dir)
 					show_alert(
-						'Please restart fman to complete the removal of plugin '
-						'%r.' % plugin
+						'Plugin %r was successfully removed.' % plugin
 					)
 	def _get_matching_plugins(self, query):
 		for plugin in self._installed_plugins:
@@ -1117,43 +1118,66 @@ class RemovePlugin(ApplicationCommand):
 			if match or not query:
 				yield QuicksearchItem(plugin, highlight=match)
 
+class ReloadPlugin(ApplicationCommand):
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._installed_plugins = None
+	def __call__(self):
+		result = show_quicksearch(_list_plugins)
+		if result:
+			plugin_dir = result[1]
+			try:
+				unload_plugin(plugin_dir)
+			except KeyError:
+				# This for instance happens when the plugin had not actually
+				# been loaded, eg. because of an error.
+				pass
+			success = load_plugin(plugin_dir)
+			if success:
+				plugin = basename(plugin_dir)
+				show_status_message(
+					'Plugin %r was successfully reloaded.' % plugin
+				)
+
 class ListPlugins(DirectoryPaneCommand):
 	def __call__(self):
-		result = show_quicksearch(self._list_plugins)
+		result = show_quicksearch(_list_plugins)
 		if result:
 			plugin_dir = result[1]
 			if plugin_dir:
 				self.pane.set_path(plugin_dir)
-	def _list_plugins(self, query):
-		result = []
-		user_plugins_dir = join(DATA_DIRECTORY, 'Plugins', 'User')
-		try:
-			user_plugins = listdir(user_plugins_dir)
-		except FileNotFoundError:
-			user_plugins = []
-		for plugin in user_plugins:
-			plugin_path = join(user_plugins_dir, plugin)
-			if not isdir(plugin_path):
-				continue
-			match = contains_chars(plugin.lower(), query.lower())
-			if match or not query:
-				result.append(
-					QuicksearchItem(plugin_path, plugin, highlight=match)
-				)
-		for plugin in _get_thirdparty_plugins():
-			match = contains_chars(plugin.lower(), query.lower())
-			if match or not query:
-				plugin_path = join(_THIRDPARTY_PLUGINS_DIR, plugin)
-				plugin_json = join(plugin_path, 'Plugin.json')
-				with open(plugin_json, 'r') as f:
-					ref = json.load(f).get('ref', '')
-				is_sha = len(ref) == 40
-				if is_sha:
-					ref = ref[:8]
-				result.append(QuicksearchItem(
-					plugin_path, plugin, highlight=match, hint=ref
-				))
-		return sorted(result, key=lambda qsi: qsi.title)
+
+def _list_plugins(query):
+	result = []
+	user_plugins_dir = join(DATA_DIRECTORY, 'Plugins', 'User')
+	try:
+		user_plugins = listdir(user_plugins_dir)
+	except FileNotFoundError:
+		user_plugins = []
+	for plugin in user_plugins:
+		plugin_path = join(user_plugins_dir, plugin)
+		if not isdir(plugin_path):
+			continue
+		match = contains_chars(plugin.lower(), query.lower())
+		if match or not query:
+			result.append(
+				QuicksearchItem(plugin_path, plugin, highlight=match)
+			)
+	for plugin in _get_thirdparty_plugins():
+		match = contains_chars(plugin.lower(), query.lower())
+		if match or not query:
+			plugin_path = join(_THIRDPARTY_PLUGINS_DIR, plugin)
+			plugin_json = join(plugin_path, 'Plugin.json')
+			with open(plugin_json, 'r') as f:
+				ref = json.load(f).get('ref', '')
+			is_sha = len(ref) == 40
+			if is_sha:
+				ref = ref[:8]
+			result.append(QuicksearchItem(
+				plugin_path, plugin, highlight=match, hint=ref
+			))
+	return sorted(result, key=lambda qsi: qsi.title)
 
 class StatusMessage:
 	def __init__(self, message):

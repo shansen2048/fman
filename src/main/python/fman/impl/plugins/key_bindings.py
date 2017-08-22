@@ -4,11 +4,19 @@ class KeyBindings:
 		self._available_commands = []
 	def register_command(self, command):
 		self._available_commands.append(command)
+	def unregister_command(self, command):
+		self._available_commands.remove(command)
 	def load(self, bindings):
 		sanitized, errors = \
 			sanitize_key_bindings(bindings, self._available_commands)
 		self._sanitized_bindings = sanitized + self._sanitized_bindings
 		return errors
+	def unload(self, bindings):
+		for binding in bindings:
+			try:
+				self._sanitized_bindings.remove(binding)
+			except ValueError as not_in_list:
+				pass
 	def get_sanitized_bindings(self):
 		return self._sanitized_bindings
 

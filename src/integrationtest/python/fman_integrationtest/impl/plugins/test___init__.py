@@ -79,7 +79,7 @@ class PluginSupportTest(TestCase):
 			}
 		}, first)
 		# Can do this now because sys.path has been extended by `Plugin#load()`:
-		from simple import TestCommand
+		from simple_plugin import TestCommand
 		self.assertFalse(TestCommand.RAN, 'Sanity check')
 		try:
 			self.plugin_support.run_application_command(
@@ -144,7 +144,7 @@ class PluginSupportTest(TestCase):
 		theme = StubTheme()
 		font_db = StubFontDatabase()
 		self.plugin_support = PluginSupport(
-			[], self.error_handler, self.command_callback, key_bindings, config,
+			self.error_handler, self.command_callback, key_bindings, config,
 			theme, font_db
 		)
 		self.plugin_support.load_plugin(self.shipped_plugin)

@@ -5,16 +5,17 @@ SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
 	def __init__(
-		self, builtin_plugins, error_handler, command_callback, key_bindings,
-		config, theme, font_database
+		self, error_handler, command_callback, key_bindings, config, theme,
+		font_database, builtin_plugin=None
 	):
-		self._plugins = builtin_plugins
 		self._error_handler = error_handler
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
 		self._config = config
 		self._theme = theme
 		self._font_database = font_database
+		self._builtin_plugin = builtin_plugin
+		self._external_plugins = {}
 		self._panes = []
 	def load_plugin(self, plugin_dir):
 		plugin = ExternalPlugin(
@@ -23,12 +24,14 @@ class PluginSupport:
 		)
 		success = plugin.load()
 		if success:
-			self._plugins.append(plugin)
+			self._external_plugins[plugin_dir] = plugin
 			# Give the plugin a chance to register DirectoryPaneCommands and
-			# ...Listeners:
+			# ...Listeners for existing panes:
 			for pane in self._panes:
 				plugin.on_pane_added(pane)
 		return success
+	def unload_plugin(self, plugin_dir):
+		self._external_plugins.pop(plugin_dir).unload()
 	def load_json(self, name, default=None, save_on_quit=False):
 		return self._config.load_json(name, default, save_on_quit)
 	def save_json(self, name, value=None):
@@ -65,6 +68,11 @@ class PluginSupport:
 		for pane in self._panes:
 			if pane._has_focus():
 				return pane
+	@property
+	def _plugins(self):
+		if self._builtin_plugin is not None:
+			yield self._builtin_plugin
+		yield from self._external_plugins.values()
 
 class CommandCallback:
 	def __init__(self, metrics):

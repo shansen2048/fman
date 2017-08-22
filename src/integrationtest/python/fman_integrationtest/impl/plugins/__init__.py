@@ -1,3 +1,5 @@
+from os.path import exists
+
 class StubErrorHandler:
 	def __init__(self):
 		self.error_messages = []
@@ -11,9 +13,20 @@ class StubCommandCallback:
 		pass
 
 class StubTheme:
+	def __init__(self):
+		self.loaded_css_files = []
 	def load(self, css_file_path):
-		pass
+		if exists(css_file_path):
+			self.loaded_css_files.append(css_file_path)
+		else:
+			raise FileNotFoundError(css_file_path)
+	def unload(self, css_file_path):
+		self.loaded_css_files.remove(css_file_path)
 
 class StubFontDatabase:
+	def __init__(self):
+		self.loaded_fonts = []
 	def load(self, font_file):
-		pass
+		self.loaded_fonts.append(font_file)
+	def unload(self, font_file):
+		self.loaded_fonts.remove(font_file)

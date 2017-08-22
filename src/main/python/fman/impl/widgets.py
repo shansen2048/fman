@@ -27,6 +27,9 @@ class Application(QApplication):
 		if self._main_window is not None:
 			self._main_window.close()
 		super().exit(returnCode)
+	@run_in_main_thread
+	def set_style_sheet(self, stylesheet):
+		self.setStyleSheet(stylesheet)
 
 class DirectoryPane(QWidget):
 

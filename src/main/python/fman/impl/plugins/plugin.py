@@ -43,12 +43,22 @@ class Plugin:
 		self._key_bindings.register_command(name)
 		instance = self._instantiate_command(name, cls, *args)
 		self._application_command_instances[name] = instance
+	def _unregister_application_command(self, cls):
+		name = _get_command_name(cls)
+		del self._application_command_instances[name]
+		self._key_bindings.unregister_command(name)
 	def _register_directory_pane_command(self, cls):
 		name = _get_command_name(cls)
 		self._key_bindings.register_command(name)
 		self._directory_pane_commands[name] = cls
+	def _unregister_directory_pane_command(self, cls):
+		name = _get_command_name(cls)
+		del self._directory_pane_commands[name]
+		self._key_bindings.unregister_command(name)
 	def _register_directory_pane_listener(self, cls):
 		self._directory_pane_listeners.append(cls)
+	def _unregister_directory_pane_listener(self, cls):
+		self._directory_pane_listeners.remove(cls)
 	def _instantiate_command(self, cmd_name, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -80,6 +90,10 @@ class ExternalPlugin(Plugin):
 		self._config = config
 		self._theme = theme
 		self._font_database = font_database
+		self._loaded_fonts = []
+		self._loaded_css_files = []
+		self._loaded_packages = []
+		self._loaded_key_bindings = []
 	@property
 	def name(self):
 		return basename(self._path)
@@ -95,23 +109,44 @@ class ExternalPlugin(Plugin):
 		self._config.add_dir(self._path)
 		for font in glob(join(self._path, '*.ttf')):
 			self._font_database.load(font)
+			self._loaded_fonts.append(font)
 		for css_file in self._config.locate('Theme.css', self._path):
 			try:
 				self._theme.load(css_file)
 			except FileNotFoundError:
 				pass
+			else:
+				self._loaded_css_files.append(css_file)
 		sys.path.append(self._path)
-		self._register_api_classes()
+		self._load_packages()
+		for package in self._loaded_packages:
+			for cls in self._iterate_classes(package):
+				superclasses = getmro(cls)[1:]
+				if ApplicationCommand in superclasses:
+					self._register_application_command(cls)
+				elif DirectoryPaneCommand in superclasses:
+					self._register_directory_pane_command(cls)
+				elif DirectoryPaneListener in superclasses:
+					self._register_directory_pane_listener(cls)
 		self._load_key_bindings()
-	def _register_api_classes(self):
-		for cls in self._load_classes():
-			superclasses = getmro(cls)[1:]
-			if ApplicationCommand in superclasses:
-				self._register_application_command(cls)
-			elif DirectoryPaneCommand in superclasses:
-				self._register_directory_pane_command(cls)
-			elif DirectoryPaneListener in superclasses:
-				self._register_directory_pane_listener(cls)
+	def unload(self):
+		self._key_bindings.unload(self._loaded_key_bindings)
+		for package in self._loaded_packages:
+			for cls in self._iterate_classes(package):
+				superclasses = getmro(cls)[1:]
+				if ApplicationCommand in superclasses:
+					self._unregister_application_command(cls)
+				elif DirectoryPaneCommand in superclasses:
+					self._unregister_directory_pane_command(cls)
+				elif DirectoryPaneListener in superclasses:
+					self._unregister_directory_pane_listener(cls)
+		self._loaded_packages = []
+		sys.path.remove(self._path)
+		for css_file in self._loaded_css_files:
+			self._theme.unload(css_file)
+		for font in self._loaded_fonts:
+			self._font_database.unload(font)
+		self._config.remove_dir(self._path)
 	def _load_key_bindings(self):
 		for json_file in self._config.locate('Key Bindings.json', self._path):
 			try:
@@ -129,18 +164,18 @@ class ExternalPlugin(Plugin):
 				errors = self._key_bindings.load(bindings)
 				for error in errors:
 					self._error_handler.report(error)
-	def _load_classes(self):
-		for package in self._load_packages():
-			for cls in [getattr(package, name) for name in dir(package)]:
-				if inspect.isclass(cls):
-					yield cls
+				self._loaded_key_bindings.extend(bindings)
 	def _load_packages(self):
 		for dir_ in [d for d in listdir_absolute(self._path) if isdir(d)]:
 			init = join(dir_, '__init__.py')
 			if isfile(init):
 				package_name = basename(dir_)
 				loader = SourceFileLoader(package_name, init)
-				yield loader.load_module()
+				self._loaded_packages.append(loader.load_module())
+	def _iterate_classes(self, module):
+		for cls in [getattr(module, name) for name in dir(module)]:
+			if inspect.isclass(cls):
+				yield cls
 
 def get_command_class_name(command_name):
 	return ''.join(part.title() for part in command_name.split('_'))
