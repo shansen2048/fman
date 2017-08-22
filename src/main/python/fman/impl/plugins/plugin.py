@@ -25,7 +25,7 @@ class Plugin:
 		raise NotImplementedError()
 	def on_pane_added(self, pane):
 		for cmd_name, cmd_class in self._directory_pane_commands.items():
-			command = self._instantiate_command(cmd_name, cmd_class, pane)
+			command = self._instantiate_command(cmd_class, pane)
 			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
 			pane._add_listener(self._instantiate_listener(listener_class, pane))
@@ -40,7 +40,7 @@ class Plugin:
 	def _register_application_command(self, cls, *args):
 		name = _get_command_name(cls)
 		self._key_bindings.register_command(name)
-		instance = self._instantiate_command(name, cls, *args)
+		instance = self._instantiate_command(cls, *args)
 		self._application_command_instances[name] = instance
 	def _unregister_application_command(self, cls):
 		name = _get_command_name(cls)
@@ -58,7 +58,7 @@ class Plugin:
 		self._directory_pane_listeners.append(cls)
 	def _unregister_directory_pane_listener(self, cls):
 		self._directory_pane_listeners.remove(cls)
-	def _instantiate_command(self, cmd_name, cmd_class, *args, **kwargs):
+	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
 		except:
