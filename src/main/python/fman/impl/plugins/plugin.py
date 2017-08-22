@@ -28,8 +28,7 @@ class Plugin:
 			command = self._instantiate_command(cmd_name, cmd_class, pane)
 			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
-			listener = listener_class(pane)
-			pane._add_listener(ListenerWrapper(listener, self._error_handler))
+			pane._add_listener(self._instantiate_listener(listener_class, pane))
 	def get_application_commands(self):
 		return self._application_command_instances
 	def get_directory_pane_commands(self):
@@ -64,12 +63,21 @@ class Plugin:
 			command = cmd_class(*args, **kwargs)
 		except:
 			self._error_handler.report(
-				'Could not instantiate command %r.' % cmd_name
+				'Could not instantiate command %r.' % cmd_class.__name__
 			)
 			command = lambda *_, **__: None
 		return CommandWrapper(
 			command, self._error_handler, self._command_callback
 		)
+	def _instantiate_listener(self, listener_class, *args, **kwargs):
+		try:
+			listener = listener_class(*args, **kwargs)
+		except:
+			self._error_handler.report(
+				'Could not instantiate listener %r.' % listener_class.__name__
+			)
+			listener = DirectoryPaneListener(*args, **kwargs)
+		return ListenerWrapper(listener, self._error_handler)
 	def __str__(self):
 		return '<%s %r>' % (self.__class__.__name__, self.name)
 

@@ -1,7 +1,9 @@
-from fman import PLATFORM
+from fman import PLATFORM, ApplicationCommand, DirectoryPaneCommand, \
+	DirectoryPane, DirectoryPaneListener
 from fman.impl.plugins import ExternalPlugin
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
+from fman.impl.plugins.plugin import Plugin
 from fman_integrationtest import get_resource
 from fman_integrationtest.impl.plugins import StubErrorHandler, \
 	StubCommandCallback, StubTheme, StubFontDatabase
@@ -10,6 +12,49 @@ from unittest import TestCase
 
 import json
 import sys
+
+class PluginTest(TestCase):
+	def test_error_instantiating_application_command(self):
+		self._plugin._register_application_command(FailToInstantiateAC)
+		self.assertEqual(
+			["Could not instantiate command 'FailToInstantiateAC'."],
+			self._error_handler.error_messages
+		)
+	def test_error_instantiating_directory_pane_command(self):
+		self._plugin._register_directory_pane_command(FailToInstantiateDPC)
+		self._plugin.on_pane_added(self._pane)
+		self.assertEqual(
+			["Could not instantiate command 'FailToInstantiateDPC'."],
+			self._error_handler.error_messages
+		)
+	def test_error_instantiating_directory_pane_listener(self):
+		self._plugin._register_directory_pane_listener(FailToInstantiateDPL)
+		self._plugin.on_pane_added(self._pane)
+		self.assertEqual(
+			["Could not instantiate listener 'FailToInstantiateDPL'."],
+			self._error_handler.error_messages
+		)
+	def setUp(self):
+		super().setUp()
+		self._error_handler = StubErrorHandler()
+		self._command_callback = StubCommandCallback()
+		self._key_bindings = KeyBindings()
+		self._plugin = Plugin(
+			self._error_handler, self._command_callback, self._key_bindings
+		)
+		self._pane = DirectoryPane(None, None)
+
+class FailToInstantiateAC(ApplicationCommand):
+	def __init__(self, *args, **kwargs):
+		raise ValueError()
+
+class FailToInstantiateDPC(DirectoryPaneCommand):
+	def __init__(self, *args, **kwargs):
+		raise ValueError()
+
+class FailToInstantiateDPL(DirectoryPaneListener):
+	def __init__(self, *args, **kwargs):
+		raise ValueError()
 
 class ExternalPluginTest(TestCase):
 	def test_load(self):
