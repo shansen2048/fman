@@ -113,10 +113,13 @@ def installer():
 	])
 	_repl_in_file(data_go, b'package main', b'package data')
 	setup = path('target/fmanSetup.exe')
-	_run_go(
-		'build', '-o', setup, '-ldflags', '-H windowsgui',
-		path('target/go/src/installer/installer.go')
-	)
+	args = ['build', '-o', setup]
+	if OPTIONS['release']:
+		# The flags below hide the console window. We only apply them during a
+		# release so we can use fmt.Print* while developing.
+		args.extend(['-ldflags', '-H windowsgui'])
+	args.append(path('target/go/src/installer/installer.go'))
+	_run_go(*args)
 
 def _repl_in_file(file_path, bytes_, replacement):
 	if len(bytes_) != len(replacement):
