@@ -814,9 +814,9 @@ class FileSystem:
 				'CoreServices.framework', ns,
 				bundle_identifier='com.apple.CoreServices'
 			)
-			pred = ns['NSPredicate'].predicateWithFormat_(
+			pred = ns['NSPredicate'].predicateWithFormat_argumentArray_(
 				"kMDItemContentType == 'public.folder' && "
-				"kMDItemFSName BEGINSWITH[c] %r" % pattern
+				"kMDItemFSName BEGINSWITH[c] %@", [pattern]
 			)
 			query = ns['NSMetadataQuery'].alloc().init()
 			query.setPredicate_(pred)
