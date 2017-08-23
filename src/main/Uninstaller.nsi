@@ -57,6 +57,15 @@ Section "Uninstall"
   RMDir /r "$InstDir\Versions"
   Delete "$InstDir\fman.exe"
   Delete "$InstDir\uninstall.exe"
+  ${if} $MultiUser.InstallMode == "CurrentUser"
+    DeleteRegKey HKEY_CURRENT_USER "Software\Classes\directory\shell\Open in fman"
+    DeleteRegKey HKEY_CURRENT_USER "Software\Classes\directory\Background\shell\Open fman here"
+    DeleteRegKey HKEY_CURRENT_USER "Software\Classes\*\shell\Highlight in fman"
+  ${else}
+    DeleteRegKey HKEY_CLASSES_ROOT "directory\shell\Open in fman"
+    DeleteRegKey HKEY_CLASSES_ROOT "directory\Background\shell\Open fman here"
+    DeleteRegKey HKEY_CLASSES_ROOT "*\shell\Highlight in fman"
+  ${endif}
   ;Omaha leaves this directory behind. Delete if empty:
   RMDir "$InstDir\CrashReports"
   RMDir "$InstDir"

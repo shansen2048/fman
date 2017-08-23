@@ -30,12 +30,17 @@ func main() {
 		installDir = getInstallDirWhenManagedByOmaha()
 		extractAssets(installDir)
 		createRegistryKeysForUninstaller(installDir)
+		addContextMenuEntriesToExplorer(installDir)
 		updateVersionInRegistry()
 		createStartMenuShortcut(installDir)
 		launchFman(installDir)
 	} else if *doUpdatePtr {
 		installDir = getInstallDirWhenManagedByOmaha()
 		extractAssets(installDir)
+		// TODO: Remove this line after October 2017. It only serves to
+		// migrate versions < 0.6.2, for which addContextMenuEntriesToExplorer
+		// wasn't called during install:
+		addContextMenuEntriesToExplorer(installDir)
 		updateVersionInRegistry()
 		removeOldVersions(installDir)
 	} else {
@@ -110,6 +115,39 @@ func createRegistryKeysForUninstaller(installDir string) {
 	writeRegStr(regRoot, uninstKey, "UninstallString", uninstString)
 }
 
+func addContextMenuEntriesToExplorer(installDir string) {
+	fmanExe := getFmanExePath(installDir)
+	addExplorerContextMenuEntryForFolders("Open in fman", fmanExe)
+	addExplorerContextMenuEntryInFolders("Open fman here", fmanExe)
+	addExplorerContextMenuEntryForFiles("Highlight in fman", fmanExe)
+}
+
+func addExplorerContextMenuEntryForFolders(title string, executable string) {
+	addExplorerContextMenuEntry(`directory\shell\` + title, executable)
+}
+
+func addExplorerContextMenuEntryInFolders(title string, executable string) {
+	addExplorerContextMenuEntry(`directory\Background\shell\` + title, executable)
+}
+
+func addExplorerContextMenuEntryForFiles(title string, executable string) {
+	addExplorerContextMenuEntry(`*\shell\` + title, executable)
+}
+
+func addExplorerContextMenuEntry(regKey string, executable string) {
+	var regRoot registry.Key
+	var parentRegKey string
+	if isUserInstall() {
+		regRoot = registry.CURRENT_USER
+		parentRegKey = `Software\Classes\`
+	} else {
+		regRoot = registry.CLASSES_ROOT
+		parentRegKey = ""
+	}
+	writeRegStr(regRoot, parentRegKey + regKey + `\command`, "", executable + ` "%V"`)
+	writeRegStr(regRoot, parentRegKey + regKey, "icon", executable)
+}
+
 func updateVersionInRegistry() {
 	regRoot := getRegistryRoot()
 	updateKey := `Software\fman\Update\Clients\` + ProductId
@@ -180,8 +218,12 @@ WScript.Quit 0`)
 }
 
 func launchFman(installDir string) {
-	cmd := exec.Command(filepath.Join(installDir, "fman.exe"))
+	cmd := exec.Command(getFmanExePath(installDir))
 	check(cmd.Start())
+}
+
+func getFmanExePath(installDir string) string {
+	return filepath.Join(installDir, "fman.exe")
 }
 
 func removeOldVersions(installDir string) {
