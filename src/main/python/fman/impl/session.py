@@ -1,7 +1,7 @@
 from base64 import b64encode, b64decode
 from fman.util import system
 from os import getcwd
-from os.path import expanduser, realpath, normpath, splitdrive
+from os.path import expanduser, realpath, normpath, splitdrive, dirname, isfile
 
 import sys
 
@@ -38,7 +38,14 @@ class SessionManager:
 				path = _make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
-			pane.set_path(path)
+			if isfile(path):
+				pane.set_path(
+					dirname(path),
+					callback=lambda pane=pane, path=path: \
+						pane.place_cursor_at(path)
+				)
+			else:
+				pane.set_path(path)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
 	def _restore_window_geometry(self, main_window):
