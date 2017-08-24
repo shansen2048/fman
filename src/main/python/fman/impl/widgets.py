@@ -105,9 +105,10 @@ class DirectoryPane(QWidget):
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = lambda: None
-		# Prevent (in particular) drive letters without backslashes ('C:'
-		# instead of 'C:\') on Windows:
-		path = abspath(path)
+		if path:
+			# Prevent (in particular) drive letters without backslashes ('C:'
+			# instead of 'C:\') on Windows:
+			path = abspath(path)
 		if is_windows() and _is_documents_and_settings(path):
 			# When listing C:\, QFileSystemModel includes the "Documents and
 			# Settings" folder. However, it displays no contents when you open
