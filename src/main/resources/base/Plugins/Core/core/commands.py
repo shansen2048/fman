@@ -719,6 +719,10 @@ class SuggestLocations:
 			# Windows completely ignores trailing spaces in directory names at
 			# all times. Make our implementation reflect this:
 			path = path.rstrip(' ')
+			# Handle the case where the user has entered a drive such as 'E:'
+			# without the trailing backslash:
+			if path == splitdrive(path)[0]:
+				path += '\\'
 		if isabs(path):
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
 			if self.fs.isdir(path):
