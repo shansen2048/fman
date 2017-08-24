@@ -5,7 +5,7 @@ from fman.impl.view import FileListView, Layout, PathView
 from fman.util.system import is_windows, is_mac
 from fman.util.qt import connect_once, run_in_main_thread, \
 	disable_window_animations_mac, Key_Escape, AscendingOrder
-from os.path import exists, normpath, dirname, splitdrive
+from os.path import exists, normpath, dirname, splitdrive, abspath
 from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
@@ -105,6 +105,9 @@ class DirectoryPane(QWidget):
 	def set_path(self, path, callback=None):
 		if callback is None:
 			callback = lambda: None
+		# Prevent (in particular) drive letters without backslashes ('C:'
+		# instead of 'C:\') on Windows:
+		path = abspath(path)
 		if is_windows() and _is_documents_and_settings(path):
 			# When listing C:\, QFileSystemModel includes the "Documents and
 			# Settings" folder. However, it displays no contents when you open
