@@ -1140,7 +1140,9 @@ class ReloadPlugins(ApplicationCommand):
 			load_plugin(plugin)
 		num_plugins = len(plugins)
 		plural = 's' if num_plugins > 1 else ''
-		show_status_message('Reloaded %d plugin%s.' % (num_plugins, plural))
+		show_status_message(
+			'Reloaded %d plugin%s.' % (num_plugins, plural), timeout_secs=2
+		)
 
 def _get_plugins():
 	return _get_thirdparty_plugins() + _get_user_plugins()
