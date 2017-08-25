@@ -247,16 +247,12 @@ class CreateAndEditFile(OpenWithEditor):
 			default_name = ''
 		file_name, ok = \
 			show_prompt('Enter file name to create/edit:', default_name)
-		if not ok or not file_name:
-			return
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
 			if not exists(file_to_edit):
 				open(file_to_edit, 'w').close()
 			self.pane.place_cursor_at(file_to_edit)
-		else:
-			file_to_edit = file_under_cursor
-		self._open_with_editor(file_to_edit)
+			self._open_with_editor(file_to_edit)
 
 class _TreeCommand(_CorePaneCommand):
 	def __call__(self, files=None, dest_dir=None):
