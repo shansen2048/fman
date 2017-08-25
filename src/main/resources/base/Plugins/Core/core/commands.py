@@ -132,7 +132,10 @@ class DeletePermanently(DirectoryPaneCommand):
 		if choice & YES:
 			for file_path in to_delete:
 				if isdir(file_path):
-					rmtree(file_path)
+					def handle_error(func, path, exc_info):
+						if not isinstance(exc_info[1], FileNotFoundError):
+							raise
+					rmtree(file_path, onerror=handle_error)
 				else:
 					remove(file_path)
 
