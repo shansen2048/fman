@@ -71,9 +71,14 @@ class FileSystemModel(DragAndDropMixin):
 
 	def __init__(self, icon_provider=None, parent=None):
 		super().__init__(parent)
-		self._items = []
-		self._root_path = ''
 		self._icon_provider = icon_provider
+		self._root_path = ''
+		self._items = []
+		self._fs = FileSystem()
+		self.columns = (
+			NameColumn(self._fs), SizeColumn(self._fs),
+			LastModifiedColumn(self._fs)
+		)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -87,11 +92,11 @@ class FileSystemModel(DragAndDropMixin):
 			# "When implementing a table based model, columnCount() should
 			#  return 0 when the parent is valid."
 			return 0
-		return len(_COLUMNS)
+		return len(self.columns)
 	def data(self, index, role=DisplayRole):
 		if self._index_is_valid(index):
 			if role in (DisplayRole, EditRole):
-				column = _COLUMNS[index.column()]
+				column = self.columns[index.column()]
 				return QVariant(column.get_str(self._items[index.row()]))
 			elif role == DecorationRole:
 				if self._icon_provider and index.column() == 0:
@@ -101,7 +106,7 @@ class FileSystemModel(DragAndDropMixin):
 	def headerData(self, section, orientation, role=DisplayRole):
 		if orientation == Qt.Horizontal and role == DisplayRole \
 			and 0 <= section < self.columnCount():
-			return QVariant(_COLUMNS[section].name)
+			return QVariant(self.columns[section].name)
 		return QVariant()
 	def rootPath(self):
 		return self._root_path
@@ -112,7 +117,7 @@ class FileSystemModel(DragAndDropMixin):
 			self._root_path = path
 			self.rootPathChanged.emit(path)
 			self.beginResetModel()
-			self._items = listdir_absolute(path)
+			self._items = self._fs.listdir(path)
 			self.endResetModel()
 			self.directoryLoaded.emit(path)
 		return QModelIndex()
@@ -143,7 +148,7 @@ class FileSystemModel(DragAndDropMixin):
 		result = ItemIsSelectable | ItemIsEnabled
 		if index.column() == 0:
 			result |= ItemIsEditable | ItemIsDragEnabled
-			if isdir(self.filePath(index)):
+			if self._fs.isdir(self.filePath(index)):
 				result |= ItemIsDropEnabled
 		return result
 	def setData(self, index, value, role):
@@ -156,6 +161,16 @@ class FileSystemModel(DragAndDropMixin):
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
+
+class FileSystem:
+	def listdir(self, path):
+		return listdir_absolute(path)
+	def isdir(self, path):
+		return isdir(path)
+	def getsize(self, path):
+		return getsize(path)
+	def getmtime(self, path):
+		return getmtime(path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
@@ -176,10 +191,11 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		self.sourceModel().dataChanged.emit(source_index, source_index, [])
 		return self.mapFromSource(source_index)
 	def lessThan(self, left, right):
-		column = _COLUMNS[self.sortColumn()]
+		source = self.sourceModel()
+		column = source.columns[self.sortColumn()]
+		left = source.filePath(left)
+		right = source.filePath(right)
 		is_ascending = self.sortOrder() == AscendingOrder
-		left = self.sourceModel().filePath(left)
-		right = self.sourceModel().filePath(right)
 		return column.less_than(left, right, is_ascending)
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
@@ -199,10 +215,10 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		self.filters.append(filter_)
 
 class Column:
-	@classmethod
+	def __init__(self, fs):
+		self.fs = fs
 	def get_str(cls, file_path):
 		raise NotImplementedError()
-	@classmethod
 	def less_than(cls, left, right, is_ascending=True):
 		"""
 		less_than(...) should generally be independent of is_ascending.
@@ -214,36 +230,31 @@ class Column:
 		raise NotImplementedError()
 
 class ValueComparingColumn(Column):
-	@classmethod
-	def less_than(cls, left, right, is_ascending=True):
-		if isdir(left) != isdir(right):
-			return (isdir(left) > isdir(right)) == is_ascending
-		left_value, right_value = map(cls._get_value, (left, right))
+	def less_than(self, left, right, is_ascending=True):
+		if self.fs.isdir(left) != self.fs.isdir(right):
+			return (self.fs.isdir(left) > self.fs.isdir(right)) == is_ascending
+		left_value, right_value = map(self._get_value, (left, right))
 		return left_value < right_value
-	@classmethod
-	def _get_value(cls, left_or_right):
+	def _get_value(self, left_or_right):
 		raise NotImplementedError()
 
 class NameColumn(ValueComparingColumn):
 
 	name = 'Name'
 
-	@classmethod
-	def get_str(cls, file_path):
+	def get_str(self, file_path):
 		return basename(file_path)
-	@classmethod
-	def _get_value(cls, left_or_right):
+	def _get_value(self, left_or_right):
 		return basename(left_or_right).lower()
 
 class SizeColumn(Column):
 
 	name = 'Size'
 
-	@classmethod
-	def get_str(cls, file_path):
-		if isdir(file_path):
+	def get_str(self, file_path):
+		if self.fs.isdir(file_path):
 			return ''
-		size_bytes = getsize(file_path)
+		size_bytes = self.fs.getsize(file_path)
 		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
 		if size_bytes <= 0:
 			unit_index = 0
@@ -252,32 +263,28 @@ class SizeColumn(Column):
 		unit = units[unit_index]
 		base = 1024 ** unit_index
 		return unit % (size_bytes / base)
-	@classmethod
-	def less_than(cls, left, right, is_ascending=True):
-		if isdir(left) != isdir(right):
-			return (isdir(left) > isdir(right)) == is_ascending
-		if isdir(left):
-			assert isdir(right)
-			return NameColumn().less_than(left, right, True) == is_ascending
-		return getsize(left) < getsize(right)
+	def less_than(self, left, right, is_ascending=True):
+		if self.fs.isdir(left) != self.fs.isdir(right):
+			return (self.fs.isdir(left) > self.fs.isdir(right)) == is_ascending
+		if self.fs.isdir(left):
+			assert self.fs.isdir(right)
+			# Sort by name:
+			return basename(left).lower() < basename(right).lower() \
+				   == is_ascending
+		return self.fs.getsize(left) < self.fs.getsize(right)
 
 class LastModifiedColumn(ValueComparingColumn):
 
 	name = 'Modified'
 
-	@classmethod
-	def get_str(cls, file_path):
+	def get_str(self, file_path):
 		try:
-			modified = datetime.fromtimestamp(getmtime(file_path))
+			modified = datetime.fromtimestamp(self.fs.getmtime(file_path))
 		except OSError:
 			return ''
 		return modified.strftime('%Y-%m-%d %H:%M')
-	@classmethod
-	def _get_value(cls, left_or_right):
-		return getmtime(left_or_right)
-
-_COLUMNS = (NameColumn, SizeColumn, LastModifiedColumn)
-_LAST_MODIFIED_COLUMN = _COLUMNS.index(LastModifiedColumn)
+	def _get_value(self, left_or_right):
+		return self.fs.getmtime(left_or_right)
 
 class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):
@@ -307,23 +314,24 @@ class GnomeFileIconProvider(QFileIconProvider):
 	def icon(self, arg):
 		result = None
 		if isinstance(arg, QFileInfo):
-			file_path = arg.absoluteFilePath()
-			gio_file = self.Gio.file_new_for_path(file_path)
-			nofollow_symlinks = self.Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS
-			try:
-				file_info = gio_file.query_info(
-					'standard::icon', nofollow_symlinks, None
-				)
-			except Exception:
-				pass
-			else:
-				if file_info:
-					icon = file_info.get_icon()
-					if icon:
-						icon_names = icon.get_names()
-						if icon_names:
-							result = self._load_gtk_icon(icon_names[0])
+			result = self._icon(arg.absoluteFilePath())
 		return result or super().icon(arg)
+	def _icon(self, file_path):
+		gio_file = self.Gio.file_new_for_path(file_path)
+		nofollow_symlinks = self.Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS
+		try:
+			file_info = gio_file.query_info(
+				'standard::icon', nofollow_symlinks, None
+			)
+		except Exception:
+			pass
+		else:
+			if file_info:
+				icon = file_info.get_icon()
+				if icon:
+					icon_names = icon.get_names()
+					if icon_names:
+						return self._load_gtk_icon(icon_names[0])
 	def _load_gtk_icon(self, name, size=32):
 		theme = self.Gtk.IconTheme.get_default()
 		if theme:
