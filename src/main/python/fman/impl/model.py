@@ -52,17 +52,12 @@ class DragAndDropMixin(QAbstractTableModel):
 			return True
 		if not data.hasUrls():
 			return False
-		dest = self._get_drop_dest(parent)
-		if not isdir(dest):
-			return False
 		# On OS X, url.toLocalFile() ends in '/' for directories. Get rid of
 		# this via normpath(...):
 		urls = [normpath(url.toLocalFile()) for url in data.urls()]
-		if action == MoveAction:
-			self.files_dropped.emit(urls, dest, False)
-			return True
-		if action == CopyAction:
-			self.files_dropped.emit(urls, dest, True)
+		dest = self._get_drop_dest(parent)
+		if action in (MoveAction, CopyAction):
+			self.files_dropped.emit(urls, dest, action == CopyAction)
 			return True
 		return False
 	def _get_drop_dest(self, index):
