@@ -38,10 +38,7 @@ class DirectoryPane(QWidget):
 	def __init__(self, parent, icon_provider=None):
 		super().__init__(parent)
 		self._path_view = PathView(self)
-		self._model = FileSystemModel()
-		if icon_provider is not None:
-			self._model.setIconProvider(icon_provider)
-		self._model.setFilter(self._model.filter() | QDir.Hidden | QDir.System)
+		self._model = FileSystemModel(icon_provider)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
@@ -51,7 +48,6 @@ class DirectoryPane(QWidget):
 		self._file_view.setModel(self._model_sorted)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
 		self._file_view.key_press_event_filter = self._on_key_pressed
-		self._file_view.hideColumn(2)
 		self.setLayout(Layout(self._path_view, self._file_view))
 		self._path_view.setFocusProxy(self._file_view)
 		self.setFocusProxy(self._file_view)

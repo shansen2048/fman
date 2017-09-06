@@ -14,6 +14,10 @@ QHeaderView::section {
 	padding-bottom: 1ex;
 }
 
+QHeaderView::section::first {
+	padding-left: 1em;
+}
+
 QTableView::item {
 	color: #75715e;
 	padding-top: 1px;

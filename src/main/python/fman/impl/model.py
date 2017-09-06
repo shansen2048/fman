@@ -1,45 +1,23 @@
-from fman.util.qt import TextAlignmentRole, AlignVCenter, ItemIsEnabled, \
-	ItemIsEditable, ItemIsSelectable, EditRole, AscendingOrder, DisplayRole, \
-	ItemIsDragEnabled, ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction
-from os.path import commonprefix, isdir, dirname, normpath
+from datetime import datetime
+from fman.util import listdir_absolute
+from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
+	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
+	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
+from math import log
+from os.path import commonprefix, isdir, dirname, normpath, basename, \
+	getmtime, getsize
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
-	QLocale, QVariant, QUrl, QMimeData
+	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider
+from PyQt5.QtWidgets import QFileIconProvider
 
 import sip
 import sys
 
-class FileSystemModel(QFileSystemModel):
+class DragAndDropMixin(QAbstractTableModel):
 
-	file_renamed = pyqtSignal(str, str)
 	files_dropped = pyqtSignal(list, str, bool)
 
-	def data(self, index, role):
-		# Copied from QFileSystemModel:
-		if not index.isValid() or index.model() != self:
-			return QVariant()
-		if role == DisplayRole and index.column() == _LAST_MODIFIED_COLUMN:
-			datetime_format = QLocale().dateTimeFormat(QLocale.ShortFormat)
-			# In December 2016, Qt started displaying the modified time as
-			# "...yyyy" instead of "...yy" on my Mac. The default implementation
-			# of QFileSystemModel uses the system locale (not! the default
-			# locale, which we could override) to textualise times. On that Mac,
-			# the system locale had the surprising property that
-			#     system.dateTimeFormat()
-			#              !=
-			#     QLocale(system.language(), system.country()).dateTimeFormat()
-			# (where system = QLocale.system()).
-			# Anyways, we want short 2-year dates instead of long 4-year dates:
-			datetime_format = datetime_format.replace('yyyy', 'yy')
-			return self.lastModified(index).toString(datetime_format)
-		value = super(FileSystemModel, self).data(index, role)
-		if role == TextAlignmentRole and value is not None:
-			# The standard QFileSystemModel messes up the vertical alignment of
-			# the "Size" column. Work around this
-			# (http://stackoverflow.com/a/20233442/1839209):
-			value |= AlignVCenter
-		return value
 	def supportedDropActions(self):
 		return MoveAction | CopyAction | IgnoreAction
 	def canDropMimeData(self, data, action, row, column, parent):
@@ -47,9 +25,7 @@ class FileSystemModel(QFileSystemModel):
 			return False
 		if not data.hasUrls():
 			return False
-		if not parent.isValid():
-			return False
-		dest_dir = self.filePath(parent)
+		dest_dir = self._get_drop_dest(parent)
 		is_in_dest_dir = lambda url: dirname(url.toLocalFile()) == dest_dir
 		return not all(map(is_in_dest_dir, data.urls()))
 	def mimeTypes(self):
@@ -76,9 +52,7 @@ class FileSystemModel(QFileSystemModel):
 			return True
 		if not data.hasUrls():
 			return False
-		if not parent.isValid():
-			return False
-		dest = self.filePath(parent)
+		dest = self._get_drop_dest(parent)
 		if not isdir(dest):
 			return False
 		# On OS X, url.toLocalFile() ends in '/' for directories. Get rid of
@@ -91,12 +65,81 @@ class FileSystemModel(QFileSystemModel):
 			self.files_dropped.emit(urls, dest, True)
 			return True
 		return False
-	def headerData(self, section, orientation, role):
-		result = super().headerData(section, orientation, role)
-		if result == 'Date Modified':
-			return 'Modified'
-		return result
+	def _get_drop_dest(self, index):
+		return self.filePath(index) if index.isValid() else self.rootPath()
+
+class FileSystemModel(DragAndDropMixin):
+
+	file_renamed = pyqtSignal(str, str)
+	rootPathChanged = pyqtSignal(str)
+	directoryLoaded = pyqtSignal(str)
+
+	def __init__(self, icon_provider=None, parent=None):
+		super().__init__(parent)
+		self._items = []
+		self._root_path = ''
+		self._icon_provider = icon_provider
+	def rowCount(self, parent=QModelIndex()):
+		if parent.isValid():
+			# According to the Qt docs for QAbstractItemModel#rowCount(...):
+			# "When implementing a table based model, columnCount() should
+			#  return 0 when the parent is valid."
+			return 0
+		return len(self._items)
+	def columnCount(self, parent=QModelIndex()):
+		if parent.isValid():
+			# According to the Qt docs for QAbstractItemModel#columnCount(...):
+			# "When implementing a table based model, columnCount() should
+			#  return 0 when the parent is valid."
+			return 0
+		return len(_COLUMNS)
+	def data(self, index, role=DisplayRole):
+		if self._index_is_valid(index):
+			if role in (DisplayRole, EditRole):
+				column = _COLUMNS[index.column()]
+				return QVariant(column.get_str(self._items[index.row()]))
+			elif role == DecorationRole:
+				if self._icon_provider and index.column() == 0:
+					file_info = QFileInfo(self.filePath(index))
+					return self._icon_provider.icon(file_info)
+		return QVariant()
+	def headerData(self, section, orientation, role=DisplayRole):
+		if orientation == Qt.Horizontal and role == DisplayRole \
+			and 0 <= section < self.columnCount():
+			return QVariant(_COLUMNS[section].name)
+		return QVariant()
+	def rootPath(self):
+		return self._root_path
+	def myComputer(self):
+		return ''
+	def setRootPath(self, path):
+		if path != self._root_path:
+			self._root_path = path
+			self.rootPathChanged.emit(path)
+			self.beginResetModel()
+			self._items = listdir_absolute(path)
+			self.endResetModel()
+			self.directoryLoaded.emit(path)
+		return QModelIndex()
+	def filePath(self, index):
+		if not self._index_is_valid(index):
+			raise ValueError("Invalid index")
+		return self._items[index.row()]
+	def index(self, *args):
+		try:
+			row, column, parent = args
+		except ValueError:
+			file_path, = args
+			if file_path == self._root_path:
+				return QModelIndex()
+			row = self._items.index(file_path)
+			column = 0
+			parent = QModelIndex()
+		return super().index(row, column, parent)
 	def flags(self, index):
+		if index == QModelIndex():
+			# The "root path":
+			return ItemIsDropEnabled
 		# Need to set ItemIsEnabled - in particular for the last column - to
 		# make keyboard shortcut "End" work. When we press this shortcut in a
 		# QTableView, Qt jumps to the last column of the last row. But only if
@@ -105,7 +148,7 @@ class FileSystemModel(QFileSystemModel):
 		result = ItemIsSelectable | ItemIsEnabled
 		if index.column() == 0:
 			result |= ItemIsEditable | ItemIsDragEnabled
-			if self.isDir(index):
+			if isdir(self.filePath(index)):
 				result |= ItemIsDropEnabled
 		return result
 	def setData(self, index, value, role):
@@ -113,6 +156,11 @@ class FileSystemModel(QFileSystemModel):
 			self.file_renamed.emit(self.filePath(index), value)
 			return True
 		return super().setData(index, value, role)
+	def _index_is_valid(self, index):
+		if not index.isValid() or index.model() != self:
+			return False
+		return 0 <= index.row() < self.rowCount() and \
+			   0 <= index.column() < self.columnCount()
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
@@ -135,9 +183,9 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def lessThan(self, left, right):
 		column = _COLUMNS[self.sortColumn()]
 		is_ascending = self.sortOrder() == AscendingOrder
-		left_info = self.sourceModel().fileInfo(left)
-		right_info = self.sourceModel().fileInfo(right)
-		return column.less_than(left_info, right_info, is_ascending)
+		left = self.sourceModel().filePath(left)
+		right = self.sourceModel().filePath(right)
+		return column.less_than(left, right, is_ascending)
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
 		file_path = source.filePath(source.index(source_row, 0, source_parent))
@@ -157,6 +205,9 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 
 class Column:
 	@classmethod
+	def get_str(cls, file_path):
+		raise NotImplementedError()
+	@classmethod
 	def less_than(cls, left, right, is_ascending=True):
 		"""
 		less_than(...) should generally be independent of is_ascending.
@@ -170,8 +221,8 @@ class Column:
 class ValueComparingColumn(Column):
 	@classmethod
 	def less_than(cls, left, right, is_ascending=True):
-		if left.isDir() != right.isDir():
-			return (left.isDir() > right.isDir()) == is_ascending
+		if isdir(left) != isdir(right):
+			return (isdir(left) > isdir(right)) == is_ascending
 		left_value, right_value = map(cls._get_value, (left, right))
 		return left_value < right_value
 	@classmethod
@@ -179,31 +230,58 @@ class ValueComparingColumn(Column):
 		raise NotImplementedError()
 
 class NameColumn(ValueComparingColumn):
+
+	name = 'Name'
+
+	@classmethod
+	def get_str(cls, file_path):
+		return basename(file_path)
 	@classmethod
 	def _get_value(cls, left_or_right):
-		return left_or_right.fileName().lower()
+		return basename(left_or_right).lower()
 
 class SizeColumn(Column):
-	@classmethod
-	def less_than(cls, left, right, is_ascending=True):
-		if left.isDir() != right.isDir():
-			return (left.isDir() > right.isDir()) == is_ascending
-		if left.isDir():
-			assert right.isDir()
-			return NameColumn().less_than(left, right, True) == is_ascending
-		return left.size() < right.size()
 
-class TypeColumn(Column):
+	name = 'Size'
+
+	@classmethod
+	def get_str(cls, file_path):
+		if isdir(file_path):
+			return ''
+		size_bytes = getsize(file_path)
+		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
+		if size_bytes <= 0:
+			unit_index = 0
+		else:
+			unit_index = min(int(log(size_bytes, 1024)), len(units) - 1)
+		unit = units[unit_index]
+		base = 1024 ** unit_index
+		return unit % (size_bytes / base)
 	@classmethod
 	def less_than(cls, left, right, is_ascending=True):
-		raise NotImplementedError()
+		if isdir(left) != isdir(right):
+			return (isdir(left) > isdir(right)) == is_ascending
+		if isdir(left):
+			assert isdir(right)
+			return NameColumn().less_than(left, right, True) == is_ascending
+		return getsize(left) < getsize(right)
 
 class LastModifiedColumn(ValueComparingColumn):
+
+	name = 'Modified'
+
+	@classmethod
+	def get_str(cls, file_path):
+		try:
+			modified = datetime.fromtimestamp(getmtime(file_path))
+		except OSError:
+			return ''
+		return modified.strftime('%Y-%m-%d %H:%M')
 	@classmethod
 	def _get_value(cls, left_or_right):
-		return left_or_right.lastModified()
+		return getmtime(left_or_right)
 
-_COLUMNS = (NameColumn, SizeColumn, TypeColumn, LastModifiedColumn)
+_COLUMNS = (NameColumn, SizeColumn, LastModifiedColumn)
 _LAST_MODIFIED_COLUMN = _COLUMNS.index(LastModifiedColumn)
 
 class GnomeFileIconProvider(QFileIconProvider):

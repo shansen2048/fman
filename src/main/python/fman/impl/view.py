@@ -272,6 +272,7 @@ class FileListView(
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.horizontalHeader().setStretchLastSection(True)
 		self.horizontalHeader().setHighlightSections(False)
+		self.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
 		self.setWordWrap(False)
 		self.setTabKeyNavigation(False)
 		# Double click should not open editor:

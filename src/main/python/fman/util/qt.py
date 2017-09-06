@@ -117,6 +117,7 @@ EditRole = Qt.EditRole
 DisplayRole = Qt.DisplayRole
 UserRole = Qt.UserRole
 SizeHintRole = Qt.SizeHintRole
+DecorationRole = Qt.DecorationRole
 ItemIsDragEnabled = Qt.ItemIsDragEnabled
 ItemIsDropEnabled = Qt.ItemIsDropEnabled
 CopyAction = Qt.CopyAction
