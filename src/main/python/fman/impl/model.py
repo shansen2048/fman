@@ -3,6 +3,7 @@ from fman.util import listdir_absolute
 from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
+from functools import lru_cache
 from math import log
 from os.path import commonprefix, isdir, dirname, normpath, basename, \
 	getmtime, getsize
@@ -332,6 +333,7 @@ class GnomeFileIconProvider(QFileIconProvider):
 					icon_names = icon.get_names()
 					if icon_names:
 						return self._load_gtk_icon(icon_names[0])
+	@lru_cache()
 	def _load_gtk_icon(self, name, size=32):
 		theme = self.Gtk.IconTheme.get_default()
 		if theme:
