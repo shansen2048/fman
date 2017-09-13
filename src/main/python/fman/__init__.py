@@ -130,8 +130,9 @@ class DirectoryPaneCommand:
 		return []
 
 class DirectoryPaneListener:
-	def __init__(self, pane):
+	def __init__(self, pane, fs):
 		self.pane = pane
+		self.fs = fs
 	def on_doubleclicked(self, file_path):
 		pass
 	def on_name_edited(self, file_path, new_name):

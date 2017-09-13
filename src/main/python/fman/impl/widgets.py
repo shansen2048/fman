@@ -35,10 +35,10 @@ class DirectoryPane(QWidget):
 
 	path_changed = pyqtSignal(QWidget)
 
-	def __init__(self, parent, icon_provider=None):
+	def __init__(self, fs, parent, icon_provider=None):
 		super().__init__(parent)
 		self._path_view = PathView(self)
-		self._model = FileSystemModel(icon_provider)
+		self._model = FileSystemModel(fs, icon_provider)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
@@ -184,10 +184,11 @@ class MainWindow(QMainWindow):
 	closed = pyqtSignal()
 	before_quicksearch = pyqtSignal(Quicksearch)
 
-	def __init__(self, app, help_menu_actions, theme, icon_provider=None):
+	def __init__(self, app, help_menu_actions, theme, fs, icon_provider=None):
 		super().__init__()
 		self._app = app
 		self._theme = theme
+		self._fs = fs
 		self._icon_provider = icon_provider
 		self._panes = []
 		self._splitter = Splitter(self)
@@ -289,7 +290,7 @@ class MainWindow(QMainWindow):
 	def clear_status_message(self):
 		self.show_status_message('Ready.')
 	def add_pane(self):
-		result = DirectoryPane(self._splitter, self._icon_provider)
+		result = DirectoryPane(self._fs, self._splitter, self._icon_provider)
 		self._panes.append(result)
 		self._splitter.addWidget(result)
 		self.pane_added.emit(result)

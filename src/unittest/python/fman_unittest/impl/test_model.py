@@ -1,30 +1,27 @@
 from fman.impl.model import SizeColumn, NameColumn, LastModifiedColumn
-from PyQt5.QtCore import QDateTime
 from unittest import TestCase
-
-class StubFileInfo:
-	def __init__(self, file_name, is_dir, size, last_modified_tpl):
-		self._file_name = file_name
-		self._is_dir = is_dir
-		self._size = size
-		self._last_modified = QDateTime(*last_modified_tpl)
-	def fileName(self):
-		return self._file_name
-	def isDir(self):
-		return self._is_dir
-	def size(self):
-		return self._size
-	def lastModified(self):
-		return self._last_modified
 
 class ColumnTest:
 	def setUp(self):
-		self.a = StubFileInfo('a', False, 1, (2016, 9, 8, 14, 50, 42))
-		self.b = StubFileInfo('b', False, 0, (2016, 9, 8, 14, 50, 43))
-		self.B = StubFileInfo('B', False, 2, (2016, 9, 8, 14, 50, 42))
-		self.a_dir = StubFileInfo('a', True, 3, (2016, 9, 8, 14, 50, 45))
-		self.b_dir = StubFileInfo('b', True, 4, (2016, 9, 8, 14, 50, 46))
-		self.column = None
+		self.fs = StubFileSystem({
+			'a': {
+				'isdir': False, 'size': 1, 'mtime': 1473339042.0
+			},
+			'b': {
+				'isdir': False, 'size': 0, 'mtime': 1473339043.0
+			},
+			'B': {
+				'isdir': False, 'size': 2, 'mtime': 1473339042.0
+			},
+			'a_dir': {
+				'isdir': True, 'size': 3, 'mtime': 1473339045.0
+			},
+			'b_dir': {
+				'isdir': True, 'size': 4, 'mtime': 1473339046.0
+			}
+
+		})
+		self.column = self.column_class(self.fs)
 	def assert_is_less(self, left, right, is_ascending=True):
 		self.assertTrue(self.column.less_than(left, right, is_ascending))
 	def assert_is_greater(self, left, right, is_ascending=True):
@@ -34,55 +31,64 @@ class ColumnTest:
 			right = chain[i + 1]
 			self.assert_is_less(left, right, is_ascending)
 
+class StubFileSystem:
+	def __init__(self, items):
+		self._items = items
+	def isdir(self, item):
+		return self._items[item]['isdir']
+	def getsize(self, item):
+		return self._items[item]['size']
+	def getmtime(self, item):
+		return self._items[item]['mtime']
+
 class NameColumnTest(ColumnTest, TestCase):
-	def setUp(self):
-		super().setUp()
-		self.column = NameColumn
+
+	column_class = NameColumn
+
 	def test_less(self):
-		self.assert_is_less(self.a, self.b)
+		self.assert_is_less('a', 'b')
 	def test_greater(self):
-		self.assert_is_greater(self.b, self.a)
+		self.assert_is_greater('b', 'a')
 	def test_upper_case(self):
-		self.assert_is_less(self.a, self.B)
+		self.assert_is_less('a', 'B')
 	def test_directories_before_files(self):
-		self.check_less_than_chain(self.a_dir, self.b_dir, self.a)
+		self.check_less_than_chain('a_dir', 'b_dir', 'a')
 	def test_descending(self):
 		self.check_less_than_chain(
-			self.a, self.b, self.a_dir, self.b_dir,
+			'a', 'b', 'a_dir', 'b_dir',
 			is_ascending=False
 		)
 
 class SizeColumnTest(ColumnTest, TestCase):
-	def setUp(self):
-		super().setUp()
-		self.column = SizeColumn
+
+	column_class = SizeColumn
+
 	def test_less(self):
-		self.assert_is_less(self.b, self.a)
+		self.assert_is_less('b', 'a')
 	def test_greater(self):
-		self.assert_is_greater(self.a, self.b)
+		self.assert_is_greater('a', 'b')
 	def test_descending(self):
 		# Qt expects the implementation of less_than to generally be independent
 		# of the sort order:
-		self.assert_is_less(self.b, self.a, False)
+		self.assert_is_less('b', 'a', False)
 	def test_directories_by_name_before_files(self):
-		self.check_less_than_chain(self.a_dir, self.b_dir, self.b)
+		self.check_less_than_chain('a_dir', 'b_dir', 'b')
 	def test_directories_by_name_before_files_descending(self):
 		self.check_less_than_chain(
-			self.b, self.a, self.b_dir, self.a_dir,
-			is_ascending=False
+			'b', 'a', 'b_dir', 'a_dir', is_ascending=False
 		)
 
 class LastModifiedColumnTest(ColumnTest, TestCase):
-	def setUp(self):
-		super().setUp()
-		self.column = LastModifiedColumn
+
+	column_class = LastModifiedColumn
+
 	def test_less(self):
-		self.assert_is_less(self.a, self.b)
+		self.assert_is_less('a', 'b')
 	def test_greater(self):
-		self.assert_is_greater(self.b, self.a)
+		self.assert_is_greater('b', 'a')
 	def test_descending(self):
 		# Qt expects the implementation of less_than to generally be independent
 		# of the sort order:
-		self.assert_is_less(self.a, self.b, False)
+		self.assert_is_less('a', 'b', False)
 	def test_directories_before_files(self):
-		self.check_less_than_chain(self.a_dir, self.b_dir, self.a)
+		self.check_less_than_chain('a_dir', 'b_dir', 'a')

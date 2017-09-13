@@ -5,10 +5,11 @@ from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
 from functools import lru_cache
 from math import log
+from os import rename
 from os.path import commonprefix, isdir, dirname, normpath, basename, \
 	getmtime, getsize
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
-	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt
+	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileIconProvider
 
@@ -70,16 +71,17 @@ class FileSystemModel(DragAndDropMixin):
 	rootPathChanged = pyqtSignal(str)
 	directoryLoaded = pyqtSignal(str)
 
-	def __init__(self, icon_provider=None, parent=None):
+	def __init__(self, fs, icon_provider=None, parent=None):
 		super().__init__(parent)
 		self._icon_provider = icon_provider
 		self._root_path = ''
 		self._items = []
-		self._fs = FileSystem()
+		self._fs = fs
 		self.columns = (
 			NameColumn(self._fs), SizeColumn(self._fs),
 			LastModifiedColumn(self._fs)
 		)
+		self._fs.file_renamed.connect(self._on_file_renamed)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -162,8 +164,22 @@ class FileSystemModel(DragAndDropMixin):
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
+	def _on_file_renamed(self, old_path, new_path):
+		if dirname(old_path) != self._root_path:
+			return
+		index = self.index(old_path)
+		if dirname(new_path) == self._root_path:
+			self._items[index.row()] = new_path
+			self.dataChanged.emit(index, index)
+		else:
+			self.beginRemoveRows(QModelIndex(), index.row(), index.row())
+			del self._items[index.row()]
+			self.endRemoveRows()
 
-class FileSystem:
+class FileSystem(QObject):
+
+	file_renamed = pyqtSignal(str, str)
+
 	def listdir(self, path):
 		return listdir_absolute(path)
 	def isdir(self, path):
@@ -172,6 +188,9 @@ class FileSystem:
 		return getsize(path)
 	def getmtime(self, path):
 		return getmtime(path)
+	def rename(self, old_path, new_path):
+		rename(old_path, new_path)
+		self.file_renamed.emit(old_path, new_path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
@@ -270,7 +289,7 @@ class SizeColumn(Column):
 		if self.fs.isdir(left):
 			assert self.fs.isdir(right)
 			# Sort by name:
-			return basename(left).lower() < basename(right).lower() \
+			return (basename(left).lower() < basename(right).lower()) \
 				   == is_ascending
 		return self.fs.getsize(left) < self.fs.getsize(right)
 

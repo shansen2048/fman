@@ -13,10 +13,11 @@ import re
 import sys
 
 class Plugin:
-	def __init__(self, error_handler, command_callback, key_bindings):
+	def __init__(self, error_handler, command_callback, key_bindings, fs):
 		self._error_handler = error_handler
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
+		self._fs = fs
 		self._application_command_instances = {}
 		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
@@ -28,7 +29,9 @@ class Plugin:
 			command = self._instantiate_command(cmd_class, pane)
 			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
-			pane._add_listener(self._instantiate_listener(listener_class, pane))
+			pane._add_listener(
+				self._instantiate_listener(listener_class, pane, self._fs)
+			)
 	def get_application_commands(self):
 		return self._application_command_instances
 	def get_directory_pane_commands(self):
@@ -90,10 +93,10 @@ def _get_command_name(command_class):
 
 class ExternalPlugin(Plugin):
 	def __init__(
-		self, error_handler, command_callback, key_bindings, path, config,
+		self, error_handler, command_callback, key_bindings, fs, path, config,
 		theme, font_database
 	):
-		super().__init__(error_handler, command_callback, key_bindings)
+		super().__init__(error_handler, command_callback, key_bindings, fs)
 		self._path = path
 		self._config = config
 		self._theme = theme

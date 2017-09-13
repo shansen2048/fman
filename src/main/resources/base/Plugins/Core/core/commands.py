@@ -10,7 +10,7 @@ from fman import *
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
-from os import mkdir, rename, listdir, remove
+from os import mkdir, listdir, remove
 from os.path import join, isfile, exists, splitdrive, basename, normpath, \
 	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir, \
 	islink
@@ -361,7 +361,7 @@ class RenameListener(DirectoryPaneListener):
 				do_rename = response & YES
 		if do_rename:
 			try:
-				rename(file_path, new_path)
+				self.fs.rename(file_path, new_path)
 			except OSError as e:
 				if isinstance(e, PermissionError):
 					message = 'Access was denied trying to rename %s to %s.'

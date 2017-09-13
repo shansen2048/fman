@@ -5,12 +5,13 @@ SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
 	def __init__(
-		self, error_handler, command_callback, key_bindings, config, theme,
+		self, error_handler, command_callback, key_bindings, fs, config, theme,
 		font_database, builtin_plugin=None
 	):
 		self._error_handler = error_handler
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
+		self._fs = fs
 		self._config = config
 		self._theme = theme
 		self._font_database = font_database
@@ -20,7 +21,7 @@ class PluginSupport:
 	def load_plugin(self, plugin_dir):
 		plugin = ExternalPlugin(
 			self._error_handler, self._command_callback, self._key_bindings,
-			plugin_dir, self._config, self._theme, self._font_database
+			self._fs, plugin_dir, self._config, self._theme, self._font_database
 		)
 		success = plugin.load()
 		if success:

@@ -7,7 +7,7 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
-from fman.impl.model import GnomeFileIconProvider, GnomeNotAvailable
+from fman.impl.model import GnomeFileIconProvider, GnomeNotAvailable, FileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -138,7 +138,8 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(
-				self.app, self.help_menu_actions, self.theme, self.icon_provider
+				self.app, self.help_menu_actions, self.theme, self.fs,
+				self.icon_provider
 			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
@@ -188,8 +189,11 @@ class ApplicationContext:
 	def builtin_plugin(self):
 		return BuiltinPlugin(
 			self.plugin_error_handler, self.command_callback,
-			self.key_bindings, self.tutorial
+			self.key_bindings, self.fs, self.tutorial
 		)
+	@cached_property
+	def fs(self):
+		return FileSystem()
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
@@ -216,7 +220,8 @@ class ApplicationContext:
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_error_handler, self.command_callback, self.key_bindings,
-			self.config, self.theme, self.font_database, self.builtin_plugin
+			self.fs, self.config, self.theme, self.font_database,
+			self.builtin_plugin
 		)
 	@cached_property
 	def plugin_error_handler(self):
