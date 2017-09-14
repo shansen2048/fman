@@ -16,14 +16,17 @@ class Config:
 		self._plugin_dirs.remove(dir_path)
 		self._reload_cache()
 	def load_json(self, json_name, default=None, save_on_quit=False):
-		if json_name not in self._cache:
+		if json_name in self._cache:
+			result = self._cache[json_name]
+		else:
 			result = load_json(self.locate(json_name))
 			if result is None:
 				result = default
-			self._cache[json_name] = result
-		if save_on_quit:
+			if result is not None:
+				self._cache[json_name] = result
+		if save_on_quit and result is not None:
 			self._save_on_quit.add(json_name)
-		return self._cache[json_name]
+		return result
 	def save_json(self, json_name, value=None):
 		if value is None:
 			value = self._cache[json_name]
@@ -50,19 +53,22 @@ class Config:
 				# at least save the other files in _save_on_quit:
 				pass
 	def _reload_cache(self):
-		for json_name in self._cache:
-			existing = self._cache.pop(json_name)
+		old_cache = self._cache
+		self._cache = {}
+		for json_name, old in old_cache.items():
 			new = self.load_json(json_name)
-			if isinstance(existing, dict) and isinstance(new, dict):
-				existing.clear()
-				existing.update(new)
-				new = existing
-			elif isinstance(existing, list) and isinstance(new, list):
-				existing.clear()
-				existing.extend(new)
-				new = existing
+			if isinstance(old, dict) and isinstance(new, dict):
+				old.clear()
+				old.update(new)
+				new = old
+			elif isinstance(old, list) and isinstance(new, list):
+				old.clear()
+				old.extend(new)
+				new = old
 			if new is not None:
 				self._cache[json_name] = new
+			elif json_name in self._save_on_quit:
+				self._cache[json_name] = old
 
 def load_json(paths):
 	result = None
