@@ -2,7 +2,7 @@ from fman import PLATFORM
 from fman.impl.plugins.config import load_json, write_differential_json, Config
 from fman_integrationtest import get_resource
 from os.path import join, exists
-from shutil import rmtree
+from shutil import rmtree, copy
 from tempfile import mkdtemp
 from unittest import TestCase
 
@@ -10,22 +10,43 @@ import json
 
 class ConfigTest(TestCase):
 	def test_add_dir(self):
-		config = Config(PLATFORM)
-		config.add_dir(get_resource('ConfigTest/1'))
-		self.assertEquals([1], config.load_json('Test.json'))
-		return config
+		self._config.add_dir(self._dir_1)
+		self.assertEquals([1], self._config.load_json('Test.json'))
 	def test_add_dir_updates_existing(self):
-		config = self.test_add_dir()
-		value = config.load_json('Test.json')
-		config.add_dir(get_resource('ConfigTest/2'))
+		self._config.add_dir(self._dir_1)
+		value = self._config.load_json('Test.json')
+		self.assertEquals([1], value)
+		self._config.add_dir(self._dir_2)
+		self.assertIs(value, self._config.load_json('Test.json'))
 		self.assertEquals([2, 1], value)
-		self.assertIs(value, config.load_json('Test.json'))
-	def test_remove_dir(self):
-		config = self.test_add_dir()
-		config.remove_dir(config._plugin_dirs[0])
-		self.assertIsNone(config.load_json('Test.json'))
-		config.add_dir(get_resource('ConfigTest/2'))
-		self.assertEquals([2], config.load_json('Test.json'))
+	def test_remove_add_dir(self):
+		self._config.add_dir(self._dir_1)
+		self.assertEquals([1], self._config.load_json('Test.json'))
+		self._config.remove_dir(self._dir_1)
+		self.assertIsNone(self._config.load_json('Test.json'))
+		self._config.add_dir(self._dir_2)
+		self.assertEquals([2], self._config.load_json('Test.json'))
+	def test_save_on_quit_nonexistent(self):
+		value = self._config.load_json(
+			'Nonexistent.json', default=[], save_on_quit=True
+		)
+		value.append(3)
+		self._config.add_dir(self._dir_1)
+		self._config.on_quit()
+		config = Config(PLATFORM)
+		config.add_dir(self._dir_1)
+		self.assertEquals(value, config.load_json('Nonexistent.json'))
+	def setUp(self):
+		super().setUp()
+		self._dir_1 = mkdtemp()
+		copy(get_resource('ConfigTest/1/Test.json'), self._dir_1)
+		self._dir_2 = mkdtemp()
+		copy(get_resource('ConfigTest/2/Test.json'), self._dir_2)
+		self._config = Config(PLATFORM)
+	def tearDown(self):
+		rmtree(self._dir_1)
+		rmtree(self._dir_2)
+		super().tearDown()
 
 class LoadJsonTest(TestCase):
 	def test_nonexistent_file(self):
