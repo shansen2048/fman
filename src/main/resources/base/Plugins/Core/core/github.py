@@ -2,11 +2,20 @@ from requests import HTTPError
 
 import re
 import requests
+import sys
 
 def find_repos(topics):
 	query = '+'.join('topic:' + topic for topic in topics)
-	data = _get_json("https://api.github.com/search/repositories""?q=" + query)
-	return list(map(GitHubRepo, data['items']))
+	url = "https://api.github.com/search/repositories?q=" + query
+	return list(map(GitHubRepo, _fetch_all_pages(url)))
+
+def _fetch_all_pages(json_url, page_size=100):
+	for page in range(1, sys.maxsize):
+		data = _get_json(json_url + '&per_page=%d&page=%d' % (page_size, page))
+		yield from data['items']
+		has_more = page * page_size < data['total_count']
+		if not has_more:
+			break
 
 class GitHubRepo:
 	@classmethod
