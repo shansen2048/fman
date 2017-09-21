@@ -268,7 +268,7 @@ class TutorialVariantB(Tutorial):
 			TutorialStep(
 				'Great Work!',
 				[
-					"This concludes the tutorial. Remember:",
+					"You have completed the tutorial. Remember:",
 					"* *%s* lets you go to any _P_ath." % cmd_p,
 					"* *%s* opens the Command _P_alette." % cmd_shift_p,
 					"* fman is best used with the keyboard.",
