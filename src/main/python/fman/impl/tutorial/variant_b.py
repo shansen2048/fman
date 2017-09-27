@@ -2,7 +2,8 @@ from fman.impl.tutorial import Tutorial, TutorialStep
 from fman.util import is_below_dir
 from fman.util.qt import run_in_main_thread
 from fman.util.system import is_mac, is_windows
-from os.path import expanduser, relpath, realpath, dirname, splitdrive, basename
+from os.path import expanduser, relpath, realpath, splitdrive, basename, \
+	split, join
 from PyQt5.QtWidgets import QFileDialog
 from time import time
 
@@ -11,6 +12,11 @@ class TutorialVariantB(Tutorial):
 		super().__init__(*args, **kwargs)
 		self._target_directory = self._source_directory = \
 			self._start_time = self._time_taken = None
+		self._encouragements = [
+			e + '. ' for e in ('Great', 'Cool', 'Well done', 'Nice')
+		]
+		self._encouragement_index = 0
+		self._last_step = ''
 	def _get_steps(self):
 		cmd_p = '⌘P' if is_mac() else 'Ctrl+P'
 		if is_windows():
@@ -44,27 +50,13 @@ class TutorialVariantB(Tutorial):
 				],
 				buttons=[('Select a folder', self._pick_folder)]
 			),
-			TutorialStep(
-				'', [
-					"Cool. Here's a little challenge: How quickly can you "
-					"navigate to *%s*?",
-					"You can use the mouse, or the arrow keys followed by "
-					"*Enter*. To jump to a directory, type the first few "
-					"characters of its name. If you want to go up, "
-					"press *Backspace*."
-				],
-				{
-					'on': {
-						'path_changed': self._check_target
-					}
-				}
-			),
+			TutorialStep('', []),
 			TutorialStep(
 				"",
 				[
-					"Great. That took you *%.2f* seconds. Let's see if we can "
-					"make it faster!",
-					"Click *Reset* to take you back to the directory you "
+					"Very well done! You opened your *%s* folder in *%.2f* "
+					"seconds. Let's see if we can make it faster!",
+					"Please click *Reset* to take you back to the directory you "
 					"started from."
 				],
 				buttons=[('Reset', self._reset)]
@@ -95,67 +87,13 @@ class TutorialVariantB(Tutorial):
 					}
 				}
 			),
-			TutorialStep(
-				'',
-				[
-					"Well done! Did you see how quick that was?<br/>"
-					"Let's do that again. Click *Reset* to continue."
-				],
-				buttons=[('Reset', self._reset_2)]
-			),
-			TutorialStep(
-				'',
-				[
-					"We will now try to beat your previous time. Remember, you "
-					"need to perform these steps:",
-					"* Press *%s*" % cmd_p,
-					"* Type *%s* into GoTo",
-					"* Press *Enter*",
-					"Ready? Just start!"
-				],
-				{
-					'before': {
-						'GoTo': self._after_quicksearch_shown(
-							self._before_goto_2
-						)
-					},
-					'after': {
-						'GoTo': self._after_goto_2
-					}
-				}
-			),
-			TutorialStep(
-				'',
-				[
-					"Not bad! This time it took you *%.2f* seconds. That's "
-					"still a little longer than your previous time of *%.2f* "
-					"seconds. Would you like to try again?"
-				],
-				buttons=[
-					('No, continue', self._give_up),
-					('Yes, try again', self._try_again)
-				]
-			),
-			TutorialStep(
-				'',
-				[
-					"Great work! You opened the directory in *%.2f* seconds. "
-					"That beats your previous time of *%.2f*. Well done!",
-					"The next time you navigate to *%s*, ask yourself: Isn't "
-					"it tedious to click through these directory trees all the "
-					"time? fman is the answer."
-				],
-				buttons=[
-					('Continue', self._next_step)
-				]
-			),
+			TutorialStep('', [], buttons=[('Continue', self._next_step)]),
 			TutorialStep(
 				'',
 				[
 					"A limitation of *GoTo* is that it sometimes doesn't "
-					"suggest directories which you have not yet visited. If "
-					"that happens, simply navigate to the folder manually once "
-					"and you'll be good to go."
+					"suggest directories you haven't visited yet. If that "
+					"happens, simply navigate to the folder manually once."
 				],
 				buttons=[
 					('Okay!', self._next_step)
@@ -164,24 +102,24 @@ class TutorialVariantB(Tutorial):
 			TutorialStep(
 				'',
 				[
-					"fman is young and still lacks many features. To work "
-					"around this, you can always open %s. Please press *F10* "
-					"to see this in action." % native_fm
+					"fman is very minimalistic by design. Should you ever miss "
+					"a particular feature, you can easily fall back to %s. "
+					"Please press *F10* to do this now." % native_fm
 				],
 				{
 					'after': {
-						'OpenNativeFileManager': self._next_step
+						'OpenNativeFileManager': self._after_native_fm
 					}
 				}
 			),
 			TutorialStep(
 				'',
 				[
-					"Well done! fman opened %s in your current directory."
-					% native_fm,
-					"It's finally time to explain why fman always displays two "
-					"directories. Apps like this are called *dual-pane file "
-					"managers*. Have you used one before?"
+					"Well done! fman opened %s in your *%s* folder."
+					% (native_fm, '%s'),
+					"Because fman always displays two directories, it is "
+					"called a *dual-pane file manager*. Have you used one "
+					"before?"
 				],
 				buttons=[
 					('No', self._next_step), ('Yes', self._skip_steps(3))
@@ -191,10 +129,7 @@ class TutorialVariantB(Tutorial):
 				'',
 				[
 					"Dual-pane file managers make it especially easy to copy "
-					"and move files: You simply open the directory you want to "
-					"copy from on one side, and the directory you want to copy "
-					"to on the other. Then, you press a key combination to "
-					"perform the copy. Do you want to see a brief example?"
+					"and move files. Would you like to see a brief example?"
 				],
 				buttons=[
 					('No', self._skip_steps(1)), ('Yes', self._next_step)
@@ -204,10 +139,10 @@ class TutorialVariantB(Tutorial):
 				'',
 				[
 					"Okay! Press *Tab* to move from one side to the other. "
-					"This lets you navigate to the source and target "
-					"directories. Then, select the file you want to copy and "
-					"press *F5*. fman will ask you for confirmation. To delete "
-					"the file afterwards, press *%s*." % delete_key
+					"Then, select the file you want to copy and press *F5*. "
+					"fman will ask you for confirmation. To delete the file "
+					"afterwards, press *%s*. Once you are done, click the "
+					"button below." % delete_key
 				],
 				buttons=[('Continue', self._skip_steps(1))]
 			),
@@ -240,7 +175,7 @@ class TutorialVariantB(Tutorial):
 				'',
 				[
 					"Well done! Note how the Command Palette shows fman's "
-					"features as well as the shortcut for each command.",
+					"commands as well as the shortcut for each of them.",
 					"Say you want to select all files, but don't know how. "
 					"Type *select* into the Command Palette. It will suggest "
 					"*Select all*. Confirm with *Enter*."
@@ -268,12 +203,11 @@ class TutorialVariantB(Tutorial):
 			TutorialStep(
 				'Great Work!',
 				[
-					"You have completed the tutorial. Remember:",
+					"This completes the tutorial. Remember:",
 					"* *%s* lets you go to any _P_ath." % cmd_p,
+					"* *F10* opens %s" % native_fm,
 					"* *%s* opens the Command _P_alette." % cmd_shift_p,
-					"* fman is best used with the keyboard.",
-					"The Command Palette lets you look up all other "
-					"features, so that's all you need to know.",
+					"The Command Palette lets you find all other features.",
 					"Have fun with fman! :-)"
 				],
 				buttons=[('Close', self.complete)]
@@ -288,75 +222,136 @@ class TutorialVariantB(Tutorial):
 		if dir_path:
 			self._target_directory = dir_path
 			self._source_directory = self._get_source_directory(dir_path)
-			self._pane.set_path(self._source_directory)
-			self._format_next_step_paragraph(dir_path)
+			self._curr_step_index += 1
+			self._pane.set_path(self._source_directory, callback=self._navigate)
+	def _navigate(self):
+		if self._start_time is None:
+			self._start_time = time()
+		steps = self._get_navigation_steps(
+			self._target_directory, self._pane.get_path()
+		)
+		if not steps:
+			# We have arrived:
+			self._time_taken = time() - self._start_time
+			current_dir = basename(self._pane.get_path())
+			self._format_next_step_paragraph((current_dir,self._time_taken))
 			self._next_step()
+			return
+		step = steps[0]
+		step_paras = self._get_step_paras(step)
+		self._steps[self._curr_step_index] = TutorialStep(
+			'', step_paras, {'on': {'path_changed': self._navigate}}
+		)
+		if step[0] == 'open' and step[1] != '..':
+			self._pane.toggle_selection(join(self._pane.get_path(), step[1]))
+		self._show_current_screen()
+	def _get_step_paras(self, navigation_step):
+		result = []
+		if not self._last_step:
+			result.append(
+				"fman always shows the contents of two directories. We will "
+				"now navigate to your *%s* folder in the left pane." %
+				basename(self._target_directory)
+			)
+		instruction, path = navigation_step
+		encouragement = self._get_encouragement() if self._last_step else ''
+		if instruction == 'show drives':
+			result.append(
+				"First, we need to switch to your *%s* drive." %
+				splitdrive(self._target_directory)[0]
+			)
+			result.append(
+				"Please press *Alt+F1* to see an overview of your drives."
+			)
+			self._last_step = 'show drives'
+		elif instruction == 'open':
+			result.append(
+				encouragement +
+				"Please%s open your *%s* folder, in one of the following "
+				"ways:" % (' now' if self._last_step else '', path)
+			)
+			result.append(
+				"* Type its name or use *Arrow Up/Down* to select it. "
+				"Then, press *Enter*."
+			)
+			result.append("* Double-click on it with the mouse.")
+		else:
+			assert instruction == 'go up'
+			text = encouragement + "We need to go up a%s directory. Please " \
+								   "press *Backspace* to do this."
+			text %= 'nother' if self._last_step == 'go up' else ''
+			result.append(text)
+		self._last_step = instruction
+		return result
+	def _get_encouragement(self):
+		result = self._encouragements[self._encouragement_index]
+		self._encouragement_index += 1
+		self._encouragement_index %= len(self._encouragements)
+		return result
 	def _get_source_directory(self, target_dir):
 		current = self._pane.get_path()
-		if self._get_num_directory_lvls_between(target_dir, current) >= 3:
+		if len(self._get_navigation_steps(target_dir, current)) >= 3:
 			return current
 		home = expanduser('~')
 		if is_below_dir(target_dir, home):
-			if self._get_num_directory_lvls_between(target_dir, home) >= 3:
+			if len(self._get_navigation_steps(target_dir, home)) >= 3:
 				return home
 		return splitdrive(target_dir)[0] or '/'
-	def _get_num_directory_lvls_between(self, subdir, pardir):
-		result = 0
-		rel = relpath(realpath(subdir), realpath(pardir))
-		while rel:
-			result += 1
-			rel = dirname(rel)
+	def _get_navigation_steps(self, target_dir, source_dir):
+		result = []
+		target_dir = realpath(target_dir)
+		source_dir = realpath(source_dir)
+		target_drive = splitdrive(target_dir)[0]
+		source_drive, source_path = splitdrive(source_dir)
+		if target_drive != source_drive:
+			result.append(('show drives', ''))
+			result.append(('open', target_drive))
+			source_dir = target_drive + source_path
+		rel = relpath(target_dir, source_dir)
+		while rel and rel != '.':
+			rel, current = split(rel)
+			if current == '..':
+				step = ('go up', '')
+			else:
+				step = ('open', current)
+			result.insert(0, step)
 		return result
 	def _format_next_step_paragraph(self, *values):
 		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
 		for i, value in enumerate(values):
 			step_paras[i] %= value
-	def _check_target(self):
-		current_path = self._pane.get_path()
-		if self._start_time is None and current_path != self._source_directory:
-			self._start_time = time()
-		elif current_path == self._target_directory:
-			self._time_taken = time() - self._start_time
-			self._format_next_step_paragraph(self._time_taken)
-			self._next_step()
 	def _reset(self):
 		self._pane.set_path(self._source_directory)
 		self._next_step()
 	def _before_goto(self):
+		self._start_time = time()
 		goto_dir = basename(self._target_directory)
 		self._format_next_step_paragraph((), goto_dir)
 		self._next_step()
 	def _after_goto(self):
 		path = self._pane.get_path()
 		if path == self._target_directory:
-			self._next_step()
-	def _reset_2(self):
-		goto_dir = basename(self._target_directory)
-		self._format_next_step_paragraph((), (), goto_dir, (), ())
-		self._start_time = None
-		self._reset()
-	def _before_goto_2(self):
-		if self._start_time is None:
-			self._start_time = time()
-	def _after_goto_2(self):
-		path = self._pane.get_path()
-		if path == self._target_directory:
 			time_taken = time() - self._start_time
 			if time_taken < self._time_taken:
-				# Skip the "try again" step:
-				self._curr_step_index += 1
-				goto_dir = basename(self._target_directory)
-				self._format_next_step_paragraph(
-					(time_taken, self._time_taken), goto_dir
-				)
+				paras = [
+					"Awesome! Using GoTo, you jumped to your directory in "
+					"*%.2f* seconds instead of *%.2f*." %
+					(time_taken, self._time_taken),
+					"The next time you open *%s* outside of fman, ask "
+					"yourself: Isn't it tedious to click through directory "
+					"trees all the time? GoTo is the answer."
+					% basename(path)
+				 ]
 			else:
-				self._format_next_step_paragraph((time_taken, self._time_taken))
+				paras = [
+					"Awesome! Did you see how quick that was? Once you're used "
+					"to it, you'll never want to manually navigate directory "
+					"trees again."
+				]
+			self._steps[self._curr_step_index + 1]._paragraphs = paras
 			self._next_step()
-	def _try_again(self):
-		self._start_time = None
-		self._previous_step()
-	def _give_up(self):
-		self._curr_step_index += 1
+	def _after_native_fm(self):
+		self._format_next_step_paragraph(basename(self._pane.get_path()))
 		self._next_step()
 	def _skip_steps(self, num_steps):
 		return lambda: self._next_step(num_steps + 1)
