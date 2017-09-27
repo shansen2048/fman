@@ -119,7 +119,7 @@ class TutorialStep:
 		is_list = False
 		for line in self._paragraphs:
 			if line.startswith('* '):
-				line = '<li style="line-height: 150%%;">&nbsp;%s</li>' % \
+				line = '<li style="line-height: 150%%;">%s</li>' % \
 					   line[2:]
 				if not is_list:
 					line = '<ul>' + line
