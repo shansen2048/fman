@@ -18,6 +18,7 @@ RUN pacman -S --noconfirm git && \
     git config --global user.name "Michael Herrmann"
 
 ADD id_rsa /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
 ADD id_rsa.pub /root/.ssh/id_rsa.pub
 RUN pacman -S --noconfirm openssh && \
     ssh-keyscan -H dev.herrmann.io >> ~/.ssh/known_hosts && \
