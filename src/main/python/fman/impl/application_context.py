@@ -21,6 +21,7 @@ from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from fman.util import system, cached_property
+from fman.util.qt import connect_once
 from fman.util.settings import Settings
 from os import makedirs
 from os.path import dirname, join, pardir, normpath, exists
@@ -142,8 +143,9 @@ class ApplicationContext:
 			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
-			self._main_window.shown.connect(self.on_main_window_shown)
-			self._main_window.shown.connect(
+			connect_once(self._main_window.shown, self.on_main_window_shown)
+			connect_once(
+				self._main_window.shown,
 				lambda: self.plugin_error_handler.on_main_window_shown(
 					self.main_window
 				)
