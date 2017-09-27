@@ -9,6 +9,7 @@ class SessionManager:
 
 	DEFAULT_NUM_PANES = 2
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
+	_MAIN_WINDOW_VERSION = 1
 
 	def __init__(self, settings, fman_version, is_licensed):
 		self.is_first_run = not settings
@@ -54,7 +55,9 @@ class SessionManager:
 			main_window.restoreGeometry(_decode(geometry_b64))
 		window_state_b64 = self._settings.get('window_state', None)
 		if window_state_b64:
-			main_window.restoreState(_decode(window_state_b64))
+			main_window.restoreState(
+				_decode(window_state_b64), self._MAIN_WINDOW_VERSION
+			)
 	def _get_startup_message(self):
 		previous_version = self._settings.get('fman_version', None)
 		if not previous_version or previous_version == self._fman_version:
@@ -64,7 +67,8 @@ class SessionManager:
 			   % self._fman_version
 	def on_close(self, main_window):
 		self._settings['window_geometry'] = _encode(main_window.saveGeometry())
-		self._settings['window_state'] = _encode(main_window.saveState())
+		self._settings['window_state'] = \
+			_encode(main_window.saveState(self._MAIN_WINDOW_VERSION))
 		self._settings['panes'] = \
 			list(map(self._read_pane_settings, main_window.get_panes()))
 		self._settings['fman_version'] = self._fman_version

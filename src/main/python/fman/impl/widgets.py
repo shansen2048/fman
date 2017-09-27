@@ -322,6 +322,16 @@ class MainWindow(QMainWindow):
 			if right_margin / self.width() < 0.1:
 				pos_x = 0.9 * self.width() - overlay.width()
 		overlay.move(pos_x, pos_y)
+	def saveState(self, version=0):
+		self_state = super().saveState(version)
+		splitter_state = self._splitter.saveState()
+		return self_state + splitter_state + bytes([len(self_state)])
+	def restoreState(self, state, version=0):
+		self_state_len = state[-1]
+		if not super().restoreState(state[0:self_state_len], version):
+			return False
+		self._splitter.restoreState(state[self_state_len:-1])
+		return True
 
 class MessageBox(QMessageBox):
 	def __init__(self, parent, allow_escape=True):
