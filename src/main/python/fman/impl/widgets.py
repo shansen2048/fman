@@ -96,6 +96,9 @@ class DirectoryPane(QWidget):
 		return self._file_view.get_file_under_cursor()
 	@run_in_main_thread
 	def get_path(self):
+		"""
+		Returns '' if displaying "My Computer".
+		"""
 		result = self._model.rootPath()
 		if not result:
 			# Displaying "My Computer" - see QFileSystemModel#myComputer()
@@ -103,6 +106,9 @@ class DirectoryPane(QWidget):
 		return normpath(result)
 	@run_in_main_thread
 	def set_path(self, path, callback=None):
+		"""
+		Pass '' as `path` to display "My Computer".
+		"""
 		if callback is None:
 			callback = lambda: None
 		if path:
