@@ -64,6 +64,8 @@ class NonexistentShortcutHandler:
 			))
 		if is_right_pane:
 			options.append(('Switch to left pane', 'Switch to the left pane'))
+		if not options:
+			return
 		choice = self._show_suggestions(dialog_id, title, options)
 		if not choice:
 			return
@@ -120,6 +122,8 @@ class NonexistentShortcutHandler:
 			))
 		if is_left_pane:
 			options.append(('Switch to right pane','Switch to the right pane'))
+		if not options:
+			return
 		choice = self._show_suggestions(dialog_id, title, options)
 		if not choice:
 			return
