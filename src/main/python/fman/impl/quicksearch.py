@@ -63,7 +63,7 @@ class Quicksearch(QDialog):
 			index = self._items.currentIndex()
 			if index.isValid():
 				item = self._curr_items[index.row()]
-				completion = self._get_tab_completion(item.value)
+				completion = self._get_tab_completion(item.title)
 				if completion:
 					self._query.setText(completion)
 				return True
