@@ -238,7 +238,7 @@ class TutorialVariantB(Tutorial):
 			# We have arrived:
 			self._time_taken = time() - self._start_time
 			current_dir = basename(self._pane.get_path())
-			self._format_next_step_paragraph((current_dir,self._time_taken))
+			self._format_next_step_paragraph((current_dir, self._time_taken))
 			self._next_step()
 			return
 		step = steps[0]
