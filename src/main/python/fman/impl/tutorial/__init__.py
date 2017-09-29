@@ -4,6 +4,17 @@ from fman.util.qt import run_in_main_thread, connect_once
 
 import re
 
+class TutorialController:
+	def __init__(self, tutorial_class, args):
+		self._tutorial_class = tutorial_class
+		self._args = args
+		self._tutorial = None
+	def start(self):
+		if self._tutorial:
+			self._tutorial.close()
+		self._tutorial = self._tutorial_class(*self._args)
+		self._tutorial.start()
+
 class Tutorial:
 	def __init__(self, main_window, app, command_callback, metrics):
 		self._main_window = main_window
