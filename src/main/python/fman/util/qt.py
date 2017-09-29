@@ -115,6 +115,7 @@ ItemIsEditable = Qt.ItemIsEditable
 ItemIsSelectable = Qt.ItemIsSelectable
 EditRole = Qt.EditRole
 DisplayRole = Qt.DisplayRole
+ToolTipRole = Qt.ToolTipRole
 UserRole = Qt.UserRole
 SizeHintRole = Qt.SizeHintRole
 ItemIsDragEnabled = Qt.ItemIsDragEnabled

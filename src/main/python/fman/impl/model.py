@@ -1,6 +1,7 @@
 from fman.util.qt import TextAlignmentRole, AlignVCenter, ItemIsEnabled, \
 	ItemIsEditable, ItemIsSelectable, EditRole, AscendingOrder, DisplayRole, \
-	ItemIsDragEnabled, ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction
+	ItemIsDragEnabled, ItemIsDropEnabled, CopyAction, MoveAction, \
+	IgnoreAction, ToolTipRole
 from os.path import commonprefix, isdir, dirname, normpath
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
 	QLocale, QVariant, QUrl, QMimeData
@@ -33,6 +34,8 @@ class FileSystemModel(QFileSystemModel):
 			# Anyways, we want short 2-year dates instead of long 4-year dates:
 			datetime_format = datetime_format.replace('yyyy', 'yy')
 			return self.lastModified(index).toString(datetime_format)
+		if index.column() == 0 and role == ToolTipRole:
+			return super(FileSystemModel, self).data(index, DisplayRole)
 		value = super(FileSystemModel, self).data(index, role)
 		if role == TextAlignmentRole and value is not None:
 			# The standard QFileSystemModel messes up the vertical alignment of
