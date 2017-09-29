@@ -228,6 +228,7 @@ class TutorialVariantB(Tutorial):
 		self._target_directory = dir_path
 		self._source_directory = self._get_source_directory(dir_path)
 		self._curr_step_index += 1
+		self._track_current_step()
 		self._pane.set_path(self._source_directory, callback=self._navigate)
 	def _navigate(self):
 		if self._start_time is None:
