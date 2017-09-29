@@ -218,16 +218,17 @@ class TutorialVariantB(Tutorial):
 			self._main_window, 'Pick a folder', expanduser('~'),
 			QFileDialog.ShowDirsOnly
 		)
+		if not dir_path:
+			return
 		# On Windows, QFileDialog.getExistingDirectory(...) returns paths with
 		# forward slashes instead of backslashes. Because the path is used later
 		# to check whether the user jumped to the right directory, we need to
 		# fix this:
 		dir_path = normpath(dir_path)
-		if dir_path:
-			self._target_directory = dir_path
-			self._source_directory = self._get_source_directory(dir_path)
-			self._curr_step_index += 1
-			self._pane.set_path(self._source_directory, callback=self._navigate)
+		self._target_directory = dir_path
+		self._source_directory = self._get_source_directory(dir_path)
+		self._curr_step_index += 1
+		self._pane.set_path(self._source_directory, callback=self._navigate)
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
