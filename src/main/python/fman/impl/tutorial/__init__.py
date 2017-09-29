@@ -1,6 +1,7 @@
 from fman.impl.html_style import highlight, underline
 from fman.impl.widgets import Overlay
 from fman.util.qt import run_in_main_thread, connect_once
+
 import re
 
 class Tutorial:
@@ -33,12 +34,6 @@ class Tutorial:
 		self._curr_step = None
 	def _next_step(self, delta=1):
 		self._curr_step_index += delta
-		self._metrics.track(
-			'StartedTutorialStep', {'step': self._curr_step_index}
-		)
-		self._show_current_screen()
-	def _previous_step(self):
-		self._curr_step_index -= 1
 		self._metrics.track(
 			'StartedTutorialStep', {'step': self._curr_step_index}
 		)
