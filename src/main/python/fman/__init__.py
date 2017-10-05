@@ -116,8 +116,9 @@ class Window:
 		return result
 
 class DirectoryPaneCommand:
-	def __init__(self, pane):
+	def __init__(self, pane, fs):
 		self.pane = pane
+		self.fs = fs
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
 	def get_chosen_files(self):

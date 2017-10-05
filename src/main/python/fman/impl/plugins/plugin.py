@@ -26,7 +26,7 @@ class Plugin:
 		raise NotImplementedError()
 	def on_pane_added(self, pane):
 		for cmd_name, cmd_class in self._directory_pane_commands.items():
-			command = self._instantiate_command(cmd_class, pane)
+			command = self._instantiate_command(cmd_class, pane, self._fs)
 			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
 			pane._add_listener(

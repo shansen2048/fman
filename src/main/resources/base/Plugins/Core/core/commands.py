@@ -5,7 +5,6 @@ from core.os_ import open_terminal_in_directory, open_native_file_manager, \
 from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
-from core.trash import move_to_trash
 from fman import *
 from getpass import getuser
 from io import BytesIO
@@ -112,7 +111,7 @@ class MoveToTrash(_CorePaneCommand):
 			YES | NO, YES
 		)
 		if choice & YES:
-			move_to_trash(*to_delete)
+			self.fs.move_to_trash(*to_delete)
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self):

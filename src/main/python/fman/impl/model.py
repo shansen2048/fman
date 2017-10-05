@@ -1,4 +1,5 @@
 from datetime import datetime
+from fman.impl.trash import move_to_trash
 from fman.util import listdir_absolute
 from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
@@ -82,6 +83,7 @@ class FileSystemModel(DragAndDropMixin):
 			LastModifiedColumn(self._fs)
 		)
 		self._fs.file_renamed.connect(self._on_file_renamed)
+		self._fs.file_removed.connect(self._on_file_removed)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -99,8 +101,15 @@ class FileSystemModel(DragAndDropMixin):
 	def data(self, index, role=DisplayRole):
 		if self._index_is_valid(index):
 			if role in (DisplayRole, EditRole):
+				file_path = self._items[index.row()]
 				column = self.columns[index.column()]
-				return QVariant(column.get_str(self._items[index.row()]))
+				try:
+					return QVariant(column.get_str(file_path))
+				except FileNotFoundError:
+					# We don't remove the file from `self._items` here because
+					# we rely on the FS implementation to tell us that the file
+					# has been removed.
+					return QVariant()
 			elif role == DecorationRole:
 				if self._icon_provider and index.column() == 0:
 					file_info = QFileInfo(self.filePath(index))
@@ -172,14 +181,17 @@ class FileSystemModel(DragAndDropMixin):
 			self._items[index.row()] = new_path
 			self.dataChanged.emit(index, index)
 		else:
-			self.beginRemoveRows(QModelIndex(), index.row(), index.row())
-			del self._items[index.row()]
-			self.endRemoveRows()
+			self._remove_item(index.row())
+	def _on_file_removed(self, file_path):
+		if dirname(file_path) != self._root_path:
+			return
+		self._remove_item(self._items.index(file_path))
+	def _remove_item(self, row):
+		self.beginRemoveRows(QModelIndex(), row, row)
+		del self._items[row]
+		self.endRemoveRows()
 
-class FileSystem(QObject):
-
-	file_renamed = pyqtSignal(str, str)
-
+class FileSystem:
 	def listdir(self, path):
 		return listdir_absolute(path)
 	def isdir(self, path):
@@ -190,7 +202,60 @@ class FileSystem(QObject):
 		return getmtime(path)
 	def rename(self, old_path, new_path):
 		rename(old_path, new_path)
+	def move_to_trash(self, file_path):
+		move_to_trash(file_path)
+
+class CachedFileSystem(QObject):
+
+	file_renamed = pyqtSignal(str, str)
+	file_removed = pyqtSignal(str)
+
+	def __init__(self, source):
+		super().__init__()
+		self._source = source
+		self._cache = {}
+	def listdir(self, path):
+		result = self._query_cache(path, 'dirs', self._source.listdir)
+		# Provide a copy of the list to ensure the caller doesn't accidentally
+		# modify the state shared with other incovations:
+		return result[::]
+	def isdir(self, path):
+		return self._query_cache(path, 'isdir', self._source.isdir)
+	def getsize(self, path):
+		return self._query_cache(path, 'size', self._source.getsize)
+	def getmtime(self, path):
+		return self._query_cache(path, 'mtime', self._source.getmtime)
+	def rename(self, old_path, new_path):
+		self._source.rename(old_path, new_path)
+		try:
+			self._cache[new_path] = self._cache.pop(old_path)
+		except KeyError:
+			pass
 		self.file_renamed.emit(old_path, new_path)
+	def move_to_trash(self, file_path):
+		self._source.move_to_trash(file_path)
+		try:
+			del self._cache[file_path]
+		except KeyError:
+			pass
+		self.file_removed.emit(file_path)
+	def _query_cache(self, path, item, get_default):
+		try:
+			cache = self._cache[path]
+		except KeyError:
+			result = get_default(path)
+			self._cache[path] = {
+				item: result
+			}
+			return result
+		else:
+			if item not in cache:
+				try:
+					cache[item] = get_default(path)
+				except FileNotFoundError:
+					del self._cache[path]
+					raise
+			return cache[item]
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
