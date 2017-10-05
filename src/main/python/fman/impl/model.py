@@ -226,7 +226,7 @@ class CachedFileSystem(QObject):
 		self._source = source
 		self._cache = {}
 	def listdir(self, path):
-		result = self._query_cache(path, 'dirs', self._source.listdir)
+		result = self._query_cache(path, 'files', self._source.listdir)
 		# Provide a copy of the list to ensure the caller doesn't accidentally
 		# modify the state shared with other incovations:
 		return result[::]
@@ -272,7 +272,17 @@ class CachedFileSystem(QObject):
 		try:
 			del self._cache[path]
 		except KeyError:
-			pass
+			return
+		else:
+			try:
+				parent = self._cache[dirname(path)]
+			except KeyError:
+				pass
+			else:
+				try:
+					parent['files'].remove(path)
+				except (KeyError, ValueError):
+					pass
 		self.file_removed.emit(path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
