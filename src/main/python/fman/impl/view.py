@@ -99,8 +99,16 @@ class CompositeItemDelegate(QStyledItemDelegate):
 	def remove(self, item):
 		self._items.remove(item)
 	def initStyleOption(self, option, index):
+		super().initStyleOption(option, index)
 		for item in self._items:
-			item.initStyleOption(option, index)
+			# Unlike the other methods in this class, we don't call
+			# `item.initStyleOption(...)` here, for the following reason:
+			# It would have to call `super().initStyleOption(...)`. This is
+			# an expensive operation. To avoid having to call it for every
+			# `item`, we therefore call it only once - above this for loop -
+			# then use `item#adapt_style_option(...)` to make the necessary
+			# changes. When 350 files are displayed, this saves about 700ms.
+			item.adapt_style_option(option, index)
 	def eventFilter(self, editor, event):
 		for item in self._items:
 			# eventFilter(...) is protected. We can only call it if we
@@ -169,8 +177,7 @@ class SingleRowModeDelegate(QStyledItemDelegate):
 	def __init__(self, view):
 		super().__init__(view)
 		self._view = view
-	def initStyleOption(self, option, index):
-		super().initStyleOption(option, index)
+	def adapt_style_option(self, option, index):
 		if self._should_draw_cursor(index):
 			option.state |= QStyle.State_HasFocus
 	def _should_draw_cursor(self, index):
@@ -333,8 +340,7 @@ class FileListItemDelegate(QStyledItemDelegate):
 				update_cursor(bool(event.modifiers() & ShiftModifier))
 				return True
 		return False
-	def initStyleOption(self, option, index):
-		super().initStyleOption(option, index)
+	def adapt_style_option(self, option, index):
 		if index.column() == 0:
 			# We want to be able to style the first column via QSS. However,
 			# unlike QTreeView::item, QTableView::item has no :first selector.

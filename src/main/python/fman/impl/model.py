@@ -73,9 +73,8 @@ class FileSystemModel(DragAndDropMixin):
 	rootPathChanged = pyqtSignal(str)
 	directoryLoaded = pyqtSignal(str)
 
-	def __init__(self, fs, icon_provider=None, parent=None):
+	def __init__(self, fs, parent=None):
 		super().__init__(parent)
-		self._icon_provider = icon_provider
 		self._root_path = ''
 		self._items = []
 		self._fs = fs
@@ -101,8 +100,8 @@ class FileSystemModel(DragAndDropMixin):
 		return len(self.columns)
 	def data(self, index, role=DisplayRole):
 		if self._index_is_valid(index):
+			file_path = self._items[index.row()]
 			if role in (DisplayRole, EditRole):
-				file_path = self._items[index.row()]
 				column = self.columns[index.column()]
 				try:
 					return QVariant(column.get_str(file_path))
@@ -112,9 +111,10 @@ class FileSystemModel(DragAndDropMixin):
 					# has been removed.
 					return QVariant()
 			elif role == DecorationRole:
-				if self._icon_provider and index.column() == 0:
-					file_info = QFileInfo(self.filePath(index))
-					return self._icon_provider.icon(file_info)
+				if index.column() == 0:
+					icon = self._fs.icon(file_path)
+					if icon:
+						return icon
 		return QVariant()
 	def headerData(self, section, orientation, role=DisplayRole):
 		if orientation == Qt.Horizontal and role == DisplayRole \
@@ -193,6 +193,8 @@ class FileSystemModel(DragAndDropMixin):
 		self.endRemoveRows()
 
 class FileSystem:
+	def __init__(self, icon_provider=None):
+		self._icon_provider = icon_provider
 	def listdir(self, path):
 		return listdir_absolute(path)
 	def isdir(self, path):
@@ -201,6 +203,9 @@ class FileSystem:
 		return getsize(path)
 	def getmtime(self, path):
 		return getmtime(path)
+	def icon(self, path):
+		if self._icon_provider:
+			return self._icon_provider.icon(QFileInfo(path))
 	def rename(self, old_path, new_path):
 		rename(old_path, new_path)
 	def move_to_trash(self, file_path):
@@ -231,6 +236,8 @@ class CachedFileSystem(QObject):
 		return self._query_cache(path, 'size', self._source.getsize)
 	def getmtime(self, path):
 		return self._query_cache(path, 'mtime', self._source.getmtime)
+	def icon(self, path):
+		return self._query_cache(path, 'icon', self._source.icon)
 	def rename(self, old_path, new_path):
 		self._source.rename(old_path, new_path)
 		try:

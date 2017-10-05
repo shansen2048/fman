@@ -139,8 +139,7 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(
-				self.app, self.help_menu_actions, self.theme, self.fs,
-				self.icon_provider
+				self.app, self.help_menu_actions, self.theme, self.fs
 			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
@@ -194,7 +193,7 @@ class ApplicationContext:
 		)
 	@cached_property
 	def fs(self):
-		return CachedFileSystem(FileSystem())
+		return CachedFileSystem(FileSystem(self.icon_provider))
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
