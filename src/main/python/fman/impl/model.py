@@ -6,13 +6,14 @@ from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
 from functools import lru_cache
 from math import log
-from os import rename
+from os import rename, remove
 from os.path import commonprefix, isdir, dirname, normpath, basename, \
 	getmtime, getsize
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
 	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileIconProvider
+from shutil import rmtree
 
 import sip
 import sys
@@ -204,6 +205,11 @@ class FileSystem:
 		rename(old_path, new_path)
 	def move_to_trash(self, file_path):
 		move_to_trash(file_path)
+	def delete(self, path):
+		if self.isdir(path):
+			rmtree(path)
+		else:
+			remove(path)
 
 class CachedFileSystem(QObject):
 
@@ -232,13 +238,12 @@ class CachedFileSystem(QObject):
 		except KeyError:
 			pass
 		self.file_renamed.emit(old_path, new_path)
-	def move_to_trash(self, file_path):
-		self._source.move_to_trash(file_path)
-		try:
-			del self._cache[file_path]
-		except KeyError:
-			pass
-		self.file_removed.emit(file_path)
+	def move_to_trash(self, path):
+		self._source.move_to_trash(path)
+		self._remove(path)
+	def delete(self, path):
+		self._source.delete(path)
+		self._remove(path)
 	def _query_cache(self, path, item, get_default):
 		try:
 			cache = self._cache[path]
@@ -256,6 +261,12 @@ class CachedFileSystem(QObject):
 					del self._cache[path]
 					raise
 			return cache[item]
+	def _remove(self, path):
+		try:
+			del self._cache[path]
+		except KeyError:
+			pass
+		self.file_removed.emit(path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
