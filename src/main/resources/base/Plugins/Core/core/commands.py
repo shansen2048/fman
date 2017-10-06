@@ -110,7 +110,8 @@ class MoveToTrash(_CorePaneCommand):
 			YES | NO, YES
 		)
 		if choice & YES:
-			self.fs.move_to_trash(*to_delete)
+			for path in to_delete:
+				self.fs.move_to_trash(path)
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self):
