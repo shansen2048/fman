@@ -34,6 +34,14 @@ class CachedFileSystemTest(TestCase):
 		self.assertEqual([], cached_fs.listdir('a'))
 		cached_fs.touch('a/b')
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
+	def test_mkdir(self):
+		fs = StubFileSystem({
+			'a': { 'isdir': True }
+		})
+		cached_fs = CachedFileSystem(fs)
+		self.assertEqual([], cached_fs.listdir('a'))
+		cached_fs.mkdir('a/b')
+		self.assertEqual(['a/b'], cached_fs.listdir('a'))
 
 class ColumnTest:
 	def setUp(self):
@@ -78,6 +86,8 @@ class StubFileSystem:
 		return self._items[item].get('mtime', 1473339041.0)
 	def touch(self, item):
 		self._items[item] = {}
+	def mkdir(self, item):
+		self._items[item] = { 'isdir': True }
 	def rename(self, old_path, new_path):
 		self._items[new_path] = self._items.pop(old_path)
 	def delete(self, item):

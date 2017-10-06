@@ -230,6 +230,8 @@ class FileSystem:
 			return self._icon_provider.icon(QFileInfo(path))
 	def touch(self, path):
 		Path(path).touch()
+	def mkdir(self, path):
+		Path(path).mkdir()
 	def rename(self, old_path, new_path):
 		rename(old_path, new_path)
 	def move_to_trash(self, file_path):
@@ -265,6 +267,11 @@ class CachedFileSystem(QObject):
 		return self._query_cache(path, 'icon', self._source.icon)
 	def touch(self, path):
 		self._source.touch(path)
+		if path not in self._cache:
+			self._add_to_parent(path)
+			self.file_added.emit(path)
+	def mkdir(self, path):
+		self._source.mkdir(path)
 		if path not in self._cache:
 			self._add_to_parent(path)
 			self.file_added.emit(path)
