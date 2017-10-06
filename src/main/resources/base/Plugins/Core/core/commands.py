@@ -246,7 +246,7 @@ class CreateAndEditFile(OpenWithEditor):
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
 			if not exists(file_to_edit):
-				open(file_to_edit, 'w').close()
+				self.fs.touch(file_to_edit)
 			self.pane.place_cursor_at(file_to_edit)
 			self._open_with_editor(file_to_edit)
 

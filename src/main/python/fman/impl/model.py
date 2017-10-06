@@ -9,6 +9,7 @@ from math import log
 from os import rename, remove
 from os.path import commonprefix, isdir, dirname, normpath, basename, \
 	getmtime, getsize
+from pathlib import Path
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
 	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject
 from PyQt5.QtGui import QIcon
@@ -82,6 +83,7 @@ class FileSystemModel(DragAndDropMixin):
 			NameColumn(self._fs), SizeColumn(self._fs),
 			LastModifiedColumn(self._fs)
 		)
+		self._fs.file_added.connect(self._on_file_added)
 		self._fs.file_renamed.connect(self._on_file_renamed)
 		self._fs.file_removed.connect(self._on_file_removed)
 	def rowCount(self, parent=QModelIndex()):
@@ -179,16 +181,18 @@ class FileSystemModel(DragAndDropMixin):
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
+	def _on_file_added(self, path):
+		if dirname(path) == self._root_path:
+			row = len(self._items)
+			self.beginInsertRows(QModelIndex(), row, row)
+			self._items.append(path)
+			self.endInsertRows()
 	def _on_file_renamed(self, old_path, new_path):
 		try:
 			row = self._items.index(old_path)
 		except ValueError:
 			# This for instance happens when old_path is not in self._root_path.
-			if dirname(new_path) == self._root_path:
-				row = len(self._items)
-				self.beginInsertRows(QModelIndex(), row, row)
-				self._items.append(new_path)
-				self.endInsertRows()
+			self._on_file_added(new_path)
 		else:
 			assert dirname(old_path) == self._root_path
 			if dirname(new_path) == self._root_path:
@@ -199,9 +203,12 @@ class FileSystemModel(DragAndDropMixin):
 			else:
 				self._remove_item(row)
 	def _on_file_removed(self, file_path):
-		if dirname(file_path) != self._root_path:
-			return
-		self._remove_item(self._items.index(file_path))
+		try:
+			row = self._items.index(file_path)
+		except ValueError:
+			pass
+		else:
+			self._remove_item(row)
 	def _remove_item(self, row):
 		self.beginRemoveRows(QModelIndex(), row, row)
 		del self._items[row]
@@ -221,6 +228,8 @@ class FileSystem:
 	def icon(self, path):
 		if self._icon_provider:
 			return self._icon_provider.icon(QFileInfo(path))
+	def touch(self, path):
+		Path(path).touch()
 	def rename(self, old_path, new_path):
 		rename(old_path, new_path)
 	def move_to_trash(self, file_path):
@@ -235,6 +244,7 @@ class CachedFileSystem(QObject):
 
 	file_renamed = pyqtSignal(str, str)
 	file_removed = pyqtSignal(str)
+	file_added = pyqtSignal(str)
 
 	def __init__(self, source):
 		super().__init__()
@@ -253,6 +263,11 @@ class CachedFileSystem(QObject):
 		return self._query_cache(path, 'mtime', self._source.getmtime)
 	def icon(self, path):
 		return self._query_cache(path, 'icon', self._source.icon)
+	def touch(self, path):
+		self._source.touch(path)
+		if path not in self._cache:
+			self._add_to_parent(path)
+			self.file_added.emit(path)
 	def rename(self, old_path, new_path):
 		"""
 		:param new_path: must be the final destination path, not just the parent
@@ -263,21 +278,17 @@ class CachedFileSystem(QObject):
 			self._cache[new_path] = self._cache.pop(old_path)
 		except KeyError:
 			pass
-		try:
-			self._cache[dirname(old_path)]['files'].remove(old_path)
-		except (KeyError, IndexError):
-			pass
-		try:
-			self._cache[dirname(new_path)]['files'].append(new_path)
-		except KeyError:
-			pass
+		self._remove_from_parent(old_path)
+		self._add_to_parent(new_path)
 		self.file_renamed.emit(old_path, new_path)
 	def move_to_trash(self, path):
 		self._source.move_to_trash(path)
 		self._remove(path)
+		self.file_removed.emit(path)
 	def delete(self, path):
 		self._source.delete(path)
 		self._remove(path)
+		self.file_removed.emit(path)
 	def _query_cache(self, path, item, get_default):
 		try:
 			cache = self._cache[path]
@@ -300,16 +311,17 @@ class CachedFileSystem(QObject):
 			del self._cache[path]
 		except KeyError:
 			pass
+		self._remove_from_parent(path)
+	def _remove_from_parent(self, path):
 		try:
-			parent = self._cache[dirname(path)]
+			self._cache[dirname(path)]['files'].remove(path)
+		except (KeyError, ValueError):
+			pass
+	def _add_to_parent(self, path):
+		try:
+			self._cache[dirname(path)]['files'].append(path)
 		except KeyError:
 			pass
-		else:
-			try:
-				parent['files'].remove(path)
-			except (KeyError, ValueError):
-				pass
-		self.file_removed.emit(path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
