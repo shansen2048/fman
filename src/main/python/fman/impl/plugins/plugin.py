@@ -43,7 +43,7 @@ class Plugin:
 	def _register_application_command(self, cls, *args):
 		name = _get_command_name(cls)
 		self._key_bindings.register_command(name)
-		instance = self._instantiate_command(cls, *args)
+		instance = self._instantiate_command(cls, self._fs, *args)
 		self._application_command_instances[name] = instance
 	def _unregister_application_command(self, cls):
 		name = _get_command_name(cls)

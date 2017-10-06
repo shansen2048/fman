@@ -9,10 +9,9 @@ from fman import *
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
-from os import mkdir, listdir, remove
-from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir, \
-	islink
+from os import listdir
+from os.path import join, isfile, splitdrive, basename, normpath, isdir, \
+	split, dirname, realpath, expanduser, samefile, isabs, pardir, islink
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -197,7 +196,7 @@ class OpenWithEditor(_CorePaneCommand):
 			return
 		self._open_with_editor(self.pane.get_file_under_cursor())
 	def _open_with_editor(self, file_path):
-		if not exists(file_path):
+		if not self.fs.exists(file_path):
 			show_alert('No file is selected!')
 			return
 		settings = load_json('Core Settings.json', default={})
@@ -224,7 +223,7 @@ class OpenWithEditor(_CorePaneCommand):
 			return '/Applications'
 		elif PLATFORM == 'Windows':
 			result = r'c:\Program Files'
-			if not exists(result):
+			if not self.fs.exists(result):
 				result = splitdrive(sys.executable)[0] + '\\'
 			return result
 		elif PLATFORM == 'Linux':
@@ -245,7 +244,7 @@ class CreateAndEditFile(OpenWithEditor):
 			show_prompt('Enter file name to create/edit:', default_name)
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
-			if not exists(file_to_edit):
+			if not self.fs.exists(file_to_edit):
 				self.fs.touch(file_to_edit)
 			self.pane.place_cursor_at(file_to_edit)
 			self._open_with_editor(file_to_edit)
@@ -287,7 +286,7 @@ class _TreeCommand(_CorePaneCommand):
 		if ok:
 			if not isabs(dest):
 				dest = join(src_dir, dest)
-			if exists(dest):
+			if self.fs.exists(dest):
 				if isdir(dest):
 					return dest, None
 				else:
@@ -347,7 +346,7 @@ class RenameListener(DirectoryPaneListener):
 			return
 		new_path = join(dirname(file_path), new_name)
 		do_rename = True
-		if exists(new_path):
+		if self.fs.exists(new_path):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
 			if not samefile(new_path, file_path):
 				response = show_alert(
@@ -445,7 +444,7 @@ class Paste(_CorePaneCommand):
 class PasteCut(_CorePaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
-		if not any(map(exists, files)):
+		if not any(map(self.fs.exists, files)):
 			# This can happen when the paste-cut has already been performed.
 			return
 		dest_dir = self.pane.get_path()
@@ -587,7 +586,7 @@ class GoTo(_CorePaneCommand):
 				path = expanduser(suggested_dir)
 			if not isdir(path):
 				path = expanduser(query)
-			if not exists(path):
+			if not self.fs.exists(path):
 				# Maybe the user copy-pasted and there's some extra whitespace:
 				path = path.rstrip()
 			if isfile(path):
@@ -613,11 +612,11 @@ class GoTo(_CorePaneCommand):
 			result.append('/Volumes')
 		elif PLATFORM == 'Linux':
 			media_user = join('/media', _get_user())
-			if exists(media_user):
+			if self.fs.exists(media_user):
 				result.append(media_user)
-			elif exists('/media'):
+			elif self.fs.exists('/media'):
 				result.append('/media')
-			if exists('/mnt'):
+			if self.fs.exists('/mnt'):
 				result.append('/mnt')
 			# We need to add more suggestions on Linux, because unlike Windows
 			# and Mac, we (currently) do not integrate with the OS's native
@@ -929,7 +928,7 @@ class Quit(ApplicationCommand):
 class InstallLicenseKey(DirectoryPaneCommand):
 	def __call__(self):
 		license_key = join(self.pane.get_path(), 'User.json')
-		if not exists(license_key):
+		if not self.fs.exists(license_key):
 			show_alert(
 				'Could not find license key file "User.json" in the current '
 				'directory %s.' % self.pane.get_path()
@@ -1060,7 +1059,7 @@ class InstallPlugin(ApplicationCommand):
 				)
 	def _install_plugin(self, name, zipball_contents):
 		dest_dir = join(_THIRDPARTY_PLUGINS_DIR, name)
-		if exists(dest_dir):
+		if self.fs.exists(dest_dir):
 			raise ValueError('Plugin %s seems to already be installed.' % name)
 		with ZipFile(BytesIO(zipball_contents), 'r') as zipfile:
 			with TemporaryDirectory() as temp_dir:
@@ -1070,7 +1069,7 @@ class InstallPlugin(ApplicationCommand):
 		return dest_dir
 	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
 		plugin_json = join(plugin_dir, 'Plugin.json')
-		if exists(plugin_json):
+		if self.fs.exists(plugin_json):
 			with open(plugin_json, 'r') as f:
 				data = json.load(f)
 		else:

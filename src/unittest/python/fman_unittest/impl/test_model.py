@@ -3,6 +3,15 @@ from fman.impl.model import SizeColumn, NameColumn, LastModifiedColumn, \
 from unittest import TestCase
 
 class CachedFileSystemTest(TestCase):
+	def test_exists(self):
+		fs = StubFileSystem({
+			'a': {}
+		})
+		cached_fs = CachedFileSystem(fs)
+		self.assertTrue(cached_fs.exists('a'))
+		self.assertFalse(cached_fs.exists('b'))
+		cached_fs.touch('b')
+		self.assertTrue(cached_fs.exists('b'))
 	def test_delete_removes_from_pardir_cache(self):
 		fs = StubFileSystem({
 			'a': {
@@ -76,6 +85,8 @@ class ColumnTest:
 class StubFileSystem:
 	def __init__(self, items):
 		self._items = items
+	def exists(self, item):
+		return item in self._items
 	def listdir(self, item):
 		return self._items[item].get('files', [])
 	def isdir(self, item):

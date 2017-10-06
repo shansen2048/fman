@@ -217,6 +217,8 @@ class FileSystemModel(DragAndDropMixin):
 class FileSystem:
 	def __init__(self, icon_provider=None):
 		self._icon_provider = icon_provider
+	def exists(self, path):
+		return Path(path).exists()
 	def listdir(self, path):
 		return listdir_absolute(path)
 	def isdir(self, path):
@@ -252,6 +254,10 @@ class CachedFileSystem(QObject):
 		super().__init__()
 		self._source = source
 		self._cache = {}
+	def exists(self, path):
+		if path in self._cache:
+			return True
+		return self._source.exists(path)
 	def listdir(self, path):
 		result = self._query_cache(path, 'files', self._source.listdir)
 		# Provide a copy of the list to ensure the caller doesn't accidentally

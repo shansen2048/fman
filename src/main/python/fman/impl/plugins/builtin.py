@@ -12,7 +12,8 @@ class BuiltinPlugin(Plugin):
 		return 'Builtin'
 
 class Tutorial(ApplicationCommand):
-	def __init__(self, tutorial):
+	def __init__(self, fs, tutorial):
+		super().__init__(fs)
 		self._tutorial = tutorial
 	def __call__(self):
 		self._tutorial.start()

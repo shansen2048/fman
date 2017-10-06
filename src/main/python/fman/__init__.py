@@ -38,6 +38,8 @@ elif is_linux():
 	DATA_DIRECTORY = expanduser('~/.config/fman')
 
 class ApplicationCommand:
+	def __init__(self, fs):
+		self.fs = fs
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
 
