@@ -287,17 +287,16 @@ class CachedFileSystem(QObject):
 		try:
 			del self._cache[path]
 		except KeyError:
-			return
+			pass
+		try:
+			parent = self._cache[dirname(path)]
+		except KeyError:
+			pass
 		else:
 			try:
-				parent = self._cache[dirname(path)]
-			except KeyError:
+				parent['files'].remove(path)
+			except (KeyError, ValueError):
 				pass
-			else:
-				try:
-					parent['files'].remove(path)
-				except (KeyError, ValueError):
-					pass
 		self.file_removed.emit(path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):

@@ -1,5 +1,19 @@
-from fman.impl.model import SizeColumn, NameColumn, LastModifiedColumn
+from fman.impl.model import SizeColumn, NameColumn, LastModifiedColumn, \
+	CachedFileSystem
 from unittest import TestCase
+
+class CachedFileSystemTest(TestCase):
+	def test_delete_removes_from_pardir_cache(self):
+		fs = StubFileSystem({
+			'a': {
+				'isdir': True, 'files': ['a/b']
+			},
+			'a/b': {}
+		})
+		cached_fs = CachedFileSystem(fs)
+		self.assertEquals(['a/b'], cached_fs.listdir('a'))
+		cached_fs.delete('a/b')
+		self.assertEquals([], cached_fs.listdir('a'))
 
 class ColumnTest:
 	def setUp(self):
@@ -34,12 +48,16 @@ class ColumnTest:
 class StubFileSystem:
 	def __init__(self, items):
 		self._items = items
+	def listdir(self, item):
+		return self._items[item].get('files', [])
 	def isdir(self, item):
-		return self._items[item]['isdir']
+		return self._items[item].get('isdir', False)
 	def getsize(self, item):
-		return self._items[item]['size']
+		return self._items[item].get('size', 1)
 	def getmtime(self, item):
-		return self._items[item]['mtime']
+		return self._items[item].get('mtime', 1473339041.0)
+	def delete(self, item):
+		del self._items[item]
 
 class NameColumnTest(ColumnTest, TestCase):
 
