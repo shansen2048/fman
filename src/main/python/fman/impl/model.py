@@ -78,7 +78,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._root_path = ''
 		self._items = []
 		self._fs = fs
-		self.columns = (
+		self._columns = (
 			NameColumn(self._fs), SizeColumn(self._fs),
 			LastModifiedColumn(self._fs)
 		)
@@ -97,12 +97,12 @@ class FileSystemModel(DragAndDropMixin):
 			# "When implementing a table based model, columnCount() should
 			#  return 0 when the parent is valid."
 			return 0
-		return len(self.columns)
+		return len(self._columns)
 	def data(self, index, role=DisplayRole):
 		if self._index_is_valid(index):
 			file_path = self._items[index.row()]
 			if role in (DisplayRole, EditRole):
-				column = self.columns[index.column()]
+				column = self._columns[index.column()]
 				try:
 					return QVariant(column.get_str(file_path))
 				except FileNotFoundError:
@@ -119,7 +119,7 @@ class FileSystemModel(DragAndDropMixin):
 	def headerData(self, section, orientation, role=DisplayRole):
 		if orientation == Qt.Horizontal and role == DisplayRole \
 			and 0 <= section < self.columnCount():
-			return QVariant(self.columns[section].name)
+			return QVariant(self._columns[section].name)
 		return QVariant()
 	def rootPath(self):
 		return self._root_path
