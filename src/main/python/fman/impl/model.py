@@ -139,15 +139,18 @@ class FileSystemModel(DragAndDropMixin):
 			raise ValueError("Invalid index")
 		return self._items[index.row()]
 	def index(self, *args):
-		try:
-			row, column, parent = args
-		except ValueError:
-			file_path, = args
+		if len(args) == 1:
+			file_path = args[0]
 			if file_path == self._root_path:
 				return QModelIndex()
 			row = self._items.index(file_path)
 			column = 0
 			parent = QModelIndex()
+		elif len(args) == 2:
+			row, column = args
+			parent = QModelIndex()
+		else:
+			row, column, parent = args
 		return super().index(row, column, parent)
 	def flags(self, index):
 		if index == QModelIndex():
@@ -177,14 +180,24 @@ class FileSystemModel(DragAndDropMixin):
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
 	def _on_file_renamed(self, old_path, new_path):
-		if dirname(old_path) != self._root_path:
-			return
-		index = self.index(old_path)
-		if dirname(new_path) == self._root_path:
-			self._items[index.row()] = new_path
-			self.dataChanged.emit(index, index)
+		try:
+			row = self._items.index(old_path)
+		except ValueError:
+			# This for instance happens when old_path is not in self._root_path.
+			if dirname(new_path) == self._root_path:
+				row = len(self._items)
+				self.beginInsertRows(QModelIndex(), row, row)
+				self._items.append(new_path)
+				self.endInsertRows()
 		else:
-			self._remove_item(index.row())
+			assert dirname(old_path) == self._root_path
+			if dirname(new_path) == self._root_path:
+				self._items[row] = new_path
+				index = self.index(row, 0)
+				# Only the name changed:
+				self.dataChanged.emit(index, index)
+			else:
+				self._remove_item(row)
 	def _on_file_removed(self, file_path):
 		if dirname(file_path) != self._root_path:
 			return
