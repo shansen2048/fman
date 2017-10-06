@@ -254,9 +254,21 @@ class CachedFileSystem(QObject):
 	def icon(self, path):
 		return self._query_cache(path, 'icon', self._source.icon)
 	def rename(self, old_path, new_path):
+		"""
+		:param new_path: must be the final destination path, not just the parent
+		                 directory.
+		"""
 		self._source.rename(old_path, new_path)
 		try:
 			self._cache[new_path] = self._cache.pop(old_path)
+		except KeyError:
+			pass
+		try:
+			self._cache[dirname(old_path)]['files'].remove(old_path)
+		except (KeyError, IndexError):
+			pass
+		try:
+			self._cache[dirname(new_path)]['files'].append(new_path)
 		except KeyError:
 			pass
 		self.file_renamed.emit(old_path, new_path)

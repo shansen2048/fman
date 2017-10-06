@@ -14,6 +14,18 @@ class CachedFileSystemTest(TestCase):
 		self.assertEquals(['a/b'], cached_fs.listdir('a'))
 		cached_fs.delete('a/b')
 		self.assertEquals([], cached_fs.listdir('a'))
+	def test_rename_updates_pardir(self):
+		fs = StubFileSystem({
+			'a': { 'isdir': True , 'files': ['a/b']},
+			'a/b': {},
+			'c': { 'isdir': True }
+		})
+		cached_fs = CachedFileSystem(fs)
+		self.assertEquals(['a/b'], cached_fs.listdir('a'))
+		self.assertEquals([], cached_fs.listdir('c'))
+		cached_fs.rename('a/b', 'c/b')
+		self.assertEquals([], cached_fs.listdir('a'))
+		self.assertEquals(['c/b'], cached_fs.listdir('c'))
 
 class ColumnTest:
 	def setUp(self):
@@ -58,6 +70,8 @@ class StubFileSystem:
 		return self._items[item].get('mtime', 1473339041.0)
 	def delete(self, item):
 		del self._items[item]
+	def rename(self, old_path, new_path):
+		self._items[new_path] = self._items.pop(old_path)
 
 class NameColumnTest(ColumnTest, TestCase):
 
