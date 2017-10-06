@@ -27,7 +27,7 @@ from os import makedirs
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette, QIcon
-from PyQt5.QtWidgets import QStyleFactory
+from PyQt5.QtWidgets import QStyleFactory, QFileIconProvider
 from signal import signal, SIGINT
 
 import fman
@@ -134,7 +134,7 @@ class ApplicationContext:
 		try:
 			return GnomeFileIconProvider()
 		except GnomeNotAvailable:
-			pass
+			return QFileIconProvider()
 	@property
 	def main_window(self):
 		if self._main_window is None:
