@@ -228,7 +228,7 @@ class CachedFileSystem(QObject):
 	def listdir(self, path):
 		result = self._query_cache(path, 'files', self._source.listdir)
 		# Provide a copy of the list to ensure the caller doesn't accidentally
-		# modify the state shared with other incovations:
+		# modify the state shared with other invocations:
 		return result[::]
 	def isdir(self, path):
 		return self._query_cache(path, 'isdir', self._source.isdir)
