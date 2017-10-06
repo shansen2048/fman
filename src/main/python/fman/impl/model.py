@@ -198,7 +198,8 @@ class FileSystemModel(DragAndDropMixin):
 			if dirname(new_path) == self._root_path:
 				self._items[row] = new_path
 				index = self.index(row, 0)
-				# Only the name changed:
+				# Supply `index` twice to indicate that only the first column -
+				# the name - changed.
 				self.dataChanged.emit(index, index)
 			else:
 				self._remove_item(row)
