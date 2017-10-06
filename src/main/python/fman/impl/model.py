@@ -169,6 +169,8 @@ class FileSystemModel(DragAndDropMixin):
 			self.file_renamed.emit(self.filePath(index), value)
 			return True
 		return super().setData(index, value, role)
+	def get_column(self, i):
+		return self._columns[i]
 	def _index_is_valid(self, index):
 		if not index.isValid() or index.model() != self:
 			return False
@@ -305,7 +307,7 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		return self.mapFromSource(source_index)
 	def lessThan(self, left, right):
 		source = self.sourceModel()
-		column = source.columns[self.sortColumn()]
+		column = source.get_column(self.sortColumn())
 		left = source.filePath(left)
 		right = source.filePath(right)
 		is_ascending = self.sortOrder() == AscendingOrder
