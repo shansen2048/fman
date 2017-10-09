@@ -358,10 +358,10 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def lessThan(self, left, right):
 		source = self.sourceModel()
 		column = source.get_column(self.sortColumn())
-		left = source.filePath(left)
-		right = source.filePath(right)
 		is_ascending = self.sortOrder() == AscendingOrder
-		return column.less_than(left, right, is_ascending)
+		def get_sort_value(l_r):
+			return column.get_sort_value(source.filePath(l_r), is_ascending)
+		return get_sort_value(left) < get_sort_value(right)
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
 		file_path = source.filePath(source.index(source_row, 0, source_parent))
@@ -384,9 +384,9 @@ class Column:
 		self.fs = fs
 	def get_str(cls, file_path):
 		raise NotImplementedError()
-	def less_than(cls, left, right, is_ascending=True):
+	def get_sort_value(self, file_path, is_ascending):
 		"""
-		less_than(...) should generally be independent of is_ascending.
+		This method should generally be independent of is_ascending.
 		When is_ascending is False, Qt simply reverses the sort order.
 		However, we may sometimes want to change the sort order in a way other
 		than a simple reversal when is_ascending is False. That's why this
@@ -394,23 +394,15 @@ class Column:
 		"""
 		raise NotImplementedError()
 
-class ValueComparingColumn(Column):
-	def less_than(self, left, right, is_ascending=True):
-		if self.fs.isdir(left) != self.fs.isdir(right):
-			return (self.fs.isdir(left) > self.fs.isdir(right)) == is_ascending
-		left_value, right_value = map(self._get_value, (left, right))
-		return left_value < right_value
-	def _get_value(self, left_or_right):
-		raise NotImplementedError()
-
-class NameColumn(ValueComparingColumn):
+class NameColumn(Column):
 
 	name = 'Name'
 
 	def get_str(self, file_path):
 		return basename(file_path)
-	def _get_value(self, left_or_right):
-		return basename(left_or_right).lower()
+	def get_sort_value(self, file_path, is_ascending):
+		is_dir = self.fs.isdir(file_path)
+		return is_dir ^ is_ascending, basename(file_path).lower()
 
 class SizeColumn(Column):
 
@@ -428,17 +420,16 @@ class SizeColumn(Column):
 		unit = units[unit_index]
 		base = 1024 ** unit_index
 		return unit % (size_bytes / base)
-	def less_than(self, left, right, is_ascending=True):
-		if self.fs.isdir(left) != self.fs.isdir(right):
-			return (self.fs.isdir(left) > self.fs.isdir(right)) == is_ascending
-		if self.fs.isdir(left):
-			assert self.fs.isdir(right)
-			# Sort by name:
-			return (basename(left).lower() < basename(right).lower()) \
-				   == is_ascending
-		return self.fs.getsize(left) < self.fs.getsize(right)
+	def get_sort_value(self, file_path, is_ascending):
+		is_dir = self.fs.isdir(file_path)
+		if is_dir:
+			ord_ = ord if is_ascending else lambda c: -ord(c)
+			minor = tuple(ord_(c) for c in basename(file_path).lower())
+		else:
+			minor = self.fs.getsize(file_path)
+		return is_dir ^ is_ascending, minor
 
-class LastModifiedColumn(ValueComparingColumn):
+class LastModifiedColumn(Column):
 
 	name = 'Modified'
 
@@ -448,8 +439,9 @@ class LastModifiedColumn(ValueComparingColumn):
 		except OSError:
 			return ''
 		return modified.strftime('%Y-%m-%d %H:%M')
-	def _get_value(self, left_or_right):
-		return self.fs.getmtime(left_or_right)
+	def get_sort_value(self, file_path, is_ascending):
+		is_dir = self.fs.isdir(file_path)
+		return is_dir ^ is_ascending, self.fs.getmtime(file_path)
 
 class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):

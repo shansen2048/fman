@@ -72,15 +72,25 @@ class ColumnTest:
 			}
 
 		})
-		self.column = self.column_class(self.fs)
+		self._column = self.column_class(self.fs)
 	def assert_is_less(self, left, right, is_ascending=True):
-		self.assertTrue(self.column.less_than(left, right, is_ascending))
+		self.assertLess(
+			self._get_sort_value(left, is_ascending),
+			self._get_sort_value(right, is_ascending),
+			"%s is not < %s" % (left, right)
+		)
 	def assert_is_greater(self, left, right, is_ascending=True):
-		self.assertFalse(self.column.less_than(left, right, is_ascending))
+		self.assertGreater(
+			self._get_sort_value(left, is_ascending),
+			self._get_sort_value(right, is_ascending),
+			"%s is not > %s" % (left, right)
+		)
 	def check_less_than_chain(self, *chain, is_ascending=True):
 		for i, left in enumerate(chain[:-1]):
 			right = chain[i + 1]
 			self.assert_is_less(left, right, is_ascending)
+	def _get_sort_value(self, path, is_ascending):
+		return self._column.get_sort_value(path, is_ascending)
 
 class StubFileSystem:
 	def __init__(self, items):
