@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 from fman.impl.trash import move_to_trash
 from fman.util import listdir_absolute
@@ -77,7 +78,7 @@ class FileSystemModel(DragAndDropMixin):
 	def __init__(self, fs, parent=None):
 		super().__init__(parent)
 		self._root_path = ''
-		self._items = []
+		self._rows = []
 		self._fs = fs
 		self._columns = (
 			NameColumn(self._fs), SizeColumn(self._fs),
@@ -92,7 +93,7 @@ class FileSystemModel(DragAndDropMixin):
 			# "When implementing a table based model, columnCount() should
 			#  return 0 when the parent is valid."
 			return 0
-		return len(self._items)
+		return len(self._rows)
 	def columnCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#columnCount(...):
@@ -102,21 +103,12 @@ class FileSystemModel(DragAndDropMixin):
 		return len(self._columns)
 	def data(self, index, role=DisplayRole):
 		if self._index_is_valid(index):
-			file_path = self._items[index.row()]
 			if role in (DisplayRole, EditRole):
-				column = self._columns[index.column()]
-				try:
-					return QVariant(column.get_str(file_path))
-				except FileNotFoundError:
-					# We don't remove the file from `self._items` here because
-					# we rely on the FS implementation to tell us that the file
-					# has been removed.
-					return QVariant()
-			elif role == DecorationRole:
-				if index.column() == 0:
-					icon = self._fs.icon(file_path)
-					if icon:
-						return icon
+				return self._rows[index.row()].columns[index.column()].str
+			elif role == DecorationRole and index.column() == 0:
+				icon = self._rows[index.row()].icon
+				if icon:
+					return icon
 		return QVariant()
 	def headerData(self, section, orientation, role=DisplayRole):
 		if orientation == Qt.Horizontal and role == DisplayRole \
@@ -132,20 +124,27 @@ class FileSystemModel(DragAndDropMixin):
 			self._root_path = path
 			self.rootPathChanged.emit(path)
 			self.beginResetModel()
-			self._items = self._fs.listdir(path)
+			self._rows = [
+				self._load_row(file_path)
+				for file_path in self._fs.listdir(path)
+			]
 			self.endResetModel()
 			self.directoryLoaded.emit(path)
 		return QModelIndex()
 	def filePath(self, index):
 		if not self._index_is_valid(index):
 			raise ValueError("Invalid index")
-		return self._items[index.row()]
+		return self._rows[index.row()].path
 	def index(self, *args):
 		if len(args) == 1:
 			file_path = args[0]
 			if file_path == self._root_path:
 				return QModelIndex()
-			row = self._items.index(file_path)
+			for row, row_tpl in enumerate(self._rows):
+				if row_tpl[0] == file_path:
+					break
+			else:
+				raise ValueError('%r is not in list' % file_path)
 			column = 0
 			parent = QModelIndex()
 		elif len(args) == 2:
@@ -166,7 +165,7 @@ class FileSystemModel(DragAndDropMixin):
 		result = ItemIsSelectable | ItemIsEnabled
 		if index.column() == 0:
 			result |= ItemIsEditable | ItemIsDragEnabled
-			if self._fs.isdir(self.filePath(index)):
+			if self._rows[index.row()].isdir:
 				result |= ItemIsDropEnabled
 		return result
 	def setData(self, index, value, role):
@@ -174,46 +173,51 @@ class FileSystemModel(DragAndDropMixin):
 			self.file_renamed.emit(self.filePath(index), value)
 			return True
 		return super().setData(index, value, role)
-	def get_column(self, i):
-		return self._columns[i]
+	def get_sort_value(self, row, column, is_ascending):
+		col = self._rows[row].columns[column]
+		return col.sort_value_asc if is_ascending else col.sort_value_desc
 	def _index_is_valid(self, index):
 		if not index.isValid() or index.model() != self:
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
+	def _load_row(self, path):
+		return PreloadedRow(
+			path, self._fs.isdir(path), self._fs.icon(path),
+			[
+				PreloadedColumn(
+					QVariant(column.get_str(path)),
+					column.get_sort_value(path, True),
+					column.get_sort_value(path, False)
+				)
+				for column in self._columns
+			]
+		)
 	def _on_file_added(self, path):
 		if dirname(path) == self._root_path:
-			row = len(self._items)
+			row = len(self._rows)
 			self.beginInsertRows(QModelIndex(), row, row)
-			self._items.append(path)
+			self._rows.append(self._load_row(path))
 			self.endInsertRows()
 	def _on_file_renamed(self, old_path, new_path):
-		try:
-			row = self._items.index(old_path)
-		except ValueError:
-			# This for instance happens when old_path is not in self._root_path.
-			self._on_file_added(new_path)
-		else:
-			assert dirname(old_path) == self._root_path
-			if dirname(new_path) == self._root_path:
-				self._items[row] = new_path
-				index = self.index(row, 0)
-				# Supply `index` twice to indicate that only the first column -
-				# the name - changed.
-				self.dataChanged.emit(index, index)
-			else:
-				self._remove_item(row)
+		self._on_file_removed(old_path)
+		self._on_file_added(new_path)
 	def _on_file_removed(self, file_path):
 		try:
-			row = self._items.index(file_path)
+			row = self.index(file_path).row()
 		except ValueError:
 			pass
 		else:
 			self._remove_item(row)
 	def _remove_item(self, row):
 		self.beginRemoveRows(QModelIndex(), row, row)
-		del self._items[row]
+		del self._rows[row]
 		self.endRemoveRows()
+
+PreloadedRow = namedtuple('PreloadedRow', ('path', 'isdir', 'icon', 'columns'))
+
+PreloadedColumn = \
+	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
 
 class FileSystem:
 	def __init__(self, icon_provider=None):
@@ -357,10 +361,10 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		return self.mapFromSource(source_index)
 	def lessThan(self, left, right):
 		source = self.sourceModel()
-		column = source.get_column(self.sortColumn())
+		column = self.sortColumn()
 		is_ascending = self.sortOrder() == AscendingOrder
 		def get_sort_value(l_r):
-			return column.get_sort_value(source.filePath(l_r), is_ascending)
+			return source.get_sort_value(l_r.row(), column, is_ascending)
 		return get_sort_value(left) < get_sort_value(right)
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
