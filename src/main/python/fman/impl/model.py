@@ -114,7 +114,7 @@ class FileSystemModel(DragAndDropMixin):
 		connections (Direct- or BlockingQueuedConnection). On the other hand,
 		the thread safety of this class works by only performing changing
 		operations in its QObject#thread(). To synchronize the two ends, we use
-		signals (* below) to communicate between the different threads.
+		signals ([*] below) to communicate between the different threads.
 		"""
 		self._fs.file_added.connect(self._on_file_added, Qt.DirectConnection)
 		self._fs.file_renamed.connect(
@@ -124,7 +124,7 @@ class FileSystemModel(DragAndDropMixin):
 			self._on_file_removed, Qt.BlockingQueuedConnection
 		)
 
-		# (*): These are the signals that are used to communicate with threads:
+		# [*]: These are the signals that are used to communicate with threads:
 		self._row_loaded.connect(self._on_row_loaded)
 		self._row_loaded_for_add.connect(
 			self._on_row_loaded, Qt.BlockingQueuedConnection
