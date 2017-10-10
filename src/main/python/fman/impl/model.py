@@ -1,4 +1,5 @@
 from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from fman.impl.trash import move_to_trash
 from fman.util import listdir_absolute
@@ -12,7 +13,8 @@ from os.path import commonprefix, isdir, dirname, normpath, basename, \
 	getmtime, getsize
 from pathlib import Path
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
-	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject
+	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject, \
+	QThread
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileIconProvider
 from shutil import rmtree
@@ -69,24 +71,67 @@ class DragAndDropMixin(QAbstractTableModel):
 	def _get_drop_dest(self, index):
 		return self.filePath(index) if index.isValid() else self.rootPath()
 
+PreloadedRow = namedtuple('PreloadedRow', ('path', 'isdir', 'icon', 'columns'))
+
+PreloadedColumn = \
+	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
+
 class FileSystemModel(DragAndDropMixin):
 
 	file_renamed = pyqtSignal(str, str)
 	rootPathChanged = pyqtSignal(str)
 	directoryLoaded = pyqtSignal(str)
 
+	# These signals are used for communication across threads:
+	_row_loaded = pyqtSignal(PreloadedRow)
+	_row_loaded_for_add = pyqtSignal(PreloadedRow)
+	_row_loaded_for_rename = pyqtSignal(PreloadedRow, str)
+
 	def __init__(self, fs, parent=None):
 		super().__init__(parent)
+		self._fs = fs
 		self._root_path = ''
 		self._rows = []
-		self._fs = fs
+		self._executor = ThreadPoolExecutor()
 		self._columns = (
 			NameColumn(self._fs), SizeColumn(self._fs),
 			LastModifiedColumn(self._fs)
 		)
-		self._fs.file_added.connect(self._on_file_added)
-		self._fs.file_renamed.connect(self._on_file_renamed)
-		self._fs.file_removed.connect(self._on_file_removed)
+		self._connect_signals()
+	def _connect_signals(self):
+		"""
+		Consider the example where the user creates a directory. This is done
+		by a command from a separate thread via the following steps:
+
+			1. file system -> create directory
+			2. pane -> place cursor at new directory
+
+		The second step must be executed *after* the file system has created the
+		directory and the file system model has been updated to include the new
+		folder.
+
+		To accommodate the above, we connect to file system signals via blocking
+		connections (Direct- or BlockingQueuedConnection). On the other hand,
+		the thread safety of this class works by only performing changing
+		operations in its QObject#thread(). To synchronize the two ends, we use
+		signals (* below) to communicate between the different threads.
+		"""
+		self._fs.file_added.connect(self._on_file_added, Qt.DirectConnection)
+		self._fs.file_renamed.connect(
+			self._on_file_renamed, Qt.DirectConnection
+		)
+		self._fs.file_removed.connect(
+			self._on_file_removed, Qt.BlockingQueuedConnection
+		)
+
+		# (*): These are the signals that are used to communicate with threads:
+		self._row_loaded.connect(self._on_row_loaded)
+		self._row_loaded_for_add.connect(
+			self._on_row_loaded, Qt.BlockingQueuedConnection
+		)
+		self._row_loaded_for_rename.connect(
+			self._on_row_loaded_for_rename, Qt.BlockingQueuedConnection
+		)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -124,12 +169,9 @@ class FileSystemModel(DragAndDropMixin):
 			self._root_path = path
 			self.rootPathChanged.emit(path)
 			self.beginResetModel()
-			self._rows = [
-				self._load_row(file_path)
-				for file_path in self._fs.listdir(path)
-			]
+			self._rows = []
 			self.endResetModel()
-			self.directoryLoaded.emit(path)
+			self._executor.submit(self._load_rows, path)
 		return QModelIndex()
 	def filePath(self, index):
 		if not self._index_is_valid(index):
@@ -181,6 +223,11 @@ class FileSystemModel(DragAndDropMixin):
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
+	def _load_rows(self, path):
+		assert not self._is_in_home_thread()
+		for file_path in self._fs.listdir(path):
+			self._row_loaded.emit(self._load_row(file_path))
+		self.directoryLoaded.emit(path)
 	def _load_row(self, path):
 		return PreloadedRow(
 			path, self._fs.isdir(path), self._fs.icon(path),
@@ -193,31 +240,55 @@ class FileSystemModel(DragAndDropMixin):
 				for column in self._columns
 			]
 		)
+	def _on_row_loaded(self, row):
+		assert self._is_in_home_thread()
+		if not self._is_in_root(row.path):
+			return
+		rownum = len(self._rows)
+		self.beginInsertRows(QModelIndex(), rownum, rownum)
+		self._rows.append(row)
+		self.endInsertRows()
 	def _on_file_added(self, path):
-		if dirname(path) == self._root_path:
-			row = len(self._rows)
-			self.beginInsertRows(QModelIndex(), row, row)
-			self._rows.append(self._load_row(path))
-			self.endInsertRows()
+		assert not self._is_in_home_thread()
+		row = self._load_row(path)
+		self._row_loaded_for_add.emit(row)
 	def _on_file_renamed(self, old_path, new_path):
-		self._on_file_removed(old_path)
-		self._on_file_added(new_path)
+		assert not self._is_in_home_thread()
+		row = self._load_row(new_path)
+		self._row_loaded_for_rename.emit(row, old_path)
+	def _on_row_loaded_for_rename(self, row, old_path):
+		assert self._is_in_home_thread()
+		# We don't just remove the old row and add the new one because this
+		# destroys the cursor state.
+		try:
+			rownum = self.index(old_path).row()
+		except ValueError:
+			self._on_row_loaded(row)
+		else:
+			assert self._is_in_root(old_path)
+			if self._is_in_root(row.path):
+				self._rows[rownum] = self._load_row(row.path)
+				left = self.index(rownum, 0)
+				right = self.index(rownum, self.columnCount() - 1)
+				self.dataChanged.emit(left, right)
+			else:
+				self._remove_row(rownum)
 	def _on_file_removed(self, file_path):
+		assert self._is_in_home_thread()
 		try:
 			row = self.index(file_path).row()
 		except ValueError:
 			pass
 		else:
-			self._remove_item(row)
-	def _remove_item(self, row):
+			self._remove_row(row)
+	def _remove_row(self, row):
 		self.beginRemoveRows(QModelIndex(), row, row)
 		del self._rows[row]
 		self.endRemoveRows()
-
-PreloadedRow = namedtuple('PreloadedRow', ('path', 'isdir', 'icon', 'columns'))
-
-PreloadedColumn = \
-	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
+	def _is_in_root(self, path):
+		return dirname(path) == self._root_path
+	def _is_in_home_thread(self):
+		return QThread.currentThread() == self.thread()
 
 class FileSystem:
 	def __init__(self, icon_provider=None):
