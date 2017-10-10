@@ -18,6 +18,8 @@ from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileIconProvider
 from shutil import rmtree
+from threading import Lock
+from weakref import WeakValueDictionary
 
 import sip
 import sys
@@ -330,6 +332,7 @@ class CachedFileSystem(QObject):
 		super().__init__()
 		self._source = source
 		self._cache = {}
+		self._cache_locks = WeakValueDictionary()
 	def exists(self, path):
 		if path in self._cache:
 			return True
@@ -379,21 +382,17 @@ class CachedFileSystem(QObject):
 		self._remove(path)
 		self.file_removed.emit(path)
 	def _query_cache(self, path, item, get_default):
-		try:
-			cache = self._cache[path]
-		except KeyError:
-			result = get_default(path)
-			self._cache[path] = {
-				item: result
-			}
-			return result
-		else:
+		# We exploit the fact that setdefault is an atomic operation to avoid
+		# having to lock the entire path in addition to (path, item).
+		cache = self._cache.setdefault(path, {})
+		with self._lock(path, item):
 			if item not in cache:
 				try:
 					cache[item] = get_default(path)
-				except FileNotFoundError:
-					del self._cache[path]
-					raise
+				except:
+					if not cache:
+						del self._cache[path]
+						raise
 			return cache[item]
 	def _remove(self, path):
 		try:
@@ -411,6 +410,8 @@ class CachedFileSystem(QObject):
 			self._cache[dirname(path)]['files'].append(path)
 		except KeyError:
 			pass
+	def _lock(self, path, item=None):
+		return self._cache_locks.setdefault((path, item), Lock())
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):

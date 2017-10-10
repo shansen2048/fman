@@ -1,5 +1,7 @@
 from fman.impl.model import SizeColumn, NameColumn, LastModifiedColumn, \
 	CachedFileSystem
+from threading import Thread, Lock
+from time import sleep
 from unittest import TestCase
 
 class CachedFileSystemTest(TestCase):
@@ -51,6 +53,28 @@ class CachedFileSystemTest(TestCase):
 		self.assertEqual([], cached_fs.listdir('a'))
 		cached_fs.mkdir('a/b')
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
+	def test_no_concurrent_isdir_queries(self):
+		fs = FileSystemCountingIsdirCalls()
+		cached_fs = CachedFileSystem(fs)
+		_new_thread = lambda: Thread(target=cached_fs.isdir, args=('test',))
+		t1, t2 = _new_thread(), _new_thread()
+		t1.start()
+		t2.start()
+		t1.join()
+		t2.join()
+		self.assertEqual(1, fs.num_isdir_calls)
+		self.assertEqual({}, cached_fs._cache_locks, 'Likely memory leak!')
+
+class FileSystemCountingIsdirCalls:
+	def __init__(self):
+		self.num_isdir_calls = 0
+		self._num_isdir_calls_lock = Lock()
+	def isdir(self, _):
+		with self._num_isdir_calls_lock:
+			self.num_isdir_calls += 1
+		# Give other threads a chance to run:
+		sleep(.1)
+		return True
 
 class ColumnTest:
 	def setUp(self):
