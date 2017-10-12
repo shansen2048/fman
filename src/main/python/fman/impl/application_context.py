@@ -8,7 +8,7 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model import GnomeFileIconProvider, GnomeNotAvailable, \
-	FileSystem, CachedFileSystem
+	DefaultFileSystem, CachedFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -21,7 +21,7 @@ from fman.impl.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
-from fman.util import system, cached_property
+from fman.util import system, cached_property, is_frozen
 from fman.util.settings import Settings
 from os import makedirs
 from os.path import dirname, join, pardir, normpath, exists
@@ -32,13 +32,13 @@ from signal import signal, SIGINT
 
 import fman
 import json
+import logging
 import sys
 
 def get_application_context():
 	global _APPLICATION_CONTEXT
 	if _APPLICATION_CONTEXT is None:
-		is_frozen = getattr(sys, 'frozen', False)
-		cls = FrozenApplicationContext if is_frozen else ApplicationContext
+		cls = FrozenApplicationContext if is_frozen() else ApplicationContext
 		_APPLICATION_CONTEXT = cls()
 	return _APPLICATION_CONTEXT
 
@@ -54,6 +54,7 @@ class ApplicationContext:
 			_ = self.signal_wakeup_handler
 			signal(SIGINT, lambda *_: self.app.exit(130))
 	def run(self):
+		self.init_logging()
 		fman.FMAN_VERSION = self.fman_version
 		self.excepthook.install()
 		self.metrics.initialize()
@@ -65,6 +66,8 @@ class ApplicationContext:
 			self.plugin_support.load_plugin(plugin_dir)
 		self.session_manager.show_main_window(self.main_window)
 		return self.app.exec_()
+	def init_logging(self):
+		logging.basicConfig()
 	@property
 	def fman_version(self):
 		return self.constants['version']
@@ -193,7 +196,7 @@ class ApplicationContext:
 		)
 	@cached_property
 	def fs(self):
-		return CachedFileSystem(FileSystem(self.icon_provider))
+		return CachedFileSystem(DefaultFileSystem(self.icon_provider))
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
@@ -348,6 +351,8 @@ class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
 		super().__init__()
 		self._updater = None
+	def init_logging(self):
+		logging.basicConfig(level=logging.CRITICAL)
 	@cached_property
 	def updater(self):
 		if self._should_auto_update():

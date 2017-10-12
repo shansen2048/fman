@@ -2,7 +2,8 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from fman.impl.trash import move_to_trash
-from fman.util import listdir_absolute
+from fman.util import listdir_absolute, Signal, is_debug, EqMixin, ReprMixin, \
+	ConstructorMixin
 from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
@@ -14,15 +15,18 @@ from os.path import commonprefix, isdir, dirname, normpath, basename, \
 from pathlib import Path
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
 	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject, \
-	QThread
+	QThread, QFileSystemWatcher
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileIconProvider
 from shutil import rmtree
 from threading import Lock
 from weakref import WeakValueDictionary
 
+import logging
 import sip
 import sys
+
+_LOG = logging.getLogger(__name__)
 
 class DragAndDropMixin(QAbstractTableModel):
 
@@ -73,7 +77,20 @@ class DragAndDropMixin(QAbstractTableModel):
 	def _get_drop_dest(self, index):
 		return self.filePath(index) if index.isValid() else self.rootPath()
 
-PreloadedRow = namedtuple('PreloadedRow', ('path', 'isdir', 'icon', 'columns'))
+class PreloadedRow(ConstructorMixin, EqMixin, ReprMixin):
+	"""
+	The sole purpose of this subclass is to compare icons by their `.cacheKey()`
+	rather than directly (which always returns False, except for self == self).
+	"""
+
+	_FIELDS = ('path', 'isdir', 'icon', 'columns')
+
+	def _get_field_values(self):
+		return (
+			self.path, self.isdir,
+			self.icon.cacheKey() if self.icon else None,
+			self.columns
+		)
 
 PreloadedColumn = \
 	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
@@ -88,6 +105,8 @@ class FileSystemModel(DragAndDropMixin):
 	_row_loaded = pyqtSignal(PreloadedRow)
 	_row_loaded_for_add = pyqtSignal(PreloadedRow)
 	_row_loaded_for_rename = pyqtSignal(PreloadedRow, str)
+	_row_loaded_for_reload = pyqtSignal(PreloadedRow)
+	_reloaded = pyqtSignal(str, list)
 
 	def __init__(self, fs, parent=None):
 		super().__init__(parent)
@@ -125,6 +144,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._fs.file_removed.connect(
 			self._on_file_removed, Qt.BlockingQueuedConnection
 		)
+		self._fs.file_changed.connect(self._on_file_changed)
 
 		# [*]: These are the signals that are used to communicate with threads:
 		self._row_loaded.connect(self._on_row_loaded)
@@ -134,6 +154,11 @@ class FileSystemModel(DragAndDropMixin):
 		self._row_loaded_for_rename.connect(
 			self._on_row_loaded_for_rename, Qt.BlockingQueuedConnection
 		)
+		self._row_loaded_for_reload.connect(
+			self._on_row_loaded_for_reload, Qt.BlockingQueuedConnection
+		)
+		self._reloaded.connect(self._on_reloaded, Qt.BlockingQueuedConnection)
+		self.directoryLoaded.connect(self._fs.watch)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -168,6 +193,8 @@ class FileSystemModel(DragAndDropMixin):
 		return ''
 	def setRootPath(self, path):
 		if path != self._root_path:
+			if self._root_path:
+				self._fs.unwatch(self._root_path)
 			self._root_path = path
 			self.rootPathChanged.emit(path)
 			self.beginResetModel()
@@ -184,19 +211,19 @@ class FileSystemModel(DragAndDropMixin):
 			file_path = args[0]
 			if file_path == self._root_path:
 				return QModelIndex()
-			for row, row_tpl in enumerate(self._rows):
-				if row_tpl[0] == file_path:
+			for rownum, row in enumerate(self._rows):
+				if row.path == file_path:
 					break
 			else:
 				raise ValueError('%r is not in list' % file_path)
 			column = 0
 			parent = QModelIndex()
 		elif len(args) == 2:
-			row, column = args
+			rownum, column = args
 			parent = QModelIndex()
 		else:
-			row, column, parent = args
-		return super().index(row, column, parent)
+			rownum, column, parent = args
+		return super().index(rownum, column, parent)
 	def flags(self, index):
 		if index == QModelIndex():
 			# The "root path":
@@ -217,6 +244,38 @@ class FileSystemModel(DragAndDropMixin):
 			self.file_renamed.emit(self.filePath(index), value)
 			return True
 		return super().setData(index, value, role)
+	def reload(self, path):
+		# TODO: Don't allow reload when initial load is still in progress.
+		assert not self._is_in_home_thread()
+		self._fs.clear_cache(path)
+		rows = []
+		for file_path in self._fs.listdir(path):
+			self._fs.clear_cache(file_path)
+			rows.append(self._load_row(file_path))
+		self._reloaded.emit(path, rows)
+	def _on_reloaded(self, path, rows):
+		assert self._is_in_home_thread()
+		if path != self._root_path:
+			return
+		diff = ComputeDiff(self._rows, rows)()
+		for entry in diff:
+			if entry.type == 'change':
+				self._update_rows(entry.rows, entry.insert_start)
+			elif entry.type == 'remove':
+				self._remove_rows(entry.cut_start, entry.cut_end)
+			elif entry.type == 'insert':
+				self._insert_rows(entry.rows, entry.insert_start)
+			elif entry.type == 'move':
+				self._move_rows(
+					entry.cut_start, entry.insert_start, len(entry.rows)
+				)
+			elif entry.type == 'other':
+				self._remove_rows(entry.cut_start, entry.cut_end)
+				self._insert_rows(entry.rows, entry.insert_start)
+			else:
+				raise NotImplementedError(entry.type)
+		if is_debug():
+			assert rows == self._rows, '%r != %r' % (rows, self._rows)
 	def get_sort_value(self, row, column, is_ascending):
 		col = self._rows[row].columns[column]
 		return col.sort_value_asc if is_ascending else col.sort_value_desc
@@ -246,10 +305,7 @@ class FileSystemModel(DragAndDropMixin):
 		assert self._is_in_home_thread()
 		if not self._is_in_root(row.path):
 			return
-		rownum = len(self._rows)
-		self.beginInsertRows(QModelIndex(), rownum, rownum)
-		self._rows.append(row)
-		self.endInsertRows()
+		self._insert_rows([row])
 	def _on_file_added(self, path):
 		assert not self._is_in_home_thread()
 		row = self._load_row(path)
@@ -269,12 +325,9 @@ class FileSystemModel(DragAndDropMixin):
 		else:
 			assert self._is_in_root(old_path)
 			if self._is_in_root(row.path):
-				self._rows[rownum] = self._load_row(row.path)
-				left = self.index(rownum, 0)
-				right = self.index(rownum, self.columnCount() - 1)
-				self.dataChanged.emit(left, right)
+				self._update_rows([row], rownum)
 			else:
-				self._remove_row(rownum)
+				self._remove_rows(rownum)
 	def _on_file_removed(self, file_path):
 		assert self._is_in_home_thread()
 		try:
@@ -282,19 +335,161 @@ class FileSystemModel(DragAndDropMixin):
 		except ValueError:
 			pass
 		else:
-			self._remove_row(row)
-	def _remove_row(self, row):
-		self.beginRemoveRows(QModelIndex(), row, row)
-		del self._rows[row]
+			self._remove_rows(row)
+	def _on_file_changed(self, path):
+		assert self._is_in_home_thread()
+		if path == self._root_path:
+			# The common case
+			self._executor.submit(self.reload, path)
+		else:
+			if self._is_in_root(path):
+				self._executor.submit(self._reload_row, path)
+	def _reload_row(self, path):
+		assert not self._is_in_home_thread()
+		row = self._load_row(path)
+		self._row_loaded_for_reload.emit(row)
+	def _on_row_loaded_for_reload(self, row):
+		assert self._is_in_home_thread()
+		try:
+			index = self.index(row.path)
+		except ValueError:
+			pass
+		else:
+			self._update_rows([row], index.row())
+	def _insert_rows(self, rows, first_rownum=-1):
+		if first_rownum == -1:
+			first_rownum = len(self._rows)
+		self.beginInsertRows(
+			QModelIndex(), first_rownum, first_rownum + len(rows) - 1
+		)
+		self._rows = \
+			self._rows[:first_rownum] + rows + self._rows[first_rownum:]
+		self.endInsertRows()
+	def _update_rows(self, rows, first_rownum):
+		self._rows[first_rownum : first_rownum + len(rows)] = rows
+		top_left = self.index(first_rownum, 0)
+		bottom_right = \
+			self.index(first_rownum + len(rows) - 1, self.columnCount() - 1)
+		self.dataChanged.emit(top_left, bottom_right)
+	def _remove_rows(self, start, end=-1):
+		if end == -1:
+			end = start + 1
+		self.beginRemoveRows(QModelIndex(), start, end - 1)
+		del self._rows[start:end]
 		self.endRemoveRows()
+	def _move_rows(self, cut_start, insert_start, num_rows):
+		destination_row = \
+			self._get_move_destination(cut_start, insert_start, num_rows)
+		assert self.beginMoveRows(
+			QModelIndex(), cut_start, cut_start + num_rows - 1,
+			QModelIndex(), destination_row
+		)
+		rows = self._rows[cut_start:cut_start + num_rows]
+		self._rows = self._rows[:cut_start] + self._rows[cut_start + num_rows:]
+		self._rows = \
+			self._rows[:insert_start] + rows + self._rows[insert_start:]
+		self.endMoveRows()
+	@classmethod
+	def _get_move_destination(cls, cut_start, insert_start, num_rows):
+		if cut_start == insert_start:
+			raise ValueError(
+				'Not a move operation (%d, %d)' % (cut_start, num_rows)
+			)
+		return insert_start + (num_rows if cut_start < insert_start else 0)
 	def _is_in_root(self, path):
 		return dirname(path) == self._root_path
 	def _is_in_home_thread(self):
 		return QThread.currentThread() == self.thread()
 
+class ComputeDiff:
+	"""
+	N.B.: This implementation requires that there be no duplicate rows!
+	"""
+	def __init__(self, old_rows, new_rows):
+		self._old_rows = list(old_rows)
+		self._new_rows = new_rows
+		self._result = []
+	def __call__(self):
+		for i in range(len(self._old_rows)-1, -1, -1):
+			if self._old_rows[i] not in self._new_rows:
+				self._remove_row(i)
+		for i, new_row in enumerate(self._new_rows):
+			if new_row not in self._old_rows:
+				self._insert_row(i, new_row)
+		for i, new_row in enumerate(self._new_rows):
+			if new_row != self._old_rows[i]:
+				self._move_row(self._old_rows.index(new_row, i), i)
+		assert self._old_rows == self._new_rows
+		return self._join_adjacent()
+	def _remove_row(self, i):
+		self._result.append(DiffEntry(i, i + 1, 0, []))
+		self._old_rows.pop(i)
+	def _insert_row(self, i, row):
+		self._result.append(DiffEntry(0, 0, i, [row]))
+		self._old_rows.insert(i, row)
+	def _move_row(self, src, dest):
+		row = self._old_rows.pop(src)
+		self._old_rows.insert(dest, row)
+		self._result.append(DiffEntry(src, src + 1, dest, [row]))
+	def _join_adjacent(self):
+		if not self._result:
+			return []
+		result = [self._result[0]]
+		for entry in self._result[1:]:
+			if not result[-1].extend_by(entry):
+				result.append(entry)
+		return result
+
+class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
+
+	_FIELDS = ('cut_start', 'cut_end', 'insert_start', 'rows')
+
+	def extend_by(self, other):
+		if not self.rows and other.cut_start == self.cut_end:
+			self.cut_end = other.cut_end
+			self.rows = other.rows
+			return True
+		if not other.rows and other.cut_end == self.cut_start:
+			self.cut_start = other.cut_start
+			return True
+		if not other.does_cut and other.insert_start == self.insert_end:
+			self.rows += other.rows
+			return True
+		return False
+	@property
+	def type(self):
+		if not self.does_cut:
+			assert self.rows
+			return 'insert'
+		if self.rows:
+			if self.cut_end - self.cut_start == len(self.rows):
+				if self.cut_start == self.insert_start:
+					return 'change'
+				else:
+					return 'move'
+			return 'other'
+		else:
+			return 'remove'
+	@property
+	def does_cut(self):
+		return self.cut_end > self.cut_start
+	@property
+	def insert_end(self):
+		return self.insert_start + len(self.rows)
+
 class FileSystem:
+	def __init__(self):
+		self.file_changed = Signal()
+	def broadcast_file_changed(self, path):
+		self.file_changed.emit(path)
+
+class DefaultFileSystem(FileSystem):
 	def __init__(self, icon_provider=None):
+		super().__init__()
 		self._icon_provider = icon_provider
+		self._watcher = QFileSystemWatcher()
+		self._watcher.directoryChanged.connect(self.broadcast_file_changed)
+		self._watcher.fileChanged.connect(self.broadcast_file_changed)
 	def exists(self, path):
 		return Path(path).exists()
 	def listdir(self, path):
@@ -321,18 +516,24 @@ class FileSystem:
 			rmtree(path)
 		else:
 			remove(path)
+	def watch(self, path):
+		self._watcher.addPath(path)
+	def unwatch(self, path):
+		self._watcher.removePath(path)
 
 class CachedFileSystem(QObject):
 
 	file_renamed = pyqtSignal(str, str)
 	file_removed = pyqtSignal(str)
 	file_added = pyqtSignal(str)
+	file_changed = pyqtSignal(str)
 
 	def __init__(self, source):
 		super().__init__()
 		self._source = source
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
+		source.file_changed.connect(self._on_source_file_changed)
 	def exists(self, path):
 		if path in self._cache:
 			return True
@@ -381,6 +582,15 @@ class CachedFileSystem(QObject):
 		self._source.delete(path)
 		self._remove(path)
 		self.file_removed.emit(path)
+	def watch(self, path):
+		self._source.watch(path)
+	def unwatch(self, path):
+		self._source.unwatch(path)
+	def clear_cache(self, path):
+		try:
+			del self._cache[path]
+		except KeyError:
+			pass
 	def _query_cache(self, path, item, get_default):
 		# We exploit the fact that setdefault is an atomic operation to avoid
 		# having to lock the entire path in addition to (path, item).
@@ -412,6 +622,9 @@ class CachedFileSystem(QObject):
 			pass
 	def _lock(self, path, item=None):
 		return self._cache_locks.setdefault((path, item), Lock())
+	def _on_source_file_changed(self, path):
+		self.clear_cache(path)
+		self.file_changed.emit(path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
@@ -557,7 +770,7 @@ class GnomeFileIconProvider(QFileIconProvider):
 				'standard::icon', nofollow_symlinks, None
 			)
 		except Exception:
-			pass
+			_LOG.exception("Could not obtain icon for %s", file_path)
 		else:
 			if file_info:
 				icon = file_info.get_icon()
