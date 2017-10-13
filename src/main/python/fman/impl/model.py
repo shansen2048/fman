@@ -739,6 +739,13 @@ class GnomeFileIconProvider(QFileIconProvider):
 			self.Gtk, self.Gio = self._init_pgi()
 		except (ImportError, ValueError) as e:
 			raise GnomeNotAvailable() from e
+		else:
+			# Access - and save - this constant here, in the main thread.
+			# When we access it from other threads, we would otherwise sometimes
+			# get "TypeError: query_info() argument 'flags'(2): Expected
+			# 'FileQueryInfoFlags' but got 'FileQueryInfoFlags'".
+			self._NOFOLLOW_SYMLINKS = \
+				self.Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS
 	def _init_pgi(self):
 		import pgi
 		pgi.install_as_gi()
@@ -764,10 +771,9 @@ class GnomeFileIconProvider(QFileIconProvider):
 		return result or super().icon(arg)
 	def _icon(self, file_path):
 		gio_file = self.Gio.file_new_for_path(file_path)
-		nofollow_symlinks = self.Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS
 		try:
 			file_info = gio_file.query_info(
-				'standard::icon', nofollow_symlinks, None
+				'standard::icon', self._NOFOLLOW_SYMLINKS, None
 			)
 		except Exception:
 			_LOG.exception("Could not obtain icon for %s", file_path)
