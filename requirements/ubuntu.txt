@@ -2,4 +2,3 @@
 # Would like to just write PyInstaller==3.2.1. But for some reason pip doesn't
 # find it under Ubuntu 14.04.
 git+https://github.com/pyinstaller/pyinstaller@v3.2.1
-pgi==0.0.11.1

@@ -94,7 +94,7 @@ class CachedFileSystemTest(TestCase):
 		fs = StubFileSystem({
 			'a': {}
 		})
-		cached_fs = CachedFileSystem(fs)
+		cached_fs = CachedFileSystem(fs, None)
 		self.assertTrue(cached_fs.exists('a'))
 		self.assertFalse(cached_fs.exists('b'))
 		cached_fs.touch('b')
@@ -106,7 +106,7 @@ class CachedFileSystemTest(TestCase):
 			},
 			'a/b': {}
 		})
-		cached_fs = CachedFileSystem(fs)
+		cached_fs = CachedFileSystem(fs, None)
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
 		cached_fs.delete('a/b')
 		self.assertEqual([], cached_fs.listdir('a'))
@@ -116,7 +116,7 @@ class CachedFileSystemTest(TestCase):
 			'a/b': {},
 			'c': { 'isdir': True }
 		})
-		cached_fs = CachedFileSystem(fs)
+		cached_fs = CachedFileSystem(fs, None)
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
 		self.assertEqual([], cached_fs.listdir('c'))
 		cached_fs.rename('a/b', 'c/b')
@@ -126,7 +126,7 @@ class CachedFileSystemTest(TestCase):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
 		})
-		cached_fs = CachedFileSystem(fs)
+		cached_fs = CachedFileSystem(fs, None)
 		self.assertEqual([], cached_fs.listdir('a'))
 		cached_fs.touch('a/b')
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
@@ -134,13 +134,13 @@ class CachedFileSystemTest(TestCase):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
 		})
-		cached_fs = CachedFileSystem(fs)
+		cached_fs = CachedFileSystem(fs, None)
 		self.assertEqual([], cached_fs.listdir('a'))
 		cached_fs.mkdir('a/b')
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
 	def test_no_concurrent_isdir_queries(self):
 		fs = FileSystemCountingIsdirCalls()
-		cached_fs = CachedFileSystem(fs)
+		cached_fs = CachedFileSystem(fs, None)
 		_new_thread = lambda: Thread(target=cached_fs.isdir, args=('test',))
 		t1, t2 = _new_thread(), _new_thread()
 		t1.start()

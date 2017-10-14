@@ -11,20 +11,19 @@ from functools import lru_cache
 from math import log
 from os import rename, remove
 from os.path import commonprefix, isdir, dirname, normpath, basename, \
-	getmtime, getsize
+	getmtime, getsize, join
 from pathlib import Path
-from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
-	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject, \
-	QThread, QFileSystemWatcher
+from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
+	QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject, QThread, \
+	QFileSystemWatcher
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QFileIconProvider
 from shutil import rmtree
 from threading import Lock
 from weakref import WeakValueDictionary
 
+import json
 import logging
 import sip
-import sys
 
 _LOG = logging.getLogger(__name__)
 
@@ -484,9 +483,8 @@ class FileSystem:
 		self.file_changed.emit(path)
 
 class DefaultFileSystem(FileSystem):
-	def __init__(self, icon_provider=None):
+	def __init__(self):
 		super().__init__()
-		self._icon_provider = icon_provider
 		self._watcher = QFileSystemWatcher()
 		self._watcher.directoryChanged.connect(self.broadcast_file_changed)
 		self._watcher.fileChanged.connect(self.broadcast_file_changed)
@@ -500,9 +498,6 @@ class DefaultFileSystem(FileSystem):
 		return getsize(path)
 	def getmtime(self, path):
 		return getmtime(path)
-	def icon(self, path):
-		if self._icon_provider:
-			return self._icon_provider.icon(QFileInfo(path))
 	def touch(self, path):
 		Path(path).touch()
 	def mkdir(self, path):
@@ -528,9 +523,10 @@ class CachedFileSystem(QObject):
 	file_added = pyqtSignal(str)
 	file_changed = pyqtSignal(str)
 
-	def __init__(self, source):
+	def __init__(self, source, icon_provider):
 		super().__init__()
 		self._source = source
+		self._icon_provider = icon_provider
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
 		source.file_changed.connect(self._on_source_file_changed)
@@ -550,7 +546,9 @@ class CachedFileSystem(QObject):
 	def getmtime(self, path):
 		return self._query_cache(path, 'mtime', self._source.getmtime)
 	def icon(self, path):
-		return self._query_cache(path, 'icon', self._source.icon)
+		return self._query_cache(path, 'icon', self._get_icon)
+	def _get_icon(self, path):
+		return self._icon_provider.icon(path, self.isdir(path))
 	def touch(self, path):
 		self._source.touch(path)
 		if path not in self._cache:
@@ -732,65 +730,39 @@ class LastModifiedColumn(Column):
 		is_dir = self.fs.isdir(file_path)
 		return is_dir ^ is_ascending, self.fs.getmtime(file_path)
 
-class GnomeFileIconProvider(QFileIconProvider):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+class IconProvider:
+	def __init__(self, json_path, icons_dir):
+		with open(json_path) as f:
+			json_data = json.load(f)
+		self._folder_icons = json_data['folder']
+		self._file_icons = json_data['file']
+		self._icons_dir = icons_dir
+	def icon(self, file_path, is_dir):
 		try:
-			self.Gtk, self.Gio = self._init_pgi()
-		except (ImportError, ValueError) as e:
-			raise GnomeNotAvailable() from e
-		else:
-			# Access - and save - this constant here, in the main thread.
-			# When we access it from other threads, we would otherwise sometimes
-			# get "TypeError: query_info() argument 'flags'(2): Expected
-			# 'FileQueryInfoFlags' but got 'FileQueryInfoFlags'".
-			self._NOFOLLOW_SYMLINKS = \
-				self.Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS
-	def _init_pgi(self):
-		import pgi
-		pgi.install_as_gi()
-		import gi
-		gi.require_version('Gtk', '3.0')
-		try:
-			from gi.repository import Gtk, Gio
-		except AttributeError as e:
-			if e.args == (
-				"'GLib' module has not attribute 'uri_list_extract_uris'",
-			):
-				# This happens when we run fman from source.
-				sys.modules['pgi.overrides.GObject'] = None
-				from gi.repository import Gtk, Gio
-		# This is required when we use pgi in a PyInstaller-frozen app. See:
-		# https://github.com/lazka/pgi/issues/38
-		Gtk.init(sys.argv)
-		return Gtk, Gio
-	def icon(self, arg):
-		result = None
-		if isinstance(arg, QFileInfo):
-			result = self._icon(arg.absoluteFilePath())
-		return result or super().icon(arg)
-	def _icon(self, file_path):
-		gio_file = self.Gio.file_new_for_path(file_path)
-		try:
-			file_info = gio_file.query_info(
-				'standard::icon', self._NOFOLLOW_SYMLINKS, None
+			icon_name = self._get_icon_name(file_path, is_dir)
+			return self._load_icon(join(self._icons_dir, icon_name))
+		except:
+			from traceback import print_exc
+			print_exc()
+	def _get_icon_name(self, file_path, is_dir):
+		file_name = basename(file_path)
+		if is_dir:
+			return self._folder_icons.get(
+				file_name, self._folder_icons['default']
 			)
-		except Exception:
-			_LOG.exception("Could not obtain icon for %s", file_path)
-		else:
-			if file_info:
-				icon = file_info.get_icon()
-				if icon:
-					icon_names = icon.get_names()
-					if icon_names:
-						return self._load_gtk_icon(icon_names[0])
+		try:
+			return self._file_icons[file_name]
+		except KeyError:
+			pass
+		file_name = file_name.lower()
+		i = file_name.find('.')
+		while i != -1:
+			extension = file_name[i + 1:]
+			try:
+				return self._file_icons['*.' + extension]
+			except KeyError:
+				i = file_name.find('.', i + 1)
+		return self._file_icons['default']
 	@lru_cache()
-	def _load_gtk_icon(self, name, size=32):
-		theme = self.Gtk.IconTheme.get_default()
-		if theme:
-			icon = theme.lookup_icon(name, size, 0)
-			if icon:
-				return QIcon(icon.get_filename())
-
-class GnomeNotAvailable(RuntimeError):
-	pass
+	def _load_icon(self, file_path):
+		return QIcon(file_path)
