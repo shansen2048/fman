@@ -200,7 +200,7 @@ class FileSystemModel(DragAndDropMixin):
 			self.beginResetModel()
 			self._rows = []
 			self.endResetModel()
-			self._executor.submit(self._load_rows, path)
+			self._execute_async(self._load_rows, path)
 		return QModelIndex()
 	def filePath(self, index):
 		if not self._index_is_valid(index):
@@ -340,10 +340,10 @@ class FileSystemModel(DragAndDropMixin):
 		assert self._is_in_home_thread()
 		if path == self._root_path:
 			# The common case
-			self._executor.submit(self.reload, path)
+			self._execute_async(self.reload, path)
 		else:
 			if self._is_in_root(path):
-				self._executor.submit(self._reload_row, path)
+				self._execute_async(self._reload_row, path)
 	def _reload_row(self, path):
 		assert not self._is_in_home_thread()
 		row = self._load_row(path)
@@ -396,6 +396,10 @@ class FileSystemModel(DragAndDropMixin):
 				'Not a move operation (%d, %d)' % (cut_start, num_rows)
 			)
 		return insert_start + (num_rows if cut_start < insert_start else 0)
+	def _execute_async(self, fn, *args, **kwargs):
+		future = self._executor.submit(fn, *args, **kwargs)
+		raise_any_exceptions = lambda future_: future_.result()
+		future.add_done_callback(raise_any_exceptions)
 	def _is_in_root(self, path):
 		return dirname(path) == self._root_path
 	def _is_in_home_thread(self):
