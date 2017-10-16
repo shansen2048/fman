@@ -7,7 +7,8 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
-from fman.impl.model import DefaultFileSystem, CachedFileSystem, IconProvider
+from fman.impl.model import GnomeFileIconProvider, GnomeNotAvailable, \
+	DefaultFileSystem, CachedFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -133,9 +134,10 @@ class ApplicationContext:
 		return Excepthook(self.plugin_dirs, self.plugin_error_handler)
 	@cached_property
 	def icon_provider(self):
-		return IconProvider(
-			self._get_resource('Icons.json'), self._get_resource('Icons')
-		)
+		try:
+			return GnomeFileIconProvider()
+		except GnomeNotAvailable:
+			return QFileIconProvider()
 	@property
 	def main_window(self):
 		if self._main_window is None:
@@ -194,7 +196,7 @@ class ApplicationContext:
 		)
 	@cached_property
 	def fs(self):
-		return CachedFileSystem(DefaultFileSystem(), self.icon_provider)
+		return CachedFileSystem(DefaultFileSystem(self.icon_provider))
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
