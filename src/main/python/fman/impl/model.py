@@ -488,9 +488,8 @@ class FileSystem:
 		self.file_changed.emit(path)
 
 class DefaultFileSystem(FileSystem):
-	def __init__(self, icon_provider=None):
+	def __init__(self):
 		super().__init__()
-		self._icon_provider = icon_provider
 		self._watcher = QFileSystemWatcher()
 		self._watcher.directoryChanged.connect(self.broadcast_file_changed)
 		self._watcher.fileChanged.connect(self.broadcast_file_changed)
@@ -504,9 +503,6 @@ class DefaultFileSystem(FileSystem):
 		return getsize(path)
 	def getmtime(self, path):
 		return getmtime(path)
-	def icon(self, path):
-		if self._icon_provider:
-			return self._icon_provider.icon(QFileInfo(path))
 	def touch(self, path):
 		Path(path).touch()
 	def mkdir(self, path):
@@ -532,9 +528,10 @@ class CachedFileSystem(QObject):
 	file_added = pyqtSignal(str)
 	file_changed = pyqtSignal(str)
 
-	def __init__(self, source):
+	def __init__(self, source, icon_provider):
 		super().__init__()
 		self._source = source
+		self._icon_provider = icon_provider
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
 		source.file_changed.connect(self._on_source_file_changed)
@@ -554,7 +551,9 @@ class CachedFileSystem(QObject):
 	def getmtime(self, path):
 		return self._query_cache(path, 'mtime', self._source.getmtime)
 	def icon(self, path):
-		return self._query_cache(path, 'icon', self._source.icon)
+		return self._query_cache(path, 'icon', self._get_icon)
+	def _get_icon(self, path):
+		return self._icon_provider.icon(QFileInfo(path))
 	def touch(self, path):
 		self._source.touch(path)
 		if path not in self._cache:

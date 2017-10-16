@@ -196,7 +196,7 @@ class ApplicationContext:
 		)
 	@cached_property
 	def fs(self):
-		return CachedFileSystem(DefaultFileSystem(self.icon_provider))
+		return CachedFileSystem(DefaultFileSystem(), self.icon_provider)
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
