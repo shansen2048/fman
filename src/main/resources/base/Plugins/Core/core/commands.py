@@ -380,7 +380,7 @@ class CreateDirectory(_CorePaneCommand):
 			try:
 				self.fs.mkdir(dir_path)
 			except FileExistsError:
-				if isdir(dir_path):
+				if self.fs.isdir(dir_path):
 					show_alert("This directory already exists!")
 				else:
 					show_alert("A file with this name already exists!")
