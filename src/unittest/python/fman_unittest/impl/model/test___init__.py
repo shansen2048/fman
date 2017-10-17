@@ -88,7 +88,7 @@ class CachedFileSystemTest(TestCase):
 
 class FileSystemCountingIsdirCalls:
 	def __init__(self):
-		self._file_changed = Signal()
+		self.file_changed = Signal()
 		self.num_isdir_calls = 0
 		self._num_isdir_calls_lock = Lock()
 	def isdir(self, _):
@@ -101,7 +101,7 @@ class FileSystemCountingIsdirCalls:
 class StubFileSystem:
 	def __init__(self, items):
 		self._items = items
-		self._file_changed = Signal()
+		self.file_changed = Signal()
 	def exists(self, item):
 		return item in self._items
 	def listdir(self, item):
