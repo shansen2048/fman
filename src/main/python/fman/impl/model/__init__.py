@@ -1,25 +1,18 @@
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from fman.impl.model.diff import ComputeDiff
-from fman.impl.trash import move_to_trash
-from fman.util import listdir_absolute, Signal, is_debug, EqMixin, ReprMixin, \
-	ConstructorMixin
+from fman.impl.model.fs import NameColumn, SizeColumn, LastModifiedColumn
+from fman.util import is_debug, EqMixin, ReprMixin, ConstructorMixin
 from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
 from functools import lru_cache
-from math import log
-from os import rename, remove
-from os.path import commonprefix, isdir, dirname, normpath, basename, \
-	getmtime, getsize
-from pathlib import Path
+from os.path import commonprefix, dirname, normpath
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QFileInfo, \
 	QVariant, QUrl, QMimeData, QAbstractTableModel, QModelIndex, Qt, QObject, \
-	QThread, QFileSystemWatcher
+	QThread
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileIconProvider
-from shutil import rmtree
 from threading import Lock
 from weakref import WeakValueDictionary
 
@@ -406,46 +399,6 @@ class FileSystemModel(DragAndDropMixin):
 	def _is_in_home_thread(self):
 		return QThread.currentThread() == self.thread()
 
-class FileSystem:
-	def __init__(self):
-		self.file_changed = Signal()
-	def broadcast_file_changed(self, path):
-		self.file_changed.emit(path)
-
-class DefaultFileSystem(FileSystem):
-	def __init__(self):
-		super().__init__()
-		self._watcher = QFileSystemWatcher()
-		self._watcher.directoryChanged.connect(self.broadcast_file_changed)
-		self._watcher.fileChanged.connect(self.broadcast_file_changed)
-	def exists(self, path):
-		return Path(path).exists()
-	def listdir(self, path):
-		return listdir_absolute(path)
-	def isdir(self, path):
-		return isdir(path)
-	def getsize(self, path):
-		return getsize(path)
-	def getmtime(self, path):
-		return getmtime(path)
-	def touch(self, path):
-		Path(path).touch()
-	def mkdir(self, path):
-		Path(path).mkdir()
-	def rename(self, old_path, new_path):
-		rename(old_path, new_path)
-	def move_to_trash(self, file_path):
-		move_to_trash(file_path)
-	def delete(self, path):
-		if self.isdir(path):
-			rmtree(path)
-		else:
-			remove(path)
-	def watch(self, path):
-		self._watcher.addPath(path)
-	def unwatch(self, path):
-		self._watcher.removePath(path)
-
 class CachedFileSystem(QObject):
 
 	file_renamed = pyqtSignal(str, str)
@@ -595,70 +548,6 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		return True
 	def add_filter(self, filter_):
 		self.filters.append(filter_)
-
-class Column:
-	def __init__(self, fs):
-		self.fs = fs
-	def get_str(cls, file_path):
-		raise NotImplementedError()
-	def get_sort_value(self, file_path, is_ascending):
-		"""
-		This method should generally be independent of is_ascending.
-		When is_ascending is False, Qt simply reverses the sort order.
-		However, we may sometimes want to change the sort order in a way other
-		than a simple reversal when is_ascending is False. That's why this
-		method receives is_ascending as a parameter.
-		"""
-		raise NotImplementedError()
-
-class NameColumn(Column):
-
-	name = 'Name'
-
-	def get_str(self, file_path):
-		return basename(file_path)
-	def get_sort_value(self, file_path, is_ascending):
-		is_dir = self.fs.isdir(file_path)
-		return is_dir ^ is_ascending, basename(file_path).lower()
-
-class SizeColumn(Column):
-
-	name = 'Size'
-
-	def get_str(self, file_path):
-		if self.fs.isdir(file_path):
-			return ''
-		size_bytes = self.fs.getsize(file_path)
-		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
-		if size_bytes <= 0:
-			unit_index = 0
-		else:
-			unit_index = min(int(log(size_bytes, 1024)), len(units) - 1)
-		unit = units[unit_index]
-		base = 1024 ** unit_index
-		return unit % (size_bytes / base)
-	def get_sort_value(self, file_path, is_ascending):
-		is_dir = self.fs.isdir(file_path)
-		if is_dir:
-			ord_ = ord if is_ascending else lambda c: -ord(c)
-			minor = tuple(ord_(c) for c in basename(file_path).lower())
-		else:
-			minor = self.fs.getsize(file_path)
-		return is_dir ^ is_ascending, minor
-
-class LastModifiedColumn(Column):
-
-	name = 'Modified'
-
-	def get_str(self, file_path):
-		try:
-			modified = datetime.fromtimestamp(self.fs.getmtime(file_path))
-		except OSError:
-			return ''
-		return modified.strftime('%Y-%m-%d %H:%M')
-	def get_sort_value(self, file_path, is_ascending):
-		is_dir = self.fs.isdir(file_path)
-		return is_dir ^ is_ascending, self.fs.getmtime(file_path)
 
 class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):
