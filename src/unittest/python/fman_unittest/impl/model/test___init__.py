@@ -1,6 +1,5 @@
 from fman.util import Signal
 from fman.impl.model import CachedFileSystem, FileSystemModel
-from itertools import chain, combinations
 from threading import Thread, Lock
 from time import sleep
 from unittest import TestCase
