@@ -1,6 +1,7 @@
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from fman.impl.model.diff import ComputeDiff
 from fman.impl.trash import move_to_trash
 from fman.util import listdir_absolute, Signal, is_debug, EqMixin, ReprMixin, \
 	ConstructorMixin
