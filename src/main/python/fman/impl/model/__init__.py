@@ -14,6 +14,7 @@ from threading import Lock
 from weakref import WeakValueDictionary
 
 import sip
+import sys
 
 class DragAndDropMixin(QAbstractTableModel):
 
@@ -385,8 +386,19 @@ class FileSystemModel(DragAndDropMixin):
 		return insert_start + (num_rows if cut_start < insert_start else 0)
 	def _execute_async(self, fn, *args, **kwargs):
 		future = self._executor.submit(fn, *args, **kwargs)
-		raise_any_exceptions = lambda future_: future_.result()
-		future.add_done_callback(raise_any_exceptions)
+		future.add_done_callback(self._handle_async_exc)
+	def _handle_async_exc(self, future):
+		"""
+		Python's ThreadPoolExecutor is awfully quiet about exceptions - both
+		those that occur in the function passed to .submit(...), as well as
+		those in the function passed to .add_done_callback(...).
+
+		This method ensures that no exception goes unreported.
+		"""
+		try:
+			future.result()
+		except:
+			sys.excepthook(*sys.exc_info())
 	def _is_in_root(self, path):
 		return dirname(path) == self._root_path
 	def _is_in_home_thread(self):
