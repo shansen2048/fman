@@ -954,7 +954,7 @@ class ZenOfFman(ApplicationCommand):
 			"But not at the expense of speed\n"
 			"I/O is better asynchronous\n"
 			"Updates should be transparent and continuous\n"
-			"Development speed matters more than program size"
+			"Don't reinvent the wheel"
 		)
 
 class OpenDataDirectory(DirectoryPaneCommand):
