@@ -95,8 +95,8 @@ class FileSystemModel(DragAndDropMixin):
 	_row_loaded_for_reload = pyqtSignal(PreloadedRow)
 	_reloaded = pyqtSignal(str, list)
 
-	def __init__(self, fs, parent=None):
-		super().__init__(parent)
+	def __init__(self, fs):
+		super().__init__()
 		self._fs = fs
 		self._root_path = ''
 		self._rows = []
