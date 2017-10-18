@@ -476,7 +476,7 @@ class CachedFileSystem(QObject):
 				except:
 					if not cache:
 						del self._cache[path]
-						raise
+					raise
 			return cache[item]
 	def _remove(self, path):
 		try:

@@ -85,6 +85,13 @@ class CachedFileSystemTest(TestCase):
 		t2.join()
 		self.assertEqual(1, fs.num_isdir_calls)
 		self.assertEqual({}, cached_fs._cache_locks, 'Likely memory leak!')
+	def test_permission_error(self):
+		fs = FileSystemRaisingError()
+		cached_fs = CachedFileSystem(fs, None)
+		# Put 'foo' in cache:
+		cached_fs.isdir('foo')
+		with self.assertRaises(PermissionError):
+			cached_fs.listdir('foo')
 
 class FileSystemCountingIsdirCalls:
 	def __init__(self):
@@ -97,3 +104,11 @@ class FileSystemCountingIsdirCalls:
 		# Give other threads a chance to run:
 		sleep(.1)
 		return True
+
+class FileSystemRaisingError:
+	def __init__(self):
+		self.file_changed = Signal()
+	def isdir(self, path):
+		return True
+	def listdir(self, path):
+		raise PermissionError(path)
