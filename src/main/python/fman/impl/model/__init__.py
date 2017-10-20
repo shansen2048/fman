@@ -277,14 +277,14 @@ class FileSystemModel(DragAndDropMixin):
 			   0 <= index.column() < self.columnCount()
 	def _load_rows(self, path):
 		assert not self._is_in_home_thread()
-		# Abort reload if path changed:
 		if path != self._root_path:
+			# Root path changed since this method was scheduled. Abort.
 			return
 		for file_path in self._fs.listdir(path):
 			row = self._load_row(file_path)
 			self._row_loaded.emit(row, path)
-			# Abort reload if path changed:
 			if path != self._root_path:
+				# Root path changed. Abort.
 				return
 		self.directoryLoaded.emit(path)
 	def _load_row(self, path):
