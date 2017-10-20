@@ -74,11 +74,7 @@ class PreloadedRow(ConstructorMixin, EqMixin, ReprMixin):
 	_FIELDS = ('path', 'isdir', 'icon', 'columns')
 
 	def _get_field_values(self):
-		return (
-			self.path, self.isdir,
-			self.icon.cacheKey() if self.icon else None,
-			self.columns
-		)
+		return (self.path, self.isdir, self.icon.cacheKey(), self.columns)
 
 PreloadedColumn = \
 	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
@@ -166,9 +162,7 @@ class FileSystemModel(DragAndDropMixin):
 			if role in (DisplayRole, EditRole):
 				return self._rows[index.row()].columns[index.column()].str
 			elif role == DecorationRole and index.column() == 0:
-				icon = self._rows[index.row()].icon
-				if icon:
-					return icon
+				return self._rows[index.row()].icon
 		return QVariant()
 	def headerData(self, section, orientation, role=DisplayRole):
 		if orientation == Qt.Horizontal and role == DisplayRole \
