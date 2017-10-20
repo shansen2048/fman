@@ -1,6 +1,7 @@
-from fman.util import is_in_subdir
+from fman.util import is_in_subdir, is_debug
 from os.path import dirname
-from traceback import StackSummary, _some_str, extract_tb, TracebackException
+from traceback import StackSummary, _some_str, extract_tb, TracebackException, \
+	print_exc
 
 import fman
 import sys
@@ -11,6 +12,10 @@ class PluginErrorHandler:
 		self._main_window = None
 		self._pending_error_messages = []
 	def report(self, message, exc=None):
+		if is_debug():
+			# The steps below only show a pruned stack trace. During
+			# development, it's useful if we also see the full stack trace:
+			print_exc()
 		if exc is None:
 			exc = sys.exc_info()[1]
 		if exc:
