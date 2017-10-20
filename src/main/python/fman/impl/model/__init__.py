@@ -128,7 +128,6 @@ class FileSystemModel(DragAndDropMixin):
 		self._fs.file_removed.connect(
 			self._on_file_removed, Qt.BlockingQueuedConnection
 		)
-		self._fs.file_changed.connect(self._on_file_changed)
 
 		# [*]: These are the signals that are used to communicate with threads:
 		self._row_loaded.connect(
@@ -144,7 +143,7 @@ class FileSystemModel(DragAndDropMixin):
 			self._on_row_loaded_for_reload, Qt.BlockingQueuedConnection
 		)
 		self._reloaded.connect(self._on_reloaded, Qt.BlockingQueuedConnection)
-		self.directoryLoaded.connect(self._fs.watch)
+		self.directoryLoaded.connect(self._on_directory_loaded)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -178,7 +177,9 @@ class FileSystemModel(DragAndDropMixin):
 	def setRootPath(self, path):
 		if path != self._root_path:
 			if self._root_path:
-				self._fs.unwatch(self._root_path)
+				self._fs.remove_file_changed_callback(
+					self._root_path, self._on_file_changed
+				)
 			self._root_path = path
 			self.rootPathChanged.emit(path)
 			self.beginResetModel()
@@ -303,6 +304,10 @@ class FileSystemModel(DragAndDropMixin):
 		assert self._is_in_home_thread()
 		if for_path is None or for_path == self._root_path:
 			self._insert_rows([row])
+	def _on_directory_loaded(self, path):
+		assert self._is_in_home_thread()
+		if path == self._root_path:
+			self._fs.add_file_changed_callback(path, self._on_file_changed)
 	def _on_file_added(self, path):
 		assert not self._is_in_home_thread()
 		if self._is_in_root(path):
@@ -425,7 +430,6 @@ class CachedFileSystem(QObject):
 	file_renamed = pyqtSignal(str, str)
 	file_removed = pyqtSignal(str)
 	file_added = pyqtSignal(str)
-	file_changed = pyqtSignal(str)
 
 	def __init__(self, source, icon_provider):
 		super().__init__()
@@ -433,7 +437,6 @@ class CachedFileSystem(QObject):
 		self._icon_provider = icon_provider
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
-		source.file_changed.connect(self._on_source_file_changed)
 	def exists(self, path):
 		if path in self._cache:
 			return True
@@ -484,10 +487,10 @@ class CachedFileSystem(QObject):
 		self._source.delete(path)
 		self._remove(path)
 		self.file_removed.emit(path)
-	def watch(self, path):
-		self._source.watch(path)
-	def unwatch(self, path):
-		self._source.unwatch(path)
+	def add_file_changed_callback(self, path, callback):
+		self._source._add_file_changed_callback(path, callback)
+	def remove_file_changed_callback(self, path, callback):
+		self._source._remove_file_changed_callback(path, callback)
 	def clear_cache(self, path):
 		try:
 			del self._cache[path]

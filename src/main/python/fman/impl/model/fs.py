@@ -1,25 +1,42 @@
 from datetime import datetime
 from fman.impl.trash import move_to_trash
-from fman.util import Signal, listdir_absolute
+from fman.util import listdir_absolute
 from math import log
 from os import rename, remove
 from os.path import isdir, getsize, getmtime, basename
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree
+from threading import Lock
 
 class FileSystem:
 	def __init__(self):
-		self.file_changed = Signal()
-	def broadcast_file_changed(self, path):
-		self.file_changed.emit(path)
+		self._file_changed_callbacks = {}
+		self._file_changed_callbacks_lock = Lock()
+	def notify_file_changed(self, path):
+		for callback in self._file_changed_callbacks.get(path, []):
+			callback(path)
+	def _add_file_changed_callback(self, path, callback):
+		with self._file_changed_callbacks_lock:
+			try:
+				self._file_changed_callbacks[path].append(callback)
+			except KeyError:
+				self._file_changed_callbacks[path] = [callback]
+				self.watch(path)
+	def _remove_file_changed_callback(self, path, callback):
+		with self._file_changed_callbacks_lock:
+			path_callbacks = self._file_changed_callbacks[path]
+			path_callbacks.remove(callback)
+			if not path_callbacks:
+				del self._file_changed_callbacks[path]
+				self.unwatch(path)
 
 class DefaultFileSystem(FileSystem):
 	def __init__(self):
 		super().__init__()
 		self._watcher = QFileSystemWatcher()
-		self._watcher.directoryChanged.connect(self.broadcast_file_changed)
-		self._watcher.fileChanged.connect(self.broadcast_file_changed)
+		self._watcher.directoryChanged.connect(self.notify_file_changed)
+		self._watcher.fileChanged.connect(self.notify_file_changed)
 	def exists(self, path):
 		return Path(path).exists()
 	def listdir(self, path):
