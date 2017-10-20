@@ -5,9 +5,9 @@ from weakref import WeakValueDictionary
 
 class MotherFileSystem(QObject):
 
+	file_added = pyqtSignal(str)
 	file_renamed = pyqtSignal(str, str)
 	file_removed = pyqtSignal(str)
-	file_added = pyqtSignal(str)
 
 	def __init__(self, source, icon_provider):
 		super().__init__()
