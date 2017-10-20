@@ -6,7 +6,7 @@ from fman.util.system import is_windows, is_mac
 from fman.util.qt import connect_once, run_in_main_thread, \
 	disable_window_animations_mac, Key_Escape, AscendingOrder
 from os.path import exists, normpath, dirname, splitdrive, abspath
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
+from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
@@ -53,6 +53,9 @@ class DirectoryPane(QWidget):
 		self.setFocusProxy(self._file_view)
 		self._controller = None
 		self._model.rootPathChanged.connect(self._path_view.setText)
+		self._model.directoryLoaded.connect(
+			lambda _: self.path_changed.emit(self)
+		)
 	def set_controller(self, controller):
 		self._controller = controller
 	@run_in_main_thread
@@ -99,7 +102,7 @@ class DirectoryPane(QWidget):
 			return ''
 		return normpath(result)
 	@run_in_main_thread
-	def set_path(self, path, callback=lambda: None):
+	def set_path(self, path, callback=None):
 		if path:
 			# Prevent (in particular) drive letters without backslashes ('C:'
 			# instead of 'C:\') on Windows:
@@ -126,11 +129,8 @@ class DirectoryPane(QWidget):
 			signal = self._model.rootPathChanged
 		else:
 			signal = self._model.directoryLoaded
-		def callback_():
-			self._file_view.move_cursor_home()
-			self.path_changed.emit(self)
-			callback()
-		connect_once(signal, lambda _: callback_())
+		callback = callback or self.move_cursor_home
+		connect_once(signal, lambda _: callback())
 		index = self._model_sorted.setRootPath(path)
 		self._file_view.setRootIndex(index)
 	@run_in_main_thread
