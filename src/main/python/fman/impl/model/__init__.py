@@ -86,7 +86,7 @@ class FileSystemModel(DragAndDropMixin):
 	directoryLoaded = pyqtSignal(str)
 
 	# These signals are used for communication across threads:
-	_row_loaded = pyqtSignal(PreloadedRow)
+	_row_loaded = pyqtSignal(PreloadedRow, str)
 	_row_loaded_for_add = pyqtSignal(PreloadedRow)
 	_row_loaded_for_rename = pyqtSignal(PreloadedRow, str)
 	_row_loaded_for_reload = pyqtSignal(PreloadedRow)
@@ -133,7 +133,7 @@ class FileSystemModel(DragAndDropMixin):
 		# [*]: These are the signals that are used to communicate with threads:
 		self._row_loaded.connect(self._on_row_loaded)
 		self._row_loaded_for_add.connect(
-			self._on_row_loaded, Qt.BlockingQueuedConnection
+			self._on_row_loaded_for_add, Qt.BlockingQueuedConnection
 		)
 		self._row_loaded_for_rename.connect(
 			self._on_row_loaded_for_rename, Qt.BlockingQueuedConnection
@@ -229,14 +229,21 @@ class FileSystemModel(DragAndDropMixin):
 	def reload(self, path):
 		# TODO: Don't allow reload when initial load is still in progress.
 		assert not self._is_in_home_thread()
+		# Abort reload if path changed:
+		if path != self._root_path:
+			return
 		self._fs.clear_cache(path)
 		rows = []
 		for file_path in self._fs.listdir(path):
 			self._fs.clear_cache(file_path)
 			rows.append(self._load_row(file_path))
+			# Abort reload if path changed:
+			if path != self._root_path:
+				return
 		self._reloaded.emit(path, rows)
 	def _on_reloaded(self, path, rows):
 		assert self._is_in_home_thread()
+		# Abort reload if path changed:
 		if path != self._root_path:
 			return
 		diff = ComputeDiff(self._rows, rows)()
@@ -268,8 +275,14 @@ class FileSystemModel(DragAndDropMixin):
 			   0 <= index.column() < self.columnCount()
 	def _load_rows(self, path):
 		assert not self._is_in_home_thread()
+		# Abort reload if path changed:
+		if path != self._root_path:
+			return
 		for file_path in self._fs.listdir(path):
-			self._row_loaded.emit(self._load_row(file_path))
+			self._row_loaded.emit(self._load_row(file_path), path)
+			# Abort reload if path changed:
+			if path != self._root_path:
+				return
 		self.directoryLoaded.emit(path)
 	def _load_row(self, path):
 		return PreloadedRow(
@@ -283,17 +296,23 @@ class FileSystemModel(DragAndDropMixin):
 				for column in self._columns
 			]
 		)
-	def _on_row_loaded(self, row):
+	def _on_row_loaded(self, row, for_path=None):
 		assert self._is_in_home_thread()
-		if not self._is_in_root(row.path):
-			return
-		self._insert_rows([row])
+		if for_path is None or for_path == self._root_path:
+			self._insert_rows([row])
 	def _on_file_added(self, path):
 		assert not self._is_in_home_thread()
-		row = self._load_row(path)
-		self._row_loaded_for_add.emit(row)
+		if self._is_in_root(path):
+			row = self._load_row(path)
+			self._row_loaded_for_add.emit(row)
+	def _on_row_loaded_for_add(self, row):
+		assert self._is_in_home_thread()
+		if self._is_in_root(row.path):
+			self._on_row_loaded(row)
 	def _on_file_renamed(self, old_path, new_path):
 		assert not self._is_in_home_thread()
+		if not self._is_in_root(old_path) and not self._is_in_root(new_path):
+			return
 		row = self._load_row(new_path)
 		self._row_loaded_for_rename.emit(row, old_path)
 	def _on_row_loaded_for_rename(self, row, old_path):
@@ -303,9 +322,9 @@ class FileSystemModel(DragAndDropMixin):
 		try:
 			rownum = self.index(old_path).row()
 		except ValueError:
-			self._on_row_loaded(row)
+			if self._is_in_root(row.path):
+				self._on_row_loaded(row)
 		else:
-			assert self._is_in_root(old_path)
 			if self._is_in_root(row.path):
 				self._update_rows([row], rownum)
 			else:
@@ -313,23 +332,23 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_file_removed(self, file_path):
 		assert self._is_in_home_thread()
 		try:
-			row = self.index(file_path).row()
+			rownum = self.index(file_path).row()
 		except ValueError:
 			pass
 		else:
-			self._remove_rows(row)
+			self._remove_rows(rownum)
 	def _on_file_changed(self, path):
 		assert self._is_in_home_thread()
 		if path == self._root_path:
 			# The common case
 			self._execute_async(self.reload, path)
-		else:
-			if self._is_in_root(path):
-				self._execute_async(self._reload_row, path)
+		elif self._is_in_root(path):
+			self._execute_async(self._reload_row, path)
 	def _reload_row(self, path):
 		assert not self._is_in_home_thread()
-		row = self._load_row(path)
-		self._row_loaded_for_reload.emit(row)
+		if self._is_in_root(path): # Root could have changed in the meantime
+			row = self._load_row(path)
+			self._row_loaded_for_reload.emit(row)
 	def _on_row_loaded_for_reload(self, row):
 		assert self._is_in_home_thread()
 		try:
