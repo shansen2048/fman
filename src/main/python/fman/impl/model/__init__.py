@@ -131,7 +131,9 @@ class FileSystemModel(DragAndDropMixin):
 		self._fs.file_changed.connect(self._on_file_changed)
 
 		# [*]: These are the signals that are used to communicate with threads:
-		self._row_loaded.connect(self._on_row_loaded)
+		self._row_loaded.connect(
+			self._on_row_loaded, Qt.BlockingQueuedConnection
+		)
 		self._row_loaded_for_add.connect(
 			self._on_row_loaded_for_add, Qt.BlockingQueuedConnection
 		)
@@ -279,7 +281,8 @@ class FileSystemModel(DragAndDropMixin):
 		if path != self._root_path:
 			return
 		for file_path in self._fs.listdir(path):
-			self._row_loaded.emit(self._load_row(file_path), path)
+			row = self._load_row(file_path)
+			self._row_loaded.emit(row, path)
 			# Abort reload if path changed:
 			if path != self._root_path:
 				return
