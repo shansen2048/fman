@@ -8,7 +8,7 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
-	GnomeNotAvailable
+	GnomeNotAvailable, IconProvider
 from fman.impl.model.internal_fs import CachedFileSystem
 from fman.impl.model.fs import DefaultFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
@@ -137,9 +137,10 @@ class ApplicationContext:
 	@cached_property
 	def icon_provider(self):
 		try:
-			return GnomeFileIconProvider()
+			qt_icon_provider = GnomeFileIconProvider()
 		except GnomeNotAvailable:
-			return QFileIconProvider()
+			qt_icon_provider = QFileIconProvider()
+		return IconProvider(qt_icon_provider)
 	@property
 	def main_window(self):
 		if self._main_window is None:

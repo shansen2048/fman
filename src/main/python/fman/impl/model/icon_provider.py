@@ -8,6 +8,12 @@ import sys
 
 _LOG = logging.getLogger(__name__)
 
+class IconProvider:
+	def __init__(self, qt_icon_provider):
+		self._qt_icon_provider = qt_icon_provider
+	def get_icon(self, file_path):
+		return self._qt_icon_provider.icon(QFileInfo(file_path))
+
 class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)

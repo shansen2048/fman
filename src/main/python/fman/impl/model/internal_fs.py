@@ -1,5 +1,5 @@
 from os.path import dirname
-from PyQt5.QtCore import QObject, pyqtSignal, QFileInfo
+from PyQt5.QtCore import QObject, pyqtSignal
 from threading import Lock
 from weakref import WeakValueDictionary
 
@@ -31,9 +31,7 @@ class CachedFileSystem(QObject):
 	def getmtime(self, path):
 		return self._query_cache(path, 'mtime', self._source.getmtime)
 	def icon(self, path):
-		return self._query_cache(path, 'icon', self._get_icon)
-	def _get_icon(self, path):
-		return self._icon_provider.icon(QFileInfo(path))
+		return self._query_cache(path, 'icon', self._icon_provider.get_icon)
 	def touch(self, path):
 		self._source.touch(path)
 		if path not in self._cache:
