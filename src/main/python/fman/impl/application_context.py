@@ -7,9 +7,9 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
-from fman.impl.model import CachedFileSystem
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 	GnomeNotAvailable
+from fman.impl.model.internal_fs import CachedFileSystem
 from fman.impl.model.fs import DefaultFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback

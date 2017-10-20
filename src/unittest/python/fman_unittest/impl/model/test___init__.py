@@ -1,4 +1,5 @@
-from fman.impl.model import CachedFileSystem, FileSystemModel
+from fman.impl.model import FileSystemModel
+from fman.impl.model.internal_fs import CachedFileSystem
 from fman_unittest.impl.model import StubFileSystem
 from threading import Thread, Lock
 from time import sleep
