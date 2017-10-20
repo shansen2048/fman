@@ -176,15 +176,18 @@ class FileSystemModel(DragAndDropMixin):
 		return self._root_path
 	def myComputer(self):
 		return ''
-	def setRootPath(self, path):
-		if path != self._root_path:
+	def setRootPath(self, path, callback):
+		path = self._fs.resolve(path)
+		if path == self._root_path:
+			callback(path)
+		else:
 			self._path_watcher.clear()
 			self._root_path = path
 			self.rootPathChanged.emit(path)
 			self.beginResetModel()
 			self._rows = []
 			self.endResetModel()
-			self._execute_async(self._load_rows, path)
+			self._execute_async(self._load_rows, path, callback)
 		return QModelIndex()
 	def filePath(self, index):
 		if not self._index_is_valid(index):
@@ -275,7 +278,7 @@ class FileSystemModel(DragAndDropMixin):
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
-	def _load_rows(self, path):
+	def _load_rows(self, path, callback):
 		assert not self._is_in_home_thread()
 		if path != self._root_path:
 			# Root path changed since this method was scheduled. Abort.
@@ -286,6 +289,7 @@ class FileSystemModel(DragAndDropMixin):
 			if path != self._root_path:
 				# Root path changed. Abort.
 				return
+		callback(path)
 		self.directoryLoaded.emit(path)
 	def _load_row(self, path):
 		return PreloadedRow(
@@ -458,8 +462,8 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.filters = []
-	def setRootPath(self, path):
-		source_index = self.sourceModel().setRootPath(path)
+	def setRootPath(self, path, callback):
+		source_index = self.sourceModel().setRootPath(path, callback)
 		# We filter out hidden files/dirs below the current root path.
 		# Consider the following: We're at ~ and change to a hidden subfolder,
 		# ~/Library. We previously filtered out ~/Library because it is hidden.

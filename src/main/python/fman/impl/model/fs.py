@@ -60,6 +60,8 @@ class DefaultFileSystem(FileSystem):
 			rmtree(path)
 		else:
 			remove(path)
+	def resolve(self, path):
+		return Path(path).resolve().as_posix()
 	def watch(self, path):
 		self._watcher.addPath(path)
 	def unwatch(self, path):

@@ -61,6 +61,8 @@ class MotherFileSystem:
 		self._source.delete(path)
 		self._remove(path)
 		self.file_removed.trigger(path)
+	def resolve(self, path):
+		return self._source.resolve(path)
 	def add_file_changed_callback(self, path, callback):
 		self._source._add_file_changed_callback(path, callback)
 	def remove_file_changed_callback(self, path, callback):

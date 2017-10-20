@@ -103,36 +103,14 @@ class DirectoryPane(QWidget):
 		return normpath(result)
 	@run_in_main_thread
 	def set_path(self, path, callback=None):
-		if path:
-			# Prevent (in particular) drive letters without backslashes ('C:'
-			# instead of 'C:\') on Windows:
-			path = abspath(path)
-		if is_windows() and _is_documents_and_settings(path):
-			# When listing C:\, QFileSystemModel includes the "Documents and
-			# Settings" folder. However, it displays no contents when you open
-			# that directory. (Actually, no Windows program can display
-			# the contents of "C:\Documents and Settings". Explorer says "Access
-			# denied", Python gets a PermissionError.) But "C:\Documents and
-			# Settings\Michael" does work and displays "C:\Users\Michael".
-			# Gracefully handle "C:\Documents and Settings" for the case when
-			# the user presses Enter while the cursor is over it:
-			path = splitdrive(path)[0] + r'\Users'
-		if path == self.get_path():
-			# Don't mess up the cursor if we're already in the right location.
-			if callback is not None:
+		path_before = self.get_path()
+		def callback_(new_path):
+			if callback is None:
+				if new_path != path_before:
+					self.move_cursor_home()
+			else:
 				callback()
-			return
-		my_computer = self._model.myComputer()
-		path = self._skip_to_existing_pardir(path) if path else my_computer
-		self._file_view.reset()
-		if path == my_computer:
-			# directoryLoaded doesn't work for myComputer. Use rootPathChanged:
-			signal = self._model.rootPathChanged
-		else:
-			signal = self._model.directoryLoaded
-		callback = callback or self.move_cursor_home
-		connect_once(signal, lambda _: callback())
-		index = self._model_sorted.setRootPath(path)
+		index = self._model_sorted.setRootPath(path, callback_)
 		self._file_view.setRootIndex(index)
 	@run_in_main_thread
 	def place_cursor_at(self, file_path):
