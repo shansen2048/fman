@@ -99,6 +99,7 @@ class FileSystemModel(DragAndDropMixin):
 			NameColumn(self._fs), SizeColumn(self._fs),
 			LastModifiedColumn(self._fs)
 		)
+		self._path_watcher = PathWatcher(fs, self._on_file_changed)
 		self._connect_signals()
 	def _connect_signals(self):
 		"""
@@ -173,10 +174,7 @@ class FileSystemModel(DragAndDropMixin):
 		return ''
 	def setRootPath(self, path):
 		if path != self._root_path:
-			if self._root_path:
-				self._fs.remove_file_changed_callback(
-					self._root_path, self._on_file_changed
-				)
+			self._path_watcher.clear()
 			self._root_path = path
 			self.rootPathChanged.emit(path)
 			self.beginResetModel()
@@ -304,7 +302,7 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_directory_loaded(self, path):
 		assert self._is_in_home_thread()
 		if path == self._root_path:
-			self._fs.add_file_changed_callback(path, self._on_file_changed)
+			self._path_watcher.watch(path)
 	def _on_file_added(self, path):
 		assert not self._is_in_home_thread()
 		if self._is_in_root(path):
@@ -421,6 +419,36 @@ class FileSystemModel(DragAndDropMixin):
 		return dirname(path) == self._root_path
 	def _is_in_home_thread(self):
 		return QThread.currentThread() == self.thread()
+
+class PathWatcher:
+	"""
+	Say we're at ~/Downloads and the user presses Backspace to go up to ~.
+	Here's what typically happens:
+	 1) we "unwatch" ~/Downloads
+	 2) we load and display the files in ~
+	 3) we "watch" ~.
+
+	Now consider what happens if the user presses Backspace *before* ~/Downloads
+	was fully loaded, ie. we're still at step 2) above. In this case, we are
+	not yet "watching" ~/Downloads but are already executing step 1), which is
+	to "unwatch" it. This produces an error.
+
+	The purpose of this helper class is to solve the above problem. It remembers
+	which paths are actually being watched and offers a #clear() method that
+	unwatches precisely those paths. This way, only paths that were actually
+	watched are ever "unwatched".
+	"""
+	def __init__(self, fs, callback):
+		self._fs = fs
+		self._callback = callback
+		self._watched_paths = []
+	def watch(self, path):
+		self._fs.add_file_changed_callback(path, self._callback)
+		self._watched_paths.append(path)
+	def clear(self):
+		for path in self._watched_paths:
+			self._fs.remove_file_changed_callback(path, self._callback)
+		self._watched_paths = []
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
