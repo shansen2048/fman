@@ -1,5 +1,4 @@
 from fman.impl.model import CachedFileSystem, FileSystemModel
-from fman.util import Signal
 from fman_unittest.impl.model import StubFileSystem
 from threading import Thread, Lock
 from time import sleep
@@ -95,7 +94,6 @@ class CachedFileSystemTest(TestCase):
 
 class FileSystemCountingIsdirCalls:
 	def __init__(self):
-		self.file_changed = Signal()
 		self.num_isdir_calls = 0
 		self._num_isdir_calls_lock = Lock()
 	def isdir(self, _):
@@ -106,8 +104,6 @@ class FileSystemCountingIsdirCalls:
 		return True
 
 class FileSystemRaisingError:
-	def __init__(self):
-		self.file_changed = Signal()
 	def isdir(self, path):
 		return True
 	def listdir(self, path):

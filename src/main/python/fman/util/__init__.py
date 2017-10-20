@@ -36,17 +36,6 @@ def is_frozen():
 def is_debug():
 	return not is_frozen()
 
-class Signal:
-	def __init__(self):
-		self._callbacks = []
-	def connect(self, callback):
-		self._callbacks.append(callback)
-	def disconnect(self, callback):
-		self._callbacks.remove(callback)
-	def emit(self, *args):
-		for callback in self._callbacks:
-			callback(*args)
-
 class MixinBase:
 
 	_FIELDS = () # To be set by subclasses

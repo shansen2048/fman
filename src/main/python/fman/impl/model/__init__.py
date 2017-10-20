@@ -529,7 +529,6 @@ class CachedFileSystem(QObject):
 		return self._cache_locks.setdefault((path, item), Lock())
 	def _on_source_file_changed(self, path):
 		self.clear_cache(path)
-		self.file_changed.emit(path)
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):

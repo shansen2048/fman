@@ -1,9 +1,6 @@
-from fman.util import Signal
-
 class StubFileSystem:
 	def __init__(self, items):
 		self._items = items
-		self.file_changed = Signal()
 	def exists(self, item):
 		return item in self._items
 	def listdir(self, item):
