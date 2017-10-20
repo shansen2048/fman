@@ -1,16 +1,14 @@
+from fman.util import Event
 from os.path import dirname
-from PyQt5.QtCore import QObject, pyqtSignal
 from threading import Lock
 from weakref import WeakValueDictionary
 
-class MotherFileSystem(QObject):
-
-	file_added = pyqtSignal(str)
-	file_renamed = pyqtSignal(str, str)
-	file_removed = pyqtSignal(str)
-
+class MotherFileSystem:
 	def __init__(self, source, icon_provider):
 		super().__init__()
+		self.file_added = Event()
+		self.file_renamed = Event()
+		self.file_removed = Event()
 		self._source = source
 		self._icon_provider = icon_provider
 		self._cache = {}
@@ -36,12 +34,12 @@ class MotherFileSystem(QObject):
 		self._source.touch(path)
 		if path not in self._cache:
 			self._add_to_parent(path)
-			self.file_added.emit(path)
+			self.file_added.trigger(path)
 	def mkdir(self, path):
 		self._source.mkdir(path)
 		if path not in self._cache:
 			self._add_to_parent(path)
-			self.file_added.emit(path)
+			self.file_added.trigger(path)
 	def rename(self, old_path, new_path):
 		"""
 		:param new_path: must be the final destination path, not just the parent
@@ -54,15 +52,15 @@ class MotherFileSystem(QObject):
 			pass
 		self._remove_from_parent(old_path)
 		self._add_to_parent(new_path)
-		self.file_renamed.emit(old_path, new_path)
+		self.file_renamed.trigger(old_path, new_path)
 	def move_to_trash(self, path):
 		self._source.move_to_trash(path)
 		self._remove(path)
-		self.file_removed.emit(path)
+		self.file_removed.trigger(path)
 	def delete(self, path):
 		self._source.delete(path)
 		self._remove(path)
-		self.file_removed.emit(path)
+		self.file_removed.trigger(path)
 	def add_file_changed_callback(self, path, callback):
 		self._source._add_file_changed_callback(path, callback)
 	def remove_file_changed_callback(self, path, callback):

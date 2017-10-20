@@ -69,3 +69,14 @@ class ConstructorMixin(MixinBase):
 		super().__init__()
 		for field, arg in zip(self._FIELDS, args):
 			setattr(self, field, arg)
+
+class Event:
+	def __init__(self):
+		self._callbacks = []
+	def add_callback(self, callback):
+		self._callbacks.append(callback)
+	def remove_callback(self, callback):
+		self._callbacks.remove(callback)
+	def trigger(self, *args):
+		for callback in self._callbacks:
+			callback(*args)

@@ -83,6 +83,7 @@ class FileSystemModel(DragAndDropMixin):
 	directoryLoaded = pyqtSignal(str)
 
 	# These signals are used for communication across threads:
+	_file_removed = pyqtSignal(str)
 	_row_loaded = pyqtSignal(PreloadedRow, str)
 	_row_loaded_for_add = pyqtSignal(PreloadedRow)
 	_row_loaded_for_rename = pyqtSignal(PreloadedRow, str)
@@ -113,19 +114,22 @@ class FileSystemModel(DragAndDropMixin):
 		directory and the file system model has been updated to include the new
 		folder.
 
-		To accommodate the above, we connect to file system signals via blocking
-		connections (Direct- or BlockingQueuedConnection). On the other hand,
-		the thread safety of this class works by only performing changing
-		operations in its QObject#thread(). To synchronize the two ends, we use
-		signals ([*] below) to communicate between the different threads.
+		To accommodate the above, we process file system events *synchronously*
+		in the worker threads that trigger them. On the other hand, the thread
+		safety of this class works by only performing changing operations in its
+		QObject#thread(). To synchronize the two ends, we use signals
+		([*] below) to communicate between the different threads.
 		"""
-		self._fs.file_added.connect(self._on_file_added, Qt.DirectConnection)
-		self._fs.file_renamed.connect(
-			self._on_file_renamed, Qt.DirectConnection
-		)
-		self._fs.file_removed.connect(
+		self._fs.file_added.add_callback(self._on_file_added)
+		self._fs.file_renamed.add_callback(self._on_file_renamed)
+
+		# Use Qt signals to call _on_file_removed(...) in the home thread.
+		# At the same time, use BlockingQueuedConnection to ensure that the
+		# worker thread blocks until the event has been processed.
+		self._file_removed.connect(
 			self._on_file_removed, Qt.BlockingQueuedConnection
 		)
+		self._fs.file_removed.add_callback(self._file_removed.emit)
 
 		# [*]: These are the signals that are used to communicate with threads:
 		self._row_loaded.connect(
