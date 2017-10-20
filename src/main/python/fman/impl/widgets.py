@@ -99,9 +99,7 @@ class DirectoryPane(QWidget):
 			return ''
 		return normpath(result)
 	@run_in_main_thread
-	def set_path(self, path, callback=None):
-		if callback is None:
-			callback = lambda: None
+	def set_path(self, path, callback=lambda: None):
 		if path:
 			# Prevent (in particular) drive letters without backslashes ('C:'
 			# instead of 'C:\') on Windows:
