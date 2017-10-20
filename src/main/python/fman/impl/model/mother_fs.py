@@ -3,7 +3,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from threading import Lock
 from weakref import WeakValueDictionary
 
-class CachedFileSystem(QObject):
+class MotherFileSystem(QObject):
 
 	file_renamed = pyqtSignal(str, str)
 	file_removed = pyqtSignal(str)

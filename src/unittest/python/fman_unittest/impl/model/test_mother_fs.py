@@ -1,15 +1,15 @@
-from fman.impl.model.internal_fs import CachedFileSystem
+from fman.impl.model.mother_fs import MotherFileSystem
 from fman_unittest.impl.model import StubFileSystem
 from threading import Thread, Lock
 from time import sleep
 from unittest import TestCase
 
-class CachedFileSystemTest(TestCase):
+class MotherFileSystemTest(TestCase):
 	def test_exists(self):
 		fs = StubFileSystem({
 			'a': {}
 		})
-		cached_fs = CachedFileSystem(fs, None)
+		cached_fs = MotherFileSystem(fs, None)
 		self.assertTrue(cached_fs.exists('a'))
 		self.assertFalse(cached_fs.exists('b'))
 		cached_fs.touch('b')
@@ -21,7 +21,7 @@ class CachedFileSystemTest(TestCase):
 			},
 			'a/b': {}
 		})
-		cached_fs = CachedFileSystem(fs, None)
+		cached_fs = MotherFileSystem(fs, None)
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
 		cached_fs.delete('a/b')
 		self.assertEqual([], cached_fs.listdir('a'))
@@ -31,7 +31,7 @@ class CachedFileSystemTest(TestCase):
 			'a/b': {},
 			'c': { 'isdir': True }
 		})
-		cached_fs = CachedFileSystem(fs, None)
+		cached_fs = MotherFileSystem(fs, None)
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
 		self.assertEqual([], cached_fs.listdir('c'))
 		cached_fs.rename('a/b', 'c/b')
@@ -41,7 +41,7 @@ class CachedFileSystemTest(TestCase):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
 		})
-		cached_fs = CachedFileSystem(fs, None)
+		cached_fs = MotherFileSystem(fs, None)
 		self.assertEqual([], cached_fs.listdir('a'))
 		cached_fs.touch('a/b')
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
@@ -49,13 +49,13 @@ class CachedFileSystemTest(TestCase):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
 		})
-		cached_fs = CachedFileSystem(fs, None)
+		cached_fs = MotherFileSystem(fs, None)
 		self.assertEqual([], cached_fs.listdir('a'))
 		cached_fs.mkdir('a/b')
 		self.assertEqual(['a/b'], cached_fs.listdir('a'))
 	def test_no_concurrent_isdir_queries(self):
 		fs = FileSystemCountingIsdirCalls()
-		cached_fs = CachedFileSystem(fs, None)
+		cached_fs = MotherFileSystem(fs, None)
 		_new_thread = lambda: Thread(target=cached_fs.isdir, args=('test',))
 		t1, t2 = _new_thread(), _new_thread()
 		t1.start()
@@ -66,7 +66,7 @@ class CachedFileSystemTest(TestCase):
 		self.assertEqual({}, cached_fs._cache_locks, 'Likely memory leak!')
 	def test_permission_error(self):
 		fs = FileSystemRaisingError()
-		cached_fs = CachedFileSystem(fs, None)
+		cached_fs = MotherFileSystem(fs, None)
 		# Put 'foo' in cache:
 		cached_fs.isdir('foo')
 		with self.assertRaises(PermissionError):
