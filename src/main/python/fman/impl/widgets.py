@@ -119,7 +119,8 @@ class DirectoryPane(QWidget):
 			path = splitdrive(path)[0] + r'\Users'
 		if path == self.get_path():
 			# Don't mess up the cursor if we're already in the right location.
-			callback()
+			if callback is not None:
+				callback()
 			return
 		my_computer = self._model.myComputer()
 		path = self._skip_to_existing_pardir(path) if path else my_computer
