@@ -52,6 +52,7 @@ class DirectoryPane(QWidget):
 		self._path_view.setFocusProxy(self._file_view)
 		self.setFocusProxy(self._file_view)
 		self._controller = None
+		self._model.rootPathChanged.connect(self._path_view.setText)
 	def set_controller(self, controller):
 		self._controller = controller
 	@run_in_main_thread
@@ -122,7 +123,6 @@ class DirectoryPane(QWidget):
 		my_computer = self._model.myComputer()
 		path = self._skip_to_existing_pardir(path) if path else my_computer
 		self._file_view.reset()
-		self._path_view.setText(path)
 		if path == my_computer:
 			# directoryLoaded doesn't work for myComputer. Use rootPathChanged:
 			signal = self._model.rootPathChanged
