@@ -15,7 +15,7 @@ def splitscheme(url):
 def as_file_url(file_path):
 	# We purposely don't use Path#as_uri here because it escapes the URL.
 	# For instance: Path('/a b').as_uri() returns 'file:///a%20b'. The entire
-	# code base wuold get unnecessarily complicated if it had to escape URL
+	# code base would get unnecessarily complicated if it had to escape URL
 	# characters like %20 all the time. So we do not escape URLs and return
 	# "file:///a b" instead:
 	return 'file://' + PurePath(file_path).as_posix()
