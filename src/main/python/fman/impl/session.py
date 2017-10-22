@@ -1,8 +1,8 @@
 from base64 import b64encode, b64decode
 from fman.url import as_file_url, dirname
-from fman.util import system
+from fman.util.path import make_absolute
 from os import getcwd
-from os.path import expanduser, realpath, normpath, splitdrive, dirname
+from os.path import expanduser, dirname
 
 import sys
 
@@ -37,7 +37,7 @@ class SessionManager:
 		for i, pane_info in enumerate(panes):
 			pane = main_window.add_pane()
 			try:
-				path = _make_absolute(paths_on_command_line[i], getcwd())
+				path = make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
 			url = path if '://' in path else as_file_url(path)
@@ -92,14 +92,6 @@ class SessionManager:
 			'location': pane.get_path(),
 			'col_widths': pane.get_column_widths()
 		}
-
-def _make_absolute(path, cwd):
-	if normpath(path) == '.':
-		return cwd
-	if system.is_windows() and path == splitdrive(path)[0]:
-		# Add trailing backslash for drives, eg. "C:"
-		return path + ('' if path.endswith('\\') else '\\')
-	return realpath(expanduser(path))
 
 def _encode(bytes_):
 	return b64encode(bytes_).decode('ascii')

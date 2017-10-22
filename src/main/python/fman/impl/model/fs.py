@@ -1,5 +1,6 @@
 from datetime import datetime
 from fman.url import splitscheme, as_file_url
+from fman.util.path import add_backslash_to_drive_if_missing
 from fman.impl.trash import move_to_trash
 from math import log
 from os import rename, remove
@@ -67,6 +68,8 @@ class DefaultFileSystem(FileSystem):
 		else:
 			remove(path)
 	def resolve(self, path):
+		# Unlike other functions, Path#resolve can't handle C: instead of C:\
+		path = add_backslash_to_drive_if_missing(path)
 		return Path(path).resolve().as_posix()
 	def watch(self, path):
 		self._watcher.addPath(path)
