@@ -26,6 +26,8 @@ class MotherFileSystem:
 		return result[::]
 	def isdir(self, url):
 		return self._query_cache(url, 'isdir')
+	def isfile(self, url):
+		return self._query_cache(url, 'isfile')
 	def getsize(self, url):
 		return self._query_cache(url, 'getsize')
 	def getmtime(self, url):

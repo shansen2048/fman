@@ -38,8 +38,6 @@ elif is_linux():
 	DATA_DIRECTORY = expanduser('~/.config/fman')
 
 class ApplicationCommand:
-	def __init__(self, fs):
-		self.fs = fs
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
 
@@ -118,9 +116,8 @@ class Window:
 		return result
 
 class DirectoryPaneCommand:
-	def __init__(self, pane, fs):
+	def __init__(self, pane):
 		self.pane = pane
-		self.fs = fs
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
 	def get_chosen_files(self):
@@ -133,9 +130,8 @@ class DirectoryPaneCommand:
 		return []
 
 class DirectoryPaneListener:
-	def __init__(self, pane, fs):
+	def __init__(self, pane):
 		self.pane = pane
-		self.fs = fs
 	def on_doubleclicked(self, file_path):
 		pass
 	def on_name_edited(self, file_path, new_name):

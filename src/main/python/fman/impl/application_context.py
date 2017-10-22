@@ -195,7 +195,7 @@ class ApplicationContext:
 	def builtin_plugin(self):
 		return BuiltinPlugin(
 			self.plugin_error_handler, self.command_callback,
-			self.key_bindings, self.fs, self.tutorial
+			self.key_bindings, self.tutorial
 		)
 	@cached_property
 	def fs(self):
@@ -226,8 +226,7 @@ class ApplicationContext:
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_error_handler, self.command_callback, self.key_bindings,
-			self.fs, self.config, self.theme, self.font_database,
-			self.builtin_plugin
+			self.config, self.theme, self.font_database, self.builtin_plugin
 		)
 	@cached_property
 	def plugin_error_handler(self):

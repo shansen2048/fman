@@ -13,11 +13,10 @@ import re
 import sys
 
 class Plugin:
-	def __init__(self, error_handler, command_callback, key_bindings, fs):
+	def __init__(self, error_handler, command_callback, key_bindings):
 		self._error_handler = error_handler
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
-		self._fs = fs
 		self._application_command_instances = {}
 		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
@@ -26,11 +25,11 @@ class Plugin:
 		raise NotImplementedError()
 	def on_pane_added(self, pane):
 		for cmd_name, cmd_class in self._directory_pane_commands.items():
-			command = self._instantiate_command(cmd_class, pane, self._fs)
+			command = self._instantiate_command(cmd_class, pane)
 			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
 			pane._add_listener(
-				self._instantiate_listener(listener_class, pane, self._fs)
+				self._instantiate_listener(listener_class, pane)
 			)
 	def get_application_commands(self):
 		return self._application_command_instances
@@ -43,7 +42,7 @@ class Plugin:
 	def _register_application_command(self, cls, *args):
 		name = _get_command_name(cls)
 		self._key_bindings.register_command(name)
-		instance = self._instantiate_command(cls, self._fs, *args)
+		instance = self._instantiate_command(cls, *args)
 		self._application_command_instances[name] = instance
 	def _unregister_application_command(self, cls):
 		name = _get_command_name(cls)
@@ -93,10 +92,10 @@ def _get_command_name(command_class):
 
 class ExternalPlugin(Plugin):
 	def __init__(
-		self, error_handler, command_callback, key_bindings, fs, path, config,
+		self, error_handler, command_callback, key_bindings, path, config,
 		theme, font_database
 	):
-		super().__init__(error_handler, command_callback, key_bindings, fs)
+		super().__init__(error_handler, command_callback, key_bindings)
 		self._path = path
 		self._config = config
 		self._theme = theme

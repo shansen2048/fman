@@ -40,8 +40,7 @@ class PluginTest(TestCase):
 		self._command_callback = StubCommandCallback()
 		self._key_bindings = KeyBindings()
 		self._plugin = Plugin(
-			self._error_handler, self._command_callback, self._key_bindings,
-			None
+			self._error_handler, self._command_callback, self._key_bindings
 		)
 		self._pane = DirectoryPane(None, None)
 
@@ -100,8 +99,7 @@ class ExternalPluginTest(TestCase):
 		self._theme = StubTheme()
 		self._plugin = ExternalPlugin(
 			self._error_handler, self._command_callback, self._key_bindings,
-			None, self._plugin_dir, self._config, self._theme,
-			self._font_database
+			self._plugin_dir, self._config, self._theme, self._font_database
 		)
 	def tearDown(self):
 		sys.path = self._sys_path_before

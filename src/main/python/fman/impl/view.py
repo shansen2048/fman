@@ -4,7 +4,6 @@ from fman.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Down, Key_Up, \
 	KeyboardModifier, GroupSwitchModifier, MoveAction, NoButton, CopyAction, \
 	Key_Return, Key_Enter
 from fman.util.system import is_mac
-from os.path import normpath
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt
 from PyQt5.QtGui import QKeyEvent, QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
@@ -288,9 +287,10 @@ class FileListView(
 		self.add_delegate(FileListItemDelegate())
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
-		return [normpath(self._get_path(index)) for index in indexes]
+		return [self._get_path(index) for index in indexes]
 	def get_file_under_cursor(self):
-		return self._get_path(self.currentIndex())
+		index = self.currentIndex()
+		return self._get_path(index) if index.isValid() else ''
 	def place_cursor_at(self, file_path):
 		self.setCurrentIndex(self._get_index(file_path))
 	def toggle_selection(self, file_path):

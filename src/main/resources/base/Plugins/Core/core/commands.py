@@ -6,13 +6,14 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
-from fman.url import dirname, splitscheme, as_file_url
+from fman.url import dirname, splitscheme, as_file_url, move_to_trash, delete, \
+	exists, touch, rename, mkdir, isdir, isfile
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
 from os import listdir
-from os.path import join, isfile, splitdrive, basename, normpath, isdir, \
-	split, expanduser, samefile, isabs, pardir, islink, exists
+from os.path import join, splitdrive, basename, normpath, split, expanduser, \
+	samefile, isabs, pardir, islink
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -105,7 +106,7 @@ class MoveToTrash(_CorePaneCommand):
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
-			description = to_delete[0]
+			description = _humanize(to_delete[0])
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
 		choice = self.ui.show_alert(
 			"Do you really want to move %s to the %s?" % (description, trash),
@@ -113,7 +114,11 @@ class MoveToTrash(_CorePaneCommand):
 		)
 		if choice & YES:
 			for path in to_delete:
-				self.fs.move_to_trash(path)
+				move_to_trash(path)
+
+def _humanize(url):
+	scheme, path = splitscheme(url)
+	return path.replace('/', os.sep) if scheme == 'file://' else url
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self):
@@ -124,7 +129,7 @@ class DeletePermanently(DirectoryPaneCommand):
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
-			description = to_delete[0]
+			description = _humanize(to_delete[0])
 		choice = show_alert(
 			"Do you really want to PERMANENTLY delete %s? This action cannot "
 			"be undone!" % description,
@@ -132,7 +137,7 @@ class DeletePermanently(DirectoryPaneCommand):
 		)
 		if choice & YES:
 			for file_path in to_delete:
-				self.fs.delete(file_path)
+				delete(file_path)
 
 class GoUp(_CorePaneCommand):
 
@@ -153,16 +158,16 @@ class Open(_CorePaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
-			_open(self.pane, self.fs, file_under_cursor)
+			_open(self.pane, file_under_cursor)
 		else:
 			show_alert('No file is selected!')
 
 class OpenListener(DirectoryPaneListener):
 	def on_doubleclicked(self, file_url):
-		_open(self.pane, self.fs, file_url)
+		_open(self.pane, file_url)
 
-def _open(pane, fs, url):
-	if fs.isdir(url):
+def _open(pane, url):
+	if isdir(url):
 		pane.set_path(url)
 	else:
 		if PLATFORM == 'Linux':
@@ -201,13 +206,22 @@ class OpenWithEditor(_CorePaneCommand):
 			)
 			return
 		self._open_with_editor(self.pane.get_file_under_cursor())
-	def _open_with_editor(self, file_path):
-		if not self.fs.exists(file_path):
+	def _open_with_editor(self, file_url):
+		if not exists(file_url):
 			show_alert('No file is selected!')
 			return
+		scheme, path = splitscheme(file_url)
+		if scheme != 'file://':
+			show_alert('Currently, only local files can be edited.')
+			return
+		editor = self._get_editor()
+		if editor:
+			popen_kwargs = strformat_dict_values(editor, {'file': path})
+			Popen(**popen_kwargs)
+	def _get_editor(self):
 		settings = load_json('Core Settings.json', default={})
-		editor = settings.get('editor', {})
-		if not editor:
+		result = settings.get('editor', {})
+		if not result:
 			choice = self.ui.show_alert(
 				'Editor is currently not configured. Please pick one.',
 				OK | CANCEL, OK
@@ -218,18 +232,16 @@ class OpenWithEditor(_CorePaneCommand):
 					self._PLATFORM_APPLICATIONS_FILTER[PLATFORM]
 				)
 				if editor_path:
-					editor = get_popen_kwargs_for_opening('{file}', editor_path)
-					settings['editor'] = editor
+					result = get_popen_kwargs_for_opening('{file}', editor_path)
+					settings['editor'] = result
 					save_json('Core Settings.json')
-		if editor:
-			popen_kwargs = strformat_dict_values(editor, {'file': file_path})
-			Popen(**popen_kwargs)
+		return result
 	def _get_applications_directory(self):
 		if PLATFORM == 'Mac':
 			return '/Applications'
 		elif PLATFORM == 'Windows':
 			result = r'c:\Program Files'
-			if not self.fs.exists(result):
+			if not os.path.exists(result):
 				result = splitdrive(sys.executable)[0] + '\\'
 			return result
 		elif PLATFORM == 'Linux':
@@ -250,8 +262,8 @@ class CreateAndEditFile(OpenWithEditor):
 			show_prompt('Enter file name to create/edit:', default_name)
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
-			if not self.fs.exists(file_to_edit):
-				self.fs.touch(file_to_edit)
+			if not exists(file_to_edit):
+				touch(file_to_edit)
 			self.pane.place_cursor_at(file_to_edit)
 			self._open_with_editor(file_to_edit)
 
@@ -292,8 +304,8 @@ class _TreeCommand(_CorePaneCommand):
 		if ok:
 			if not isabs(dest):
 				dest = join(src_dir, dest)
-			if self.fs.exists(dest):
-				if isdir(dest):
+			if exists(dest):
+				if os.path.isdir(dest):
 					return dest, None
 				else:
 					if len(files) == 1:
@@ -352,7 +364,7 @@ class RenameListener(DirectoryPaneListener):
 			return
 		new_path = join(dirname(file_path), new_name)
 		do_rename = True
-		if self.fs.exists(new_path):
+		if exists(new_path):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
 			if not samefile(new_path, file_path):
 				response = show_alert(
@@ -362,7 +374,7 @@ class RenameListener(DirectoryPaneListener):
 				do_rename = response & YES
 		if do_rename:
 			try:
-				self.fs.rename(file_path, new_path)
+				rename(file_path, new_path)
 			except OSError as e:
 				if isinstance(e, PermissionError):
 					message = 'Access was denied trying to rename %s to %s.'
@@ -383,9 +395,9 @@ class CreateDirectory(_CorePaneCommand):
 		if ok and name:
 			dir_path = join(self.pane.get_path(), name)
 			try:
-				self.fs.mkdir(dir_path)
+				mkdir(dir_path)
 			except FileExistsError:
-				if self.fs.isdir(dir_path):
+				if isdir(dir_path):
 					show_alert("This directory already exists!")
 				else:
 					show_alert("A file with this name already exists!")
@@ -410,13 +422,7 @@ class CopyPathsToClipboard(_CorePaneCommand):
 		if not chosen_files:
 			show_alert('No file is selected!')
 			return
-		to_copy = []
-		for url in chosen_files:
-			scheme, path = splitscheme(url)
-			if scheme == 'file://':
-				to_copy.append(normpath(path))
-			else:
-				to_copy.append(url)
+		to_copy = [_humanize(url) for url in chosen_files]
 		files = '\n'.join(to_copy)
 		clipboard.clear()
 		clipboard.set_text(files)
@@ -438,10 +444,20 @@ class Cut(_CorePaneCommand):
 			)
 			return
 		files = self.get_chosen_files()
-		if files:
-			clipboard.cut_files(files)
-		else:
+		if not files:
 			show_alert('No file is selected!')
+			return
+		local_filepaths = _get_local_filepaths(files)
+		if local_filepaths:
+			clipboard.cut_files(local_filepaths)
+
+def _get_local_filepaths(urls):
+	result = []
+	for url in urls:
+		scheme, path = splitscheme(url)
+		if scheme == 'file://':
+			result.append(path)
+	return result
 
 class Paste(_CorePaneCommand):
 	def __call__(self):
@@ -457,11 +473,14 @@ class Paste(_CorePaneCommand):
 class PasteCut(_CorePaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
-		if not any(map(self.fs.exists, files)):
+		if not any(map(os.path.exists, files)):
 			# This can happen when the paste-cut has already been performed.
 			return
 		dest_dir = self.pane.get_path()
-		self.pane.run_command('move', {'files': files, 'dest_dir': dest_dir})
+		self.pane.run_command('move', {
+			'files': [as_file_url(f) for f in files],
+			'dest_dir': dest_dir
+		})
 
 class SelectAll(_CorePaneCommand):
 	def __call__(self):
@@ -524,7 +543,7 @@ class _OpenInPaneCommand(_CorePaneCommand):
 			# we would thus open a subdirectory of the left pane. That's not
 			# what we want. We want to open the directory of the left pane:
 			to_open = source_pane.get_path()
-		if not self.fs.isdir(to_open):
+		if not isdir(to_open):
 			to_open = dirname(to_open)
 		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
 		dest_pane.set_path(to_open)
@@ -561,21 +580,20 @@ class ShowVolumes(_CorePaneCommand):
 		def callback():
 			pane.focus()
 			pane.move_cursor_home()
-		pane.set_path(_get_volumes_url(self.fs), callback=callback)
+		pane.set_path(_get_volumes_url(), callback=callback)
 
-def _get_volumes_url(fs):
+def _get_volumes_url():
 	if PLATFORM == 'Mac':
 		return 'file:///Volumes'
 	elif PLATFORM == 'Windows':
-		# TODO: Implement drive:// file system
-		return 'drive://'
+		# TODO: Implement drives:// file system
+		return 'drives://'
 	elif PLATFORM == 'Linux':
-		if fs.isdir('file:///media'):
-			contents = fs.listdir('file:///media')
+		if os.path.isdir('/media'):
+			contents = os.listdir('/media')
 			user_name = _get_user()
-			media_user = 'file:///media/' + user_name
-			if contents == [media_user]:
-				return media_user
+			if contents == [user_name]:
+				return as_file_url(join('/media', user_name))
 			else:
 				return 'file:///media'
 		else:
@@ -604,18 +622,18 @@ class GoTo(_CorePaneCommand):
 			path = ''
 			if suggested_dir:
 				path = expanduser(suggested_dir)
-			if not isdir(path):
+			if not os.path.isdir(path):
 				path = expanduser(query)
-			if not exists(path):
+			if not os.path.exists(path):
 				# Maybe the user copy-pasted and there's some extra whitespace:
 				path = path.rstrip()
 			url = as_file_url(path)
-			if isfile(path):
+			if os.path.isfile(path):
 				self.pane.set_path(
 					dirname(url),
 					callback=lambda url=url: self.pane.place_cursor_at(url)
 				)
-			elif isdir(path):
+			elif os.path.isdir(path):
 				self.pane.set_path(url)
 	def _get_tab_completion(self, curr_suggestion):
 		result = curr_suggestion
@@ -627,17 +645,17 @@ class GoTo(_CorePaneCommand):
 		result = list(self._get_nonhidden_subdirs(home_dir))
 		if PLATFORM == 'Windows':
 			for candidate in (r'C:\Program Files', r'C:\Program Files (x86)'):
-				if isdir(candidate):
+				if os.path.isdir(candidate):
 					result.append(candidate)
 		elif PLATFORM == 'Mac':
 			result.append('/Volumes')
 		elif PLATFORM == 'Linux':
 			media_user = join('/media', _get_user())
-			if self.fs.exists(media_user):
+			if os.path.exists(media_user):
 				result.append(media_user)
-			elif self.fs.exists('/media'):
+			elif os.path.exists('/media'):
 				result.append('/media')
-			if self.fs.exists('/mnt'):
+			if os.path.exists('/mnt'):
 				result.append('/mnt')
 			# We need to add more suggestions on Linux, because unlike Windows
 			# and Mac, we (currently) do not integrate with the OS's native
@@ -652,7 +670,7 @@ class GoTo(_CorePaneCommand):
 	def _get_nonhidden_subdirs(self, dir_path):
 		for file_name in listdir(dir_path):
 			file_path = join(dir_path, file_name)
-			if isdir(file_path) and not _is_hidden(file_path):
+			if os.path.isdir(file_path) and not _is_hidden(file_path):
 				yield join(dir_path, file_name)
 	def _traverse_by_mtime(self, dir_path, exclude=None):
 		if exclude is None:
@@ -673,7 +691,7 @@ class GoTo(_CorePaneCommand):
 					continue
 				file_path = join(parent, file_name)
 				try:
-					if not isdir(file_path) or islink(file_path):
+					if not os.path.isdir(file_path) or islink(file_path):
 						continue
 				except OSError:
 					continue
@@ -810,7 +828,7 @@ class SuggestLocations:
 
 class FileSystem:
 	def isdir(self, path):
-		return isdir(path)
+		return os.path.isdir(path)
 	def expanduser(self, path):
 		return expanduser(path)
 	def listdir(self, path):
@@ -952,17 +970,23 @@ class Quit(ApplicationCommand):
 
 class InstallLicenseKey(DirectoryPaneCommand):
 	def __call__(self):
-		license_key = join(self.pane.get_path(), 'User.json')
-		if not self.fs.exists(license_key):
+		scheme, curr_dirpath = split(self.pane.get_path())
+		if scheme != 'file://':
+			show_alert(
+				'Sorry, please copy User.json to your local file system first.'
+			)
+			return
+		license_key = join(curr_dirpath, 'User.json')
+		if not os.path.exists(license_key):
 			show_alert(
 				'Could not find license key file "User.json" in the current '
-				'directory %s.' % self.pane.get_path()
+				'directory %s.' % curr_dirpath
 			)
 			return
 		destination_directory = join(DATA_DIRECTORY, 'Local')
 		copy(license_key, destination_directory)
 		show_alert(
-			"Thank you! To complete the registration, please restart fman. You "
+			"Thank you! Please restart fman to complete the registration. You "
 			"should no longer see the annoying popup when it starts."
 		)
 
@@ -983,7 +1007,7 @@ class ZenOfFman(ApplicationCommand):
 
 class OpenDataDirectory(DirectoryPaneCommand):
 	def __call__(self):
-		self.pane.set_path(DATA_DIRECTORY)
+		self.pane.set_path(as_file_url(DATA_DIRECTORY))
 
 class GoBack(DirectoryPaneCommand):
 	def __call__(self):
@@ -1084,7 +1108,7 @@ class InstallPlugin(ApplicationCommand):
 				)
 	def _install_plugin(self, name, zipball_contents):
 		dest_dir = join(_THIRDPARTY_PLUGINS_DIR, name)
-		if self.fs.exists(dest_dir):
+		if os.path.exists(dest_dir):
 			raise ValueError('Plugin %s seems to already be installed.' % name)
 		with ZipFile(BytesIO(zipball_contents), 'r') as zipfile:
 			with TemporaryDirectory() as temp_dir:
@@ -1094,7 +1118,7 @@ class InstallPlugin(ApplicationCommand):
 		return dest_dir
 	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
 		plugin_json = join(plugin_dir, 'Plugin.json')
-		if self.fs.exists(plugin_json):
+		if os.path.exists(plugin_json):
 			with open(plugin_json, 'r') as f:
 				data = json.load(f)
 		else:
@@ -1111,7 +1135,7 @@ def _get_thirdparty_plugins():
 
 def _list_plugins(dir_path):
 	try:
-		return list(filter(isdir, listdir_absolute(dir_path)))
+		return list(filter(os.path.isdir, listdir_absolute(dir_path)))
 	except FileNotFoundError:
 		return []
 
@@ -1182,7 +1206,7 @@ class ListPlugins(DirectoryPaneCommand):
 		if result:
 			plugin_dir = result[1]
 			if plugin_dir:
-				self.pane.set_path(plugin_dir)
+				self.pane.set_path(as_file_url(plugin_dir))
 	def _get_matching_plugins(self, query):
 		result = []
 		for plugin_dir in _get_thirdparty_plugins():
@@ -1229,7 +1253,7 @@ if PLATFORM == 'Mac':
 				'		end\n'
 				'	end\n'
 				'end\n',
-				files
+				_get_local_filepaths(files)
 			)
 		def _run_applescript(self, script, args=None):
 			if args is None:
