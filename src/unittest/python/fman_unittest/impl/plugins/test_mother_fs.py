@@ -1,4 +1,4 @@
-from fman.impl.model.mother_fs import MotherFileSystem
+from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman_unittest.impl.model import StubFileSystem
 from threading import Thread, Lock
 from time import sleep

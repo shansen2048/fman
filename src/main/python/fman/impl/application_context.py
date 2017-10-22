@@ -10,13 +10,13 @@ from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 	GnomeNotAvailable, IconProvider
 from fman.impl.model.fs import DefaultFileSystem
-from fman.impl.model.mother_fs import MotherFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.config import Config
+from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
 from fman.impl.tutorial import Tutorial
