@@ -1,5 +1,5 @@
-from fman.impl.session import _make_absolute
 from fman.util import system
+from fman.util.path import make_absolute
 from os.path import join, expanduser
 from unittest import TestCase, skipUnless
 
@@ -21,7 +21,7 @@ class MakeAbsoluteTest(TestCase):
 		super().setUp()
 		self.cwd = self._make_path('foo/bar')
 	def _make_absolute(self, path):
-		return _make_absolute(path, self.cwd)
+		return make_absolute(path, self.cwd)
 	def _make_path(self, path):
 		return join(self._get_root_dir(), *path.split('/'))
 	def _get_root_dir(self):
