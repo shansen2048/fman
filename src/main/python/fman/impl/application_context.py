@@ -199,7 +199,7 @@ class ApplicationContext:
 		)
 	@cached_property
 	def fs(self):
-		return MotherFileSystem(DefaultFileSystem(), self.icon_provider)
+		return MotherFileSystem([DefaultFileSystem()], self.icon_provider)
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
@@ -322,7 +322,9 @@ class ApplicationContext:
 	@cached_property
 	def session_manager(self):
 		settings = Settings(self._get_local_data_file('Session.json'))
-		return SessionManager(settings, self.fman_version, self.is_licensed)
+		return SessionManager(
+			settings, self.fs, self.fman_version, self.is_licensed
+		)
 	@cached_property
 	def theme(self):
 		qss_files = [self._get_resource('styles.qss')]

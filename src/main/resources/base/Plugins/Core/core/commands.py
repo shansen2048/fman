@@ -6,12 +6,13 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
+from fman.url import dirname, splitscheme, as_file_url
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
 from os import listdir
 from os.path import join, isfile, splitdrive, basename, normpath, isdir, \
-	split, dirname, realpath, expanduser, samefile, isabs, pardir, islink
+	split, expanduser, samefile, isabs, pardir, islink, exists
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -22,6 +23,7 @@ from zipfile import ZipFile
 import fman
 import json
 import os
+import os.path
 import re
 import sys
 
@@ -138,12 +140,11 @@ class GoUp(_CorePaneCommand):
 
 	def __call__(self):
 		current_dir = self.pane.get_path()
-		drive = splitdrive(current_dir)[1]
-		if not drive or drive == os.sep:
-			# We catch this case because the callback below doesn't handle it.
+		parent_dir = dirname(current_dir)
+		if parent_dir == current_dir:
 			# Consider: current_dir is '/'. Say the cursor is at /bin. We want
 			# it to stay there. But the callback would attempt to place it at /.
-			# This doesn't make sense.
+			# Avoid this:
 			return
 		callback = lambda: self.pane.place_cursor_at(current_dir)
 		self.pane.set_path(dirname(current_dir), callback)
@@ -152,30 +153,34 @@ class Open(_CorePaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
-			_open(self.pane, file_under_cursor)
+			_open(self.pane, self.fs, file_under_cursor)
 		else:
 			show_alert('No file is selected!')
 
 class OpenListener(DirectoryPaneListener):
-	def on_doubleclicked(self, file_path):
-		_open(self.pane, file_path)
+	def on_doubleclicked(self, file_url):
+		_open(self.pane, self.fs, file_url)
 
-def _open(pane, file_path):
-	if isdir(file_path):
-		pane.set_path(realpath(file_path))
+def _open(pane, fs, url):
+	if fs.isdir(url):
+		pane.set_path(url)
 	else:
 		if PLATFORM == 'Linux':
-			use_qt = False
-			try:
-				Popen(
-					[file_path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL
-				)
-			except (OSError, ValueError):
+			scheme, path = splitscheme(url)
+			if scheme == 'file://':
+				use_qt = False
+				try:
+					Popen(
+						[path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL
+					)
+				except (OSError, ValueError):
+					use_qt = True
+			else:
 				use_qt = True
 		else:
 			use_qt = True
 		if use_qt:
-			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+			QDesktopServices.openUrl(QUrl(url))
 
 class OpenWithEditor(_CorePaneCommand):
 
@@ -405,7 +410,14 @@ class CopyPathsToClipboard(_CorePaneCommand):
 		if not chosen_files:
 			show_alert('No file is selected!')
 			return
-		files = '\n'.join(map(normpath, chosen_files))
+		to_copy = []
+		for url in chosen_files:
+			scheme, path = splitscheme(url)
+			if scheme == 'file://':
+				to_copy.append(normpath(path))
+			else:
+				to_copy.append(url)
+		files = '\n'.join(to_copy)
 		clipboard.clear()
 		clipboard.set_text(files)
 
@@ -472,12 +484,14 @@ class ToggleHiddenFiles(_CorePaneCommand):
 			settings.append(default.copy())
 		self.pane_info = settings[pane_index]
 		self.pane._add_filter(self.should_display)
-	def should_display(self, file_path):
+	def should_display(self, url):
 		if self.show_hidden_files:
 			return True
-		if PLATFORM == 'Mac' and file_path == '/Volumes':
+		if PLATFORM == 'Mac' and url == 'file:///Volumes':
 			return True
-		return not _is_hidden(file_path)
+		scheme, path = splitscheme(url)
+		# TODO: Implement is_hidden for other file systems?
+		return scheme != 'file://' or not _is_hidden(path)
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
 		self.pane._invalidate_filters()
@@ -510,7 +524,7 @@ class _OpenInPaneCommand(_CorePaneCommand):
 			# we would thus open a subdirectory of the left pane. That's not
 			# what we want. We want to open the directory of the left pane:
 			to_open = source_pane.get_path()
-		if not isdir(to_open):
+		if not self.fs.isdir(to_open):
 			to_open = dirname(to_open)
 		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
 		dest_pane.set_path(to_open)
@@ -547,24 +561,25 @@ class ShowVolumes(_CorePaneCommand):
 		def callback():
 			pane.focus()
 			pane.move_cursor_home()
-		pane.set_path(_get_volumes_path(), callback=callback)
+		pane.set_path(_get_volumes_url(self.fs), callback=callback)
 
-def _get_volumes_path():
+def _get_volumes_url(fs):
 	if PLATFORM == 'Mac':
-		return '/Volumes'
+		return 'file:///Volumes'
 	elif PLATFORM == 'Windows':
-		# Go to "My Computer":
-		return ''
+		# TODO: Implement drive:// file system
+		return 'drive://'
 	elif PLATFORM == 'Linux':
-		if isdir('/media'):
-			contents = listdir('/media')
+		if fs.isdir('file:///media'):
+			contents = fs.listdir('file:///media')
 			user_name = _get_user()
-			if contents == [user_name]:
-				return join('/media', user_name)
+			media_user = 'file:///media/' + user_name
+			if contents == [media_user]:
+				return media_user
 			else:
-				return '/media'
+				return 'file:///media'
 		else:
-			return '/mnt'
+			return 'file:///mnt'
 	else:
 		raise NotImplementedError(PLATFORM)
 
@@ -576,6 +591,7 @@ def _get_user():
 
 class GoTo(_CorePaneCommand):
 	def __call__(self):
+		# TODO: Rename to Visited Locations.json?
 		visited_paths = load_json('Visited Paths.json', default={})
 		if not visited_paths:
 			visited_paths.update({
@@ -590,16 +606,17 @@ class GoTo(_CorePaneCommand):
 				path = expanduser(suggested_dir)
 			if not isdir(path):
 				path = expanduser(query)
-			if not self.fs.exists(path):
+			if not exists(path):
 				# Maybe the user copy-pasted and there's some extra whitespace:
 				path = path.rstrip()
+			url = as_file_url(path)
 			if isfile(path):
 				self.pane.set_path(
-					dirname(path),
-					callback=lambda path=path: self.pane.place_cursor_at(path)
+					dirname(url),
+					callback=lambda url=url: self.pane.place_cursor_at(url)
 				)
 			elif isdir(path):
-				self.pane.set_path(path)
+				self.pane.set_path(url)
 	def _get_tab_completion(self, curr_suggestion):
 		result = curr_suggestion
 		if not result.endswith(os.sep):
@@ -679,9 +696,12 @@ class GoToListener(DirectoryPaneListener):
 			# not a user-initiated path change, we don't want to count it:
 			self.is_first_path_change = False
 			return
-		new_path = unexpand_user(self.pane.get_path())
+		scheme, path = splitscheme(self.pane.get_path())
+		if scheme != 'file://':
+			return
 		visited_paths = \
 			load_json('Visited Paths.json', default={}, save_on_quit=True)
+		new_path = unexpand_user(path)
 		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
 
 def unexpand_user(path, expanduser_=expanduser):
@@ -723,8 +743,8 @@ class SuggestLocations:
 			if self.fs.isdir(path):
 				dir_ = self._realcase(path)
 				return [self._unexpand_user(dir_)] + get_subdirs(dir_)
-			elif self.fs.isdir(dirname(path)):
-				return get_subdirs(self._realcase(dirname(path)))
+			elif self.fs.isdir(os.path.dirname(path)):
+				return get_subdirs(self._realcase(os.path.dirname(path)))
 		result = set(self.visited_paths)
 		if len(query) > 2:
 			"""Compensate for directories not yet in self.visited_paths:"""
@@ -765,6 +785,7 @@ class SuggestLocations:
 				if self.fs.isdir(file_path):
 					yield self._unexpand_user(file_path)
 	def _realcase(self, path):
+		# TODO: Use Path(...).resolve() instead?
 		# NB: `path` must exist!
 		is_case_sensitive = PLATFORM == 'Linux'
 		if is_case_sensitive:

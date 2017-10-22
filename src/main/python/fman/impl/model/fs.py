@@ -1,6 +1,6 @@
 from datetime import datetime
+from fman.url import splitscheme, as_file_url
 from fman.impl.trash import move_to_trash
-from fman.util import listdir_absolute
 from math import log
 from os import rename, remove
 from os.path import isdir, getsize, getmtime, basename
@@ -10,6 +10,9 @@ from shutil import rmtree
 from threading import Lock
 
 class FileSystem:
+
+	scheme = ''
+
 	def __init__(self):
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
@@ -32,6 +35,9 @@ class FileSystem:
 				self.unwatch(path)
 
 class DefaultFileSystem(FileSystem):
+
+	scheme = 'file://'
+
 	def __init__(self):
 		super().__init__()
 		self._watcher = QFileSystemWatcher()
@@ -40,7 +46,7 @@ class DefaultFileSystem(FileSystem):
 	def exists(self, path):
 		return Path(path).exists()
 	def listdir(self, path):
-		return listdir_absolute(path)
+		return [as_file_url(child) for child in Path(path).iterdir()]
 	def isdir(self, path):
 		return isdir(path)
 	def getsize(self, path):
@@ -70,9 +76,9 @@ class DefaultFileSystem(FileSystem):
 class Column:
 	def __init__(self, fs):
 		self.fs = fs
-	def get_str(cls, file_path):
+	def get_str(cls, url):
 		raise NotImplementedError()
-	def get_sort_value(self, file_path, is_ascending):
+	def get_sort_value(self, url, is_ascending):
 		"""
 		This method should generally be independent of is_ascending.
 		When is_ascending is False, Qt simply reverses the sort order.
@@ -86,20 +92,20 @@ class NameColumn(Column):
 
 	name = 'Name'
 
-	def get_str(self, file_path):
-		return basename(file_path)
-	def get_sort_value(self, file_path, is_ascending):
-		is_dir = self.fs.isdir(file_path)
-		return is_dir ^ is_ascending, basename(file_path).lower()
+	def get_str(self, url):
+		return basename(splitscheme(url)[1])
+	def get_sort_value(self, url, is_ascending):
+		is_dir = self.fs.isdir(url)
+		return is_dir ^ is_ascending, basename(url).lower()
 
 class SizeColumn(Column):
 
 	name = 'Size'
 
-	def get_str(self, file_path):
-		if self.fs.isdir(file_path):
+	def get_str(self, url):
+		if self.fs.isdir(url):
 			return ''
-		size_bytes = self.fs.getsize(file_path)
+		size_bytes = self.fs.getsize(url)
 		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
 		if size_bytes <= 0:
 			unit_index = 0
@@ -108,25 +114,25 @@ class SizeColumn(Column):
 		unit = units[unit_index]
 		base = 1024 ** unit_index
 		return unit % (size_bytes / base)
-	def get_sort_value(self, file_path, is_ascending):
-		is_dir = self.fs.isdir(file_path)
+	def get_sort_value(self, url, is_ascending):
+		is_dir = self.fs.isdir(url)
 		if is_dir:
 			ord_ = ord if is_ascending else lambda c: -ord(c)
-			minor = tuple(ord_(c) for c in basename(file_path).lower())
+			minor = tuple(ord_(c) for c in basename(url).lower())
 		else:
-			minor = self.fs.getsize(file_path)
+			minor = self.fs.getsize(url)
 		return is_dir ^ is_ascending, minor
 
 class LastModifiedColumn(Column):
 
 	name = 'Modified'
 
-	def get_str(self, file_path):
+	def get_str(self, url):
 		try:
-			modified = datetime.fromtimestamp(self.fs.getmtime(file_path))
+			modified = datetime.fromtimestamp(self.fs.getmtime(url))
 		except OSError:
 			return ''
 		return modified.strftime('%Y-%m-%d %H:%M')
-	def get_sort_value(self, file_path, is_ascending):
-		is_dir = self.fs.isdir(file_path)
-		return is_dir ^ is_ascending, self.fs.getmtime(file_path)
+	def get_sort_value(self, url, is_ascending):
+		is_dir = self.fs.isdir(url)
+		return is_dir ^ is_ascending, self.fs.getmtime(url)

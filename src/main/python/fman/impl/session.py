@@ -1,7 +1,8 @@
 from base64 import b64encode, b64decode
+from fman.url import as_file_url, dirname
 from fman.util import system
 from os import getcwd
-from os.path import expanduser, realpath, normpath, splitdrive, dirname, isfile
+from os.path import expanduser, realpath, normpath, splitdrive, dirname
 
 import sys
 
@@ -10,9 +11,10 @@ class SessionManager:
 	DEFAULT_NUM_PANES = 2
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
 
-	def __init__(self, settings, fman_version, is_licensed):
+	def __init__(self, settings, fs, fman_version, is_licensed):
 		self.is_first_run = not settings
 		self._settings = settings
+		self._fs = fs
 		self._fman_version = fman_version
 		self._is_licensed = is_licensed
 	@property
@@ -38,16 +40,28 @@ class SessionManager:
 				path = _make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
-			if isfile(path):
+			url = path if '://' in path else as_file_url(path)
+			if self._fs.isdir(url):
+				pane.set_path(url)
+			elif self._fs.exists(url):
 				pane.set_path(
-					dirname(path),
-					callback=lambda pane=pane, path=path: \
-						pane.place_cursor_at(path)
+					dirname(url),
+					callback=lambda pane=pane, url=url: \
+						pane.place_cursor_at(url)
 				)
 			else:
-				pane.set_path(path)
+				url = self._skip_to_existing_pardir(url) \
+					  or as_file_url(expanduser('~'))
+				pane.set_path(url)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
+	def _skip_to_existing_pardir(self, url):
+		while True:
+			pardir = dirname(url)
+			if pardir == url:
+				return None
+			if self._fs.isdir(pardir):
+				return pardir
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._settings.get('window_geometry', None)
 		if geometry_b64:

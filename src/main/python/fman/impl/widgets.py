@@ -1,7 +1,10 @@
+import os
+
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.view import FileListView, Layout, PathView
+from fman.url import splitscheme
 from fman.util.system import is_windows, is_mac
 from fman.util.qt import connect_once, run_in_main_thread, \
 	disable_window_animations_mac, Key_Escape, AscendingOrder
@@ -52,7 +55,7 @@ class DirectoryPane(QWidget):
 		self._path_view.setFocusProxy(self._file_view)
 		self.setFocusProxy(self._file_view)
 		self._controller = None
-		self._model.rootPathChanged.connect(self._path_view.setText)
+		self._model.rootPathChanged.connect(self._on_root_path_changed)
 		self._model.directoryLoaded.connect(
 			lambda _: self.path_changed.emit(self)
 		)
@@ -96,11 +99,7 @@ class DirectoryPane(QWidget):
 		return self._file_view.get_file_under_cursor()
 	@run_in_main_thread
 	def get_path(self):
-		result = self._model.rootPath()
-		if not result:
-			# Displaying "My Computer" - see QFileSystemModel#myComputer()
-			return ''
-		return normpath(result)
+		return self._model.rootPath()
 	@run_in_main_thread
 	def set_path(self, path, callback=None):
 		path_before = self.get_path()
@@ -150,6 +149,11 @@ class DirectoryPane(QWidget):
 		self._controller.on_file_renamed(self, *args)
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
+	def _on_root_path_changed(self, url):
+		self._path_view.setText(self._get_location_to_display(url))
+	def _get_location_to_display(self, url):
+		scheme, path = splitscheme(url)
+		return path.replace('/', os.sep) if scheme == 'file://' else url
 
 def _is_documents_and_settings(path):
 	return splitdrive(normpath(path))[1].lower() == '\\documents and settings'
