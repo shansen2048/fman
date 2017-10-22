@@ -1,4 +1,5 @@
 from datetime import datetime
+from fman import url as default_fs
 from fman.url import splitscheme, as_file_url
 from fman.util.path import add_backslash_to_drive_if_missing
 from fman.impl.trash import move_to_trash
@@ -79,8 +80,6 @@ class DefaultFileSystem(FileSystem):
 		self._watcher.removePath(path)
 
 class Column:
-	def __init__(self, fs):
-		self.fs = fs
 	def get_str(cls, url):
 		raise NotImplementedError()
 	def get_sort_value(self, url, is_ascending):
@@ -97,20 +96,26 @@ class NameColumn(Column):
 
 	name = 'Name'
 
+	def __init__(self, fs=default_fs):
+		super().__init__()
+		self._fs = fs
 	def get_str(self, url):
 		return basename(splitscheme(url)[1])
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self.fs.isdir(url)
+		is_dir = self._fs.isdir(url)
 		return is_dir ^ is_ascending, basename(url).lower()
 
 class SizeColumn(Column):
 
 	name = 'Size'
 
+	def __init__(self, fs=default_fs):
+		super().__init__()
+		self._fs = fs
 	def get_str(self, url):
-		if self.fs.isdir(url):
+		if self._fs.isdir(url):
 			return ''
-		size_bytes = self.fs.getsize(url)
+		size_bytes = self._fs.getsize(url)
 		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
 		if size_bytes <= 0:
 			unit_index = 0
@@ -120,24 +125,27 @@ class SizeColumn(Column):
 		base = 1024 ** unit_index
 		return unit % (size_bytes / base)
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self.fs.isdir(url)
+		is_dir = self._fs.isdir(url)
 		if is_dir:
 			ord_ = ord if is_ascending else lambda c: -ord(c)
 			minor = tuple(ord_(c) for c in basename(url).lower())
 		else:
-			minor = self.fs.getsize(url)
+			minor = self._fs.getsize(url)
 		return is_dir ^ is_ascending, minor
 
 class LastModifiedColumn(Column):
 
 	name = 'Modified'
 
+	def __init__(self, fs=default_fs):
+		super().__init__()
+		self._fs = fs
 	def get_str(self, url):
 		try:
-			modified = datetime.fromtimestamp(self.fs.getmtime(url))
+			modified = datetime.fromtimestamp(self._fs.getmtime(url))
 		except OSError:
 			return ''
 		return modified.strftime('%Y-%m-%d %H:%M')
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self.fs.isdir(url)
-		return is_dir ^ is_ascending, self.fs.getmtime(url)
+		is_dir = self._fs.isdir(url)
+		return is_dir ^ is_ascending, self._fs.getmtime(url)

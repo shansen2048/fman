@@ -96,10 +96,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._root_path = ''
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
-		self._columns = (
-			NameColumn(self._fs), SizeColumn(self._fs),
-			LastModifiedColumn(self._fs)
-		)
+		self._columns = (NameColumn(), SizeColumn(), LastModifiedColumn())
 		self._path_watcher = PathWatcher(fs, self._on_file_changed)
 		self._connect_signals()
 	def _connect_signals(self):

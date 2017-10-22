@@ -35,6 +35,12 @@ def isdir(url):
 def isfile(url):
 	return _get_fs().isfile(url)
 
+def getsize(url):
+	return _get_fs().getsize(url)
+
+def getmtime(url):
+	return _get_fs().getmtime(url)
+
 def rename(old_url, new_url):
 	_get_fs().rename(old_url, new_url)
 
