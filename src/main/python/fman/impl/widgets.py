@@ -1,14 +1,12 @@
-import os
-
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.view import FileListView, Layout, PathView
 from fman.url import splitscheme
 from fman.util.system import is_windows, is_mac
-from fman.util.qt import connect_once, run_in_main_thread, \
-	disable_window_animations_mac, Key_Escape, AscendingOrder
-from os.path import exists, normpath, dirname, splitdrive, abspath
+from fman.util.qt import run_in_main_thread, disable_window_animations_mac, \
+	Key_Escape, AscendingOrder
+from os.path import exists, normpath, dirname
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
@@ -16,6 +14,8 @@ from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
 	QFrame, QAction
 from random import randint, randrange
+
+import os
 
 class Application(QApplication):
 	def __init__(self, *args, **kwargs):
@@ -154,9 +154,6 @@ class DirectoryPane(QWidget):
 	def _get_location_to_display(self, url):
 		scheme, path = splitscheme(url)
 		return path.replace('/', os.sep) if scheme == 'file://' else url
-
-def _is_documents_and_settings(path):
-	return splitdrive(normpath(path))[1].lower() == '\\documents and settings'
 
 class MainWindow(QMainWindow):
 
