@@ -101,6 +101,8 @@ if PLATFORM == 'Windows':
 			if path:
 				raise FileNotFoundError(path)
 			return path
+		def parent(self, path):
+			return 'drives://'
 		def listdir(self, path):
 			if path:
 				raise FileNotFoundError(path)
