@@ -235,13 +235,21 @@ class OpenWithEditor(_CorePaneCommand):
 		if PLATFORM == 'Mac':
 			return '/Applications'
 		elif PLATFORM == 'Windows':
-			result = r'c:\Program Files'
+			result = _get_program_files()
+			if not os.path.exists(result):
+				result = _get_program_files_x86()
 			if not os.path.exists(result):
 				result = splitdrive(sys.executable)[0] + '\\'
 			return result
 		elif PLATFORM == 'Linux':
 			return '/usr/bin'
 		raise NotImplementedError(PLATFORM)
+
+def _get_program_files():
+	return os.environ.get('PROGRAMW6432', r'C:\Program Files')
+
+def _get_program_files_x86():
+	return os.environ.get('PROGRAMFILES', r'C:\Program Files (x86)')
 
 class CreateAndEditFile(OpenWithEditor):
 
@@ -639,7 +647,7 @@ class GoTo(_CorePaneCommand):
 		home_dir = expanduser('~')
 		result = list(self._get_nonhidden_subdirs(home_dir))
 		if PLATFORM == 'Windows':
-			for candidate in (r'C:\Program Files', r'C:\Program Files (x86)'):
+			for candidate in (_get_program_files(), _get_program_files_x86()):
 				if os.path.isdir(candidate):
 					result.append(candidate)
 		elif PLATFORM == 'Mac':
