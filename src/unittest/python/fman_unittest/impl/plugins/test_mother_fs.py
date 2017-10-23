@@ -72,6 +72,11 @@ class MotherFileSystemTest(TestCase):
 		cached_fs.isdir('fsre://foo')
 		with self.assertRaises(PermissionError):
 			cached_fs.listdir('fsre://foo')
+	def test_isdir_exists_false(self):
+		fs = StubFileSystem({})
+		cached_fs = MotherFileSystem([fs], None)
+		self.assertFalse(cached_fs.isdir('stub://non-existent'))
+		self.assertFalse(cached_fs.exists('stub://non-existent'))
 
 class FileSystemCountingIsdirCalls:
 

@@ -16,8 +16,6 @@ class MotherFileSystem:
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
 	def exists(self, url):
-		if url in self._cache:
-			return True
 		return self._query(url, 'exists')
 	def listdir(self, url):
 		result = self._query_cache(url, 'listdir')
