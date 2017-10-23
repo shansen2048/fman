@@ -202,7 +202,7 @@ class OpenWithEditor(_CorePaneCommand):
 			return
 		self._open_with_editor(self.pane.get_file_under_cursor())
 	def _open_with_editor(self, file_url):
-		if not exists(file_url):
+		if not file_url:
 			show_alert('No file is selected!')
 			return
 		scheme, path = splitscheme(file_url)
