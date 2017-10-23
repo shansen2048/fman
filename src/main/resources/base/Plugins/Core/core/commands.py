@@ -593,7 +593,6 @@ def _get_volumes_url():
 	if PLATFORM == 'Mac':
 		return 'file:///Volumes'
 	elif PLATFORM == 'Windows':
-		# TODO: Implement drives:// file system
 		return 'drives://'
 	elif PLATFORM == 'Linux':
 		if os.path.isdir('/media'):
