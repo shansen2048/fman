@@ -6,14 +6,14 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
-from fman.url import dirname, splitscheme, as_file_url, move_to_trash, delete, \
-	exists, touch, rename, mkdir, isdir, isfile
+from fman.url import splitscheme, as_file_url, move_to_trash, delete, \
+	exists, touch, rename, mkdir, isdir, isfile, parent
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
 from os import listdir
 from os.path import join, splitdrive, basename, normpath, split, expanduser, \
-	samefile, isabs, pardir, islink
+	samefile, isabs, pardir, islink, dirname
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -145,14 +145,14 @@ class GoUp(_CorePaneCommand):
 
 	def __call__(self):
 		current_dir = self.pane.get_path()
-		parent_dir = dirname(current_dir)
-		if parent_dir == current_dir:
-			# Consider: current_dir is '/'. Say the cursor is at /bin. We want
-			# it to stay there. But the callback would attempt to place it at /.
-			# Avoid this:
-			return
-		callback = lambda: self.pane.place_cursor_at(current_dir)
-		self.pane.set_path(dirname(current_dir), callback)
+		def callback():
+			if self.pane.get_path() != current_dir:
+				# Only move the cursor if we actually changed directories;
+				# For instance, we don't want to move the cursor if the user
+				# presses Backspace while at C:\ and the cursor is already at
+				# C:\Program Files.
+				self.pane.place_cursor_at(current_dir)
+		self.pane.set_path(parent(current_dir), callback)
 
 class Open(_CorePaneCommand):
 	def __call__(self):
@@ -362,7 +362,7 @@ class RenameListener(DirectoryPaneListener):
 				'instead.'
 			)
 			return
-		new_path = join(dirname(file_path), new_name)
+		new_path = join(parent(file_path), new_name)
 		do_rename = True
 		if exists(new_path):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
@@ -544,7 +544,7 @@ class _OpenInPaneCommand(_CorePaneCommand):
 			# what we want. We want to open the directory of the left pane:
 			to_open = source_pane.get_path()
 		if not isdir(to_open):
-			to_open = dirname(to_open)
+			to_open = parent(to_open)
 		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
 		dest_pane.set_path(to_open)
 	def get_source_pane(self, this_pane, num_panes):
@@ -630,7 +630,7 @@ class GoTo(_CorePaneCommand):
 			url = as_file_url(path)
 			if os.path.isfile(path):
 				self.pane.set_path(
-					dirname(url),
+					parent(url),
 					callback=lambda url=url: self.pane.place_cursor_at(url)
 				)
 			elif os.path.isdir(path):

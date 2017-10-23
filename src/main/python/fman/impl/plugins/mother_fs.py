@@ -1,7 +1,6 @@
-from fman.url import dirname, splitscheme
+from fman.url import splitscheme
 from fman.util import Event
 from functools import partial
-from os.path import dirname
 from threading import Lock
 from weakref import WeakValueDictionary
 
@@ -82,6 +81,8 @@ class MotherFileSystem:
 	def resolve(self, url):
 		scheme, path = splitscheme(url)
 		return scheme + self._children[scheme].resolve(path)
+	def parent(self, url):
+		return self._query_cache(url, 'parent')
 	def add_file_changed_callback(self, url, callback):
 		scheme, path = splitscheme(url)
 		self._children[scheme]._add_file_changed_callback(path, callback)
@@ -120,12 +121,12 @@ class MotherFileSystem:
 		self._remove_from_parent(url)
 	def _remove_from_parent(self, url):
 		try:
-			self._cache[dirname(url)]['listdir'].remove(url)
+			self._cache[self.parent(url)]['listdir'].remove(url)
 		except (KeyError, ValueError):
 			pass
 	def _add_to_parent(self, url):
 		try:
-			self._cache[dirname(url)]['listdir'].append(url)
+			self._cache[self.parent(url)]['listdir'].append(url)
 		except KeyError:
 			pass
 	def _lock(self, path, item=None):

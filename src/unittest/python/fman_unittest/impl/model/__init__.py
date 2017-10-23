@@ -1,8 +1,11 @@
-class StubFileSystem:
+from fman.impl.model.fs import FileSystem
+
+class StubFileSystem(FileSystem):
 
 	scheme = 'stub://'
 
 	def __init__(self, items):
+		super().__init__()
 		self._items = items
 	def exists(self, path):
 		return path in self._items

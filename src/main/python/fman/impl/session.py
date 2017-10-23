@@ -1,5 +1,5 @@
 from base64 import b64encode, b64decode
-from fman.url import as_file_url, dirname
+from fman.url import as_file_url, parent
 from fman.util.path import make_absolute
 from os import getcwd
 from os.path import expanduser
@@ -45,7 +45,7 @@ class SessionManager:
 				pane.set_path(url)
 			elif self._fs.exists(url):
 				pane.set_path(
-					dirname(url),
+					parent(url),
 					callback=lambda pane=pane, url=url: \
 						pane.place_cursor_at(url)
 				)
@@ -57,7 +57,7 @@ class SessionManager:
 			pane.set_column_widths(col_widths)
 	def _skip_to_existing_pardir(self, url):
 		while True:
-			pardir = dirname(url)
+			pardir = parent(url)
 			if pardir == url:
 				return None
 			if self._fs.isdir(pardir):

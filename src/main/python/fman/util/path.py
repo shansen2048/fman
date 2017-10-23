@@ -12,6 +12,9 @@ def add_backslash_to_drive_if_missing(file_path):
 	"""
 	Normalize "C:" -> "C:\". Required for some path functions on Windows.
 	"""
-	if is_windows() and file_path == splitdrive(file_path)[0]:
-		return file_path + '\\'
+	if is_windows() and file_path:
+		drive_or_unc, path = splitdrive(file_path)
+		is_drive = drive_or_unc.endswith(':')
+		if is_drive and file_path == drive_or_unc:
+			return file_path + '\\'
 	return file_path

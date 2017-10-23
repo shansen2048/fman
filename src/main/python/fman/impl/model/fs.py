@@ -1,15 +1,17 @@
 from datetime import datetime
-from fman import url as default_fs
-from fman.url import splitscheme, as_file_url
+from fman import url as default_fs, PLATFORM
+from fman.url import as_file_url
 from fman.util.path import add_backslash_to_drive_if_missing
 from fman.impl.trash import move_to_trash
 from math import log
 from os import rename, remove
 from os.path import isdir, getsize, getmtime, basename, isfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree
 from threading import Lock
+
+import re
 
 class FileSystem:
 
@@ -18,6 +20,12 @@ class FileSystem:
 	def __init__(self):
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
+	def parent(self, path):
+		return self.scheme + str(PurePosixPath(path).parent)
+	def watch(self, path):
+		pass
+	def unwatch(self, path):
+		pass
 	def notify_file_changed(self, path):
 		for callback in self._file_changed_callbacks.get(path, []):
 			callback(path)
@@ -74,10 +82,43 @@ class DefaultFileSystem(FileSystem):
 		# Unlike other functions, Path#resolve can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
 		return Path(path).resolve().as_posix()
+	def parent(self, path):
+		# Unlike other functions, Path#parent can't handle C: instead of C:\
+		path = add_backslash_to_drive_if_missing(path)
+		return as_file_url(Path(path).parent.as_posix())
 	def watch(self, path):
 		self._watcher.addPath(path)
 	def unwatch(self, path):
 		self._watcher.removePath(path)
+
+if PLATFORM == 'Windows':
+
+	class DrivesFileSystem(FileSystem):
+
+		scheme = 'drives://'
+
+		def resolve(self, path):
+			if path:
+				raise FileNotFoundError(path)
+			return path
+		def listdir(self, path):
+			if path:
+				raise FileNotFoundError(path)
+			return list(map(as_file_url, self._get_drives()))
+		def isdir(self, path):
+			return not path
+		def exists(self, path):
+			return not path
+		def _get_drives(self):
+			from ctypes import windll
+			import string
+			result = []
+			bitmask = windll.kernel32.GetLogicalDrives()
+			for letter in string.ascii_uppercase:
+				if bitmask & 1:
+					result.append(letter + ':\\')
+				bitmask >>= 1
+			return result
 
 class Column:
 	def get_str(cls, url):
@@ -100,7 +141,13 @@ class NameColumn(Column):
 		super().__init__()
 		self._fs = fs
 	def get_str(self, url):
-		return basename(splitscheme(url)[1])
+		if re.match('/+', url):
+			return '/'
+		url = url.rstrip('/')
+		try:
+			return url[url.rindex('/')+1:]
+		except ValueError:
+			return url
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.isdir(url)
 		return is_dir ^ is_ascending, basename(url).lower()
