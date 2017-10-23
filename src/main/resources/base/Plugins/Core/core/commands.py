@@ -7,13 +7,13 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
 from fman.url import splitscheme, as_file_url, move_to_trash, delete, \
-	exists, touch, rename, mkdir, isdir, isfile, parent, join
+	exists, touch, rename, mkdir, isdir, isfile, parent, join, samefile
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
 from os import listdir
 from os.path import splitdrive, basename, normpath, split, expanduser, \
-	samefile, isabs, pardir, islink, dirname
+	isabs, pardir, islink, dirname
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -369,9 +369,7 @@ class RenameListener(DirectoryPaneListener):
 		do_rename = True
 		if exists(new_url):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
-			if samefile(new_url, file_url):
-				do_rename = False
-			else:
+			if not samefile(new_url, file_url):
 				response = show_alert(
 					new_name + ' already exists. Do you want to overwrite it?',
 					buttons=YES|NO, default_button=NO
