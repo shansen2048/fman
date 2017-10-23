@@ -367,6 +367,7 @@ class RenameListener(DirectoryPaneListener):
 			return
 		new_url = join(parent(file_url), new_name)
 		do_rename = True
+		do_replace = False
 		if exists(new_url):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
 			if not samefile(new_url, file_url):
@@ -375,7 +376,10 @@ class RenameListener(DirectoryPaneListener):
 					buttons=YES|NO, default_button=NO
 				)
 				do_rename = response & YES
+				do_replace = True
 		if do_rename:
+			if do_replace:
+				delete(new_url)
 			try:
 				rename(file_url, new_url)
 			except OSError as e:
