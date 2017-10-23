@@ -50,11 +50,6 @@ class Help(ApplicationCommand):
 		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings?s=f'))
 
 class _CorePaneCommand(DirectoryPaneCommand):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		# The field `ui` is useful for automated tests: Tests can overwrite it
-		# with a stub implementation to run without an actual GUI.
-		self.ui = fman
 	def toggle_selection(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
@@ -108,7 +103,7 @@ class MoveToTrash(_CorePaneCommand):
 		else:
 			description = _humanize(to_delete[0])
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
-		choice = self.ui.show_alert(
+		choice = show_alert(
 			"Do you really want to move %s to the %s?" % (description, trash),
 			YES | NO, YES
 		)
@@ -222,12 +217,12 @@ class OpenWithEditor(_CorePaneCommand):
 		settings = load_json('Core Settings.json', default={})
 		result = settings.get('editor', {})
 		if not result:
-			choice = self.ui.show_alert(
+			choice = show_alert(
 				'Editor is currently not configured. Please pick one.',
 				OK | CANCEL, OK
 			)
 			if choice & OK:
-				editor_path = self.ui.show_file_open_dialog(
+				editor_path = show_file_open_dialog(
 					'Pick an Editor', self._get_applications_directory(),
 					self._PLATFORM_APPLICATIONS_FILTER[PLATFORM]
 				)
@@ -300,7 +295,7 @@ class _TreeCommand(_CorePaneCommand):
 		descr_verb = self.__class__.__name__
 		message = '%s %s to' % (descr_verb, files_descr)
 		dest = normpath(join(dest_dir, dest_name))
-		dest, ok = self.ui.show_prompt(message, dest)
+		dest, ok = show_prompt(message, dest)
 		if ok:
 			if not isabs(dest):
 				dest = join(src_dir, dest)
@@ -311,7 +306,7 @@ class _TreeCommand(_CorePaneCommand):
 					if len(files) == 1:
 						return split(dest)
 					else:
-						self.ui.show_alert(
+						show_alert(
 							'You cannot %s multiple files to a single file!' %
 							descr_verb.lower()
 						)
@@ -319,7 +314,7 @@ class _TreeCommand(_CorePaneCommand):
 				if len(files) == 1:
 					return split(dest)
 				else:
-					choice = self.ui.show_alert(
+					choice = show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
 						(dest, descr_verb.lower()), YES | NO, YES
@@ -329,11 +324,11 @@ class _TreeCommand(_CorePaneCommand):
 
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		CopyFiles(self.ui, files, dest_dir, src_dir, dest_name)()
+		CopyFiles(fman, files, dest_dir, src_dir, dest_name)()
 
 class Move(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		MoveFiles(self.ui, files, dest_dir, src_dir, dest_name)()
+		MoveFiles(fman, files, dest_dir, src_dir, dest_name)()
 
 class DragAndDropListener(DirectoryPaneListener):
 	def on_files_dropped(self, files, dest_dir, is_copy_not_move):
@@ -391,7 +386,7 @@ class CreateDirectory(_CorePaneCommand):
 	)
 
 	def __call__(self):
-		name, ok = self.ui.show_prompt("New folder (directory)")
+		name, ok = show_prompt("New folder (directory)")
 		if ok and name:
 			dir_path = join(self.pane.get_path(), name)
 			try:
