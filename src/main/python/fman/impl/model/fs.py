@@ -29,6 +29,8 @@ class FileSystem:
 	def notify_file_changed(self, path):
 		for callback in self._file_changed_callbacks.get(path, []):
 			callback(path)
+	def samefile(self, f1, f2):
+		return self.resolve(f1) == self.resolve(f2)
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:
@@ -81,7 +83,7 @@ class DefaultFileSystem(FileSystem):
 	def resolve(self, path):
 		# Unlike other functions, Path#resolve can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
-		return Path(path).resolve().as_posix()
+		return as_file_url(Path(path).resolve())
 	def parent(self, path):
 		# Unlike other functions, Path#parent can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
@@ -100,7 +102,7 @@ if PLATFORM == 'Windows':
 		def resolve(self, path):
 			if path:
 				raise FileNotFoundError(path)
-			return path
+			return 'drives://'
 		def parent(self, path):
 			return 'drives://'
 		def listdir(self, path):

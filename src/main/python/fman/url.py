@@ -1,4 +1,4 @@
-from pathlib import PurePath
+from pathlib import PurePath, PurePosixPath
 
 def splitscheme(url):
 	separator = '://'
@@ -48,6 +48,13 @@ def delete(url):
 
 def parent(url):
 	return _get_fs().parent(url)
+
+def samefile(url_1, url_2):
+	return _get_fs().samefile(url_1, url_2)
+
+def join(url, *paths):
+	scheme, path = splitscheme(url)
+	return scheme + PurePosixPath(path, *paths).as_posix()
 
 def _get_fs():
 	from fman.impl.application_context import get_application_context

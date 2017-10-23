@@ -7,12 +7,12 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
 from fman.url import splitscheme, as_file_url, move_to_trash, delete, \
-	exists, touch, rename, mkdir, isdir, isfile, parent
+	exists, touch, rename, mkdir, isdir, isfile, parent, join
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
 from os import listdir
-from os.path import join, splitdrive, basename, normpath, split, expanduser, \
+from os.path import splitdrive, basename, normpath, split, expanduser, \
 	samefile, isabs, pardir, islink, dirname
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
@@ -34,7 +34,7 @@ class About(ApplicationCommand):
 		msg += "\n" + self._get_registration_info()
 		show_alert(msg)
 	def _get_registration_info(self):
-		user_json_path = join(DATA_DIRECTORY, 'Local', 'User.json')
+		user_json_path = os.path.join(DATA_DIRECTORY, 'Local', 'User.json')
 		try:
 			with open(user_json_path, 'r') as f:
 				data = json.load(f)
@@ -257,7 +257,7 @@ class CreateAndEditFile(OpenWithEditor):
 
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
-		if isfile(file_under_cursor):
+		if file_under_cursor and isfile(file_under_cursor):
 			default_name = basename(file_under_cursor)
 		else:
 			default_name = ''
@@ -302,11 +302,11 @@ class _TreeCommand(_CorePaneCommand):
 			files_descr = '%d files' % len(files)
 		descr_verb = self.__class__.__name__
 		message = '%s %s to' % (descr_verb, files_descr)
-		dest = normpath(join(dest_dir, dest_name))
+		dest = normpath(os.path.join(dest_dir, dest_name))
 		dest, ok = show_prompt(message, dest)
 		if ok:
 			if not isabs(dest):
-				dest = join(src_dir, dest)
+				dest = os.path.join(src_dir, dest)
 			if exists(dest):
 				if os.path.isdir(dest):
 					return dest, None
@@ -352,8 +352,8 @@ class Rename(_CorePaneCommand):
 			show_alert('No file is selected!')
 
 class RenameListener(DirectoryPaneListener):
-	def on_name_edited(self, file_path, new_name):
-		old_name = basename(file_path)
+	def on_name_edited(self, file_url, new_name):
+		old_name = basename(file_url)
 		if not new_name or new_name == old_name:
 			return
 		is_relative = \
@@ -365,11 +365,13 @@ class RenameListener(DirectoryPaneListener):
 				'instead.'
 			)
 			return
-		new_path = join(parent(file_path), new_name)
+		new_url = join(parent(file_url), new_name)
 		do_rename = True
-		if exists(new_path):
+		if exists(new_url):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
-			if not samefile(new_path, file_path):
+			if samefile(new_url, file_url):
+				do_rename = False
+			else:
 				response = show_alert(
 					new_name + ' already exists. Do you want to overwrite it?',
 					buttons=YES|NO, default_button=NO
@@ -377,7 +379,7 @@ class RenameListener(DirectoryPaneListener):
 				do_rename = response & YES
 		if do_rename:
 			try:
-				rename(file_path, new_path)
+				rename(file_url, new_url)
 			except OSError as e:
 				if isinstance(e, PermissionError):
 					message = 'Access was denied trying to rename %s to %s.'
@@ -385,7 +387,7 @@ class RenameListener(DirectoryPaneListener):
 					message = 'Could not rename %s to %s.'
 				show_alert(message % (old_name, new_name))
 			else:
-				self.pane.place_cursor_at(new_path)
+				self.pane.place_cursor_at(new_url)
 
 class CreateDirectory(_CorePaneCommand):
 
@@ -846,7 +848,7 @@ class FileSystem:
 				return listdir(splitdrive(path)[0] + r'\Users')
 			raise
 	def samefile(self, f1, f2):
-		return samefile(f1, f2)
+		return os.path.samefile(f1, f2)
 	def find_folders_starting_with(self, pattern, timeout_secs=0.02):
 		if PLATFORM == 'Mac':
 			from objc import loadBundle
@@ -1131,7 +1133,7 @@ class InstallPlugin(ApplicationCommand):
 		with open(plugin_json, 'w') as f:
 			json.dump(data, f)
 
-_THIRDPARTY_PLUGINS_DIR = join(DATA_DIRECTORY, 'Plugins', 'Third-party')
+_THIRDPARTY_PLUGINS_DIR = os.path.join(DATA_DIRECTORY, 'Plugins', 'Third-party')
 
 def _get_thirdparty_plugins():
 	return _list_plugins(_THIRDPARTY_PLUGINS_DIR)

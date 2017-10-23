@@ -80,9 +80,15 @@ class MotherFileSystem:
 		self.file_removed.trigger(url)
 	def resolve(self, url):
 		scheme, path = splitscheme(url)
-		return scheme + self._children[scheme].resolve(path)
+		return self._children[scheme].resolve(path)
 	def parent(self, url):
 		return self._query_cache(url, 'parent')
+	def samefile(self, url_1, url_2):
+		scheme_1, path_1 = splitscheme(self.resolve(url_1))
+		scheme_2, path_2 = splitscheme(self.resolve(url_2))
+		if scheme_1 == scheme_2:
+			return self._children[scheme_1].samefile(path_1, path_2)
+		return False
 	def add_file_changed_callback(self, url, callback):
 		scheme, path = splitscheme(url)
 		self._children[scheme]._add_file_changed_callback(path, callback)
