@@ -11,7 +11,10 @@ class StubFileSystem:
 			self.scheme + item for item in self._items[path].get('files', [])
 		]
 	def isdir(self, path):
-		return self._items[path].get('isdir', False)
+		try:
+			return self._items[path]['isdir']
+		except KeyError:
+			return False
 	def getsize(self, path):
 		return self._items[path].get('size', 1)
 	def getmtime(self, path):
