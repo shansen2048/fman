@@ -9,7 +9,7 @@ from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 	GnomeNotAvailable, IconProvider
-from fman.impl.model.fs import DefaultFileSystem, DrivesFileSystem
+from fman.impl.model.fs import DefaultFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -199,9 +199,11 @@ class ApplicationContext:
 		)
 	@cached_property
 	def fs(self):
-		return MotherFileSystem(
-			[DefaultFileSystem(), DrivesFileSystem()], self.icon_provider
-		)
+		file_systems = [DefaultFileSystem()]
+		if PLATFORM == 'Windows':
+			from fman.impl.model.fs import DrivesFileSystem
+			file_systems.append(DrivesFileSystem())
+		return MotherFileSystem(file_systems, self.icon_provider)
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
