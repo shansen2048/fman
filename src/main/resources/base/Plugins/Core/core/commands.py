@@ -288,32 +288,33 @@ class _TreeCommand(_CorePaneCommand):
 	def other_pane(self):
 		panes = self.pane.window.get_panes()
 		return panes[(panes.index(self.pane) + 1) % len(panes)]
-	def _confirm_tree_operation(self, files, dest_dir, src_dir):
+	@classmethod
+	def _confirm_tree_operation(cls, files, dest_dir, src_dir, ui=fman):
 		if not files:
-			show_alert('No file is selected!')
+			ui.show_alert('No file is selected!')
 			return
 		if len(files) == 1:
 			file_, = files
-			dest_name = basename(file_) if isfile(file_) else ''
-			files_descr = '"%s"' % basename(file_)
+			dest_name = os.path.basename(file_) if os.path.isfile(file_) else ''
+			files_descr = '"%s"' % os.path.basename(file_)
 		else:
 			dest_name = ''
 			files_descr = '%d files' % len(files)
-		descr_verb = self.__class__.__name__
+		descr_verb = cls.__name__
 		message = '%s %s to' % (descr_verb, files_descr)
 		dest = normpath(os.path.join(dest_dir, dest_name))
-		dest, ok = show_prompt(message, dest)
+		dest, ok = ui.show_prompt(message, dest)
 		if ok:
 			if not isabs(dest):
 				dest = os.path.join(src_dir, dest)
-			if exists(dest):
+			if os.path.exists(dest):
 				if os.path.isdir(dest):
 					return dest, None
 				else:
 					if len(files) == 1:
 						return split(dest)
 					else:
-						show_alert(
+						ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
 							descr_verb.lower()
 						)
@@ -321,7 +322,7 @@ class _TreeCommand(_CorePaneCommand):
 				if len(files) == 1:
 					return split(dest)
 				else:
-					choice = show_alert(
+					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
 						(dest, descr_verb.lower()), YES | NO, YES

@@ -1,9 +1,114 @@
-from core.commands import SuggestLocations, History
+from core.commands import SuggestLocations, History, Move
+from core.tests import StubUI
+from fman import OK, YES, NO
 from fman.util.system import is_linux, is_windows
-from os.path import normpath
+from os import mkdir
+from os.path import normpath, join
 from unittest import TestCase, skipIf
+from tempfile import TemporaryDirectory
 
 import os
+
+class ConfirmTreeOperationTest(TestCase):
+	def test_no_files(self):
+		self._expect_alert(('No file is selected!',), answer=OK)
+		self.assertIsNone(self._run([], '', ''))
+	def test_one_file(self):
+		dest_path = join(self._dest, 'a.txt')
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		self.assertEqual(
+			(self._dest, 'a.txt'),
+			self._run([self._a_txt], self._dest, self._src)
+		)
+	def test_one_dir(self):
+		self._expect_prompt(('Move "a" to', self._dest), (self._dest, True))
+		self.assertEqual(
+			(self._dest, None),
+			self._run([self._a], self._dest, self._src)
+		)
+	def test_two_files(self):
+		self._expect_prompt(('Move 2 files to', self._dest), (self._dest, True))
+		self.assertEqual(
+			(self._dest, None),
+			self._run([self._a_txt, self._b_txt], self._dest, self._src)
+		)
+	def test_into_subfolder(self):
+		dest_path = join(self._dest, 'a.txt')
+		self._expect_prompt(('Move "a.txt" to', dest_path), ('a', True))
+		self.assertEqual(
+			(self._a, None),
+			self._run([self._a_txt], self._dest, self._src)
+		)
+	def test_overwrite_single_file(self):
+		dest_path = join(self._dest, 'a.txt')
+		self._touch(dest_path)
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		self.assertEqual(
+			(self._dest, 'a.txt'),
+			self._run([self._a_txt], self._dest, self._src)
+		)
+	def test_multiple_files_over_one(self):
+		dest_path = join(self._dest, 'a.txt')
+		self._touch(dest_path)
+		self._expect_prompt(('Move 2 files to', self._dest), (dest_path, True))
+		self._expect_alert(
+			('You cannot move multiple files to a single file!',), answer=OK
+		)
+		self.assertIsNone(
+			self._run([self._a_txt, self._b_txt], self._dest, self._src)
+		)
+	def test_renamed_destination(self):
+		self._expect_prompt(
+			('Move "a.txt" to', join(self._dest, 'a.txt')),
+			(join(self._dest, 'z.txt'), True)
+		)
+		self.assertEqual(
+			(self._dest, 'z.txt'),
+			self._run([self._a_txt], self._dest, self._src)
+		)
+	def test_multiple_files_nonexistent_dest(self):
+		dest = join(self._dest, 'dir')
+		self._expect_prompt(
+			('Move 2 files to', self._dest),
+			(dest, True)
+		)
+		self._expect_alert(
+			('%s does not exist. Do you want to create it as a directory and '
+			 'move the files there?' % dest, YES | NO, YES),
+			answer=YES
+		)
+		self.assertEqual(
+			(dest, None),
+			self._run([self._a_txt, self._b_txt], self._dest, self._src)
+		)
+	def _expect_alert(self, args, answer):
+		self._ui.expect_alert(args, answer)
+	def _expect_prompt(self, args, answer):
+		self._ui.expect_prompt(args, answer)
+	def _run(self, files, dest_dir, src_dir):
+		result = \
+			Move._confirm_tree_operation(files, dest_dir, src_dir, self._ui)
+		self._ui.verify_expected_dialogs_were_shown()
+		return result
+	def setUp(self):
+		super().setUp()
+		self._ui = StubUI(self)
+		self._temp_dir = TemporaryDirectory()
+		self._src = join(self._temp_dir.name, 'src')
+		mkdir(self._src)
+		self._dest = join(self._temp_dir.name, 'dest')
+		mkdir(self._dest)
+		self._a = join(self._src, 'a')
+		mkdir(self._a)
+		self._a_txt = join(self._src, 'a.txt')
+		self._touch(self._a_txt)
+		self._b_txt = join(self._src, 'b.txt')
+		self._touch(self._b_txt)
+	def tearDown(self):
+		self._temp_dir.cleanup()
+		super().tearDown()
+	def _touch(self, file_path):
+		with open(file_path, 'w'): pass
 
 class SuggestLocationsTest(TestCase):
 	def test_empty_suggests_recent_locations(self):

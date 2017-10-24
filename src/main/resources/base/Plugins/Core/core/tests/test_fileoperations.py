@@ -1,4 +1,5 @@
 from core.fileoperations import CopyFiles, MoveFiles
+from core.tests import StubUI
 from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, PLATFORM
 from os import listdir, mkdir, chmod, makedirs, readlink
 from os.path import basename, join, dirname, exists, islink, realpath, samefile
@@ -218,7 +219,7 @@ class FileTreeOperationAT:
 		if dest_dir is None:
 			dest_dir = self.dest
 		self.operation(self.ui, files, dest_dir, self.src, dest_name)()
-		self.ui.verify_expected_alerts_were_shown()
+		self.ui.verify_expected_dialogs_were_shown()
 	def _assert_file_contents_equal(self, file_path, expected_contents):
 		with open(file_path, 'r') as f:
 			self.assertEqual(expected_contents, f.read())
@@ -336,25 +337,3 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		)
 		self._assert_file_contents_equal(src_file, 'src contents')
 		self._assert_file_contents_equal(dest_file, 'dest contents')
-
-class StubUI:
-	def __init__(self, test_case):
-		self.expected_alerts = []
-		self.test_case = test_case
-	def expect_alert(self, args, answer):
-		self.expected_alerts.append((args, answer))
-	def verify_expected_alerts_were_shown(self):
-		self.test_case.assertEqual(
-			[], self.expected_alerts, 'Did not receive all expected alerts.'
-		)
-	def show_alert(self, *args, **_):
-		if not self.expected_alerts:
-			self.test_case.fail('Unexpected alert: %r' % args[0])
-			return
-		expected_args, answer = self.expected_alerts.pop(0)
-		self.test_case.assertEqual(expected_args, args)
-		return answer
-	def show_status_message(self, _):
-		pass
-	def clear_status_message(self):
-		pass
