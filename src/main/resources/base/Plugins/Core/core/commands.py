@@ -983,20 +983,20 @@ class Quit(ApplicationCommand):
 
 class InstallLicenseKey(DirectoryPaneCommand):
 	def __call__(self):
-		scheme, curr_dirpath = split(self.pane.get_path())
+		scheme, curr_dirpath = splitscheme(self.pane.get_path())
 		if scheme != 'file://':
 			show_alert(
 				'Sorry, please copy User.json to your local file system first.'
 			)
 			return
-		license_key = join(curr_dirpath, 'User.json')
+		license_key = os.path.join(curr_dirpath, 'User.json')
 		if not os.path.exists(license_key):
 			show_alert(
 				'Could not find license key file "User.json" in the current '
 				'directory %s.' % curr_dirpath
 			)
 			return
-		destination_directory = join(DATA_DIRECTORY, 'Local')
+		destination_directory = os.path.join(DATA_DIRECTORY, 'Local')
 		copy(license_key, destination_directory)
 		show_alert(
 			"Thank you! Please restart fman to complete the registration. You "
