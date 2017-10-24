@@ -680,10 +680,10 @@ class GoTo(_CorePaneCommand):
 			)
 		return result
 	def _get_nonhidden_subdirs(self, dir_path):
-		for file_name in listdir(dir_path):
-			file_path = join(dir_path, file_name)
+		for file_name in os.listdir(dir_path):
+			file_path = os.path.join(dir_path, file_name)
 			if os.path.isdir(file_path) and not _is_hidden(file_path):
-				yield join(dir_path, file_name)
+				yield os.path.join(dir_path, file_name)
 	def _traverse_by_mtime(self, dir_path, exclude=None):
 		if exclude is None:
 			exclude = set()
@@ -695,7 +695,7 @@ class GoTo(_CorePaneCommand):
 				continue
 			yield parent
 			try:
-				parent_contents = listdir(parent)
+				parent_contents = os.listdir(parent)
 			except OSError:
 				continue
 			for file_name in parent_contents:
