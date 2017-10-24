@@ -811,7 +811,7 @@ class SuggestLocations:
 			pass
 		else:
 			for name in dir_contents:
-				file_path = join(dir_, name)
+				file_path = os.path.join(dir_, name)
 				if self.fs.isdir(file_path):
 					yield self._unexpand_user(file_path)
 	def _realcase(self, path):
