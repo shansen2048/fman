@@ -1120,17 +1120,17 @@ class InstallPlugin(ApplicationCommand):
 					description=repo.description
 				)
 	def _install_plugin(self, name, zipball_contents):
-		dest_dir = join(_THIRDPARTY_PLUGINS_DIR, name)
+		dest_dir = os.path.join(_THIRDPARTY_PLUGINS_DIR, name)
 		if os.path.exists(dest_dir):
 			raise ValueError('Plugin %s seems to already be installed.' % name)
 		with ZipFile(BytesIO(zipball_contents), 'r') as zipfile:
 			with TemporaryDirectory() as temp_dir:
 				zipfile.extractall(temp_dir)
-				dir_in_zip, = listdir(temp_dir)
-				move(join(temp_dir, dir_in_zip), dest_dir)
+				dir_in_zip, = os.listdir(temp_dir)
+				move(os.path.join(temp_dir, dir_in_zip), dest_dir)
 		return dest_dir
 	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
-		plugin_json = join(plugin_dir, 'Plugin.json')
+		plugin_json = os.path.join(plugin_dir, 'Plugin.json')
 		if os.path.exists(plugin_json):
 			with open(plugin_json, 'r') as f:
 				data = json.load(f)
