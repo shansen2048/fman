@@ -936,7 +936,8 @@ class CommandPalette(_CorePaneCommand):
 				for i, matcher in enumerate(self._MATCHERS):
 					match = matcher(alias.lower(), query.lower())
 					if match is not None:
-						hint = ', '.join(self._get_shortcuts_for_command(cmd_name))
+						shortcuts = self._get_shortcuts_for_command(cmd_name)
+						hint = ', '.join(shortcuts)
 						item = QuicksearchItem(command, alias, match, hint)
 						result[i].append(item)
 						this_alias_matched = True
