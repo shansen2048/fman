@@ -486,12 +486,12 @@ class Paste(_CorePaneCommand):
 class PasteCut(_CorePaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
-		if not any(map(os.path.exists, files)):
+		if not any(map(exists, files)):
 			# This can happen when the paste-cut has already been performed.
 			return
 		dest_dir = self.pane.get_path()
 		self.pane.run_command('move', {
-			'files': [as_file_url(f) for f in files],
+			'files': files,
 			'dest_dir': dest_dir
 		})
 
