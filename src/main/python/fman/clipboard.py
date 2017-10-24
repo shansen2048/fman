@@ -48,15 +48,7 @@ def cut_files(files):
 
 @run_in_main_thread
 def get_files():
-	result = []
-	for url in _clipboard().mimeData().urls():
-		if url.isLocalFile():
-			# On (at least) OS X, url.toLocalFile() returns paths of the form
-			# '/foo/bar/' for directories. But os.path.basename('/foo/bar/')
-			# returns '' instead of 'bar', which has lead to bugs in the past.
-			# We use normpath(...) here to get rid of the trailing slash:
-			result.append(normpath(url.toLocalFile()))
-	return result
+	return [url.toString() for url in _clipboard().mimeData().urls()]
 
 @run_in_main_thread
 def files_were_cut():
@@ -72,20 +64,19 @@ def files_were_cut():
 def _clipboard():
 	return QApplication.instance().clipboard()
 
-def _place_on_clipboard(files, extra_data):
-	urls = [QUrl.fromLocalFile(file_) for file_ in files]
+def _place_on_clipboard(file_urls, extra_data):
+	urls = [QUrl(file_) for file_ in file_urls]
 	new_clipboard_data = QMimeData()
 	new_clipboard_data.setUrls(urls)
-	new_clipboard_data.setText('\n'.join(map(basename, files)))
+	new_clipboard_data.setText('\n'.join(map(basename, file_urls)))
 	for key, value in extra_data.items():
 		new_clipboard_data.setData(key, value)
 	_clipboard().setMimeData(new_clipboard_data)
 
-def _get_extra_copy_cut_data_linux(files, copy_or_cut):
+def _get_extra_copy_cut_data_linux(file_urls, copy_or_cut):
 	result = {}
 	mime_type = _get_linux_copy_cut_mime_type()
 	if mime_type:
-		file_urls = [QUrl.fromLocalFile(f).toString() for f in files]
 		result[mime_type] = '\n'.join([copy_or_cut] + file_urls).encode('utf-8')
 	return result
 
