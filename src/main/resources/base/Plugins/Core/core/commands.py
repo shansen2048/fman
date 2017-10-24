@@ -417,7 +417,13 @@ class OpenTerminal(_CorePaneCommand):
 	)
 
 	def __call__(self):
-		open_terminal_in_directory(self.pane.get_path())
+		scheme, path = splitscheme(self.pane.get_path())
+		if scheme != 'file://':
+			show_alert(
+				"Can currently open the terminal only in local directories."
+			)
+			return
+		open_terminal_in_directory(path)
 
 class OpenNativeFileManager(_CorePaneCommand):
 	def __call__(self):
