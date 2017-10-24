@@ -1203,7 +1203,8 @@ def _get_plugins():
 def _get_user_plugins():
 	result = []
 	settings_plugin = ''
-	for plugin_dir in _list_plugins(join(DATA_DIRECTORY, 'Plugins', 'User')):
+	user_plugins_dir = os.path.join(DATA_DIRECTORY, 'Plugins', 'User')
+	for plugin_dir in _list_plugins(user_plugins_dir):
 		if basename(plugin_dir) == 'Settings':
 			settings_plugin = plugin_dir
 		else:
