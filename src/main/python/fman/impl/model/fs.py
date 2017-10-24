@@ -21,7 +21,7 @@ class FileSystem:
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
 	def parent(self, path):
-		return dirname(path)
+		return dirname(self.scheme + path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):
