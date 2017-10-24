@@ -11,7 +11,6 @@ from fman.url import splitscheme, as_file_url, move_to_trash, delete, \
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
-from os import listdir
 from os.path import splitdrive, basename, normpath, split, expanduser, \
 	isabs, pardir, islink, dirname
 from PyQt5.QtCore import QFileInfo, QUrl
