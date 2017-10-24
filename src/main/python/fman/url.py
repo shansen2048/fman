@@ -49,6 +49,10 @@ def delete(url):
 def parent(url):
 	return _get_fs().parent(url)
 
+def dirname(url):
+	scheme, path = splitscheme(url)
+	return scheme + (str(PurePosixPath(path).parent) if path else '')
+
 def samefile(url_1, url_2):
 	return _get_fs().samefile(url_1, url_2)
 

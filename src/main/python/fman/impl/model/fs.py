@@ -1,12 +1,12 @@
 from datetime import datetime
 from fman import url as default_fs, PLATFORM
-from fman.url import as_file_url
+from fman.url import as_file_url, dirname
 from fman.util.path import add_backslash_to_drive_if_missing
 from fman.impl.trash import move_to_trash
 from math import log
 from os import rename, remove
 from os.path import isdir, getsize, getmtime, basename, isfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree
 from threading import Lock
@@ -21,7 +21,7 @@ class FileSystem:
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
 	def parent(self, path):
-		return self.scheme + str(PurePosixPath(path).parent)
+		return dirname(path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):

@@ -2,11 +2,12 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.fs import NameColumn, SizeColumn, LastModifiedColumn
+from fman.url import dirname
 from fman.util import is_debug, EqMixin, ReprMixin, ConstructorMixin
 from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
-from os.path import commonprefix, dirname, normpath
+from os.path import commonprefix
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
 	QMimeData, QAbstractTableModel, QModelIndex, Qt, QThread
 
@@ -25,7 +26,7 @@ class DragAndDropMixin(QAbstractTableModel):
 		if not data.hasUrls():
 			return False
 		dest_dir = self._get_drop_dest(parent)
-		is_in_dest_dir = lambda url: dirname(url.toLocalFile()) == dest_dir
+		is_in_dest_dir = lambda url: dirname(url.toString()) == dest_dir
 		return not all(map(is_in_dest_dir, data.urls()))
 	def mimeTypes(self):
 		"""
@@ -34,10 +35,7 @@ class DragAndDropMixin(QAbstractTableModel):
 		return ['text/uri-list']
 	def mimeData(self, indexes):
 		result = QMimeData()
-		result.setUrls([
-			QUrl.fromLocalFile(self.filePath(index))
-			for index in indexes
-		])
+		result.setUrls([QUrl(self.filePath(index)) for index in indexes])
 		# The Qt documentation (http://doc.qt.io/qt-5/dnd.html) states that the
 		# QMimeData should not be deleted, because the target of the drag and
 		# drop operation takes ownership of it. We must therefore tell SIP not
@@ -51,9 +49,7 @@ class DragAndDropMixin(QAbstractTableModel):
 			return True
 		if not data.hasUrls():
 			return False
-		# On OS X, url.toLocalFile() ends in '/' for directories. Get rid of
-		# this via normpath(...):
-		urls = [normpath(url.toLocalFile()) for url in data.urls()]
+		urls = [url.toString() for url in data.urls()]
 		dest = self._get_drop_dest(parent)
 		if action in (MoveAction, CopyAction):
 			self.files_dropped.emit(urls, dest, action == CopyAction)
