@@ -766,7 +766,7 @@ class SuggestLocations:
 			path = path.rstrip(' ')
 			# Handle the case where the user has entered a drive such as 'E:'
 			# without the trailing backslash:
-			if path == splitdrive(path)[0]:
+			if re.match(r'^[A-Z]:$', path):
 				path += '\\'
 		if isabs(path):
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
@@ -845,14 +845,14 @@ class FileSystem:
 		return expanduser(path)
 	def listdir(self, path):
 		try:
-			return listdir(path)
+			return os.listdir(path)
 		except PermissionError:
 			if PLATFORM == 'Windows' and self._is_documents_and_settings(path):
 				# Python can't listdir("C:\Documents and Settings"). In fact, no
 				# Windows program can. But "C:\{DaS}\<Username>" does work, and
 				# displays "C:\Users\<Username>". For consistency, treat DaS
 				# like a symlink to \Users:
-				return listdir(splitdrive(path)[0] + r'\Users')
+				return os.listdir(splitdrive(path)[0] + r'\Users')
 			raise
 	def samefile(self, f1, f2):
 		return os.path.samefile(f1, f2)
