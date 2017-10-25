@@ -15,6 +15,7 @@ from io import BytesIO
 from itertools import chain, islice
 from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
 	islink, dirname
+from pathlib import PurePath
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -310,7 +311,9 @@ class _TreeCommand(_CorePaneCommand):
 			try:
 				splitscheme(dest)
 			except ValueError as no_scheme:
-				dest = join(src_dir, dest)
+				# Treat dest as relative to src_dir:
+				src_scheme, src_path = splitscheme(src_dir)
+				dest = src_scheme + str(PurePath(src_path, dest).as_posix())
 			if fs.exists(dest):
 				if fs.isdir(dest):
 					return dest, None
