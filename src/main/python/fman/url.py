@@ -1,5 +1,7 @@
 from pathlib import PurePath, PurePosixPath
 
+import os.path
+
 def splitscheme(url):
 	separator = '://'
 	try:
@@ -52,6 +54,15 @@ def parent(url):
 def dirname(url):
 	scheme, path = splitscheme(url)
 	return scheme + (str(PurePosixPath(path).parent) if path else '')
+
+def basename(url):
+	path = splitscheme(url)[1]
+	return PurePosixPath(path).name if path else ''
+
+def split(url):
+	scheme, path = splitscheme(url)
+	head, tail = os.path.split(path)
+	return scheme + head, tail
 
 def samefile(url_1, url_2):
 	return _get_fs().samefile(url_1, url_2)

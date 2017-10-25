@@ -6,13 +6,15 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
+from fman import url
 from fman.url import splitscheme, as_file_url, move_to_trash, delete, \
-	exists, touch, rename, mkdir, isdir, isfile, parent, join, samefile
+	exists, touch, rename, mkdir, isdir, isfile, parent, join, samefile, \
+	basename, split
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
-from os.path import splitdrive, basename, normpath, split, expanduser, \
-	isabs, pardir, islink, dirname
+from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
+	islink, dirname
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import copy, move, rmtree
@@ -289,26 +291,28 @@ class _TreeCommand(_CorePaneCommand):
 		panes = self.pane.window.get_panes()
 		return panes[(panes.index(self.pane) + 1) % len(panes)]
 	@classmethod
-	def _confirm_tree_operation(cls, files, dest_dir, src_dir, ui=fman):
+	def _confirm_tree_operation(cls, files, dest_dir, src_dir, ui=fman, fs=url):
 		if not files:
 			ui.show_alert('No file is selected!')
 			return
 		if len(files) == 1:
 			file_, = files
-			dest_name = os.path.basename(file_) if os.path.isfile(file_) else ''
-			files_descr = '"%s"' % os.path.basename(file_)
+			dest_name = basename(file_) if fs.isfile(file_) else ''
+			files_descr = '"%s"' % basename(file_)
 		else:
 			dest_name = ''
 			files_descr = '%d files' % len(files)
 		descr_verb = cls.__name__
 		message = '%s %s to' % (descr_verb, files_descr)
-		dest = normpath(os.path.join(dest_dir, dest_name))
+		dest = _humanize(join(dest_dir, dest_name))
 		dest, ok = ui.show_prompt(message, dest)
-		if ok:
-			if not isabs(dest):
-				dest = os.path.join(src_dir, dest)
-			if os.path.exists(dest):
-				if os.path.isdir(dest):
+		if dest and ok:
+			try:
+				splitscheme(dest)
+			except ValueError as no_scheme:
+				dest = join(src_dir, dest)
+			if fs.exists(dest):
+				if fs.isdir(dest):
 					return dest, None
 				else:
 					if len(files) == 1:
@@ -325,7 +329,7 @@ class _TreeCommand(_CorePaneCommand):
 					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(dest, descr_verb.lower()), YES | NO, YES
+						(_humanize(dest), descr_verb.lower()), YES | NO, YES
 					)
 					if choice & YES:
 						return dest, None
@@ -617,7 +621,7 @@ def _get_user():
 	try:
 		return getuser()
 	except:
-		return basename(expanduser('~'))
+		return os.path.basename(expanduser('~'))
 
 class GoTo(_CorePaneCommand):
 	def __call__(self):
@@ -830,8 +834,10 @@ class SuggestLocations:
 		except OSError:
 			matching_names = []
 		else:
-			matching_names = \
-				[f for f in dir_contents if f.lower() == basename(path).lower()]
+			matching_names = [
+				f for f in dir_contents
+				if f.lower() == os.path.basename(path).lower()
+			]
 		if not matching_names:
 			return path
 		return join(dir_, matching_names[0])
@@ -1107,7 +1113,8 @@ class InstallPlugin(ApplicationCommand):
 				show_alert('Plugin %r was successfully installed.' % repo.name)
 	def _get_matching_repos(self, query):
 		installed_plugins = set(
-			basename(plugin_dir) for plugin_dir in _get_thirdparty_plugins()
+			os.path.basename(plugin_dir)
+			for plugin_dir in _get_thirdparty_plugins()
 		)
 		for repo in self._plugin_repos:
 			if repo.name in installed_plugins:
@@ -1172,11 +1179,11 @@ class RemovePlugin(ApplicationCommand):
 					rmtree(plugin_dir)
 					show_alert(
 						'Plugin %r was successfully removed.'
-						% basename(plugin_dir)
+						% os.path.basename(plugin_dir)
 					)
 	def _get_matching_plugins(self, query):
 		for plugin_dir in self._installed_plugins:
-			plugin_name = basename(plugin_dir)
+			plugin_name = os.path.basename(plugin_dir)
 			match = contains_chars(plugin_name.lower(), query.lower())
 			if match or not query:
 				yield QuicksearchItem(plugin_dir, plugin_name, highlight=match)
@@ -1205,7 +1212,7 @@ def _get_user_plugins():
 	settings_plugin = ''
 	user_plugins_dir = os.path.join(DATA_DIRECTORY, 'Plugins', 'User')
 	for plugin_dir in _list_plugins(user_plugins_dir):
-		if basename(plugin_dir) == 'Settings':
+		if os.path.basename(plugin_dir) == 'Settings':
 			settings_plugin = plugin_dir
 		else:
 			result.append(plugin_dir)
@@ -1224,7 +1231,7 @@ class ListPlugins(DirectoryPaneCommand):
 	def _get_matching_plugins(self, query):
 		result = []
 		for plugin_dir in _get_thirdparty_plugins():
-			plugin_name = basename(plugin_dir)
+			plugin_name = os.path.basename(plugin_dir)
 			match = contains_chars(plugin_name.lower(), query.lower())
 			if match or not query:
 				plugin_json = os.path.join(plugin_dir, 'Plugin.json')
@@ -1237,7 +1244,7 @@ class ListPlugins(DirectoryPaneCommand):
 					plugin_dir, plugin_name, highlight=match, hint=ref
 				))
 		for plugin_dir in _get_user_plugins():
-			plugin_name = basename(plugin_dir)
+			plugin_name = os.path.basename(plugin_dir)
 			match = contains_chars(plugin_name.lower(), query.lower())
 			if match or not query:
 				result.append(

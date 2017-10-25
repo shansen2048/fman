@@ -1,114 +1,141 @@
-from core.commands import SuggestLocations, History, Move
+from core.commands import SuggestLocations, History, Move, _humanize
 from core.tests import StubUI
-from fman import OK, YES, NO
+from fman import OK, YES, NO, PLATFORM
+from fman.url import join
 from fman.util.system import is_linux, is_windows
-from os import mkdir
-from os.path import normpath, join
+from os.path import normpath
 from unittest import TestCase, skipIf
-from tempfile import TemporaryDirectory
 
 import os
 
 class ConfirmTreeOperationTest(TestCase):
+
+	class FileSystem:
+		def __init__(self, files):
+			self._files = files
+
+		def exists(self, url):
+			return url in self._files
+
+		def isdir(self, url):
+			return self._files.get(url, {}).get('isdir', False)
+
+		def isfile(self, url):
+			return self.exists(url) and not self.isdir(url)
+
 	def test_no_files(self):
 		self._expect_alert(('No file is selected!',), answer=OK)
-		self.assertIsNone(self._run([], '', ''))
+		self._check(None, ([], '', ''))
 	def test_one_file(self):
-		dest_path = join(self._dest, 'a.txt')
+		dest_path = _humanize(join(self._dest, 'a.txt'))
 		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
-		self.assertEqual(
+		self._check(
 			(self._dest, 'a.txt'),
-			self._run([self._a_txt], self._dest, self._src)
+			([self._a_txt], self._dest, self._src)
 		)
 	def test_one_dir(self):
-		self._expect_prompt(('Move "a" to', self._dest), (self._dest, True))
-		self.assertEqual(
+		dest_path = _humanize(self._dest)
+		self._expect_prompt(('Move "a" to', dest_path), (dest_path, True))
+		self._check(
 			(self._dest, None),
-			self._run([self._a], self._dest, self._src)
+			([self._a], self._dest, self._src)
 		)
 	def test_two_files(self):
-		self._expect_prompt(('Move 2 files to', self._dest), (self._dest, True))
-		self.assertEqual(
+		dest_path = _humanize(self._dest)
+		self._expect_prompt(('Move 2 files to', dest_path), (dest_path, True))
+		self._check(
 			(self._dest, None),
-			self._run([self._a_txt, self._b_txt], self._dest, self._src)
+			([self._a_txt, self._b_txt], self._dest, self._src)
 		)
 	def test_into_subfolder(self):
-		dest_path = join(self._dest, 'a.txt')
+		dest_path = _humanize(join(self._dest, 'a.txt'))
 		self._expect_prompt(('Move "a.txt" to', dest_path), ('a', True))
-		self.assertEqual(
+		self._check(
 			(self._a, None),
-			self._run([self._a_txt], self._dest, self._src)
+			([self._a_txt], self._dest, self._src)
 		)
 	def test_overwrite_single_file(self):
-		dest_path = join(self._dest, 'a.txt')
-		self._touch(dest_path)
+		dest_url = join(self._dest, 'a.txt')
+		self._fs._files[dest_url] = {'isdir': False}
+		dest_path = _humanize(dest_url)
 		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
-		self.assertEqual(
+		self._check(
 			(self._dest, 'a.txt'),
-			self._run([self._a_txt], self._dest, self._src)
+			([self._a_txt], self._dest, self._src)
 		)
 	def test_multiple_files_over_one(self):
-		dest_path = join(self._dest, 'a.txt')
-		self._touch(dest_path)
-		self._expect_prompt(('Move 2 files to', self._dest), (dest_path, True))
+		dest_url = join(self._dest, 'a.txt')
+		self._fs._files[dest_url] = {'isdir': False}
+		dest_path = _humanize(dest_url)
+		self._expect_prompt(
+			('Move 2 files to', _humanize(self._dest)), (dest_path, True)
+		)
 		self._expect_alert(
 			('You cannot move multiple files to a single file!',), answer=OK
 		)
-		self.assertIsNone(
-			self._run([self._a_txt, self._b_txt], self._dest, self._src)
+		self._check(
+			None,
+			([self._a_txt, self._b_txt], self._dest, self._src)
 		)
 	def test_renamed_destination(self):
 		self._expect_prompt(
-			('Move "a.txt" to', join(self._dest, 'a.txt')),
-			(join(self._dest, 'z.txt'), True)
+			('Move "a.txt" to', _humanize(join(self._dest, 'a.txt'))),
+			(_humanize(join(self._dest, 'z.txt')), True)
 		)
-		self.assertEqual(
+		self._check(
 			(self._dest, 'z.txt'),
-			self._run([self._a_txt], self._dest, self._src)
+			([self._a_txt], self._dest, self._src)
 		)
 	def test_multiple_files_nonexistent_dest(self):
-		dest = join(self._dest, 'dir')
+		dest_url = join(self._dest, 'dir')
+		dest_path = _humanize(dest_url)
 		self._expect_prompt(
-			('Move 2 files to', self._dest),
-			(dest, True)
+			('Move 2 files to', _humanize(self._dest)),
+			(dest_path, True)
 		)
 		self._expect_alert(
 			('%s does not exist. Do you want to create it as a directory and '
-			 'move the files there?' % dest, YES | NO, YES),
+			 'move the files there?' % dest_path, YES | NO, YES),
 			answer=YES
 		)
-		self.assertEqual(
-			(dest, None),
-			self._run([self._a_txt, self._b_txt], self._dest, self._src)
+		self._check(
+			(dest_url, None),
+			([self._a_txt, self._b_txt], self._dest, self._src)
+		)
+	def test_file_system_root(self):
+		dest_path = _humanize(join(self._root, 'a.txt'))
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		self._check(
+			(self._root, 'a.txt'),
+			([self._a_txt], self._root, self._src)
 		)
 	def _expect_alert(self, args, answer):
 		self._ui.expect_alert(args, answer)
 	def _expect_prompt(self, args, answer):
 		self._ui.expect_prompt(args, answer)
-	def _run(self, files, dest_dir, src_dir):
-		result = \
-			Move._confirm_tree_operation(files, dest_dir, src_dir, self._ui)
+	def _check(self, expected_result, inputs):
+		files, dest_dir, src_dir = inputs
+		actual_result = Move._confirm_tree_operation(
+			files, dest_dir, src_dir, self._ui, self._fs
+		)
 		self._ui.verify_expected_dialogs_were_shown()
-		return result
+		self.assertEqual(expected_result, actual_result)
 	def setUp(self):
 		super().setUp()
 		self._ui = StubUI(self)
-		self._temp_dir = TemporaryDirectory()
-		self._src = join(self._temp_dir.name, 'src')
-		mkdir(self._src)
-		self._dest = join(self._temp_dir.name, 'dest')
-		mkdir(self._dest)
-		self._a = join(self._src, 'a')
-		mkdir(self._a)
-		self._a_txt = join(self._src, 'a.txt')
-		self._touch(self._a_txt)
-		self._b_txt = join(self._src, 'b.txt')
-		self._touch(self._b_txt)
-	def tearDown(self):
-		self._temp_dir.cleanup()
-		super().tearDown()
-	def _touch(self, file_path):
-		with open(file_path, 'w'): pass
+		self._root = 'file://' + ('C:/' if PLATFORM == 'Windows' else '/')
+		self._src = join(self._root, 'src')
+		self._dest = join(self._root, 'dest')
+		self._a = join(self._root, 'src/a')
+		self._a_txt = join(self._root, 'src/a.txt')
+		self._b_txt = join(self._root, 'src/b.txt')
+		self._fs = self.FileSystem({
+			self._src: {'isdir': True},
+			self._dest: {'isdir': True},
+			self._a: {'isdir': True},
+			self._a_txt: {'isdir': False},
+			self._b_txt: {'isdir': False},
+		})
 
 class SuggestLocationsTest(TestCase):
 	def test_empty_suggests_recent_locations(self):
