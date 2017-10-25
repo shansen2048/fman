@@ -840,7 +840,7 @@ class SuggestLocations:
 			]
 		if not matching_names:
 			return path
-		return join(dir_, matching_names[0])
+		return os.path.join(dir_, matching_names[0])
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 
