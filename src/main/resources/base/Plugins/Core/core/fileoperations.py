@@ -72,9 +72,7 @@ class FileTreeOperation:
 		return choice & YES or choice & YES_TO_ALL
 	def _report_processing_of_file(self, file_):
 		verb = self.descr_verb.capitalize()
-		if verb.endswith('e'):
-			verb = verb[:-1]
-		verbing = verb + 'ing'
+		verbing = (verb[:-1] if verb.endswith('e') else verb) + 'ing'
 		self.ui.show_status_message('%s %s...' % (verbing, basename(file_)))
 	def perform_on_file(self, src, dest):
 		self._report_processing_of_file(src)
