@@ -1,5 +1,6 @@
 from base64 import b64encode, b64decode
-from fman.url import as_file_url, parent
+from fman.url import as_file_url
+from fman.fs import parent
 from fman.util.path import make_absolute
 from os import getcwd
 from os.path import expanduser

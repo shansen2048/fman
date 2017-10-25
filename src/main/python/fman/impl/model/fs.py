@@ -1,5 +1,5 @@
 from datetime import datetime
-from fman import url as default_fs, PLATFORM
+from fman import PLATFORM
 from fman.url import as_file_url, dirname
 from fman.util.path import add_backslash_to_drive_if_missing
 from fman.impl.trash import move_to_trash
@@ -11,6 +11,7 @@ from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree
 from threading import Lock
 
+import fman.fs
 import re
 
 class FileSystem:
@@ -141,7 +142,7 @@ class NameColumn(Column):
 
 	name = 'Name'
 
-	def __init__(self, fs=default_fs):
+	def __init__(self, fs=fman.fs):
 		super().__init__()
 		self._fs = fs
 	def get_str(self, url):
@@ -160,7 +161,7 @@ class SizeColumn(Column):
 
 	name = 'Size'
 
-	def __init__(self, fs=default_fs):
+	def __init__(self, fs=fman.fs):
 		super().__init__()
 		self._fs = fs
 	def get_str(self, url):
@@ -188,7 +189,7 @@ class LastModifiedColumn(Column):
 
 	name = 'Modified'
 
-	def __init__(self, fs=default_fs):
+	def __init__(self, fs=fman.fs):
 		super().__init__()
 		self._fs = fs
 	def get_str(self, url):

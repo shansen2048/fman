@@ -6,10 +6,9 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
-from fman import url
-from fman.url import splitscheme, as_file_url, move_to_trash, delete, \
-	exists, touch, rename, mkdir, isdir, isfile, parent, join, samefile, \
-	basename, split
+from fman.url import splitscheme, as_file_url, join, basename, split
+from fman.fs import exists, touch, mkdir, isdir, isfile, rename, \
+	move_to_trash, delete, parent, samefile
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
@@ -24,6 +23,7 @@ from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
 import fman
+import fman.fs
 import json
 import os
 import os.path
@@ -292,7 +292,9 @@ class _TreeCommand(_CorePaneCommand):
 		panes = self.pane.window.get_panes()
 		return panes[(panes.index(self.pane) + 1) % len(panes)]
 	@classmethod
-	def _confirm_tree_operation(cls, files, dest_dir, src_dir, ui=fman, fs=url):
+	def _confirm_tree_operation(
+		cls, files, dest_dir, src_dir, ui=fman, fs=fman.fs
+	):
 		if not files:
 			ui.show_alert('No file is selected!')
 			return
