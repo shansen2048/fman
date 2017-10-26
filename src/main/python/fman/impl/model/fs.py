@@ -5,7 +5,7 @@ from fman.util.path import add_backslash_to_drive_if_missing
 from fman.impl.trash import move_to_trash
 from math import log
 from os import rename, remove
-from os.path import isdir, getsize, getmtime, basename, isfile
+from os.path import isdir, getsize, getmtime, basename, isfile, samefile
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree
@@ -85,6 +85,8 @@ class DefaultFileSystem(FileSystem):
 		# Unlike other functions, Path#resolve can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
 		return as_file_url(Path(path).resolve())
+	def samefile(self, f1, f2):
+		return samefile(f1, f2)
 	def parent(self, path):
 		# Unlike other functions, Path#parent can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
