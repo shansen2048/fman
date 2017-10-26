@@ -767,10 +767,10 @@ class SuggestLocations:
 			except PermissionError:
 				if PLATFORM == 'Windows' and self._is_documents_and_settings(
 					path):
-					# Python can't listdir("C:\Documents and Settings"). In fact, no
-					# Windows program can. But "C:\{DaS}\<Username>" does work, and
-					# displays "C:\Users\<Username>". For consistency, treat DaS
-					# like a symlink to \Users:
+					# Python can't listdir("C:\Documents and Settings"). In
+					# fact, no Windows program can. But "C:\{DaS}\<Username>"
+					# does work, and displays "C:\Users\<Username>". For
+					# consistency, treat DaS like a symlink to \Users:
 					return os.listdir(splitdrive(path)[0] + r'\Users')
 				raise
 		def samefile(self, f1, f2):
