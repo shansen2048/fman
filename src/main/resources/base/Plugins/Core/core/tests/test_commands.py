@@ -138,6 +138,60 @@ class ConfirmTreeOperationTest(TestCase):
 		})
 
 class SuggestLocationsTest(TestCase):
+
+	class StubLocalFileSystem:
+		def __init__(self, files, home_dir):
+			self.files = files
+			self.home_dir = home_dir
+		def isdir(self, path):
+			if is_windows() and path.endswith(' '):
+				# Strange behaviour on Windows: isdir('X ') returns True if X
+				# (without space) exists.
+				path = path.rstrip(' ')
+			try:
+				self._get_dir(path)
+			except KeyError:
+				return False
+			return True
+		def _get_dir(self, path):
+			if not path:
+				raise KeyError(path)
+			path = normpath(path)
+			parts = path.split(os.sep) if path != os.sep else ['']
+			if len(parts) > 1 and parts[-1] == '':
+				parts = parts[:-1]
+			curr = self.files
+			for part in parts:
+				for file_name, items in curr.items():
+					if self._normcase(file_name) == self._normcase(part):
+						curr = items
+						break
+				else:
+					raise KeyError(part)
+			return curr
+		def expanduser(self, path):
+			return path.replace('~', self.home_dir)
+		def listdir(self, path):
+			try:
+				return sorted(list(self._get_dir(path)))
+			except KeyError as e:
+				raise FileNotFoundError(repr(path)) from e
+		def samefile(self, f1, f2):
+			return self._get_dir(f1) == self._get_dir(f2)
+		def find_folders_starting_with(self, prefix):
+			return list(
+				self._find_folders_recursive(self.files, prefix.lower()))
+		def _find_folders_recursive(self, files, prefix):
+			for f, subfiles in files.items():
+				if f.lower().startswith(prefix):
+					yield f
+				for sub_f in self._find_folders_recursive(subfiles, prefix):
+					# We don't use join(...) here because of the case f=''. We
+					# want '/sub_f' but join(f, sub_f) would give just 'sub_f'.
+					yield f + os.sep + sub_f
+		def _normcase(self, path):
+			return path if is_linux() else path.lower()
+
 	def test_empty_suggests_recent_locations(self):
 		expected_paths = [
 			'~/Dropbox/Work', '~/Dropbox', '~/Downloads', '~/Dropbox/Private',
@@ -217,7 +271,7 @@ class SuggestLocationsTest(TestCase):
 			home_dir = r'C:\Users\michael'
 		else:
 			home_dir = '/Users/michael'
-		self.file_system = StubFileSystem(files, home_dir=home_dir)
+		self.file_system = self.StubLocalFileSystem(files, home_dir=home_dir)
 		self.instance = SuggestLocations(visited_paths, self.file_system)
 	def _check_query_returns(self, query, paths, highlights=None):
 		query = self._replace_pathsep(query)
@@ -233,58 +287,6 @@ class SuggestLocationsTest(TestCase):
 		return path.replace('/', os.sep)
 	def _full_range(self, string):
 		return list(range(len(string)))
-
-class StubFileSystem:
-	def __init__(self, files, home_dir):
-		self.files = files
-		self.home_dir = home_dir
-	def isdir(self, path):
-		if is_windows() and path.endswith(' '):
-			# Strange behaviour on Windows: isdir('X ') returns True if X
-			# (without space) exists.
-			path = path.rstrip(' ')
-		try:
-			self._get_dir(path)
-		except KeyError:
-			return False
-		return True
-	def _get_dir(self, path):
-		if not path:
-			raise KeyError(path)
-		path = normpath(path)
-		parts = path.split(os.sep) if path != os.sep else ['']
-		if len(parts) > 1 and parts[-1] == '':
-			parts = parts[:-1]
-		curr = self.files
-		for part in parts:
-			for file_name, items in curr.items():
-				if self._normcase(file_name) == self._normcase(part):
-					curr = items
-					break
-			else:
-				raise KeyError(part)
-		return curr
-	def expanduser(self, path):
-		return path.replace('~', self.home_dir)
-	def listdir(self, path):
-		try:
-			return sorted(list(self._get_dir(path)))
-		except KeyError as e:
-			raise FileNotFoundError(repr(path)) from e
-	def samefile(self, f1, f2):
-		return self._get_dir(f1) == self._get_dir(f2)
-	def find_folders_starting_with(self, prefix):
-		return list(self._find_folders_recursive(self.files, prefix.lower()))
-	def _find_folders_recursive(self, files, prefix):
-		for f, subfiles in files.items():
-			if f.lower().startswith(prefix):
-				yield f
-			for sub_f in self._find_folders_recursive(subfiles, prefix):
-				# We don't use join(...) here because of the case f=''. We want
-				# '/sub_f' but join(f, sub_f) would give just 'sub_f'.
-				yield f + os.sep + sub_f
-	def _normcase(self, path):
-		return path if is_linux() else path.lower()
 
 class HistoryTest(TestCase):
 	def test_empty_back(self):

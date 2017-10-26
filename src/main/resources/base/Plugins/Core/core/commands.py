@@ -756,11 +756,89 @@ class SuggestLocations:
 		contains_chars_after_separator(os.sep), contains_chars
 	)
 
+	class LocalFileSystem:
+		def isdir(self, path):
+			return os.path.isdir(path)
+		def expanduser(self, path):
+			return expanduser(path)
+		def listdir(self, path):
+			try:
+				return os.listdir(path)
+			except PermissionError:
+				if PLATFORM == 'Windows' and self._is_documents_and_settings(
+					path):
+					# Python can't listdir("C:\Documents and Settings"). In fact, no
+					# Windows program can. But "C:\{DaS}\<Username>" does work, and
+					# displays "C:\Users\<Username>". For consistency, treat DaS
+					# like a symlink to \Users:
+					return os.listdir(splitdrive(path)[0] + r'\Users')
+				raise
+		def samefile(self, f1, f2):
+			return os.path.samefile(f1, f2)
+		def find_folders_starting_with(self, pattern, timeout_secs=0.02):
+			if PLATFORM == 'Mac':
+				from objc import loadBundle
+				ns = {}
+				loadBundle(
+					'CoreServices.framework', ns,
+					bundle_identifier='com.apple.CoreServices'
+				)
+				pred = ns['NSPredicate'].predicateWithFormat_argumentArray_(
+					"kMDItemContentType == 'public.folder' && "
+					"kMDItemFSName BEGINSWITH[c] %@", [pattern]
+				)
+				query = ns['NSMetadataQuery'].alloc().init()
+				query.setPredicate_(pred)
+				query.setSearchScopes_(ns['NSArray'].arrayWithObject_('/'))
+				query.startQuery()
+				ns['NSRunLoop'].currentRunLoop().runUntilDate_(
+					ns['NSDate'].dateWithTimeIntervalSinceNow_(timeout_secs)
+				)
+				query.stopQuery()
+				for item in query.results():
+					yield item.valueForAttribute_("kMDItemPath")
+			elif PLATFORM == 'Windows':
+				import adodbapi
+				from pythoncom import com_error
+				try:
+					conn = adodbapi.connect(
+						"Provider=Search.CollatorDSO;"
+						"Extended Properties='Application=Windows';"
+					)
+					cursor = conn.cursor()
+
+					# adodbapi claims to support "paramstyles", which would let us
+					# pass parameters as an extra arg to .execute(...), without
+					# having to worry about escaping them. Alas, adodbapi raises an
+					# error when this feature is used. We thus have to escape the
+					# param ourselves:
+					def escape(param):
+						return re.subn(r'([%_\[\]\^])', r'[\1]', param)[0]
+
+					cursor.execute(
+						"SELECT TOP 5 System.ItemPathDisplay FROM SYSTEMINDEX "
+						"WHERE "
+						"System.ItemType = 'Directory' AND "
+						"System.ItemNameDisplay LIKE %r "
+						"ORDER BY System.ItemPathDisplay"
+						% (escape(pattern) + '%')
+					)
+					for row in iter(cursor.fetchone, None):
+						value = row['System.ItemPathDisplay']
+						# Seems to be None sometimes:
+						if value:
+							yield value
+				except (adodbapi.Error, com_error):
+					pass
+		def _is_documents_and_settings(self, path):
+			return splitdrive(normpath(path))[1].lower() == \
+				   '\\documents and settings'
+
 	def __init__(self, visited_paths, file_system=None):
 		if file_system is None:
 			# Encapsulating filesystem-related functionality in a separate field
 			# allows us to use a different implementation for testing.
-			file_system = FileSystem()
+			file_system = self.LocalFileSystem()
 		self.visited_paths = visited_paths
 		self.fs = file_system
 	def __call__(self, query):
@@ -848,81 +926,6 @@ class SuggestLocations:
 		return os.path.join(dir_, matching_names[0])
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
-
-class FileSystem:
-	def isdir(self, path):
-		return os.path.isdir(path)
-	def expanduser(self, path):
-		return expanduser(path)
-	def listdir(self, path):
-		try:
-			return os.listdir(path)
-		except PermissionError:
-			if PLATFORM == 'Windows' and self._is_documents_and_settings(path):
-				# Python can't listdir("C:\Documents and Settings"). In fact, no
-				# Windows program can. But "C:\{DaS}\<Username>" does work, and
-				# displays "C:\Users\<Username>". For consistency, treat DaS
-				# like a symlink to \Users:
-				return os.listdir(splitdrive(path)[0] + r'\Users')
-			raise
-	def samefile(self, f1, f2):
-		return os.path.samefile(f1, f2)
-	def find_folders_starting_with(self, pattern, timeout_secs=0.02):
-		if PLATFORM == 'Mac':
-			from objc import loadBundle
-			ns = {}
-			loadBundle(
-				'CoreServices.framework', ns,
-				bundle_identifier='com.apple.CoreServices'
-			)
-			pred = ns['NSPredicate'].predicateWithFormat_argumentArray_(
-				"kMDItemContentType == 'public.folder' && "
-				"kMDItemFSName BEGINSWITH[c] %@", [pattern]
-			)
-			query = ns['NSMetadataQuery'].alloc().init()
-			query.setPredicate_(pred)
-			query.setSearchScopes_(ns['NSArray'].arrayWithObject_('/'))
-			query.startQuery()
-			ns['NSRunLoop'].currentRunLoop().runUntilDate_(
-				ns['NSDate'].dateWithTimeIntervalSinceNow_(timeout_secs)
-			)
-			query.stopQuery()
-			for item in query.results():
-				yield item.valueForAttribute_("kMDItemPath")
-		elif PLATFORM == 'Windows':
-			import adodbapi
-			from pythoncom import com_error
-			try:
-				conn = adodbapi.connect(
-					"Provider=Search.CollatorDSO;"
-					"Extended Properties='Application=Windows';"
-				)
-				cursor = conn.cursor()
-				# adodbapi claims to support "paramstyles", which would let us
-				# pass parameters as an extra arg to .execute(...), without
-				# having to worry about escaping them. Alas, adodbapi raises an
-				# error when this feature is used. We thus have to escape the
-				# param ourselves:
-				def escape(param):
-					return re.subn(r'([%_\[\]\^])', r'[\1]', param)[0]
-				cursor.execute(
-					"SELECT TOP 5 System.ItemPathDisplay FROM SYSTEMINDEX "
-					"WHERE "
-					"System.ItemType = 'Directory' AND "
-					"System.ItemNameDisplay LIKE %r "
-					"ORDER BY System.ItemPathDisplay"
-					% (escape(pattern) + '%')
-				)
-				for row in iter(cursor.fetchone, None):
-					value = row['System.ItemPathDisplay']
-					# Seems to be None sometimes:
-					if value:
-						yield value
-			except (adodbapi.Error, com_error):
-				pass
-	def _is_documents_and_settings(self, path):
-		return splitdrive(normpath(path))[1].lower() == \
-			   '\\documents and settings'
 
 class CommandPalette(_CorePaneCommand):
 
