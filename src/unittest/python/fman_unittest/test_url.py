@@ -8,6 +8,11 @@ class AsFileUrlTest(TestCase):
 			self.assertEqual('file://C:/a b', as_file_url(r'C:\a b'))
 		else:
 			self.assertEqual('file:///a b', as_file_url('/a b'))
+	def test_root(self):
+		if is_windows():
+			self.assertEqual('file://C:/', as_file_url('C:\\'))
+		else:
+			self.assertEqual('file:///', as_file_url('/'))
 
 class AsHumanReadableTest(TestCase):
 	def test_normal_file_url(self):
@@ -16,6 +21,9 @@ class AsHumanReadableTest(TestCase):
 	def test_non_file_url(self):
 		url = 'https://fman.io/docs'
 		self.assertEqual(url, as_human_readable(url))
+	def test_root(self):
+		root = 'C:\\' if is_windows() else '/'
+		self.assertEqual(root, as_human_readable(as_file_url(root)))
 
 class DirnameTest(TestCase):
 	def test_root(self):

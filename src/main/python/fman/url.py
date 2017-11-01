@@ -1,5 +1,4 @@
 from pathlib import PurePath, PurePosixPath
-from urllib.parse import urlparse
 from urllib.request import url2pathname
 
 import os.path
@@ -22,10 +21,10 @@ def as_file_url(file_path):
 	return 'file://' + PurePath(file_path).as_posix()
 
 def as_human_readable(url):
-	parsed = urlparse(url)
-	if parsed.scheme != 'file':
+	scheme, path = splitscheme(url)
+	if scheme != 'file://':
 		return url
-	return url2pathname(parsed.path)
+	return url2pathname(path)
 
 def dirname(url):
 	scheme, path = splitscheme(url)
@@ -48,19 +47,13 @@ def join(url, *paths):
 	return scheme + PurePosixPath(path, *paths).as_posix()
 
 def relpath(target, base):
-	base = urlparse(base)
-	target = urlparse(target)
-	if base.scheme != target.scheme:
+	target_scheme, target_path = splitscheme(target)
+	base_scheme, base_path = splitscheme(base)
+	if base_scheme != target_scheme:
 		raise ValueError(
 			"Cannot construct a relative path across different URL schemes "
-			"(%s -> %s)" % (base.scheme, target.scheme)
+			"(%s -> %s)" % (base_scheme, target_scheme)
 		)
-	if base.netloc != target.netloc:
-		raise ValueError(
-			"Cannot construct a relative path across different URL net "
-			"locations (%r != %r)" % (target.netloc, base.netloc)
-		)
-
-	base_dir = '.' + base.path
-	target = '.' + target.path
+	base_dir = '.' + base_path
+	target = '.' + target_path
 	return posixpath.relpath(target, start=base_dir)
