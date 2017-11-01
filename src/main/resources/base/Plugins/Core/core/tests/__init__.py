@@ -19,14 +19,14 @@ class StubUI:
 			self._test_case.fail('Unexpected alert: %r' % args[0])
 			return
 		expected_args, answer = self._expected_alerts.pop(0)
-		self._test_case.assertEqual(expected_args, args)
+		self._test_case.assertEqual(expected_args, args, "Wrong alert")
 		return answer
 	def show_prompt(self, *args, **_):
 		if not self._expected_prompts:
 			self._test_case.fail('Unexpected prompt: %r' % args[0])
 			return
 		expected_args, answer = self._expected_prompts.pop(0)
-		self._test_case.assertEqual(expected_args, args)
+		self._test_case.assertEqual(expected_args, args, "Wrong prompt")
 		return answer
 	def show_status_message(self, _):
 		pass

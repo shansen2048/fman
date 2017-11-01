@@ -1,14 +1,15 @@
 from datetime import datetime
+from errno import ENOENT
 from fman import PLATFORM
-from fman.url import as_file_url, dirname
+from fman.url import as_file_url, dirname, splitscheme
 from fman.util.path import add_backslash_to_drive_if_missing
 from fman.impl.trash import move_to_trash
 from math import log
-from os import rename, remove
+from os import remove
 from os.path import isdir, getsize, getmtime, basename, isfile, samefile
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
-from shutil import rmtree
+from shutil import rmtree, copytree, move, copyfile, copystat
 from threading import Lock
 
 import fman.fs
@@ -29,9 +30,28 @@ class FileSystem:
 		pass
 	def notify_file_changed(self, path):
 		for callback in self._file_changed_callbacks.get(path, []):
-			callback(path)
+			callback(self.scheme + path)
 	def samefile(self, f1, f2):
 		return self.resolve(f1) == self.resolve(f2)
+	def makedirs(self, path, exist_ok=True):
+		# Copied / adapted from pathlib.Path#mkdir(...).
+		try:
+			self.mkdir(path)
+		except FileExistsError:
+			if not exist_ok or not self.isdir(path):
+				raise
+		except OSError as e:
+			if e.errno != ENOENT:
+				raise
+			self.makedirs(splitscheme(self.parent(path))[1])
+			self.mkdir(path)
+	def mkdir(self, path):
+		"""
+		Should raise FileExistsError if `path` already exists. If `path` is in
+		a directory that does not yet exist, should raise an OSError with
+		.errno = ENOENT. Typically this would be FileNotFoundError(ENOENT, ...).
+		"""
+		raise NotImplementedError()
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:
@@ -72,8 +92,9 @@ class DefaultFileSystem(FileSystem):
 		Path(path).touch()
 	def mkdir(self, path):
 		Path(path).mkdir()
+	# TODO: Rename "rename" to "move"?
 	def rename(self, old_path, new_path):
-		rename(old_path, new_path)
+		move(old_path, new_path)
 	def move_to_trash(self, file_path):
 		move_to_trash(file_path)
 	def delete(self, path):
@@ -91,6 +112,12 @@ class DefaultFileSystem(FileSystem):
 		# Unlike other functions, Path#parent can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
 		return as_file_url(Path(path).parent.as_posix())
+	def copy(self, src, dst):
+		if self.isdir(src):
+			copytree(src, dst, symlinks=True)
+		else:
+			copyfile(src, dst, follow_symlinks=False)
+			copystat(src, dst, follow_symlinks=False)
 	def watch(self, path):
 		self._watcher.addPath(path)
 	def unwatch(self, path):

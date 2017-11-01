@@ -39,15 +39,19 @@ class MotherFileSystem:
 	def touch(self, url):
 		scheme, path = splitscheme(url)
 		self._children[scheme].touch(path)
-		if url not in self._cache:
-			self._add_to_parent(url)
-			self.file_added.trigger(url)
+		self._file_added(url)
 	def mkdir(self, url):
 		scheme, path = splitscheme(url)
 		self._children[scheme].mkdir(path)
-		if url not in self._cache:
-			self._add_to_parent(url)
-			self.file_added.trigger(url)
+		self._file_added(url)
+	def makedirs(self, url, exist_ok=True):
+		scheme, path = splitscheme(url)
+		self._children[scheme].makedirs(path, exist_ok=exist_ok)
+		prev_url = None
+		while url != prev_url:
+			self._file_added(url)
+			prev_url = url
+			url = self.parent(url)
 	def rename(self, old_url, new_url):
 		"""
 		:param new_url: must be the final destination url, not just the parent
@@ -89,6 +93,15 @@ class MotherFileSystem:
 		if scheme_1 == scheme_2:
 			return self._children[scheme_1].samefile(path_1, path_2)
 		return False
+	def copy(self, src_url, dst_url):
+		src_scheme, src_path = splitscheme(src_url)
+		dst_scheme, dst_path = splitscheme(dst_url)
+		if src_scheme != dst_scheme:
+			raise ValueError(
+				'Cannot copy from %s to %s' % (src_scheme, dst_scheme)
+			)
+		self._children[src_scheme].copy(src_path, dst_path)
+		self._file_added(dst_url)
 	def add_file_changed_callback(self, url, callback):
 		scheme, path = splitscheme(url)
 		self._children[scheme]._add_file_changed_callback(path, callback)
@@ -126,15 +139,29 @@ class MotherFileSystem:
 			pass
 		self._remove_from_parent(url)
 	def _remove_from_parent(self, url):
+		parent = self.parent(url)
 		try:
-			self._cache[self.parent(url)]['listdir'].remove(url)
-		except (KeyError, ValueError):
-			pass
-	def _add_to_parent(self, url):
-		try:
-			self._cache[self.parent(url)]['listdir'].append(url)
+			parent_files = self._cache[parent]['listdir']
 		except KeyError:
 			pass
+		else:
+			try:
+				parent_files.remove(url)
+			except ValueError:
+				pass
+	def _file_added(self, url):
+		self._add_to_parent(url)
+		if url not in self._cache:
+			self.file_added.trigger(url)
+	def _add_to_parent(self, url):
+		parent = self.parent(url)
+		try:
+			parent_files = self._cache[parent]['listdir']
+		except KeyError:
+			pass
+		else:
+			if url not in parent_files:
+				parent_files.append(url)
 	def _lock(self, path, item=None):
 		return self._cache_locks.setdefault((path, item), Lock())
 	def _on_source_file_changed(self, path):

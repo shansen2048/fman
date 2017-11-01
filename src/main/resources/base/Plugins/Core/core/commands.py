@@ -6,7 +6,8 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
-from fman.url import splitscheme, as_file_url, join, basename, split
+from fman.url import splitscheme, as_file_url, join, basename, split, \
+	as_human_readable
 from fman.fs import exists, touch, mkdir, isdir, isfile, rename, \
 	move_to_trash, delete, parent, samefile
 from getpass import getuser
@@ -103,7 +104,7 @@ class MoveToTrash(_CorePaneCommand):
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
-			description = _humanize(to_delete[0])
+			description = as_human_readable(to_delete[0])
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
 		choice = show_alert(
 			"Do you really want to move %s to the %s?" % (description, trash),
@@ -112,10 +113,6 @@ class MoveToTrash(_CorePaneCommand):
 		if choice & YES:
 			for path in to_delete:
 				move_to_trash(path)
-
-def _humanize(url):
-	scheme, path = splitscheme(url)
-	return path.replace('/', os.sep) if scheme == 'file://' else url
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self):
@@ -126,7 +123,7 @@ class DeletePermanently(DirectoryPaneCommand):
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
-			description = _humanize(to_delete[0])
+			description = as_human_readable(to_delete[0])
 		choice = show_alert(
 			"Do you really want to PERMANENTLY delete %s? This action cannot "
 			"be undone!" % description,
@@ -307,7 +304,7 @@ class _TreeCommand(_CorePaneCommand):
 			files_descr = '%d files' % len(files)
 		descr_verb = cls.__name__
 		message = '%s %s to' % (descr_verb, files_descr)
-		dest = _humanize(join(dest_dir, dest_name))
+		dest = as_human_readable(join(dest_dir, dest_name))
 		dest, ok = ui.show_prompt(message, dest)
 		if dest and ok:
 			try:
@@ -315,7 +312,7 @@ class _TreeCommand(_CorePaneCommand):
 			except ValueError as no_scheme:
 				# Treat dest as relative to src_dir:
 				src_scheme, src_path = splitscheme(src_dir)
-				dest = src_scheme + str(PurePath(src_path, dest).as_posix())
+				dest = src_scheme + PurePath(src_path, dest).as_posix()
 			if fs.exists(dest):
 				if fs.isdir(dest):
 					return dest, None
@@ -334,7 +331,8 @@ class _TreeCommand(_CorePaneCommand):
 					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(_humanize(dest), descr_verb.lower()), YES | NO, YES
+						(as_human_readable(dest), descr_verb.lower()),
+						YES | NO, YES
 					)
 					if choice & YES:
 						return dest, None
@@ -444,7 +442,7 @@ class CopyPathsToClipboard(_CorePaneCommand):
 		if not chosen_files:
 			show_alert('No file is selected!')
 			return
-		to_copy = [_humanize(url) for url in chosen_files]
+		to_copy = [as_human_readable(url) for url in chosen_files]
 		files = '\n'.join(to_copy)
 		clipboard.clear()
 		clipboard.set_text(files)

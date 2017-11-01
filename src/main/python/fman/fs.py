@@ -7,6 +7,9 @@ def touch(url):
 def mkdir(url):
 	_get_fs().mkdir(url)
 
+def makedirs(url, exist_ok=False):
+	_get_fs().makedirs(url, exist_ok=exist_ok)
+
 def isdir(url):
 	return _get_fs().isdir(url)
 
@@ -33,6 +36,12 @@ def parent(url):
 
 def samefile(url_1, url_2):
 	return _get_fs().samefile(url_1, url_2)
+
+def copy(src, dst):
+	_get_fs().copy(src, dst)
+
+def listdir(url):
+	return _get_fs().listdir(url)
 
 def _get_fs():
 	from fman.impl.application_context import get_application_context

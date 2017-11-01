@@ -1,10 +1,8 @@
 from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT
-from os import makedirs, listdir
-from os.path import basename, join, exists, isdir, samefile, relpath, pardir, \
-	dirname, isabs
-from shutil import copy2, move, rmtree, copytree
+from fman.url import basename, join, dirname, splitscheme, relpath
+from os.path import pardir
 
-import os
+import fman.fs
 
 class FileTreeOperation:
 	def __init__(
@@ -41,20 +39,18 @@ class FileTreeOperation:
 		self._report_processing_of_file(src)
 		dest = self._get_dest_path(src)
 		try:
-			if isdir(src):
-				if exists(dest):
-					if samefile(src, dest):
+			if fman.fs.isdir(src):
+				if fman.fs.exists(dest):
+					if fman.fs.samefile(src, dest):
 						return True
 					else:
-						for (dir_, _, file_names) in os.walk(src):
-							for file_name in file_names:
-								file_path = join(dir_, file_name)
-								dst = self._get_dest_path(file_path)
-								try:
-									if not self.perform_on_file(file_path, dst):
-										return False
-								except (OSError, IOError):
-									return self._handle_exception(file_path)
+						for file_url in self._walk(src):
+							dst = self._get_dest_path(file_url)
+							try:
+								if not self.perform_on_file(file_url, dst):
+									return False
+							except (OSError, IOError):
+								return self._handle_exception(file_url)
 						self.postprocess_directory(src)
 				else:
 					self._perform_on_dir_dest_doesnt_exist(src, dest)
@@ -64,6 +60,21 @@ class FileTreeOperation:
 		except (OSError, IOError):
 			return self._handle_exception(src)
 		return True
+	def _walk(self, url):
+		dirs = []
+		nondirs = []
+		for entry in fman.fs.listdir(url):
+			try:
+				is_dir = fman.fs.isdir(entry)
+			except OSError:
+				is_dir = False
+			if is_dir:
+				dirs.append(entry)
+			else:
+				nondirs.append(entry)
+		yield from nondirs
+		for dir_ in dirs:
+			yield from self._walk(join(url, dir_))
 	def _handle_exception(self, file_path):
 		choice = self.ui.show_alert(
 			'Could not %s %s. Do you want to continue?'
@@ -76,8 +87,8 @@ class FileTreeOperation:
 		self.ui.show_status_message('%s %s...' % (verbing, basename(file_)))
 	def perform_on_file(self, src, dest):
 		self._report_processing_of_file(src)
-		if exists(dest):
-			if samefile(src, dest):
+		if fman.fs.exists(dest):
+			if fman.fs.samefile(src, dest):
 				if not self.cannot_move_to_self_shown:
 					self.ui.show_alert(
 						"You cannot %s a file to itself." % self.descr_verb
@@ -99,7 +110,7 @@ class FileTreeOperation:
 					return False
 			if self.override_all is False:
 				return True
-		makedirs(dirname(dest), exist_ok=True)
+		fman.fs.makedirs(dirname(dest), exist_ok=True)
 		self._perform_on_file(src, dest)
 		return True
 	def postprocess_directory(self, src_dir_path):
@@ -118,31 +129,32 @@ class FileTreeOperation:
 				) from e
 			is_in_src_dir = not rel_path.startswith(pardir)
 			if is_in_src_dir:
-				if isabs(self.dest_dir):
-					return join(self.dest_dir, rel_path)
-				else:
+				try:
+					splitscheme(self.dest_dir)
+				except ValueError as no_scheme:
 					return join(self.src_dir, self.dest_dir, rel_path)
+				else:
+					return join(self.dest_dir, rel_path)
 		return join(self.dest_dir, dest_name)
 
 class CopyFiles(FileTreeOperation):
-	def __init__(
-		self, ui, files, dest_dir, src_dir=None, dest_name=None
-	):
+	def __init__(self, ui, files, dest_dir, src_dir=None, dest_name=None):
 		super().__init__(ui, files, dest_dir, 'copy', src_dir, dest_name)
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		copytree(src, dest, symlinks=True)
+		fman.fs.copy(src, dest)
 	def _perform_on_file(self, src, dest):
-		copy2(src, dest, follow_symlinks=False)
+		fman.fs.copy(src, dest)
 
 class MoveFiles(FileTreeOperation):
-	def __init__(
-		self, ui, files, dest_dir, src_dir=None, dest_name=None
-	):
+	def __init__(self, ui, files, dest_dir, src_dir=None, dest_name=None):
 		super().__init__(ui, files, dest_dir, 'move', src_dir, dest_name)
 	def postprocess_directory(self, src_dir_path):
-		if not listdir(src_dir_path):
-			rmtree(src_dir_path, ignore_errors=True)
+		if not fman.fs.listdir(src_dir_path):
+			try:
+				fman.fs.delete(src_dir_path)
+			except OSError:
+				pass
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		move(src, dest)
+		fman.fs.rename(src, dest)
 	def _perform_on_file(self, src, dest):
-		move(src, dest)
+		fman.fs.rename(src, dest)

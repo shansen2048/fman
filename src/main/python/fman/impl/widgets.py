@@ -2,7 +2,7 @@ from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.view import FileListView, Layout, PathView
-from fman.url import splitscheme
+from fman.url import as_human_readable
 from fman.util.system import is_windows, is_mac
 from fman.util.qt import run_in_main_thread, disable_window_animations_mac, \
 	Key_Escape, AscendingOrder
@@ -14,8 +14,6 @@ from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
 	QFrame, QAction
 from random import randint, randrange
-
-import os
 
 class Application(QApplication):
 	def __init__(self, *args, **kwargs):
@@ -150,10 +148,7 @@ class DirectoryPane(QWidget):
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
 	def _on_root_path_changed(self, url):
-		self._path_view.setText(self._get_location_to_display(url))
-	def _get_location_to_display(self, url):
-		scheme, path = splitscheme(url)
-		return path.replace('/', os.sep) if scheme == 'file://' else url
+		self._path_view.setText(as_human_readable(url))
 
 class MainWindow(QMainWindow):
 
