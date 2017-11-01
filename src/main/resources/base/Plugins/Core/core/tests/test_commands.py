@@ -1,7 +1,7 @@
 from core.commands import SuggestLocations, History, Move
 from core.tests import StubUI
 from fman import OK, YES, NO, PLATFORM
-from fman.url import join, as_human_readable
+from fman.url import join, as_human_readable, as_file_url
 from fman.util.system import is_linux, is_windows
 from os.path import normpath
 from unittest import TestCase, skipIf
@@ -124,7 +124,7 @@ class ConfirmTreeOperationTest(TestCase):
 	def setUp(self):
 		super().setUp()
 		self._ui = StubUI(self)
-		self._root = 'file://' + ('C:/' if PLATFORM == 'Windows' else '/')
+		self._root = as_file_url('C:\\' if PLATFORM == 'Windows' else '/')
 		self._src = join(self._root, 'src')
 		self._dest = join(self._root, 'dest')
 		self._a = join(self._root, 'src/a')
