@@ -9,6 +9,14 @@ class AsFileUrlTest(TestCase):
 		else:
 			self.assertEqual('file:///a b', as_file_url('/a b'))
 
+class AsHumanReadableTest(TestCase):
+	def test_normal_file_url(self):
+		path = r'C:\Users\Michael' if is_windows() else '/home/michael'
+		self.assertEqual(path, as_human_readable(as_file_url(path)))
+	def test_non_file_url(self):
+		url = 'https://fman.io/docs'
+		self.assertEqual(url, as_human_readable(url))
+
 class DirnameTest(TestCase):
 	def test_root(self):
 		self.assertEqual('drives://', dirname('drives://C:'))
@@ -56,11 +64,3 @@ class RelpathTest(TestCase):
 		self._check('file:///a/b.txt', 'file:///a', 'b.txt')
 	def _check(self, target, base, expected):
 		self.assertEqual(expected, relpath(target, base))
-
-class AsHumanReadableTest(TestCase):
-	def test_normal_file_url(self):
-		path = r'C:\Users\Michael' if is_windows() else '/home/michael'
-		self.assertEqual(path, as_human_readable(as_file_url(path)))
-	def test_non_file_url(self):
-		url = 'https://fman.io/docs'
-		self.assertEqual(url, as_human_readable(url))
