@@ -26,8 +26,6 @@ class FileTreeOperationAT:
 		self._assert_file_contents_equal(join(dest_dir, 'test.txt'), '1234')
 		return src_file
 	def test_singe_file_dest_dir_does_not_exist(self):
-		# TODO: This test is actually wrong. Should prompt "subdir doesn't
-		# exist, do you want to create it?"
 		self.test_single_file(dest_dir=join(self.dest, 'subdir'))
 	def test_empty_directory(self):
 		empty_dir = join(self.src, 'test')
