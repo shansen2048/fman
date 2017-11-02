@@ -190,15 +190,7 @@ class OpenWithEditor(_CorePaneCommand):
 		'Windows': 'Applications (*.exe)',
 		'Linux': 'Applications (*)'
 	}
-	def __call__(self, create_new=None):
-		if create_new is not None:
-			# TODO: Remove this migration in October 2017
-			show_alert(
-				'Error: Command open_with_editor no longer supports argument '
-				'`create_new`. Please update your Key Bindings.json to use '
-				'the new command create_and_edit_file instead.'
-			)
-			return
+	def __call__(self):
 		self._open_with_editor(self.pane.get_file_under_cursor())
 	def _open_with_editor(self, file_url):
 		if not file_url:

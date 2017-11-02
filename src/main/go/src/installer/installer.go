@@ -37,10 +37,6 @@ func main() {
 	} else if *doUpdatePtr {
 		installDir = getInstallDirWhenManagedByOmaha()
 		extractAssets(installDir)
-		// TODO: Remove this line after October 2017. It only serves to
-		// migrate versions < 0.6.2, for which addContextMenuEntriesToExplorer
-		// wasn't called during install:
-		addContextMenuEntriesToExplorer(installDir)
 		updateVersionInRegistry()
 		removeOldVersions(installDir)
 	} else {
