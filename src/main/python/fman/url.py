@@ -42,7 +42,11 @@ def split(url):
 
 def join(url, *paths):
 	scheme, path = splitscheme(url)
-	return scheme + PurePosixPath(path, *paths).as_posix()
+	result_path = PurePosixPath(path, *paths).as_posix()
+	if result_path == '.':
+		# This for instance happens when all paths were equal to ''
+		result_path = ''
+	return scheme + result_path
 
 def relpath(target, base):
 	target_scheme, target_path = splitscheme(target)
