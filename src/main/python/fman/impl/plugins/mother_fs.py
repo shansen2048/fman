@@ -41,20 +41,16 @@ class MotherFileSystem:
 		return self._icon_provider.get_icon(path)
 	def touch(self, url):
 		scheme, path = splitscheme(url)
-		self._children[scheme].touch(path)
-		self._file_added(url)
+		with TriggerFileAdded(self, url):
+			self._children[scheme].touch(path)
 	def mkdir(self, url):
 		scheme, path = splitscheme(url)
-		self._children[scheme].mkdir(path)
-		self._file_added(url)
+		with TriggerFileAdded(self, url):
+			self._children[scheme].mkdir(path)
 	def makedirs(self, url, exist_ok=True):
 		scheme, path = splitscheme(url)
-		self._children[scheme].makedirs(path, exist_ok=exist_ok)
-		prev_url = None
-		while url != prev_url:
-			self._file_added(url)
-			prev_url = url
-			url = self.parent(url)
+		with TriggerFileAdded(self, url):
+			self._children[scheme].makedirs(path, exist_ok=exist_ok)
 	def move(self, old_url, new_url):
 		"""
 		:param new_url: must be the final destination url, not just the parent
@@ -106,8 +102,8 @@ class MotherFileSystem:
 			raise ValueError(
 				'Cannot copy from %s to %s' % (src_scheme, dst_scheme)
 			)
-		self._children[src_scheme].copy(src_path, dst_path)
-		self._file_added(dst_url)
+		with TriggerFileAdded(self, dst_url):
+			self._children[src_scheme].copy(src_path, dst_path)
 	def add_file_changed_callback(self, url, callback):
 		scheme, path = splitscheme(url)
 		self._children[scheme]._add_file_changed_callback(path, callback)
@@ -155,10 +151,6 @@ class MotherFileSystem:
 				parent_files.remove(basename(url))
 			except ValueError:
 				pass
-	def _file_added(self, url):
-		self._add_to_parent(url)
-		if url not in self._cache:
-			self.file_added.trigger(url)
 	def _add_to_parent(self, url):
 		parent = self.parent(url)
 		try:
@@ -173,3 +165,16 @@ class MotherFileSystem:
 		return self._cache_locks.setdefault((path, item), Lock())
 	def _on_source_file_changed(self, path):
 		self.clear_cache(path)
+
+class TriggerFileAdded:
+	def __init__(self, fs, url):
+		self._fs = fs
+		self._url = url
+		self._file_existed = None
+	def __enter__(self):
+		self._file_existed = self._url in self._fs._cache
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		if not exc_val:
+			self._fs._add_to_parent(self._url)
+			if not self._file_existed:
+				self._fs.file_added.trigger(self._url)
