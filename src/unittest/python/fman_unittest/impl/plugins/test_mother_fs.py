@@ -25,7 +25,7 @@ class MotherFileSystemTest(TestCase):
 		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
 		cached_fs.delete('stub://a/b')
 		self.assertEqual([], cached_fs.listdir('stub://a'))
-	def test_rename_updates_pardir(self):
+	def test_move_updates_pardir(self):
 		fs = StubFileSystem({
 			'a': { 'isdir': True , 'files': ['b']},
 			'a/b': {},
@@ -34,7 +34,7 @@ class MotherFileSystemTest(TestCase):
 		cached_fs = MotherFileSystem([fs], None)
 		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
 		self.assertEqual([], cached_fs.listdir('stub://c'))
-		cached_fs.rename('stub://a/b', 'stub://c/b')
+		cached_fs.move('stub://a/b', 'stub://c/b')
 		self.assertEqual([], cached_fs.listdir('stub://a'))
 		self.assertEqual(['b'], cached_fs.listdir('stub://c'))
 	def test_touch(self):

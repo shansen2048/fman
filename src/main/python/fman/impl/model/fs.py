@@ -96,8 +96,7 @@ class DefaultFileSystem(FileSystem):
 		Path(path).touch()
 	def mkdir(self, path):
 		Path(path).mkdir()
-	# TODO: Rename "rename" to "move"?
-	def rename(self, old_path, new_path):
+	def move(self, old_path, new_path):
 		move(old_path, new_path)
 	def move_to_trash(self, file_path):
 		move_to_trash(file_path)

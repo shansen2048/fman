@@ -24,7 +24,7 @@ class StubFileSystem(FileSystem):
 		self._items[path] = {}
 	def mkdir(self, path):
 		self._items[path] = {'isdir': True}
-	def rename(self, old_path, new_path):
+	def move(self, old_path, new_path):
 		self._items[new_path] = self._items.pop(old_path)
 	def delete(self, path):
 		del self._items[path]

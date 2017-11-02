@@ -82,7 +82,7 @@ class FileSystemModel(DragAndDropMixin):
 	_file_removed = pyqtSignal(str)
 	_row_loaded = pyqtSignal(PreloadedRow, str)
 	_row_loaded_for_add = pyqtSignal(PreloadedRow)
-	_row_loaded_for_rename = pyqtSignal(PreloadedRow, str)
+	_row_loaded_for_move = pyqtSignal(PreloadedRow, str)
 	_row_loaded_for_reload = pyqtSignal(PreloadedRow)
 	_reloaded = pyqtSignal(str, list)
 
@@ -114,7 +114,7 @@ class FileSystemModel(DragAndDropMixin):
 		([*] below) to communicate between the different threads.
 		"""
 		self._fs.file_added.add_callback(self._on_file_added)
-		self._fs.file_renamed.add_callback(self._on_file_renamed)
+		self._fs.file_moved.add_callback(self._on_file_moved)
 
 		# Use Qt signals to call _on_file_removed(...) in the home thread.
 		# At the same time, use BlockingQueuedConnection to ensure that the
@@ -131,8 +131,8 @@ class FileSystemModel(DragAndDropMixin):
 		self._row_loaded_for_add.connect(
 			self._on_row_loaded_for_add, Qt.BlockingQueuedConnection
 		)
-		self._row_loaded_for_rename.connect(
-			self._on_row_loaded_for_rename, Qt.BlockingQueuedConnection
+		self._row_loaded_for_move.connect(
+			self._on_row_loaded_for_move, Qt.BlockingQueuedConnection
 		)
 		self._row_loaded_for_reload.connect(
 			self._on_row_loaded_for_reload, Qt.BlockingQueuedConnection
@@ -315,13 +315,13 @@ class FileSystemModel(DragAndDropMixin):
 		assert self._is_in_home_thread()
 		if self._is_in_root(row.path):
 			self._on_row_loaded(row)
-	def _on_file_renamed(self, old_path, new_path):
+	def _on_file_moved(self, old_path, new_path):
 		assert not self._is_in_home_thread()
 		if not self._is_in_root(old_path) and not self._is_in_root(new_path):
 			return
 		row = self._load_row(new_path)
-		self._row_loaded_for_rename.emit(row, old_path)
-	def _on_row_loaded_for_rename(self, row, old_path):
+		self._row_loaded_for_move.emit(row, old_path)
+	def _on_row_loaded_for_move(self, row, old_path):
 		assert self._is_in_home_thread()
 		# We don't just remove the old row and add the new one because this
 		# destroys the cursor state.

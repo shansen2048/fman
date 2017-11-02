@@ -150,6 +150,6 @@ class MoveFiles(FileTreeOperation):
 			except OSError:
 				pass
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		fman.fs.rename(src, dest)
+		fman.fs.move(src, dest)
 	def _perform_on_file(self, src, dest):
-		fman.fs.rename(src, dest)
+		fman.fs.move(src, dest)

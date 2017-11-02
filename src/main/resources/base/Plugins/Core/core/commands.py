@@ -8,8 +8,8 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from fman import *
 from fman.url import splitscheme, as_file_url, join, basename, split, \
 	as_human_readable
-from fman.fs import exists, touch, mkdir, isdir, isfile, rename, \
-	move_to_trash, delete, parent, samefile
+from fman.fs import exists, touch, mkdir, isdir, isfile, move, move_to_trash, \
+	delete, parent, samefile
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
@@ -18,7 +18,7 @@ from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
 from pathlib import PurePath
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
-from shutil import copy, move, rmtree
+from shutil import copy, rmtree
 from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
@@ -29,6 +29,7 @@ import json
 import os
 import os.path
 import re
+import shutil
 import sys
 
 class About(ApplicationCommand):
@@ -380,7 +381,7 @@ class RenameListener(DirectoryPaneListener):
 			if do_replace:
 				delete(new_url)
 			try:
-				rename(file_url, new_url)
+				move(file_url, new_url)
 			except OSError as e:
 				if isinstance(e, PermissionError):
 					message = 'Access was denied trying to rename %s to %s.'
@@ -1132,7 +1133,7 @@ class InstallPlugin(ApplicationCommand):
 			with TemporaryDirectory() as temp_dir:
 				zipfile.extractall(temp_dir)
 				dir_in_zip, = os.listdir(temp_dir)
-				move(os.path.join(temp_dir, dir_in_zip), dest_dir)
+				shutil.move(os.path.join(temp_dir, dir_in_zip), dest_dir)
 		return dest_dir
 	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
 		plugin_json = os.path.join(plugin_dir, 'Plugin.json')

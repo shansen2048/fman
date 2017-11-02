@@ -8,7 +8,7 @@ class MotherFileSystem:
 	def __init__(self, children, icon_provider):
 		super().__init__()
 		self.file_added = Event()
-		self.file_renamed = Event()
+		self.file_moved = Event()
 		self.file_removed = Event()
 		self._children = {child.scheme: child for child in children}
 		self._icon_provider = icon_provider
@@ -55,7 +55,7 @@ class MotherFileSystem:
 			self._file_added(url)
 			prev_url = url
 			url = self.parent(url)
-	def rename(self, old_url, new_url):
+	def move(self, old_url, new_url):
 		"""
 		:param new_url: must be the final destination url, not just the parent
 		                directory.
@@ -67,14 +67,14 @@ class MotherFileSystem:
 				'Renaming across file systems is not supported (%s -> %s)'
 				% (old_scheme, new_scheme)
 			)
-		self._children[old_scheme].rename(old_path, new_path)
+		self._children[old_scheme].move(old_path, new_path)
 		try:
 			self._cache[new_url] = self._cache.pop(old_url)
 		except KeyError:
 			pass
 		self._remove_from_parent(old_url)
 		self._add_to_parent(new_url)
-		self.file_renamed.trigger(old_url, new_url)
+		self.file_moved.trigger(old_url, new_url)
 	def move_to_trash(self, url):
 		scheme, path = splitscheme(url)
 		self._children[scheme].move_to_trash(path)
