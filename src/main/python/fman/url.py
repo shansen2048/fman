@@ -1,3 +1,4 @@
+from fman.util.path import parent
 from pathlib import PurePath, PurePosixPath
 from urllib.request import url2pathname
 
@@ -28,10 +29,7 @@ def as_human_readable(url):
 
 def dirname(url):
 	scheme, path = splitscheme(url)
-	parent = str(PurePosixPath(path).parent) if path else ''
-	if parent == '.':
-		parent = ''
-	return scheme + parent
+	return scheme + parent(path)
 
 def basename(url):
 	path = splitscheme(url)[1]

@@ -1,5 +1,6 @@
 from fman.util.system import is_windows
 from os.path import splitdrive, normpath, expanduser, realpath
+from pathlib import PurePosixPath
 
 def make_absolute(file_path, cwd):
 	if normpath(file_path) == '.':
@@ -18,3 +19,7 @@ def add_backslash_to_drive_if_missing(file_path):
 		if is_drive and file_path == drive_or_unc:
 			return file_path + '\\'
 	return file_path
+
+def parent(path):
+	result = str(PurePosixPath(path).parent) if path else ''
+	return '' if result == '.' else result

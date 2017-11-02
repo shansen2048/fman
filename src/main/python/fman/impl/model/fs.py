@@ -1,8 +1,8 @@
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
-from fman.url import as_file_url, dirname, splitscheme
-from fman.util.path import add_backslash_to_drive_if_missing
+from fman.url import as_file_url
+from fman.util.path import add_backslash_to_drive_if_missing, parent
 from fman.impl.trash import move_to_trash
 from math import log
 from os import remove, listdir
@@ -23,7 +23,7 @@ class FileSystem:
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
 	def parent(self, path):
-		return dirname(self.scheme + path)
+		return parent(path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):
@@ -43,7 +43,7 @@ class FileSystem:
 		except OSError as e:
 			if e.errno != ENOENT:
 				raise
-			self.makedirs(splitscheme(self.parent(path))[1])
+			self.makedirs(self.parent(path))
 			self.mkdir(path)
 	def mkdir(self, path):
 		"""
@@ -115,7 +115,7 @@ class DefaultFileSystem(FileSystem):
 	def parent(self, path):
 		# Unlike other functions, Path#parent can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
-		return as_file_url(Path(path).parent.as_posix())
+		return Path(path).parent.as_posix()
 	def copy(self, src, dst):
 		if self.isdir(src):
 			copytree(src, dst, symlinks=True)
@@ -141,7 +141,7 @@ if PLATFORM == 'Windows':
 				return as_file_url(path + '\\')
 			raise FileNotFoundError(path)
 		def parent(self, path):
-			return 'drives://'
+			return ''
 		def listdir(self, path):
 			if path:
 				raise FileNotFoundError(path)
