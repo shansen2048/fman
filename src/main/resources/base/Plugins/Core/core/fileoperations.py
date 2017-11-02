@@ -63,15 +63,16 @@ class FileTreeOperation:
 	def _walk(self, url):
 		dirs = []
 		nondirs = []
-		for entry in fman.fs.listdir(url):
+		for file_name in fman.fs.listdir(url):
+			file_url = join(url, file_name)
 			try:
-				is_dir = fman.fs.isdir(entry)
+				is_dir = fman.fs.isdir(file_url)
 			except OSError:
 				is_dir = False
 			if is_dir:
-				dirs.append(entry)
+				dirs.append(file_url)
 			else:
-				nondirs.append(entry)
+				nondirs.append(file_url)
 		yield from nondirs
 		for dir_ in dirs:
 			yield from self._walk(join(url, dir_))

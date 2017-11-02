@@ -2,7 +2,7 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.fs import NameColumn, SizeColumn, LastModifiedColumn
-from fman.url import dirname
+from fman.url import dirname, join
 from fman.util import is_debug, EqMixin, ReprMixin, ConstructorMixin
 from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
@@ -232,7 +232,8 @@ class FileSystemModel(DragAndDropMixin):
 			return
 		self._fs.clear_cache(path)
 		rows = []
-		for file_path in self._fs.listdir(path):
+		for file_name in self._fs.listdir(path):
+			file_path = join(path, file_name)
 			self._fs.clear_cache(file_path)
 			rows.append(self._load_row(file_path))
 			# Abort reload if path changed:
@@ -276,7 +277,8 @@ class FileSystemModel(DragAndDropMixin):
 		if path != self._root_path:
 			# Root path changed since this method was scheduled. Abort.
 			return
-		for file_path in self._fs.listdir(path):
+		for file_name in self._fs.listdir(path):
+			file_path = join(path, file_name)
 			row = self._load_row(file_path)
 			self._row_loaded.emit(row, path)
 			if path != self._root_path:

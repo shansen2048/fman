@@ -1,4 +1,4 @@
-from fman.url import splitscheme
+from fman.url import splitscheme, basename
 from fman.util import Event
 from functools import partial
 from threading import Lock
@@ -146,7 +146,7 @@ class MotherFileSystem:
 			pass
 		else:
 			try:
-				parent_files.remove(url)
+				parent_files.remove(basename(url))
 			except ValueError:
 				pass
 	def _file_added(self, url):
@@ -160,8 +160,9 @@ class MotherFileSystem:
 		except KeyError:
 			pass
 		else:
-			if url not in parent_files:
-				parent_files.append(url)
+			name = basename(url)
+			if name not in parent_files:
+				parent_files.append(name)
 	def _lock(self, path, item=None):
 		return self._cache_locks.setdefault((path, item), Lock())
 	def _on_source_file_changed(self, path):

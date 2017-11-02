@@ -17,26 +17,26 @@ class MotherFileSystemTest(TestCase):
 	def test_delete_removes_from_pardir_cache(self):
 		fs = StubFileSystem({
 			'a': {
-				'isdir': True, 'files': ['a/b']
+				'isdir': True, 'files': ['b']
 			},
 			'a/b': {}
 		})
 		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual(['stub://a/b'], cached_fs.listdir('stub://a'))
+		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
 		cached_fs.delete('stub://a/b')
 		self.assertEqual([], cached_fs.listdir('stub://a'))
 	def test_rename_updates_pardir(self):
 		fs = StubFileSystem({
-			'a': { 'isdir': True , 'files': ['a/b']},
+			'a': { 'isdir': True , 'files': ['b']},
 			'a/b': {},
 			'c': { 'isdir': True }
 		})
 		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual(['stub://a/b'], cached_fs.listdir('stub://a'))
+		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
 		self.assertEqual([], cached_fs.listdir('stub://c'))
 		cached_fs.rename('stub://a/b', 'stub://c/b')
 		self.assertEqual([], cached_fs.listdir('stub://a'))
-		self.assertEqual(['stub://c/b'], cached_fs.listdir('stub://c'))
+		self.assertEqual(['b'], cached_fs.listdir('stub://c'))
 	def test_touch(self):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
@@ -44,7 +44,7 @@ class MotherFileSystemTest(TestCase):
 		cached_fs = MotherFileSystem([fs], None)
 		self.assertEqual([], cached_fs.listdir('stub://a'))
 		cached_fs.touch('stub://a/b')
-		self.assertEqual(['stub://a/b'], cached_fs.listdir('stub://a'))
+		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
 	def test_mkdir(self):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
@@ -52,7 +52,7 @@ class MotherFileSystemTest(TestCase):
 		cached_fs = MotherFileSystem([fs], None)
 		self.assertEqual([], cached_fs.listdir('stub://a'))
 		cached_fs.mkdir('stub://a/b')
-		self.assertEqual(['stub://a/b'], cached_fs.listdir('stub://a'))
+		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
 	def test_no_concurrent_isdir_queries(self):
 		fs = FileSystemCountingIsdirCalls()
 		cached_fs = MotherFileSystem([fs], None)
