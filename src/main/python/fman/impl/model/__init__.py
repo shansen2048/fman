@@ -167,8 +167,6 @@ class FileSystemModel(DragAndDropMixin):
 		return QVariant()
 	def rootPath(self):
 		return self._root_path
-	def myComputer(self):
-		return ''
 	def setRootPath(self, path, callback):
 		path = self._fs.resolve(path)
 		if path == self._root_path:
