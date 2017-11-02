@@ -52,6 +52,10 @@ class FileSystem:
 		.errno = ENOENT. Typically this would be FileNotFoundError(ENOENT, ...).
 		"""
 		raise NotImplementedError()
+	def getsize(self, path):
+		return None
+	def getmtime(self, path):
+		return None
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:
@@ -130,8 +134,11 @@ if PLATFORM == 'Windows':
 		scheme = 'drives://'
 
 		def resolve(self, path):
+			if not path:
+				# Showing the list of all drives:
+				return self.scheme
 			if path in self._get_drives():
-				return as_file_url(path)
+				return as_file_url(path + '\\')
 			raise FileNotFoundError(path)
 		def parent(self, path):
 			return 'drives://'
@@ -140,9 +147,9 @@ if PLATFORM == 'Windows':
 				raise FileNotFoundError(path)
 			return self._get_drives()
 		def isdir(self, path):
-			return not path
+			return self.exists(path)
 		def exists(self, path):
-			return not path
+			return not path or path in self._get_drives()
 		def _get_drives(self):
 			from ctypes import windll
 			import string
@@ -150,7 +157,7 @@ if PLATFORM == 'Windows':
 			bitmask = windll.kernel32.GetLogicalDrives()
 			for letter in string.ascii_uppercase:
 				if bitmask & 1:
-					result.append(letter + ':\\')
+					result.append(letter + ':')
 				bitmask >>= 1
 			return result
 
@@ -197,6 +204,8 @@ class SizeColumn(Column):
 		if self._fs.isdir(url):
 			return ''
 		size_bytes = self._fs.getsize(url)
+		if size_bytes is None:
+			return ''
 		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
 		if size_bytes <= 0:
 			unit_index = 0
@@ -223,9 +232,12 @@ class LastModifiedColumn(Column):
 		self._fs = fs
 	def get_str(self, url):
 		try:
-			modified = datetime.fromtimestamp(self._fs.getmtime(url))
+			mtime = self._fs.getmtime(url)
 		except OSError:
 			return ''
+		if mtime is None:
+			return ''
+		modified = datetime.fromtimestamp(mtime)
 		return modified.strftime('%Y-%m-%d %H:%M')
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.isdir(url)

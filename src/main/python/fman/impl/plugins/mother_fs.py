@@ -34,7 +34,10 @@ class MotherFileSystem:
 	def _get_icon(self, url):
 		scheme, path = splitscheme(url)
 		if scheme != 'file://':
-			raise ValueError("URL %r is not supported" % url)
+			url = self.resolve(url)
+			scheme, path = splitscheme(url)
+			if scheme != 'file://':
+				raise ValueError("URL %r is not supported" % url)
 		return self._icon_provider.get_icon(path)
 	def touch(self, url):
 		scheme, path = splitscheme(url)
