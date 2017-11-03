@@ -230,7 +230,7 @@ class FileSystemModel(DragAndDropMixin):
 			return
 		self._fs.clear_cache(path)
 		rows = []
-		for file_name in self._fs.listdir(path):
+		for file_name in self._fs.iterdir(path):
 			file_path = join(path, file_name)
 			self._fs.clear_cache(file_path)
 			rows.append(self._load_row(file_path))
@@ -275,7 +275,7 @@ class FileSystemModel(DragAndDropMixin):
 		if path != self._root_path:
 			# Root path changed since this method was scheduled. Abort.
 			return
-		for file_name in self._fs.listdir(path):
+		for file_name in self._fs.iterdir(path):
 			file_path = join(path, file_name)
 			row = self._load_row(file_path)
 			self._row_loaded.emit(row, path)

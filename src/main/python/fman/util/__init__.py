@@ -1,3 +1,4 @@
+from weakref import WeakSet
 from functools import lru_cache
 from getpass import getuser
 from os import listdir
@@ -80,3 +81,53 @@ class Event:
 	def trigger(self, *args):
 		for callback in self._callbacks:
 			callback(*args)
+
+class CachedIterable:
+	def __init__(self, source):
+		self._source = iter(source)
+		self._items = []
+		self._items_to_skip = []
+		self._items_to_add = []
+		self._iterators = WeakSet()
+	def remove(self, item):
+		try:
+			item_index = self._items.index(item)
+		except ValueError:
+			self._items_to_skip.append(item)
+		else:
+			del self._items[item_index]
+			for iterator in self._iterators:
+				if iterator._cur_item >= item_index:
+					# Need to adjust for changed indexes now the item is gone:
+					iterator._cur_item -= 1
+	def add(self, item):
+		# N.B.: Behaves like set#add(...), not like list#append(...)!
+		self._items_to_add.append(item)
+	def __iter__(iterable):
+		class Iterator:
+			def __init__(self):
+				self._cur_item = -1
+			def __next__(self):
+				self._cur_item += 1
+				if self._cur_item >= len(iterable._items):
+					iterable._items.append(self._generate_next())
+				return iterable._items[self._cur_item]
+			def _generate_next(self):
+				while True:
+					try:
+						next_item = next(iterable._source)
+					except StopIteration:
+						if iterable._items_to_add:
+							next_item = iterable._items_to_add.pop(0)
+							if next_item in iterable._items:
+								continue
+						else:
+							raise
+					items_to_skip = iterable._items_to_skip
+					if items_to_skip and next_item == items_to_skip[0]:
+						items_to_skip.pop(0)
+					else:
+						return next_item
+		result = Iterator()
+		iterable._iterators.add(result)
+		return result

@@ -9,7 +9,7 @@ class StubFileSystem(FileSystem):
 		self._items = items
 	def exists(self, path):
 		return path in self._items
-	def listdir(self, path):
+	def iterdir(self, path):
 		return list(self._items[path].get('files', []))
 	def isdir(self, path):
 		try:

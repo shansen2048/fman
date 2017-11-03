@@ -5,7 +5,7 @@ from fman.url import as_file_url
 from fman.util.path import add_backslash_to_drive_if_missing, parent
 from fman.impl.trash import move_to_trash
 from math import log
-from os import remove, listdir
+from os import remove
 from os.path import isdir, getsize, getmtime, basename, isfile, samefile
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
@@ -82,10 +82,13 @@ class DefaultFileSystem(FileSystem):
 		self._watcher.fileChanged.connect(self.notify_file_changed)
 	def exists(self, path):
 		return Path(path).exists()
-	def listdir(self, path):
-		return listdir(path)
+	def iterdir(self, path):
+		for entry in Path(path).iterdir():
+			yield entry.name
+	# TODO: Rename to is_dir
 	def isdir(self, path):
 		return isdir(path)
+	# TODO: Rename to is_file
 	def isfile(self, path):
 		return isfile(path)
 	def getsize(self, path):
@@ -141,7 +144,7 @@ if PLATFORM == 'Windows':
 			raise FileNotFoundError(path)
 		def parent(self, path):
 			return ''
-		def listdir(self, path):
+		def iterdir(self, path):
 			if path:
 				raise FileNotFoundError(path)
 			return self._get_drives()

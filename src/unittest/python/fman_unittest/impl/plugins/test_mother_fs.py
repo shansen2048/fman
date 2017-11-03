@@ -22,9 +22,9 @@ class MotherFileSystemTest(TestCase):
 			'a/b': {}
 		})
 		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
+		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
 		cached_fs.delete('stub://a/b')
-		self.assertEqual([], cached_fs.listdir('stub://a'))
+		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
 	def test_move_updates_pardir(self):
 		fs = StubFileSystem({
 			'a': { 'isdir': True , 'files': ['b']},
@@ -32,27 +32,27 @@ class MotherFileSystemTest(TestCase):
 			'c': { 'isdir': True }
 		})
 		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
-		self.assertEqual([], cached_fs.listdir('stub://c'))
+		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
+		self.assertEqual([], list(cached_fs.iterdir('stub://c')))
 		cached_fs.move('stub://a/b', 'stub://c/b')
-		self.assertEqual([], cached_fs.listdir('stub://a'))
-		self.assertEqual(['b'], cached_fs.listdir('stub://c'))
+		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
+		self.assertEqual(['b'], list(cached_fs.iterdir('stub://c')))
 	def test_touch(self):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
 		})
 		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual([], cached_fs.listdir('stub://a'))
+		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
 		cached_fs.touch('stub://a/b')
-		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
+		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
 	def test_mkdir(self):
 		fs = StubFileSystem({
 			'a': { 'isdir': True }
 		})
 		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual([], cached_fs.listdir('stub://a'))
+		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
 		cached_fs.mkdir('stub://a/b')
-		self.assertEqual(['b'], cached_fs.listdir('stub://a'))
+		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
 	def test_no_concurrent_isdir_queries(self):
 		fs = FileSystemCountingIsdirCalls()
 		cached_fs = MotherFileSystem([fs], None)
@@ -71,7 +71,7 @@ class MotherFileSystemTest(TestCase):
 		# Put 'foo' in cache:
 		cached_fs.isdir('fsre://foo')
 		with self.assertRaises(PermissionError):
-			cached_fs.listdir('fsre://foo')
+			cached_fs.iterdir('fsre://foo')
 	def test_isdir_exists_false(self):
 		fs = StubFileSystem({})
 		cached_fs = MotherFileSystem([fs], None)
@@ -98,5 +98,5 @@ class FileSystemRaisingError:
 
 	def isdir(self, path):
 		return True
-	def listdir(self, path):
+	def iterdir(self, path):
 		raise PermissionError(path)

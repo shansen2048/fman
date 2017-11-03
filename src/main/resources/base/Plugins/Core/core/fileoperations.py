@@ -57,7 +57,7 @@ class FileTreeOperation:
 	def _walk(self, url):
 		dirs = []
 		nondirs = []
-		for file_name in fman.fs.listdir(url):
+		for file_name in fman.fs.iterdir(url):
 			file_url = join(url, file_name)
 			try:
 				is_dir = fman.fs.isdir(file_url)
@@ -144,11 +144,17 @@ class MoveFiles(FileTreeOperation):
 	def __init__(self, ui, files, dest_dir, src_dir=None, dest_name=None):
 		super().__init__(ui, files, dest_dir, 'move', src_dir, dest_name)
 	def postprocess_directory(self, src_dir_path):
-		if not fman.fs.listdir(src_dir_path):
+		if self._is_empty(src_dir_path):
 			try:
 				fman.fs.delete(src_dir_path)
 			except OSError:
 				pass
+	def _is_empty(self, dir_url):
+		try:
+			next(iter(fman.fs.iterdir(dir_url)))
+		except StopIteration:
+			return True
+		return False
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
 		fman.fs.move(src, dest)
 	def _perform_on_file(self, src, dest):

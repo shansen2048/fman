@@ -1,5 +1,5 @@
 from fman.url import splitscheme, basename, join
-from fman.util import Event
+from fman.util import Event, CachedIterable
 from functools import partial
 from threading import Lock
 from weakref import WeakValueDictionary
@@ -16,11 +16,10 @@ class MotherFileSystem:
 		self._cache_locks = WeakValueDictionary()
 	def exists(self, url):
 		return self._query(url, 'exists')
-	def listdir(self, url):
-		result = self._query_cache(url, 'listdir')
-		# Provide a copy of the list to ensure the caller doesn't accidentally
-		# modify the state shared with other invocations:
-		return result[::]
+	def iterdir(self, url):
+		return self._query_cache(url, 'iterdir', self._iterdir)
+	def _iterdir(self, url):
+		return CachedIterable(self._query(url, 'iterdir'))
 	def isdir(self, url):
 		return self._query_cache(url, 'isdir')
 	def isfile(self, url):
@@ -143,7 +142,7 @@ class MotherFileSystem:
 	def _remove_from_parent(self, url):
 		parent = self.parent(url)
 		try:
-			parent_files = self._cache[parent]['listdir']
+			parent_files = self._cache[parent]['iterdir']
 		except KeyError:
 			pass
 		else:
@@ -154,13 +153,11 @@ class MotherFileSystem:
 	def _add_to_parent(self, url):
 		parent = self.parent(url)
 		try:
-			parent_files = self._cache[parent]['listdir']
+			parent_files = self._cache[parent]['iterdir']
 		except KeyError:
 			pass
 		else:
-			name = basename(url)
-			if name not in parent_files:
-				parent_files.append(name)
+			parent_files.add(basename(url))
 	def _lock(self, path, item=None):
 		return self._cache_locks.setdefault((path, item), Lock())
 	def _on_source_file_changed(self, path):

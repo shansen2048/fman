@@ -40,8 +40,8 @@ def samefile(url_1, url_2):
 def copy(src, dst):
 	_get_fs().copy(src, dst)
 
-def listdir(url):
-	return _get_fs().listdir(url)
+def iterdir(url):
+	return _get_fs().iterdir(url)
 
 def _get_fs():
 	from fman.impl.application_context import get_application_context

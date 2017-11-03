@@ -254,7 +254,7 @@ class FileTreeOperationAT:
 	def _expect_files(self, files, in_dir=None):
 		if in_dir is None:
 			in_dir = self.dest
-		self.assertEqual(files, set(fman.fs.listdir(in_dir)))
+		self.assertEqual(files, set(fman.fs.iterdir(in_dir)))
 
 try:
 	from os import geteuid
