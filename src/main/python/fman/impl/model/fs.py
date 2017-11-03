@@ -87,8 +87,7 @@ class DefaultFileSystem(FileSystem):
 			yield entry.name
 	def is_dir(self, path):
 		return isdir(path)
-	# TODO: Rename to is_file
-	def isfile(self, path):
+	def is_file(self, path):
 		return isfile(path)
 	def getsize(self, path):
 		return getsize(path)
