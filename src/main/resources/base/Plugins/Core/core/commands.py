@@ -139,15 +139,24 @@ class GoUp(_CorePaneCommand):
 	aliases = ('Go up', 'Go to parent directory')
 
 	def __call__(self):
-		current_dir = self.pane.get_path()
+		path_before = self.pane.get_path()
 		def callback():
-			if self.pane.get_path() != current_dir:
-				# Only move the cursor if we actually changed directories;
-				# For instance, we don't want to move the cursor if the user
-				# presses Backspace while at C:\ and the cursor is already at
-				# C:\Program Files.
-				self.pane.place_cursor_at(current_dir)
-		self.pane.set_path(parent(current_dir), callback)
+			path_now = self.pane.get_path()
+			# Only move the cursor if we actually changed directories; For
+			# instance, we don't want to move the cursor if the user presses
+			# Backspace while at C:\ and the cursor is already at
+			# C:\Program Files.
+			if path_now != path_before:
+				# Consider: The user is in zip:///Temp.zip and invokes GoUp.
+				# This takes us to file:///. We want to place the cursor at
+				# file:///Temp.zip. "Switch" schemes to make this happen:
+				cursor_dest = splitscheme(path_now)[0] + \
+							  splitscheme(path_before)[1]
+				try:
+					self.pane.place_cursor_at(cursor_dest)
+				except ValueError as dest_doesnt_exist:
+					self.pane.move_cursor_home()
+		self.pane.set_path(parent(path_before), callback)
 
 class Open(_CorePaneCommand):
 	def __call__(self):

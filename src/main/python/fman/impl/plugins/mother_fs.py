@@ -29,15 +29,7 @@ class MotherFileSystem:
 	def getmtime(self, url):
 		return self._query_cache(url, 'getmtime')
 	def icon(self, url):
-		return self._query_cache(url, 'icon', self._get_icon)
-	def _get_icon(self, url):
-		scheme, path = splitscheme(url)
-		if scheme != 'file://':
-			url = self.resolve(url)
-			scheme, path = splitscheme(url)
-			if scheme != 'file://':
-				raise ValueError("URL %r is not supported" % url)
-		return self._icon_provider.get_icon(path)
+		return self._query_cache(url, 'icon', self._icon_provider.get_icon)
 	def touch(self, url):
 		scheme, path = splitscheme(url)
 		with TriggerFileAdded(self, url):

@@ -9,7 +9,7 @@ from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 	GnomeNotAvailable, IconProvider
-from fman.impl.model.fs import DefaultFileSystem
+from fman.impl.model.fs import DefaultFileSystem, ZipFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -134,13 +134,6 @@ class ApplicationContext:
 	@cached_property
 	def excepthook(self):
 		return Excepthook(self.plugin_dirs, self.plugin_error_handler)
-	@cached_property
-	def icon_provider(self):
-		try:
-			qt_icon_provider = GnomeFileIconProvider()
-		except GnomeNotAvailable:
-			qt_icon_provider = QFileIconProvider()
-		return IconProvider(qt_icon_provider)
 	@property
 	def main_window(self):
 		if self._main_window is None:
@@ -199,11 +192,22 @@ class ApplicationContext:
 		)
 	@cached_property
 	def fs(self):
-		file_systems = [DefaultFileSystem()]
+		file_systems = [DefaultFileSystem(), ZipFileSystem()]
 		if PLATFORM == 'Windows':
 			from fman.impl.model.fs import DrivesFileSystem
 			file_systems.append(DrivesFileSystem())
-		return MotherFileSystem(file_systems, self.icon_provider)
+		# Resolve the cyclic dependency MotherFileSystem <-> IconProvider:
+		result = MotherFileSystem(file_systems, None)
+		result._icon_provider = self._get_icon_provider(result)
+		return result
+	def _get_icon_provider(self, fs):
+		try:
+			qt_icon_provider = GnomeFileIconProvider()
+		except GnomeNotAvailable:
+			qt_icon_provider = QFileIconProvider()
+		icons_dir = self._get_local_data_file('Cache', 'Icons')
+		makedirs(icons_dir, exist_ok=True)
+		return IconProvider(qt_icon_provider, fs, icons_dir)
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
@@ -352,8 +356,8 @@ class ApplicationContext:
 			return os_path
 		base_dir = join(res_dir, 'base')
 		return normpath(join(base_dir, *rel_path))
-	def _get_local_data_file(self, file_name):
-		return join(DATA_DIRECTORY, 'Local', file_name)
+	def _get_local_data_file(self, *rel_path):
+		return join(DATA_DIRECTORY, 'Local', *rel_path)
 
 class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):

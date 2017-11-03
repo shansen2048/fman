@@ -1,4 +1,6 @@
+from fman.url import splitscheme
 from functools import lru_cache
+from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileInfo
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileIconProvider
@@ -9,10 +11,36 @@ import sys
 _LOG = logging.getLogger(__name__)
 
 class IconProvider:
-	def __init__(self, qt_icon_provider):
+	def __init__(self, qt_icon_provider, fs, cache_dir):
 		self._qt_icon_provider = qt_icon_provider
-	def get_icon(self, file_path):
-		return self._qt_icon_provider.icon(QFileInfo(file_path))
+		self._fs = fs
+		self._folder_icon = self._get_qt_icon(cache_dir)
+		self._cache_dir = cache_dir
+		self._cache = {
+			f.suffix: str(f)
+			for f in Path(cache_dir).glob('file*')
+		}
+	def get_icon(self, url):
+		scheme, path = splitscheme(url)
+		if scheme == 'file://':
+			return self._get_qt_icon(path)
+		url = self._fs.resolve(url)
+		scheme, path = splitscheme(url)
+		if scheme == 'file://':
+			return self._get_qt_icon(path)
+		if self._fs.is_dir(url):
+			return self._folder_icon
+		suffix = PurePosixPath(path).suffix
+		if suffix not in self._cache:
+			surrogate = Path(self._cache_dir, 'file' + suffix)
+			with surrogate.open('w') as f:
+				# At least Gnome doesn't display a proper icon unless the file
+				# has some contents. So give it some:
+				f.write('fman')
+			self._cache[suffix] = self._get_qt_icon(str(surrogate))
+		return self._cache[suffix]
+	def _get_qt_icon(self, path):
+		return self._qt_icon_provider.icon(QFileInfo(path))
 
 class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):

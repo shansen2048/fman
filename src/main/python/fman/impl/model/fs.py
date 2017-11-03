@@ -7,10 +7,11 @@ from fman.impl.trash import move_to_trash
 from math import log
 from os import remove
 from os.path import isdir, getsize, getmtime, basename, isfile, samefile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
 from threading import Lock
+from zipfile import ZipFile
 
 import fman.fs
 import re
@@ -22,6 +23,10 @@ class FileSystem:
 	def __init__(self):
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
+	def iterdir(self, path):
+		raise NotImplementedError()
+	def resolve(self, path):
+		return self.scheme + path
 	def parent(self, path):
 		return parent(path)
 	def watch(self, path):
@@ -160,6 +165,65 @@ if PLATFORM == 'Windows':
 					result.append(letter + ':')
 				bitmask >>= 1
 			return result
+
+class ZipFileSystem(FileSystem):
+
+	scheme = 'zip://'
+
+	def iterdir(self, path):
+		zip_path, dir_path = self._split(path)
+		with ZipFile(zip_path) as zipfile:
+			already_yielded = set()
+			for candidate in zipfile.namelist():
+				while candidate:
+					candidate_path = PurePosixPath(candidate)
+					parent = str(candidate_path.parent)
+					if parent == '.':
+						parent = ''
+					if parent == dir_path:
+						name = candidate_path.name
+						if name not in already_yielded:
+							yield name
+							already_yielded.add(name)
+					candidate = parent
+	def resolve(self, path):
+		if '.zip' in path:
+			# Return zip:// + path:
+			return super().resolve(path)
+		return as_file_url(path)
+	def is_dir(self, path):
+		try:
+			zip_path, dir_path = self._split(path)
+		except FileNotFoundError:
+			return False
+		if not dir_path:
+			return True
+		if not dir_path.endswith('/'):
+			dir_path += '/'
+		with ZipFile(zip_path) as zipfile:
+			for entry in zipfile.namelist():
+				if entry.startswith(dir_path):
+					return True
+		return False
+	def exists(self, path):
+		try:
+			zip_path, path_in_zip = self._split(path)
+		except FileNotFoundError:
+			return False
+		if not path_in_zip:
+			return True
+		with ZipFile(zip_path) as zipfile:
+			for entry in zipfile.namelist():
+				if entry == path_in_zip or entry.startswith(path_in_zip + '/'):
+					return True
+		return False
+	def _split(self, path):
+		suffix = '.zip'
+		try:
+			split_point = path.index(suffix) + len(suffix)
+		except ValueError:
+			raise FileNotFoundError('Not a .zip file: %r' % path) from None
+		return path[:split_point], path[split_point:].lstrip('/')
 
 class Column:
 	def get_str(cls, url):
