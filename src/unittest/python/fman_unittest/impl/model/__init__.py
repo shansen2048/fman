@@ -11,9 +11,9 @@ class StubFileSystem(FileSystem):
 		return path in self._items
 	def iterdir(self, path):
 		return list(self._items[path].get('files', []))
-	def isdir(self, path):
+	def is_dir(self, path):
 		try:
-			return self._items[path]['isdir']
+			return self._items[path]['is_dir']
 		except KeyError:
 			return False
 	def getsize(self, path):
@@ -23,7 +23,7 @@ class StubFileSystem(FileSystem):
 	def touch(self, path):
 		self._items[path] = {}
 	def mkdir(self, path):
-		self._items[path] = {'isdir': True}
+		self._items[path] = {'is_dir': True}
 	def move(self, old_path, new_path):
 		self._items[new_path] = self._items.pop(old_path)
 	def delete(self, path):

@@ -33,7 +33,7 @@ class FileTreeOperation:
 		self._report_processing_of_file(src)
 		dest = self._get_dest_path(src)
 		try:
-			if fman.fs.isdir(src):
+			if fman.fs.is_dir(src):
 				if fman.fs.exists(dest):
 					if fman.fs.samefile(src, dest):
 						return True
@@ -60,7 +60,7 @@ class FileTreeOperation:
 		for file_name in fman.fs.iterdir(url):
 			file_url = join(url, file_name)
 			try:
-				is_dir = fman.fs.isdir(file_url)
+				is_dir = fman.fs.is_dir(file_url)
 			except OSError:
 				is_dir = False
 			if is_dir:

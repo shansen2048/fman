@@ -38,7 +38,7 @@ class FileSystem:
 		try:
 			self.mkdir(path)
 		except FileExistsError:
-			if not exist_ok or not self.isdir(path):
+			if not exist_ok or not self.is_dir(path):
 				raise
 		except OSError as e:
 			if e.errno != ENOENT:
@@ -85,8 +85,7 @@ class DefaultFileSystem(FileSystem):
 	def iterdir(self, path):
 		for entry in Path(path).iterdir():
 			yield entry.name
-	# TODO: Rename to is_dir
-	def isdir(self, path):
+	def is_dir(self, path):
 		return isdir(path)
 	# TODO: Rename to is_file
 	def isfile(self, path):
@@ -104,7 +103,7 @@ class DefaultFileSystem(FileSystem):
 	def move_to_trash(self, file_path):
 		move_to_trash(file_path)
 	def delete(self, path):
-		if self.isdir(path):
+		if self.is_dir(path):
 			rmtree(path)
 		else:
 			remove(path)
@@ -119,7 +118,7 @@ class DefaultFileSystem(FileSystem):
 		path = add_backslash_to_drive_if_missing(path)
 		return Path(path).parent.as_posix()
 	def copy(self, src, dst):
-		if self.isdir(src):
+		if self.is_dir(src):
 			copytree(src, dst, symlinks=True)
 		else:
 			copyfile(src, dst, follow_symlinks=False)
@@ -148,7 +147,7 @@ if PLATFORM == 'Windows':
 			if path:
 				raise FileNotFoundError(path)
 			return self._get_drives()
-		def isdir(self, path):
+		def is_dir(self, path):
 			return self.exists(path)
 		def exists(self, path):
 			return not path or path in self._get_drives()
@@ -192,7 +191,7 @@ class NameColumn(Column):
 		except ValueError:
 			return url
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.isdir(url)
+		is_dir = self._fs.is_dir(url)
 		return is_dir ^ is_ascending, basename(url).lower()
 
 class SizeColumn(Column):
@@ -203,7 +202,7 @@ class SizeColumn(Column):
 		super().__init__()
 		self._fs = fs
 	def get_str(self, url):
-		if self._fs.isdir(url):
+		if self._fs.is_dir(url):
 			return ''
 		size_bytes = self._fs.getsize(url)
 		if size_bytes is None:
@@ -217,7 +216,7 @@ class SizeColumn(Column):
 		base = 1024 ** unit_index
 		return unit % (size_bytes / base)
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.isdir(url)
+		is_dir = self._fs.is_dir(url)
 		if is_dir:
 			ord_ = ord if is_ascending else lambda c: -ord(c)
 			minor = tuple(ord_(c) for c in basename(url).lower())
@@ -242,5 +241,5 @@ class LastModifiedColumn(Column):
 		modified = datetime.fromtimestamp(mtime)
 		return modified.strftime('%Y-%m-%d %H:%M')
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.isdir(url)
+		is_dir = self._fs.is_dir(url)
 		return is_dir ^ is_ascending, self._fs.getmtime(url)

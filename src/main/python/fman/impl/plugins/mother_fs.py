@@ -20,8 +20,8 @@ class MotherFileSystem:
 		return self._query_cache(url, 'iterdir', self._iterdir)
 	def _iterdir(self, url):
 		return CachedIterable(self._query(url, 'iterdir'))
-	def isdir(self, url):
-		return self._query_cache(url, 'isdir')
+	def is_dir(self, url):
+		return self._query_cache(url, 'is_dir')
 	def isfile(self, url):
 		return self._query_cache(url, 'isfile')
 	def getsize(self, url):

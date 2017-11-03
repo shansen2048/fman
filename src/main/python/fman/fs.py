@@ -10,8 +10,8 @@ def mkdir(url):
 def makedirs(url, exist_ok=False):
 	_get_fs().makedirs(url, exist_ok=exist_ok)
 
-def isdir(url):
-	return _get_fs().isdir(url)
+def is_dir(url):
+	return _get_fs().is_dir(url)
 
 def isfile(url):
 	return _get_fs().isfile(url)

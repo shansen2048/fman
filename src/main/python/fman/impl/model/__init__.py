@@ -64,10 +64,10 @@ class PreloadedRow(ConstructorMixin, EqMixin, ReprMixin):
 	rather than directly (which always returns False, except for self == self).
 	"""
 
-	_FIELDS = ('path', 'isdir', 'icon', 'columns')
+	_FIELDS = ('path', 'is_dir', 'icon', 'columns')
 
 	def _get_field_values(self):
-		return (self.path, self.isdir, self.icon.cacheKey(), self.columns)
+		return (self.path, self.is_dir, self.icon.cacheKey(), self.columns)
 
 PreloadedColumn = \
 	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
@@ -214,7 +214,7 @@ class FileSystemModel(DragAndDropMixin):
 		result = ItemIsSelectable | ItemIsEnabled
 		if index.column() == 0:
 			result |= ItemIsEditable | ItemIsDragEnabled
-			if self._rows[index.row()].isdir:
+			if self._rows[index.row()].is_dir:
 				result |= ItemIsDropEnabled
 		return result
 	def setData(self, index, value, role):
@@ -286,7 +286,7 @@ class FileSystemModel(DragAndDropMixin):
 		self.directoryLoaded.emit(path)
 	def _load_row(self, path):
 		return PreloadedRow(
-			path, self._fs.isdir(path), self._fs.icon(path),
+			path, self._fs.is_dir(path), self._fs.icon(path),
 			[
 				PreloadedColumn(
 					QVariant(column.get_str(path)),

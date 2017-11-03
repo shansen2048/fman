@@ -6,19 +6,19 @@ class ColumnTest:
 	def setUp(self):
 		self.fs = StubFileSystem({
 			'a': {
-				'isdir': False, 'size': 1, 'mtime': 1473339042.0
+				'is_dir': False, 'size': 1, 'mtime': 1473339042.0
 			},
 			'b': {
-				'isdir': False, 'size': 0, 'mtime': 1473339043.0
+				'is_dir': False, 'size': 0, 'mtime': 1473339043.0
 			},
 			'B': {
-				'isdir': False, 'size': 2, 'mtime': 1473339042.0
+				'is_dir': False, 'size': 2, 'mtime': 1473339042.0
 			},
 			'a_dir': {
-				'isdir': True, 'size': 3, 'mtime': 1473339045.0
+				'is_dir': True, 'size': 3, 'mtime': 1473339045.0
 			},
 			'b_dir': {
-				'isdir': True, 'size': 4, 'mtime': 1473339046.0
+				'is_dir': True, 'size': 4, 'mtime': 1473339046.0
 			}
 
 		})

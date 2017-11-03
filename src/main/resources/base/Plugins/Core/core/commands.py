@@ -8,7 +8,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from fman import *
 from fman.url import splitscheme, as_file_url, join, basename, split, \
 	as_human_readable
-from fman.fs import exists, touch, mkdir, isdir, isfile, move, move_to_trash, \
+from fman.fs import exists, touch, mkdir, is_dir, isfile, move, move_to_trash, \
 	delete, parent, samefile
 from getpass import getuser
 from io import BytesIO
@@ -162,7 +162,7 @@ class OpenListener(DirectoryPaneListener):
 		_open(self.pane, file_url)
 
 def _open(pane, url):
-	if isdir(url):
+	if is_dir(url):
 		pane.set_path(url)
 	else:
 		if PLATFORM == 'Linux':
@@ -307,7 +307,7 @@ class _TreeCommand(_CorePaneCommand):
 				src_scheme, src_path = splitscheme(src_dir)
 				dest = src_scheme + PurePath(src_path, dest).as_posix()
 			if fs.exists(dest):
-				if fs.isdir(dest):
+				if fs.is_dir(dest):
 					return dest, None
 				else:
 					if len(files) == 1:
@@ -404,7 +404,7 @@ class CreateDirectory(_CorePaneCommand):
 			try:
 				mkdir(dir_path)
 			except FileExistsError:
-				if isdir(dir_path):
+				if is_dir(dir_path):
 					show_alert("This directory already exists!")
 				else:
 					show_alert("A file with this name already exists!")
@@ -556,7 +556,7 @@ class _OpenInPaneCommand(_CorePaneCommand):
 			# we would thus open a subdirectory of the left pane. That's not
 			# what we want. We want to open the directory of the left pane:
 			to_open = source_pane.get_path()
-		if not isdir(to_open):
+		if not is_dir(to_open):
 			to_open = parent(to_open)
 		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
 		dest_pane.set_path(to_open)

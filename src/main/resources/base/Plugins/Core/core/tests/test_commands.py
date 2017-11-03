@@ -17,11 +17,11 @@ class ConfirmTreeOperationTest(TestCase):
 		def exists(self, url):
 			return url in self._files
 
-		def isdir(self, url):
-			return self._files.get(url, {}).get('isdir', False)
+		def is_dir(self, url):
+			return self._files.get(url, {}).get('is_dir', False)
 
 		def isfile(self, url):
-			return self.exists(url) and not self.isdir(url)
+			return self.exists(url) and not self.is_dir(url)
 
 	def test_no_files(self):
 		self._expect_alert(('No file is selected!',), answer=OK)
@@ -56,7 +56,7 @@ class ConfirmTreeOperationTest(TestCase):
 		)
 	def test_overwrite_single_file(self):
 		dest_url = join(self._dest, 'a.txt')
-		self._fs._files[dest_url] = {'isdir': False}
+		self._fs._files[dest_url] = {'is_dir': False}
 		dest_path = as_human_readable(dest_url)
 		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
 		self._check(
@@ -65,7 +65,7 @@ class ConfirmTreeOperationTest(TestCase):
 		)
 	def test_multiple_files_over_one(self):
 		dest_url = join(self._dest, 'a.txt')
-		self._fs._files[dest_url] = {'isdir': False}
+		self._fs._files[dest_url] = {'is_dir': False}
 		dest_path = as_human_readable(dest_url)
 		self._expect_prompt(
 			('Move 2 files to', as_human_readable(self._dest)),
@@ -131,11 +131,11 @@ class ConfirmTreeOperationTest(TestCase):
 		self._a_txt = join(self._root, 'src/a.txt')
 		self._b_txt = join(self._root, 'src/b.txt')
 		self._fs = self.FileSystem({
-			self._src: {'isdir': True},
-			self._dest: {'isdir': True},
-			self._a: {'isdir': True},
-			self._a_txt: {'isdir': False},
-			self._b_txt: {'isdir': False},
+			self._src: {'is_dir': True},
+			self._dest: {'is_dir': True},
+			self._a: {'is_dir': True},
+			self._a_txt: {'is_dir': False},
+			self._b_txt: {'is_dir': False},
 		})
 
 class SuggestLocationsTest(TestCase):

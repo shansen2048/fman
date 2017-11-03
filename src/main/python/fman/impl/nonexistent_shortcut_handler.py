@@ -1,5 +1,6 @@
-from os.path import dirname, basename, isdir, splitdrive
+from os.path import dirname, basename, splitdrive
 from fman import show_alert, YES, NO, run_application_command
+from fman.fs import is_dir
 from fman.impl.html_style import highlight
 from fman.util.qt import Key_Up
 from fman.util.system import is_mac
@@ -50,7 +51,7 @@ class NonexistentShortcutHandler:
 				'Go to the parent directory ("%s")' % dir_name
 			))
 		file_under_cursor = pane.get_file_under_cursor()
-		if is_right_pane and isdir(file_under_cursor):
+		if is_right_pane and is_dir(file_under_cursor):
 			options.append((
 				'Open in left pane',
 				'Open "%s" in the left pane' % basename(file_under_cursor)
@@ -102,7 +103,7 @@ class NonexistentShortcutHandler:
 		options = []
 		is_left_pane = pane.window.get_panes().index(pane) == 0
 		file_under_cursor = pane.get_file_under_cursor()
-		if isdir(file_under_cursor):
+		if is_dir(file_under_cursor):
 			dir_name = basename(file_under_cursor)
 			options.append((
 				'Open directory', 'Open the directory "%s"' % dir_name

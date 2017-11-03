@@ -42,7 +42,7 @@ class SessionManager:
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
 			url = path if '://' in path else as_file_url(path)
-			if self._fs.isdir(url):
+			if self._fs.is_dir(url):
 				pane.set_path(url)
 			elif self._fs.exists(url):
 				pane.set_path(
@@ -61,7 +61,7 @@ class SessionManager:
 			pardir = parent(url)
 			if pardir == url:
 				return None
-			if self._fs.isdir(pardir):
+			if self._fs.is_dir(pardir):
 				return pardir
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._settings.get('window_geometry', None)

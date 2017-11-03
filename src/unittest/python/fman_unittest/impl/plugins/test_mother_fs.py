@@ -17,7 +17,7 @@ class MotherFileSystemTest(TestCase):
 	def test_delete_removes_from_pardir_cache(self):
 		fs = StubFileSystem({
 			'a': {
-				'isdir': True, 'files': ['b']
+				'is_dir': True, 'files': ['b']
 			},
 			'a/b': {}
 		})
@@ -27,9 +27,9 @@ class MotherFileSystemTest(TestCase):
 		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
 	def test_move_updates_pardir(self):
 		fs = StubFileSystem({
-			'a': { 'isdir': True , 'files': ['b']},
+			'a': { 'is_dir': True , 'files': ['b']},
 			'a/b': {},
-			'c': { 'isdir': True }
+			'c': { 'is_dir': True }
 		})
 		cached_fs = MotherFileSystem([fs], None)
 		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
@@ -39,7 +39,7 @@ class MotherFileSystemTest(TestCase):
 		self.assertEqual(['b'], list(cached_fs.iterdir('stub://c')))
 	def test_touch(self):
 		fs = StubFileSystem({
-			'a': { 'isdir': True }
+			'a': { 'is_dir': True }
 		})
 		cached_fs = MotherFileSystem([fs], None)
 		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
@@ -47,35 +47,35 @@ class MotherFileSystemTest(TestCase):
 		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
 	def test_mkdir(self):
 		fs = StubFileSystem({
-			'a': { 'isdir': True }
+			'a': { 'is_dir': True }
 		})
 		cached_fs = MotherFileSystem([fs], None)
 		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
 		cached_fs.mkdir('stub://a/b')
 		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
-	def test_no_concurrent_isdir_queries(self):
+	def test_no_concurrent_is_dir_queries(self):
 		fs = FileSystemCountingIsdirCalls()
 		cached_fs = MotherFileSystem([fs], None)
 		def _new_thread():
-			return Thread(target=cached_fs.isdir, args=('fscic://test',))
+			return Thread(target=cached_fs.is_dir, args=('fscic://test',))
 		t1, t2 = _new_thread(), _new_thread()
 		t1.start()
 		t2.start()
 		t1.join()
 		t2.join()
-		self.assertEqual(1, fs.num_isdir_calls)
+		self.assertEqual(1, fs.num_is_dir_calls)
 		self.assertEqual({}, cached_fs._cache_locks, 'Likely memory leak!')
 	def test_permission_error(self):
 		fs = FileSystemRaisingError()
 		cached_fs = MotherFileSystem([fs], None)
 		# Put 'foo' in cache:
-		cached_fs.isdir('fsre://foo')
+		cached_fs.is_dir('fsre://foo')
 		with self.assertRaises(PermissionError):
 			cached_fs.iterdir('fsre://foo')
-	def test_isdir_exists_false(self):
+	def test_is_dir_exists_false(self):
 		fs = StubFileSystem({})
 		cached_fs = MotherFileSystem([fs], None)
-		self.assertFalse(cached_fs.isdir('stub://non-existent'))
+		self.assertFalse(cached_fs.is_dir('stub://non-existent'))
 		self.assertFalse(cached_fs.exists('stub://non-existent'))
 
 class FileSystemCountingIsdirCalls:
@@ -83,11 +83,11 @@ class FileSystemCountingIsdirCalls:
 	scheme = 'fscic://'
 
 	def __init__(self):
-		self.num_isdir_calls = 0
-		self._num_isdir_calls_lock = Lock()
-	def isdir(self, _):
-		with self._num_isdir_calls_lock:
-			self.num_isdir_calls += 1
+		self.num_is_dir_calls = 0
+		self._num_is_dir_calls_lock = Lock()
+	def is_dir(self, _):
+		with self._num_is_dir_calls_lock:
+			self.num_is_dir_calls += 1
 		# Give other threads a chance to run:
 		sleep(.1)
 		return True
@@ -96,7 +96,7 @@ class FileSystemRaisingError:
 
 	scheme = 'fsre://'
 
-	def isdir(self, path):
+	def is_dir(self, path):
 		return True
 	def iterdir(self, path):
 		raise PermissionError(path)
