@@ -24,15 +24,15 @@ def get_text():
 	return _clipboard().text()
 
 @run_in_main_thread
-def copy_files(files):
+def copy_files(file_urls):
 	if is_linux():
-		extra_data = _get_extra_copy_cut_data_linux(files, 'copy')
+		extra_data = _get_extra_copy_cut_data_linux(file_urls, 'copy')
 	else:
 		extra_data = {}
-	_place_on_clipboard(files, extra_data)
+	_place_on_clipboard(file_urls, extra_data)
 
 @run_in_main_thread
-def cut_files(files):
+def cut_files(file_urls):
 	if is_windows():
 		extra_data = {
 			# Make pasting work in Explorer:
@@ -41,10 +41,10 @@ def cut_files(files):
 			_CF_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE
 		}
 	elif is_linux():
-		extra_data = _get_extra_copy_cut_data_linux(files, 'cut')
+		extra_data = _get_extra_copy_cut_data_linux(file_urls, 'cut')
 	else:
 		raise NotImplementedError('Cutting files is not supported on this OS.')
-	_place_on_clipboard(files, extra_data)
+	_place_on_clipboard(file_urls, extra_data)
 
 @run_in_main_thread
 def get_files():

@@ -94,20 +94,22 @@ class DirectoryPane:
 		self._widget.move_cursor_page_down(toggle_selection)
 	def move_cursor_page_up(self, toggle_selection=False):
 		self._widget.move_cursor_page_up(toggle_selection)
-	def place_cursor_at(self, file_path):
-		self._widget.place_cursor_at(file_path)
+	def place_cursor_at(self, file_url):
+		self._widget.place_cursor_at(file_url)
+	# TODO: Rename to get_location()
 	def get_path(self):
 		return self._widget.get_path()
-	def set_path(self, dir_path, callback=None):
-		self._widget.set_path(dir_path, callback)
-	def edit_name(self, file_path):
-		self._widget.edit_name(file_path)
+	# TODO: Rename to set_location(...)
+	def set_path(self, dir_url, callback=None):
+		self._widget.set_path(dir_url, callback)
+	def edit_name(self, file_url):
+		self._widget.edit_name(file_url)
 	def select_all(self):
 		self._widget.select_all()
 	def clear_selection(self):
 		self._widget.clear_selection()
-	def toggle_selection(self, file_path):
-		self._widget.toggle_selection(file_path)
+	def toggle_selection(self, file_url):
+		self._widget.toggle_selection(file_url)
 	def focus(self):
 		self._widget.focus()
 	def _has_focus(self):
@@ -140,13 +142,14 @@ class DirectoryPaneCommand:
 class DirectoryPaneListener:
 	def __init__(self, pane):
 		self.pane = pane
-	def on_doubleclicked(self, file_path):
+	def on_doubleclicked(self, file_url):
 		pass
-	def on_name_edited(self, file_path, new_name):
+	def on_name_edited(self, file_url, new_name):
 		pass
+	# TODO: Rename to on_location_changed()
 	def on_path_changed(self):
 		pass
-	def on_files_dropped(self, file_paths, dest_dir, is_copy_not_move):
+	def on_files_dropped(self, file_urls, dest_dir, is_copy_not_move):
 		pass
 	def on_command(self, command, args):
 		pass

@@ -12,7 +12,7 @@ class CommandRaisingError(DirectoryPaneCommand):
 class ListenerRaisingError(DirectoryPaneListener):
 	def on_path_changed(self):
 		raise ValueError()
-	def on_doubleclicked(self, file_path):
+	def on_doubleclicked(self, file_url):
 		raise ValueError()
-	def on_name_edited(self, file_path, new_name):
+	def on_name_edited(self, file_url, new_name):
 		raise ValueError()

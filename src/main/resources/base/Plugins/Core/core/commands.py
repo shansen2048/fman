@@ -356,9 +356,11 @@ class Move(_TreeCommand):
 		MoveFiles(fman, files, dest_dir, src_dir, dest_name)()
 
 class DragAndDropListener(DirectoryPaneListener):
-	def on_files_dropped(self, files, dest_dir, is_copy_not_move):
+	def on_files_dropped(self, file_urls, dest_dir, is_copy_not_move):
 		command = 'copy' if is_copy_not_move else 'move'
-		self.pane.run_command(command, {'files': files, 'dest_dir': dest_dir})
+		self.pane.run_command(
+			command, {'files': file_urls, 'dest_dir': dest_dir}
+		)
 
 class Rename(_CorePaneCommand):
 	def __call__(self):
