@@ -162,34 +162,42 @@ class Open(_CorePaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
-			_open(self.pane, file_under_cursor)
+			# Use `run_command` to delegate the actual task of opening the file.
+			# This makes it possible for plugins to modify the default open
+			# behaviour by implementing DirectoryPaneListener#on_command(...).
+			self.pane.run_command('default_open', {'url': file_under_cursor})
 		else:
 			show_alert('No file is selected!')
 
 class OpenListener(DirectoryPaneListener):
 	def on_doubleclicked(self, file_url):
-		_open(self.pane, file_url)
+		# Use `run_command` to delegate the actual task of opening the file.
+		# This makes it possible for plugins to modify the default open
+		# behaviour by implementing DirectoryPaneListener#on_command(...).
+		self.pane.run_command('default_open', {'url': file_url})
 
-def _open(pane, url):
-	if is_dir(url):
-		pane.set_path(url)
-	else:
-		if PLATFORM == 'Linux':
-			scheme, path = splitscheme(url)
-			if scheme == 'file://':
-				use_qt = False
-				try:
-					Popen(
-						[path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL
-					)
-				except (OSError, ValueError):
+class DefaultOpen(DirectoryPaneCommand):
+	def __call__(self, url):
+		if is_dir(url):
+			self.pane.set_path(url)
+		else:
+			if PLATFORM == 'Linux':
+				scheme, path = splitscheme(url)
+				if scheme == 'file://':
+					use_qt = False
+					try:
+						Popen(
+							[path], stdin=DEVNULL, stdout=DEVNULL,
+							stderr=DEVNULL
+						)
+					except (OSError, ValueError):
+						use_qt = True
+				else:
 					use_qt = True
 			else:
 				use_qt = True
-		else:
-			use_qt = True
-		if use_qt:
-			QDesktopServices.openUrl(QUrl(url))
+			if use_qt:
+				QDesktopServices.openUrl(QUrl(url))
 
 class OpenWithEditor(_CorePaneCommand):
 

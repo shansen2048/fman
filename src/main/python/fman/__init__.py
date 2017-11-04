@@ -57,6 +57,14 @@ class DirectoryPane:
 	def get_commands(self):
 		return set(self._commands)
 	def run_command(self, name, args=None):
+		while True:
+			for listener in self._listeners:
+				rewritten = listener.on_command(name, args)
+				if rewritten:
+					name, args = rewritten
+					break
+			else:
+				break
 		if args is None:
 			args = {}
 		return self._commands[name](**args)
@@ -139,6 +147,8 @@ class DirectoryPaneListener:
 	def on_path_changed(self):
 		pass
 	def on_files_dropped(self, file_paths, dest_dir, is_copy_not_move):
+		pass
+	def on_command(self, command, args):
 		pass
 
 def load_json(name, default=None, save_on_quit=False):

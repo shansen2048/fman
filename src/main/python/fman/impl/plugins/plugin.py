@@ -223,8 +223,8 @@ class CommandWrapper:
 
 class ListenerWrapper:
 	def __init__(self, listener, error_handler):
-		self.listener = listener
-		self.error_handler = error_handler
+		self._listener = listener
+		self._error_handler = error_handler
 	def on_doubleclicked(self, *args):
 		self._notify_listener('on_doubleclicked', *args)
 	def on_name_edited(self, *args):
@@ -233,16 +233,23 @@ class ListenerWrapper:
 		self._notify_listener('on_path_changed')
 	def on_files_dropped(self, *args):
 		self._notify_listener('on_files_dropped', *args)
+	def on_command(self, command, args):
+		try:
+			return self._listener.on_command(command, args)
+		except:
+			self._report_exception()
 	def _notify_listener(self, *args):
 		Thread(
 			target=self._notify_listener_in_thread, args=args, daemon=True
 		).start()
 	def _notify_listener_in_thread(self, event, *args):
-		listener_method = getattr(self.listener, event)
+		listener_method = getattr(self._listener, event)
 		try:
 			listener_method(*args)
 		except:
-			self.error_handler.report(
-				'DirectoryPaneListener %r raised error.' %
-				self.listener.__class__.__name__
-			)
+			self._report_exception()
+	def _report_exception(self):
+		self._error_handler.report(
+			'DirectoryPaneListener %r raised error.' %
+			self._listener.__class__.__name__
+		)
