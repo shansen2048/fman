@@ -287,18 +287,18 @@ class FileListView(
 		self.add_delegate(FileListItemDelegate())
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
-		return [self._get_path(index) for index in indexes]
+		return [self._get_url(index) for index in indexes]
 	def get_file_under_cursor(self):
 		index = self.currentIndex()
-		return self._get_path(index) if index.isValid() else ''
-	def place_cursor_at(self, file_path):
-		self.setCurrentIndex(self._get_index(file_path))
-	def toggle_selection(self, file_path):
+		return self._get_url(index) if index.isValid() else ''
+	def place_cursor_at(self, file_url):
+		self.setCurrentIndex(self._get_index(file_url))
+	def toggle_selection(self, file_url):
 		self.selectionModel().select(
-			self._get_index(file_path), QISM.Toggle | QISM.Rows
+			self._get_index(file_url), QISM.Toggle | QISM.Rows
 		)
-	def edit_name(self, file_path):
-		self.edit(self._get_index(file_path))
+	def edit_name(self, file_url):
+		self.edit(self._get_index(file_url))
 	def keyPressEvent(self, event):
 		if event.key() in (Key_Return, Key_Enter) \
 			and self.state() == self.EditingState:
@@ -317,10 +317,10 @@ class FileListView(
 		vertical_header.setStyleSheet("QHeaderView::section { padding: 0px; }")
 		vertical_header.setMinimumSectionSize(0)
 		vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-	def _get_index(self, file_path):
+	def _get_index(self, file_url):
 		model = self.model()
-		return model.mapFromSource(model.sourceModel().index(file_path))
-	def _get_path(self, index):
+		return model.mapFromSource(model.sourceModel().find(file_url))
+	def _get_url(self, index):
 		model = self.model()
 		return model.sourceModel().url(model.mapToSource(index))
 

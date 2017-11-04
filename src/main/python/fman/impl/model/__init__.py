@@ -185,23 +185,21 @@ class FileSystemModel(DragAndDropMixin):
 			raise ValueError("Invalid index")
 		return self._rows[index.row()].url
 	def index(self, *args):
-		if len(args) == 1:
-			url = args[0]
-			if url == self._location:
-				return QModelIndex()
-			for rownum, row in enumerate(self._rows):
-				if row.url == url:
-					break
-			else:
-				raise ValueError('%r is not in list' % url)
-			column = 0
-			parent = QModelIndex()
-		elif len(args) == 2:
+		if len(args) == 2:
 			rownum, column = args
 			parent = QModelIndex()
 		else:
 			rownum, column, parent = args
 		return super().index(rownum, column, parent)
+	def find(self, url):
+		if url == self._location:
+			return QModelIndex()
+		for rownum, row in enumerate(self._rows):
+			if row.url == url:
+				break
+		else:
+			raise ValueError('%r is not in list' % url)
+		return self.index(rownum, 0, QModelIndex())
 	def flags(self, index):
 		if index == QModelIndex():
 			# The index representing our current location:
@@ -324,7 +322,7 @@ class FileSystemModel(DragAndDropMixin):
 		# We don't just remove the old row and add the new one because this
 		# destroys the cursor state.
 		try:
-			rownum = self.index(old_url).row()
+			rownum = self.find(old_url).row()
 		except ValueError:
 			if self._is_in_root(row.url):
 				self._on_row_loaded(row)
@@ -336,7 +334,7 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_file_removed(self, url):
 		assert self._is_in_home_thread()
 		try:
-			rownum = self.index(url).row()
+			rownum = self.find(url).row()
 		except ValueError:
 			pass
 		else:
@@ -356,7 +354,7 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_row_loaded_for_reload(self, row):
 		assert self._is_in_home_thread()
 		try:
-			index = self.index(row.url)
+			index = self.find(row.url)
 		except ValueError:
 			pass
 		else:
