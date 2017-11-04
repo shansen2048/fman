@@ -322,7 +322,7 @@ class FileListView(
 		return model.mapFromSource(model.sourceModel().index(file_path))
 	def _get_path(self, index):
 		model = self.model()
-		return model.sourceModel().filePath(model.mapToSource(index))
+		return model.sourceModel().url(model.mapToSource(index))
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):

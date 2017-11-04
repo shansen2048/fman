@@ -35,7 +35,7 @@ class DragAndDropMixin(QAbstractTableModel):
 		return ['text/uri-list']
 	def mimeData(self, indexes):
 		result = QMimeData()
-		result.setUrls([QUrl(self.filePath(index)) for index in indexes])
+		result.setUrls([QUrl(self.url(index)) for index in indexes])
 		# The Qt documentation (http://doc.qt.io/qt-5/dnd.html) states that the
 		# QMimeData should not be deleted, because the target of the drag and
 		# drop operation takes ownership of it. We must therefore tell SIP not
@@ -56,7 +56,7 @@ class DragAndDropMixin(QAbstractTableModel):
 			return True
 		return False
 	def _get_drop_dest(self, index):
-		return self.filePath(index) if index.isValid() else self.rootPath()
+		return self.url(index) if index.isValid() else self.location()
 
 class PreloadedRow(ConstructorMixin, EqMixin, ReprMixin):
 	"""
@@ -64,10 +64,10 @@ class PreloadedRow(ConstructorMixin, EqMixin, ReprMixin):
 	rather than directly (which always returns False, except for self == self).
 	"""
 
-	_FIELDS = ('path', 'is_dir', 'icon', 'columns')
+	_FIELDS = ('url', 'is_dir', 'icon', 'columns')
 
 	def _get_field_values(self):
-		return (self.path, self.is_dir, self.icon.cacheKey(), self.columns)
+		return (self.url, self.is_dir, self.icon.cacheKey(), self.columns)
 
 PreloadedColumn = \
 	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
@@ -75,8 +75,8 @@ PreloadedColumn = \
 class FileSystemModel(DragAndDropMixin):
 
 	file_renamed = pyqtSignal(str, str)
-	rootPathChanged = pyqtSignal(str)
-	directoryLoaded = pyqtSignal(str)
+	location_changed = pyqtSignal(str)
+	directory_loaded = pyqtSignal(str)
 
 	# These signals are used for communication across threads:
 	_file_removed = pyqtSignal(str)
@@ -89,11 +89,11 @@ class FileSystemModel(DragAndDropMixin):
 	def __init__(self, fs):
 		super().__init__()
 		self._fs = fs
-		self._root_path = ''
+		self._location = ''
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
 		self._columns = (NameColumn(), SizeColumn(), LastModifiedColumn())
-		self._path_watcher = PathWatcher(fs, self._on_file_changed)
+		self._file_watcher = FileWatcher(fs, self._on_file_changed)
 		self._connect_signals()
 	def _connect_signals(self):
 		"""
@@ -138,7 +138,7 @@ class FileSystemModel(DragAndDropMixin):
 			self._on_row_loaded_for_reload, Qt.BlockingQueuedConnection
 		)
 		self._reloaded.connect(self._on_reloaded, Qt.BlockingQueuedConnection)
-		self.directoryLoaded.connect(self._on_directory_loaded)
+		self.directory_loaded.connect(self._on_directory_loaded)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -165,35 +165,35 @@ class FileSystemModel(DragAndDropMixin):
 			and 0 <= section < self.columnCount():
 			return QVariant(self._columns[section].name)
 		return QVariant()
-	def rootPath(self):
-		return self._root_path
-	def setRootPath(self, path, callback):
-		path = self._fs.resolve(path)
-		if path == self._root_path:
-			callback(path)
+	def location(self):
+		return self._location
+	def set_location(self, url, callback):
+		url = self._fs.resolve(url)
+		if url == self._location:
+			callback(url)
 		else:
-			self._path_watcher.clear()
-			self._root_path = path
-			self.rootPathChanged.emit(path)
+			self._file_watcher.clear()
+			self._location = url
+			self.location_changed.emit(url)
 			self.beginResetModel()
 			self._rows = []
 			self.endResetModel()
-			self._execute_async(self._load_rows, path, callback)
+			self._execute_async(self._load_rows, url, callback)
 		return QModelIndex()
-	def filePath(self, index):
+	def url(self, index):
 		if not self._index_is_valid(index):
 			raise ValueError("Invalid index")
-		return self._rows[index.row()].path
+		return self._rows[index.row()].url
 	def index(self, *args):
 		if len(args) == 1:
-			file_path = args[0]
-			if file_path == self._root_path:
+			url = args[0]
+			if url == self._location:
 				return QModelIndex()
 			for rownum, row in enumerate(self._rows):
-				if row.path == file_path:
+				if row.url == url:
 					break
 			else:
-				raise ValueError('%r is not in list' % file_path)
+				raise ValueError('%r is not in list' % url)
 			column = 0
 			parent = QModelIndex()
 		elif len(args) == 2:
@@ -204,7 +204,7 @@ class FileSystemModel(DragAndDropMixin):
 		return super().index(rownum, column, parent)
 	def flags(self, index):
 		if index == QModelIndex():
-			# The "root path":
+			# The index representing our current location:
 			return ItemIsDropEnabled
 		# Need to set ItemIsEnabled - in particular for the last column - to
 		# make keyboard shortcut "End" work. When we press this shortcut in a
@@ -219,29 +219,29 @@ class FileSystemModel(DragAndDropMixin):
 		return result
 	def setData(self, index, value, role):
 		if role == EditRole:
-			self.file_renamed.emit(self.filePath(index), value)
+			self.file_renamed.emit(self.url(index), value)
 			return True
 		return super().setData(index, value, role)
-	def reload(self, path):
+	def reload(self, location):
 		# TODO: Don't allow reload when initial load is still in progress.
 		assert not self._is_in_home_thread()
 		# Abort reload if path changed:
-		if path != self._root_path:
+		if location != self._location:
 			return
-		self._fs.clear_cache(path)
+		self._fs.clear_cache(location)
 		rows = []
-		for file_name in self._fs.iterdir(path):
-			file_path = join(path, file_name)
-			self._fs.clear_cache(file_path)
-			rows.append(self._load_row(file_path))
+		for file_name in self._fs.iterdir(location):
+			file_url = join(location, file_name)
+			self._fs.clear_cache(file_url)
+			rows.append(self._load_row(file_url))
 			# Abort reload if path changed:
-			if path != self._root_path:
+			if location != self._location:
 				return
-		self._reloaded.emit(path, rows)
-	def _on_reloaded(self, path, rows):
+		self._reloaded.emit(location, rows)
+	def _on_reloaded(self, location, rows):
 		assert self._is_in_home_thread()
 		# Abort reload if path changed:
-		if path != self._root_path:
+		if location != self._location:
 			return
 		diff = ComputeDiff(self._rows, rows)()
 		for entry in diff:
@@ -270,93 +270,93 @@ class FileSystemModel(DragAndDropMixin):
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
-	def _load_rows(self, path, callback):
+	def _load_rows(self, location, callback):
 		assert not self._is_in_home_thread()
-		if path != self._root_path:
+		if location != self._location:
 			# Root path changed since this method was scheduled. Abort.
 			return
-		for file_name in self._fs.iterdir(path):
-			file_path = join(path, file_name)
-			row = self._load_row(file_path)
-			self._row_loaded.emit(row, path)
-			if path != self._root_path:
+		for file_name in self._fs.iterdir(location):
+			file_url = join(location, file_name)
+			row = self._load_row(file_url)
+			self._row_loaded.emit(row, location)
+			if location != self._location:
 				# Root path changed. Abort.
 				return
-		callback(path)
-		self.directoryLoaded.emit(path)
-	def _load_row(self, path):
+		callback(location)
+		self.directory_loaded.emit(location)
+	def _load_row(self, url):
 		return PreloadedRow(
-			path, self._fs.is_dir(path), self._fs.icon(path),
+			url, self._fs.is_dir(url), self._fs.icon(url),
 			[
 				PreloadedColumn(
-					QVariant(column.get_str(path)),
-					column.get_sort_value(path, True),
-					column.get_sort_value(path, False)
+					QVariant(column.get_str(url)),
+					column.get_sort_value(url, True),
+					column.get_sort_value(url, False)
 				)
 				for column in self._columns
 			]
 		)
-	def _on_row_loaded(self, row, for_path=None):
+	def _on_row_loaded(self, row, for_location=None):
 		assert self._is_in_home_thread()
-		if for_path is None or for_path == self._root_path:
+		if for_location is None or for_location == self._location:
 			self._insert_rows([row])
-	def _on_directory_loaded(self, path):
+	def _on_directory_loaded(self, location):
 		assert self._is_in_home_thread()
-		if path == self._root_path:
-			self._path_watcher.watch(path)
-	def _on_file_added(self, path):
+		if location == self._location:
+			self._file_watcher.watch(location)
+	def _on_file_added(self, url):
 		assert not self._is_in_home_thread()
-		if self._is_in_root(path):
-			row = self._load_row(path)
+		if self._is_in_root(url):
+			row = self._load_row(url)
 			self._row_loaded_for_add.emit(row)
 	def _on_row_loaded_for_add(self, row):
 		assert self._is_in_home_thread()
-		if self._is_in_root(row.path):
+		if self._is_in_root(row.url):
 			self._on_row_loaded(row)
-	def _on_file_moved(self, old_path, new_path):
+	def _on_file_moved(self, old_url, new_url):
 		assert not self._is_in_home_thread()
-		if not self._is_in_root(old_path) and not self._is_in_root(new_path):
+		if not self._is_in_root(old_url) and not self._is_in_root(new_url):
 			return
-		row = self._load_row(new_path)
-		self._row_loaded_for_move.emit(row, old_path)
-	def _on_row_loaded_for_move(self, row, old_path):
+		row = self._load_row(new_url)
+		self._row_loaded_for_move.emit(row, old_url)
+	def _on_row_loaded_for_move(self, row, old_url):
 		assert self._is_in_home_thread()
 		# We don't just remove the old row and add the new one because this
 		# destroys the cursor state.
 		try:
-			rownum = self.index(old_path).row()
+			rownum = self.index(old_url).row()
 		except ValueError:
-			if self._is_in_root(row.path):
+			if self._is_in_root(row.url):
 				self._on_row_loaded(row)
 		else:
-			if self._is_in_root(row.path):
+			if self._is_in_root(row.url):
 				self._update_rows([row], rownum)
 			else:
 				self._remove_rows(rownum)
-	def _on_file_removed(self, file_path):
+	def _on_file_removed(self, url):
 		assert self._is_in_home_thread()
 		try:
-			rownum = self.index(file_path).row()
+			rownum = self.index(url).row()
 		except ValueError:
 			pass
 		else:
 			self._remove_rows(rownum)
-	def _on_file_changed(self, path):
+	def _on_file_changed(self, url):
 		assert self._is_in_home_thread()
-		if path == self._root_path:
+		if url == self._location:
 			# The common case
-			self._execute_async(self.reload, path)
-		elif self._is_in_root(path):
-			self._execute_async(self._reload_row, path)
-	def _reload_row(self, path):
+			self._execute_async(self.reload, url)
+		elif self._is_in_root(url):
+			self._execute_async(self._reload_row, url)
+	def _reload_row(self, url):
 		assert not self._is_in_home_thread()
-		if self._is_in_root(path): # Root could have changed in the meantime
-			row = self._load_row(path)
+		if self._is_in_root(url): # Root could have changed in the meantime
+			row = self._load_row(url)
 			self._row_loaded_for_reload.emit(row)
 	def _on_row_loaded_for_reload(self, row):
 		assert self._is_in_home_thread()
 		try:
-			index = self.index(row.path)
+			index = self.index(row.url)
 		except ValueError:
 			pass
 		else:
@@ -416,12 +416,12 @@ class FileSystemModel(DragAndDropMixin):
 			future.result()
 		except:
 			sys.excepthook(*sys.exc_info())
-	def _is_in_root(self, path):
-		return dirname(path) == self._root_path
+	def _is_in_root(self, url):
+		return dirname(url) == self._location
 	def _is_in_home_thread(self):
 		return QThread.currentThread() == self.thread()
 
-class PathWatcher:
+class FileWatcher:
 	"""
 	Say we're at ~/Downloads and the user presses Backspace to go up to ~.
 	Here's what typically happens:
@@ -442,21 +442,21 @@ class PathWatcher:
 	def __init__(self, fs, callback):
 		self._fs = fs
 		self._callback = callback
-		self._watched_paths = []
-	def watch(self, path):
-		self._fs.add_file_changed_callback(path, self._callback)
-		self._watched_paths.append(path)
+		self._watched_files = []
+	def watch(self, url):
+		self._fs.add_file_changed_callback(url, self._callback)
+		self._watched_files.append(url)
 	def clear(self):
-		for path in self._watched_paths:
-			self._fs.remove_file_changed_callback(path, self._callback)
-		self._watched_paths = []
+		for url in self._watched_files:
+			self._fs.remove_file_changed_callback(url, self._callback)
+		self._watched_files = []
 
 class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.filters = []
-	def setRootPath(self, path, callback):
-		source_index = self.sourceModel().setRootPath(path, callback)
+	def set_location(self, location, callback):
+		source_index = self.sourceModel().set_location(location, callback)
 		# We filter out hidden files/dirs below the current root path.
 		# Consider the following: We're at ~ and change to a hidden subfolder,
 		# ~/Library. We previously filtered out ~/Library because it is hidden.
@@ -478,16 +478,17 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		return get_sort_value(left) < get_sort_value(right)
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
-		file_path = source.filePath(source.index(source_row, 0, source_parent))
-		# When rootPath() is /Users, Qt calls filterAcceptsRow(...) with
-		# '/' and '/Users' before the actual contents of /Users. If we return
-		# False for any of these parent directories, then Qt doesn't display any
+		url = source.url(source.index(source_row, 0, source_parent))
+		# When location() is /Users, Qt calls filterAcceptsRow(...) with '/'
+		# and '/Users' before the actual contents of /Users. If we return False
+		# for any of these parent directories, then Qt doesn't display any
 		# entries in a subdirectory. So make sure we return True:
-		is_pardir = file_path == commonprefix([file_path, source.rootPath()])
+		# TODO: Check if this still holds
+		is_pardir = url == commonprefix([url, source.location()])
 		if is_pardir:
 			return True
 		for filter_ in self.filters:
-			if not filter_(file_path):
+			if not filter_(url):
 				return False
 		return True
 	def add_filter(self, filter_):

@@ -53,8 +53,8 @@ class DirectoryPane(QWidget):
 		self._path_view.setFocusProxy(self._file_view)
 		self.setFocusProxy(self._file_view)
 		self._controller = None
-		self._model.rootPathChanged.connect(self._on_root_path_changed)
-		self._model.directoryLoaded.connect(
+		self._model.location_changed.connect(self._on_location_changed)
+		self._model.directory_loaded.connect(
 			lambda _: self.path_changed.emit(self)
 		)
 	def set_controller(self, controller):
@@ -97,7 +97,7 @@ class DirectoryPane(QWidget):
 		return self._file_view.get_file_under_cursor()
 	@run_in_main_thread
 	def get_path(self):
-		return self._model.rootPath()
+		return self._model.location()
 	@run_in_main_thread
 	def set_path(self, path, callback=None):
 		path_before = self.get_path()
@@ -107,7 +107,7 @@ class DirectoryPane(QWidget):
 					self.move_cursor_home()
 			else:
 				callback()
-		index = self._model_sorted.setRootPath(path, callback_)
+		index = self._model_sorted.set_location(path, callback_)
 		self._file_view.setRootIndex(index)
 	@run_in_main_thread
 	def place_cursor_at(self, file_path):
@@ -139,7 +139,7 @@ class DirectoryPane(QWidget):
 		return path
 	def _on_doubleclicked(self, index):
 		self._controller.on_doubleclicked(
-			self, self._model.filePath(self._model_sorted.mapToSource(index))
+			self, self._model.url(self._model_sorted.mapToSource(index))
 		)
 	def _on_key_pressed(self, file_view, event):
 		return self._controller.on_key_pressed(self, event)
@@ -147,7 +147,7 @@ class DirectoryPane(QWidget):
 		self._controller.on_file_renamed(self, *args)
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
-	def _on_root_path_changed(self, url):
+	def _on_location_changed(self, url):
 		self._path_view.setText(as_human_readable(url))
 
 class MainWindow(QMainWindow):
