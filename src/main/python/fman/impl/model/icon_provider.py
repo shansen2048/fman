@@ -17,7 +17,7 @@ class IconProvider:
 		self._folder_icon = self._get_qt_icon(cache_dir)
 		self._cache_dir = cache_dir
 		self._cache = {
-			f.suffix: str(f)
+			f.suffix: self._get_qt_icon(f)
 			for f in Path(cache_dir).glob('file*')
 		}
 	def get_icon(self, url):
@@ -37,9 +37,11 @@ class IconProvider:
 				# At least Gnome doesn't display a proper icon unless the file
 				# has some contents. So give it some:
 				f.write('fman')
-			self._cache[suffix] = self._get_qt_icon(str(surrogate))
+			self._cache[suffix] = self._get_qt_icon(surrogate)
 		return self._cache[suffix]
 	def _get_qt_icon(self, path):
+		if not isinstance(path, str):
+			path = str(path)
 		return self._qt_icon_provider.icon(QFileInfo(path))
 
 class GnomeFileIconProvider(QFileIconProvider):
