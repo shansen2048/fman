@@ -479,14 +479,6 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
 		url = source.url(source.index(source_row, 0, source_parent))
-		# When location() is /Users, Qt calls filterAcceptsRow(...) with '/'
-		# and '/Users' before the actual contents of /Users. If we return False
-		# for any of these parent directories, then Qt doesn't display any
-		# entries in a subdirectory. So make sure we return True:
-		# TODO: Check if this still holds
-		is_pardir = url == commonprefix([url, source.location()])
-		if is_pardir:
-			return True
 		for filter_ in self.filters:
 			if not filter_(url):
 				return False
