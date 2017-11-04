@@ -57,6 +57,8 @@ class DirectoryPane:
 	def get_commands(self):
 		return set(self._commands)
 	def run_command(self, name, args=None):
+		if args is None:
+			args = {}
 		while True:
 			for listener in self._listeners:
 				rewritten = listener.on_command(name, args)
@@ -65,8 +67,6 @@ class DirectoryPane:
 					break
 			else:
 				break
-		if args is None:
-			args = {}
 		return self._commands[name](**args)
 	def get_command_aliases(self, command_name):
 		return self._commands[command_name].get_aliases()
