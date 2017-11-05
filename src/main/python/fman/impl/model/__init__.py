@@ -453,8 +453,8 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.filters = []
-	def set_location(self, location, callback):
-		source_index = self.sourceModel().set_location(location, callback)
+	def set_location(self, url, callback):
+		source_index = self.sourceModel().set_location(url, callback)
 		# We filter out hidden files/dirs below the current root path.
 		# Consider the following: We're at ~ and change to a hidden subfolder,
 		# ~/Library. We previously filtered out ~/Library because it is hidden.
