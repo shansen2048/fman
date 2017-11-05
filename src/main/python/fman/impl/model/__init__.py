@@ -6,10 +6,10 @@ from fman.url import dirname, join
 from fman.util import is_debug, EqMixin, ReprMixin, ConstructorMixin
 from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
-	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole
-from os.path import commonprefix
+	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
+	run_in_main_thread, is_in_main_thread
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
-	QMimeData, QAbstractTableModel, QModelIndex, Qt, QThread
+	QMimeData, QAbstractTableModel, QModelIndex, Qt
 
 import sip
 import sys
@@ -78,14 +78,6 @@ class FileSystemModel(DragAndDropMixin):
 	location_changed = pyqtSignal(str)
 	directory_loaded = pyqtSignal(str)
 
-	# These signals are used for communication across threads:
-	_file_removed = pyqtSignal(str)
-	_row_loaded = pyqtSignal(PreloadedRow, str)
-	_row_loaded_for_add = pyqtSignal(PreloadedRow)
-	_row_loaded_for_move = pyqtSignal(PreloadedRow, str)
-	_row_loaded_for_reload = pyqtSignal(PreloadedRow)
-	_reloaded = pyqtSignal(str, list)
-
 	def __init__(self, fs):
 		super().__init__()
 		self._fs = fs
@@ -109,35 +101,12 @@ class FileSystemModel(DragAndDropMixin):
 
 		To accommodate the above, we process file system events *synchronously*
 		in the worker threads that trigger them. On the other hand, the thread
-		safety of this class works by only performing changing operations in its
-		QObject#thread(). To synchronize the two ends, we use signals
-		([*] below) to communicate between the different threads.
+		safety of this class works by only performing changing operations in the
+		main thread. To synchronize the two ends, we use @run_in_main_thread.
 		"""
 		self._fs.file_added.add_callback(self._on_file_added)
 		self._fs.file_moved.add_callback(self._on_file_moved)
-
-		# Use Qt signals to call _on_file_removed(...) in the home thread.
-		# At the same time, use BlockingQueuedConnection to ensure that the
-		# worker thread blocks until the event has been processed.
-		self._file_removed.connect(
-			self._on_file_removed, Qt.BlockingQueuedConnection
-		)
-		self._fs.file_removed.add_callback(self._file_removed.emit)
-
-		# [*]: These are the signals that are used to communicate with threads:
-		self._row_loaded.connect(
-			self._on_row_loaded, Qt.BlockingQueuedConnection
-		)
-		self._row_loaded_for_add.connect(
-			self._on_row_loaded_for_add, Qt.BlockingQueuedConnection
-		)
-		self._row_loaded_for_move.connect(
-			self._on_row_loaded_for_move, Qt.BlockingQueuedConnection
-		)
-		self._row_loaded_for_reload.connect(
-			self._on_row_loaded_for_reload, Qt.BlockingQueuedConnection
-		)
-		self._reloaded.connect(self._on_reloaded, Qt.BlockingQueuedConnection)
+		self._fs.file_removed.add_callback(self._on_file_removed)
 		self.directory_loaded.connect(self._on_directory_loaded)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
@@ -222,7 +191,7 @@ class FileSystemModel(DragAndDropMixin):
 		return super().setData(index, value, role)
 	def reload(self, location):
 		# TODO: Don't allow reload when initial load is still in progress.
-		assert not self._is_in_home_thread()
+		assert not is_in_main_thread()
 		# Abort reload if path changed:
 		if location != self._location:
 			return
@@ -235,9 +204,9 @@ class FileSystemModel(DragAndDropMixin):
 			# Abort reload if path changed:
 			if location != self._location:
 				return
-		self._reloaded.emit(location, rows)
+		self._on_reloaded(location, rows)
+	@run_in_main_thread
 	def _on_reloaded(self, location, rows):
-		assert self._is_in_home_thread()
 		# Abort reload if path changed:
 		if location != self._location:
 			return
@@ -269,14 +238,14 @@ class FileSystemModel(DragAndDropMixin):
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
 	def _load_rows(self, location, callback):
-		assert not self._is_in_home_thread()
+		assert not is_in_main_thread()
 		if location != self._location:
 			# Root path changed since this method was scheduled. Abort.
 			return
 		for file_name in self._fs.iterdir(location):
 			file_url = join(location, file_name)
 			row = self._load_row(file_url)
-			self._row_loaded.emit(row, location)
+			self._on_row_loaded(row, location)
 			if location != self._location:
 				# Root path changed. Abort.
 				return
@@ -294,31 +263,32 @@ class FileSystemModel(DragAndDropMixin):
 				for column in self._columns
 			]
 		)
+	@run_in_main_thread
 	def _on_row_loaded(self, row, for_location=None):
-		assert self._is_in_home_thread()
 		if for_location is None or for_location == self._location:
 			self._insert_rows([row])
 	def _on_directory_loaded(self, location):
-		assert self._is_in_home_thread()
+		assert is_in_main_thread()
 		if location == self._location:
 			self._file_watcher.watch(location)
 	def _on_file_added(self, url):
-		assert not self._is_in_home_thread()
+		assert not is_in_main_thread()
 		if self._is_in_root(url):
 			row = self._load_row(url)
-			self._row_loaded_for_add.emit(row)
+			self._on_row_loaded_for_add(row)
+	@run_in_main_thread
 	def _on_row_loaded_for_add(self, row):
-		assert self._is_in_home_thread()
+		assert is_in_main_thread()
 		if self._is_in_root(row.url):
 			self._on_row_loaded(row)
 	def _on_file_moved(self, old_url, new_url):
-		assert not self._is_in_home_thread()
+		assert not is_in_main_thread()
 		if not self._is_in_root(old_url) and not self._is_in_root(new_url):
 			return
 		row = self._load_row(new_url)
-		self._row_loaded_for_move.emit(row, old_url)
+		self._on_row_loaded_for_move(row, old_url)
+	@run_in_main_thread
 	def _on_row_loaded_for_move(self, row, old_url):
-		assert self._is_in_home_thread()
 		# We don't just remove the old row and add the new one because this
 		# destroys the cursor state.
 		try:
@@ -331,8 +301,8 @@ class FileSystemModel(DragAndDropMixin):
 				self._update_rows([row], rownum)
 			else:
 				self._remove_rows(rownum)
+	@run_in_main_thread
 	def _on_file_removed(self, url):
-		assert self._is_in_home_thread()
 		try:
 			rownum = self.find(url).row()
 		except ValueError:
@@ -340,19 +310,19 @@ class FileSystemModel(DragAndDropMixin):
 		else:
 			self._remove_rows(rownum)
 	def _on_file_changed(self, url):
-		assert self._is_in_home_thread()
+		assert is_in_main_thread()
 		if url == self._location:
 			# The common case
 			self._execute_async(self.reload, url)
 		elif self._is_in_root(url):
 			self._execute_async(self._reload_row, url)
 	def _reload_row(self, url):
-		assert not self._is_in_home_thread()
+		assert not is_in_main_thread()
 		if self._is_in_root(url): # Root could have changed in the meantime
 			row = self._load_row(url)
-			self._row_loaded_for_reload.emit(row)
+			self._on_row_loaded_for_reload(row)
+	@run_in_main_thread
 	def _on_row_loaded_for_reload(self, row):
-		assert self._is_in_home_thread()
 		try:
 			index = self.find(row.url)
 		except ValueError:
@@ -416,8 +386,6 @@ class FileSystemModel(DragAndDropMixin):
 			sys.excepthook(*sys.exc_info())
 	def _is_in_root(self, url):
 		return dirname(url) == self._location
-	def _is_in_home_thread(self):
-		return QThread.currentThread() == self.thread()
 
 class FileWatcher:
 	"""
