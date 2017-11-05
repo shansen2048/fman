@@ -10,6 +10,7 @@ from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	run_in_main_thread, is_in_main_thread
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
 	QMimeData, QAbstractTableModel, QModelIndex, Qt
+from time import time
 
 import sip
 import sys
@@ -144,11 +145,17 @@ class FileSystemModel(DragAndDropMixin):
 			self._file_watcher.clear()
 			self._location = url
 			self.location_changed.emit(url)
-			self.beginResetModel()
-			self._rows = []
-			self.endResetModel()
-			self._execute_async(self._load_rows, url, callback)
+			self._clear_rows()
+			if is_in_main_thread():
+				self._execute_async(self._load_rows, url, callback)
+			else:
+				self._load_rows(url, callback)
 		return QModelIndex()
+	@run_in_main_thread
+	def _clear_rows(self):
+		self.beginResetModel()
+		self._rows = []
+		self.endResetModel()
 	def url(self, index):
 		if not self._index_is_valid(index):
 			raise ValueError("Invalid index")
@@ -237,18 +244,25 @@ class FileSystemModel(DragAndDropMixin):
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
-	def _load_rows(self, location, callback):
+	def _load_rows(self, location, callback, update_interval_secs=0.25):
 		assert not is_in_main_thread()
 		if location != self._location:
-			# Root path changed since this method was scheduled. Abort.
+			# Location changed since this method was scheduled. Abort.
 			return
+		batch = []
+		last_update = time()
 		for file_name in self._fs.iterdir(location):
-			file_url = join(location, file_name)
-			row = self._load_row(file_url)
-			self._on_row_loaded(row, location)
+			row = self._load_row(join(location, file_name))
 			if location != self._location:
-				# Root path changed. Abort.
+				# Location changed. No reason to keep loading rows.
 				return
+			batch.append(row)
+			if time() > last_update + update_interval_secs:
+				self._on_rows_loaded(batch, location)
+				batch = []
+				last_update = time()
+		if batch:
+			self._on_rows_loaded(batch, location)
 		callback(location)
 		self.directory_loaded.emit(location)
 	def _load_row(self, url):
@@ -264,9 +278,9 @@ class FileSystemModel(DragAndDropMixin):
 			]
 		)
 	@run_in_main_thread
-	def _on_row_loaded(self, row, for_location=None):
+	def _on_rows_loaded(self, rows, for_location=None):
 		if for_location is None or for_location == self._location:
-			self._insert_rows([row])
+			self._insert_rows(rows)
 	def _on_directory_loaded(self, location):
 		assert is_in_main_thread()
 		if location == self._location:
@@ -280,7 +294,7 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_row_loaded_for_add(self, row):
 		assert is_in_main_thread()
 		if self._is_in_root(row.url):
-			self._on_row_loaded(row)
+			self._on_rows_loaded([row])
 	def _on_file_moved(self, old_url, new_url):
 		assert not is_in_main_thread()
 		if not self._is_in_root(old_url) and not self._is_in_root(new_url):
@@ -295,7 +309,7 @@ class FileSystemModel(DragAndDropMixin):
 			rownum = self.find(old_url).row()
 		except ValueError:
 			if self._is_in_root(row.url):
-				self._on_row_loaded(row)
+				self._on_rows_loaded([row])
 		else:
 			if self._is_in_root(row.url):
 				self._update_rows([row], rownum)
