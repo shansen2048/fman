@@ -1,5 +1,6 @@
 from base64 import b64encode, b64decode
 from fman.impl.util.path import make_absolute
+from fman.impl.util.url import get_existing_pardir
 from fman.url import as_file_url
 from fman.fs import parent
 from os import getcwd
@@ -51,19 +52,11 @@ class SessionManager:
 						pane.place_cursor_at(url)
 				)
 			else:
-				url = self._skip_to_existing_pardir(url) \
+				url = get_existing_pardir(url, self._fs.is_dir) \
 					  or as_file_url(expanduser('~'))
 				pane.set_path(url)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
-	def _skip_to_existing_pardir(self, url):
-		while True:
-			pardir = parent(url)
-			if pardir == url:
-				return None
-			if self._fs.is_dir(pardir):
-				return pardir
-			url = pardir
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._settings.get('window_geometry', None)
 		if geometry_b64:
