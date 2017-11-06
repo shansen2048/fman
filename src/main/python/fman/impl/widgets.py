@@ -53,9 +53,7 @@ class DirectoryPane(QWidget):
 		self.setFocusProxy(self._file_view)
 		self._controller = None
 		self._model.location_changed.connect(self._on_location_changed)
-		self._model.directory_loaded.connect(
-			lambda _: self.path_changed.emit(self)
-		)
+		self._model.directory_loaded.connect(self._on_directory_loaded)
 	def set_controller(self, controller):
 		self._controller = controller
 	@run_in_main_thread
@@ -99,14 +97,7 @@ class DirectoryPane(QWidget):
 		return self._model.location()
 	@run_in_main_thread
 	def set_path(self, path, callback=None):
-		path_before = self.get_path()
-		def callback_(new_path):
-			if callback is None:
-				if new_path != path_before:
-					self.move_cursor_home()
-			else:
-				callback()
-		index = self._model_sorted.set_location(path, callback_)
+		index = self._model_sorted.set_location(path, callback)
 		self._file_view.setRootIndex(index)
 	@run_in_main_thread
 	def place_cursor_at(self, file_path):
@@ -140,6 +131,10 @@ class DirectoryPane(QWidget):
 		self._controller.on_files_dropped(self, *args)
 	def _on_location_changed(self, url):
 		self._path_view.setText(as_human_readable(url))
+	def _on_directory_loaded(self, url):
+		if not self.get_file_under_cursor():
+			self.move_cursor_home()
+		self.path_changed.emit(self)
 
 class MainWindow(QMainWindow):
 

@@ -7,6 +7,7 @@ from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
 	run_in_main_thread, is_in_main_thread
+from fman.impl.util.url import get_existing_pardir, is_pardir
 from fman.url import dirname, join
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
 	QMimeData, QAbstractTableModel, QModelIndex, Qt
@@ -138,10 +139,12 @@ class FileSystemModel(DragAndDropMixin):
 		return QVariant()
 	def location(self):
 		return self._location
-	def set_location(self, url, callback):
+	def set_location(self, url, callback=None):
+		if callback is None:
+			callback = lambda: None
 		url = self._fs.resolve(url)
 		if url == self._location:
-			callback(url)
+			callback()
 		else:
 			self._file_watcher.clear()
 			self._location = url
@@ -268,7 +271,7 @@ class FileSystemModel(DragAndDropMixin):
 		if batch:
 			self._on_rows_loaded(batch, location)
 		self._location_loaded = True
-		callback(location)
+		callback()
 		self.directory_loaded.emit(location)
 	def _load_row(self, url):
 		return PreloadedRow(
@@ -322,12 +325,15 @@ class FileSystemModel(DragAndDropMixin):
 				self._remove_rows(rownum)
 	@run_in_main_thread
 	def _on_file_removed(self, url):
-		try:
-			rownum = self.find(url).row()
-		except ValueError:
-			pass
+		if is_pardir(url, self._location):
+			self.set_location(get_existing_pardir(url, self._fs.is_dir))
 		else:
-			self._remove_rows(rownum)
+			try:
+				rownum = self.find(url).row()
+			except ValueError:
+				pass
+			else:
+				self._remove_rows(rownum)
 	def _on_file_changed(self, url):
 		assert is_in_main_thread()
 		if url == self._location:
@@ -440,7 +446,7 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.filters = []
-	def set_location(self, url, callback):
+	def set_location(self, url, callback=None):
 		source_index = self.sourceModel().set_location(url, callback)
 		# We filter out hidden files/dirs below the current root path.
 		# Consider the following: We're at ~ and change to a hidden subfolder,
