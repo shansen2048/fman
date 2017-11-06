@@ -214,7 +214,10 @@ class FileSystemModel(DragAndDropMixin):
 		for file_name in self._fs.iterdir(location):
 			file_url = join(location, file_name)
 			self._fs.clear_cache(file_url)
-			rows.append(self._load_row(file_url))
+			try:
+				rows.append(self._load_row(file_url))
+			except FileNotFoundError:
+				pass
 			# Abort reload if path changed:
 			if location != self._location:
 				return
@@ -259,7 +262,10 @@ class FileSystemModel(DragAndDropMixin):
 		batch = []
 		last_update = time()
 		for file_name in self._fs.iterdir(location):
-			row = self._load_row(join(location, file_name))
+			try:
+				row = self._load_row(join(location, file_name))
+			except FileNotFoundError:
+				continue
 			if location != self._location:
 				# Location changed. No reason to keep loading rows.
 				return
@@ -296,7 +302,10 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_file_added(self, url):
 		assert not is_in_main_thread()
 		if self._is_in_root(url):
-			row = self._load_row(url)
+			try:
+				row = self._load_row(url)
+			except FileNotFoundError:
+				return
 			self._on_row_loaded_for_add(row)
 	@run_in_main_thread
 	def _on_row_loaded_for_add(self, row):
@@ -307,7 +316,10 @@ class FileSystemModel(DragAndDropMixin):
 		assert not is_in_main_thread()
 		if not self._is_in_root(old_url) and not self._is_in_root(new_url):
 			return
-		row = self._load_row(new_url)
+		try:
+			row = self._load_row(new_url)
+		except FileNotFoundError:
+			return
 		self._on_row_loaded_for_move(row, old_url)
 	@run_in_main_thread
 	def _on_row_loaded_for_move(self, row, old_url):
@@ -344,8 +356,12 @@ class FileSystemModel(DragAndDropMixin):
 	def _reload_row(self, url):
 		assert not is_in_main_thread()
 		if self._is_in_root(url): # Root could have changed in the meantime
-			row = self._load_row(url)
-			self._on_row_loaded_for_reload(row)
+			try:
+				row = self._load_row(url)
+			except FileNotFoundError:
+				self._on_file_removed(url)
+			else:
+				self._on_row_loaded_for_reload(row)
 	@run_in_main_thread
 	def _on_row_loaded_for_reload(self, row):
 		try:
