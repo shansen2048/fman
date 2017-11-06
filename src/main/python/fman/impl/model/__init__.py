@@ -357,12 +357,30 @@ class FileSystemModel(DragAndDropMixin):
 	def _insert_rows(self, rows, first_rownum=-1):
 		if first_rownum == -1:
 			first_rownum = len(self._rows)
+		# Consider: The user creates C:\foo.txt. We are notified of this twice:
+		#  1) _on_file_added("C:\foo.txt")
+		#  2) _on_file_changed("C:\")
+		# Both of these call _insert_rows(...). However, we do not know which
+		# one will be called first. Because of this, we need to check in both
+		# cases whether the file has already been added. The easiest place to do
+		# this is here:
+		to_insert = self._get_rows_to_insert(rows)
+		if not to_insert:
+			return
 		self.beginInsertRows(
-			QModelIndex(), first_rownum, first_rownum + len(rows) - 1
+			QModelIndex(), first_rownum, first_rownum + len(to_insert) - 1
 		)
 		self._rows = \
-			self._rows[:first_rownum] + rows + self._rows[first_rownum:]
+			self._rows[:first_rownum] + to_insert + self._rows[first_rownum:]
 		self.endInsertRows()
+	def _get_rows_to_insert(self, rows):
+		result = []
+		for row in rows:
+			try:
+				self.find(row.url)
+			except ValueError:
+				result.append(row)
+		return result
 	def _update_rows(self, rows, first_rownum):
 		self._rows[first_rownum : first_rownum + len(rows)] = rows
 		top_left = self.index(first_rownum, 0)
