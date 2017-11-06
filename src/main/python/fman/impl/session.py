@@ -63,6 +63,7 @@ class SessionManager:
 				return None
 			if self._fs.is_dir(pardir):
 				return pardir
+			url = pardir
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._settings.get('window_geometry', None)
 		if geometry_b64:
