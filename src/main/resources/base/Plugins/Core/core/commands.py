@@ -541,7 +541,6 @@ class ToggleHiddenFiles(_CorePaneCommand):
 		if PLATFORM == 'Mac' and url == 'file:///Volumes':
 			return True
 		scheme, path = splitscheme(url)
-		# TODO: Implement is_hidden for other file systems?
 		return scheme != 'file://' or not _is_hidden(path)
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
