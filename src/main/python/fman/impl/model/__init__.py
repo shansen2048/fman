@@ -83,6 +83,7 @@ class FileSystemModel(DragAndDropMixin):
 		super().__init__()
 		self._fs = fs
 		self._location = ''
+		self._location_loaded = False
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
 		self._columns = (NameColumn(), SizeColumn(), LastModifiedColumn())
@@ -144,6 +145,7 @@ class FileSystemModel(DragAndDropMixin):
 		else:
 			self._file_watcher.clear()
 			self._location = url
+			self._location_loaded = False
 			self.location_changed.emit(url)
 			self._clear_rows()
 			if is_in_main_thread():
@@ -197,8 +199,10 @@ class FileSystemModel(DragAndDropMixin):
 			return True
 		return super().setData(index, value, role)
 	def reload(self, location):
-		# TODO: Don't allow reload when initial load is still in progress.
 		assert not is_in_main_thread()
+		if not self._location_loaded:
+			# Don't allow reload when initial load is still in progress.
+			return
 		# Abort reload if path changed:
 		if location != self._location:
 			return
@@ -263,6 +267,7 @@ class FileSystemModel(DragAndDropMixin):
 				last_update = time()
 		if batch:
 			self._on_rows_loaded(batch, location)
+		self._location_loaded = True
 		callback(location)
 		self.directory_loaded.emit(location)
 	def _load_row(self, url):
