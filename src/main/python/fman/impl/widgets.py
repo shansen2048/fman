@@ -6,7 +6,6 @@ from fman.impl.util.qt import run_in_main_thread, \
 from fman.impl.util.system import is_windows, is_mac
 from fman.impl.view import FileListView, Layout, PathView
 from fman.url import as_human_readable
-from os.path import exists, normpath, dirname
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
@@ -129,14 +128,6 @@ class DirectoryPane(QWidget):
 	def set_column_widths(self, column_widths):
 		for i, width in enumerate(column_widths):
 			self._file_view.setColumnWidth(i, width)
-	def _skip_to_existing_pardir(self, path):
-		path = normpath(path)
-		while not exists(path):
-			new_path = dirname(path)
-			if path == new_path:
-				break
-			path = new_path
-		return path
 	def _on_doubleclicked(self, index):
 		self._controller.on_doubleclicked(
 			self, self._model.url(self._model_sorted.mapToSource(index))
