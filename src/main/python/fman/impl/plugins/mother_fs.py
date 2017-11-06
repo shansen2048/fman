@@ -1,5 +1,5 @@
 from fman.impl.util import Event, CachedIterable
-from fman.url import splitscheme, basename, join
+from fman.url import splitscheme, basename, join, dirname
 from functools import partial
 from threading import Lock
 from weakref import WeakValueDictionary
@@ -132,7 +132,7 @@ class MotherFileSystem:
 			pass
 		self._remove_from_parent(url)
 	def _remove_from_parent(self, url):
-		parent = self.parent(url)
+		parent = dirname(url)
 		try:
 			parent_files = self._cache[parent]['iterdir']
 		except KeyError:
@@ -143,7 +143,7 @@ class MotherFileSystem:
 			except ValueError:
 				pass
 	def _add_to_parent(self, url):
-		parent = self.parent(url)
+		parent = dirname(url)
 		try:
 			parent_files = self._cache[parent]['iterdir']
 		except KeyError:
