@@ -21,10 +21,10 @@ from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
 from fman.impl.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
+from fman.impl.util import system, cached_property, is_frozen
+from fman.impl.util.settings import Settings
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
-from fman.util import system, cached_property, is_frozen
-from fman.util.settings import Settings
 from os import makedirs
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt

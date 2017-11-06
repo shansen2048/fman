@@ -1,5 +1,5 @@
+from fman.impl.util import Event, CachedIterable
 from fman.url import splitscheme, basename, join
-from fman.util import Event, CachedIterable
 from functools import partial
 from threading import Lock
 from weakref import WeakValueDictionary

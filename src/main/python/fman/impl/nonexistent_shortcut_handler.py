@@ -2,8 +2,8 @@ from os.path import dirname, basename, splitdrive
 from fman import show_alert, YES, NO, run_application_command
 from fman.fs import is_dir
 from fman.impl.html_style import highlight
-from fman.util.qt import Key_Up
-from fman.util.system import is_mac
+from fman.impl.util.qt import Key_Up
+from fman.impl.util.system import is_mac
 from PyQt5.QtCore import QEvent, QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QDialog, QLabel, QVBoxLayout, QRadioButton, \

@@ -1,4 +1,4 @@
-from fman.util.css import parse_css, Rule, Declaration
+from fman.impl.util.css import parse_css, Rule, Declaration
 from unittest import TestCase
 
 class ParseCSSTest(TestCase):

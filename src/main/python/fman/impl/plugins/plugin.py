@@ -1,5 +1,5 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
-from fman.util import listdir_absolute
+from fman.impl.util import listdir_absolute
 from glob import glob
 from importlib.machinery import SourceFileLoader
 from inspect import getmro

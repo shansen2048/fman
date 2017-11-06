@@ -1,8 +1,8 @@
 from core.commands import SuggestLocations, History, Move
 from core.tests import StubUI
 from fman import OK, YES, NO, PLATFORM
+from fman.impl.util.system import is_linux, is_windows
 from fman.url import join, as_human_readable, as_file_url
-from fman.util.system import is_linux, is_windows
 from os.path import normpath
 from unittest import TestCase, skipIf
 

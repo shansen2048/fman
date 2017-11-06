@@ -2,12 +2,12 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.fs import NameColumn, SizeColumn, LastModifiedColumn
-from fman.url import dirname, join
-from fman.util import is_debug, EqMixin, ReprMixin, ConstructorMixin
-from fman.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
+from fman.impl.util import is_debug, EqMixin, ReprMixin, ConstructorMixin
+from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
 	run_in_main_thread, is_in_main_thread
+from fman.url import dirname, join
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
 	QMimeData, QAbstractTableModel, QModelIndex, Qt
 from time import time

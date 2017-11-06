@@ -2,8 +2,8 @@ from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.url import as_file_url
-from fman.util.path import add_backslash_to_drive_if_missing, parent
 from fman.impl.trash import move_to_trash
+from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
 from math import log
 from os import remove
 from os.path import isdir, getsize, getmtime, basename, isfile, samefile

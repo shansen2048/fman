@@ -1,8 +1,8 @@
 from fman.impl.html_style import highlight, underline
+from fman.impl.util import listdir_absolute
+from fman.impl.util.qt import run_in_main_thread, connect_once
+from fman.impl.util.system import is_mac
 from fman.impl.widgets import Overlay
-from fman.util import listdir_absolute
-from fman.util.qt import run_in_main_thread, connect_once
-from fman.util.system import is_mac
 from os import listdir
 from os.path import expanduser, isdir, join, getmtime, basename, abspath
 

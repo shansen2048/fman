@@ -1,11 +1,11 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.quicksearch import Quicksearch
+from fman.impl.util.qt import run_in_main_thread, \
+	disable_window_animations_mac, Key_Escape, AscendingOrder
+from fman.impl.util.system import is_windows, is_mac
 from fman.impl.view import FileListView, Layout, PathView
 from fman.url import as_human_readable
-from fman.util.system import is_windows, is_mac
-from fman.util.qt import run_in_main_thread, disable_window_animations_mac, \
-	Key_Escape, AscendingOrder
 from os.path import exists, normpath, dirname
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence

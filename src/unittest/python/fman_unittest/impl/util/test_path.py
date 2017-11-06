@@ -1,5 +1,5 @@
-from fman.util import system
-from fman.util.path import make_absolute
+from fman.impl.util import system
+from fman.impl.util.path import make_absolute
 from os.path import join, expanduser
 from unittest import TestCase, skipUnless
 

@@ -1,9 +1,9 @@
-from fman.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Down, Key_Up, \
-	Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, ShiftModifier, \
-	ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
+from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Down, \
+	Key_Up, Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, \
+	ShiftModifier, ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
 	KeyboardModifier, GroupSwitchModifier, MoveAction, NoButton, CopyAction, \
 	Key_Return, Key_Enter
-from fman.util.system import is_mac
+from fman.impl.util.system import is_mac
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt
 from PyQt5.QtGui import QKeyEvent, QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \

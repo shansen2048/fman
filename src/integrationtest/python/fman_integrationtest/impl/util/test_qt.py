@@ -1,4 +1,4 @@
-from fman.util.qt import run_in_thread
+from fman.impl.util.qt import run_in_thread
 from fman_integrationtest import QtIT
 from PyQt5.QtCore import QThread
 from threading import get_ident

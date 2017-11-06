@@ -1,4 +1,4 @@
-from fman.util import is_in_subdir, is_debug
+from fman.impl.util import is_in_subdir, is_debug
 from os.path import dirname
 from traceback import StackSummary, _some_str, extract_tb, TracebackException, \
 	print_exc

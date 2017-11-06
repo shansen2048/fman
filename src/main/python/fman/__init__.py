@@ -1,5 +1,5 @@
 from . import clipboard
-from fman.util.system import is_mac, is_linux, is_windows
+from fman.impl.util.system import is_mac, is_linux, is_windows
 from os import getenv
 from os.path import join, expanduser
 from PyQt5.QtWidgets import QMessageBox

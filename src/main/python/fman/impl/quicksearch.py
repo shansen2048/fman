@@ -1,7 +1,7 @@
 from fman import is_mac
-from fman.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, Key_Home, \
-	Key_End, Key_PageUp, UserRole, AlignRight, AlignVCenter, NoFocus, \
-	FramelessWindowHint, AlignTop
+from fman.impl.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, \
+	Key_Home, Key_End, Key_PageUp, UserRole, AlignRight, AlignVCenter, \
+	NoFocus, FramelessWindowHint, AlignTop
 from PyQt5.QtCore import QAbstractListModel, QVariant, QModelIndex, QSize, \
 	QPointF, QRectF, QPoint, pyqtSignal
 from PyQt5.QtGui import QFont, QTextLayout, QTextCharFormat, QBrush, \

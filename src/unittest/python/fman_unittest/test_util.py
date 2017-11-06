@@ -1,5 +1,5 @@
-from fman.util import is_in_subdir, CachedIterable
-from fman.util.system import is_windows
+from fman.impl.util import is_in_subdir, CachedIterable
+from fman.impl.util.system import is_windows
 from os.path import join
 from unittest import TestCase, skipIf
 

@@ -1,5 +1,5 @@
+from fman.impl.util.system import  is_windows
 from fman.url import as_file_url, dirname, relpath, as_human_readable
-from fman.util.system import  is_windows
 from unittest import TestCase
 
 class AsFileUrlTest(TestCase):

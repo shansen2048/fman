@@ -1,4 +1,4 @@
-from fman.util import is_in_subdir
+from fman.impl.util import is_in_subdir
 from os.path import basename
 from traceback import extract_tb
 

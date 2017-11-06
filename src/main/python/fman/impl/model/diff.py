@@ -1,4 +1,4 @@
-from fman.util import ConstructorMixin, EqMixin, ReprMixin
+from fman.impl.util import ConstructorMixin, EqMixin, ReprMixin
 
 class ComputeDiff:
 	"""

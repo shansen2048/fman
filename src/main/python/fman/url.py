@@ -1,4 +1,4 @@
-from fman.util.path import parent
+from fman.impl.util.path import parent
 from pathlib import PurePath, PurePosixPath
 from urllib.request import url2pathname
 
