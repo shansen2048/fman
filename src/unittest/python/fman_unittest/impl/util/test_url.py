@@ -1,4 +1,4 @@
-from fman.impl.util.url import get_existing_pardir, is_pardir
+from fman.impl.util.url import get_existing_pardir, is_pardir, resolve
 from unittest import TestCase
 
 class GetExistingPardirTest(TestCase):
@@ -29,3 +29,16 @@ class IsPardirTest(TestCase):
 		self.assertTrue(is_pardir('file:///a', 'file:///a/b/c'))
 	def test_different_scheme(self):
 		self.assertFalse(is_pardir('file://C:', 'drives://C:'))
+
+class ResolveTest(TestCase):
+	def test_fine(self):
+		url = 'file:///home/a/b'
+		self.assertEqual(url, resolve(url))
+	def test_trailing_dot(self):
+		self.assertEqual('file://a', resolve('file://a/.'))
+	def test_single_dot_between(self):
+		self.assertEqual('file://a/b', resolve('file://a/./b'))
+	def test_trailing_double_dot(self):
+		self.assertEqual('file://', resolve('file://a/..'))
+	def test_single_dot_only(self):
+		self.assertEqual('file://', resolve('file://.'))

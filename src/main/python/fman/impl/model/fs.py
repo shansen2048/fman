@@ -1,6 +1,7 @@
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
+from fman.impl.util.url import resolve
 from fman.url import as_file_url
 from fman.impl.trash import move_to_trash
 from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
@@ -26,7 +27,7 @@ class FileSystem:
 	def iterdir(self, path):
 		raise NotImplementedError()
 	def resolve(self, path):
-		return self.scheme + path
+		return resolve(self.scheme + path)
 	def parent(self, path):
 		return parent(path)
 	def watch(self, path):
