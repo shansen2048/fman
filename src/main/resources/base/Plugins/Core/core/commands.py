@@ -7,14 +7,14 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
 from fman.url import splitscheme, as_file_url, join, basename, split, \
-	as_human_readable
+	as_human_readable, dirname
 from fman.fs import exists, touch, mkdir, is_dir, is_file, move, \
-	move_to_trash, delete, parent, samefile
+	move_to_trash, delete, samefile
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
 from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
-	islink, dirname
+	islink
 from pathlib import PurePath
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
@@ -156,7 +156,7 @@ class GoUp(_CorePaneCommand):
 					self.pane.place_cursor_at(cursor_dest)
 				except ValueError as dest_doesnt_exist:
 					self.pane.move_cursor_home()
-		self.pane.set_path(parent(path_before), callback)
+		self.pane.set_path(os.path.dirname(path_before), callback)
 
 class Open(_CorePaneCommand):
 	def __call__(self):
@@ -384,7 +384,7 @@ class RenameListener(DirectoryPaneListener):
 				'instead.'
 			)
 			return
-		new_url = join(parent(file_url), new_name)
+		new_url = join(dirname(file_url), new_name)
 		do_rename = True
 		do_replace = False
 		if exists(new_url):
@@ -575,7 +575,7 @@ class _OpenInPaneCommand(_CorePaneCommand):
 			# what we want. We want to open the directory of the left pane:
 			to_open = source_pane.get_path()
 		if not is_dir(to_open):
-			to_open = parent(to_open)
+			to_open = dirname(to_open)
 		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
 		dest_pane.set_path(to_open)
 	def get_source_pane(self, this_pane, num_panes):
@@ -660,7 +660,7 @@ class GoTo(_CorePaneCommand):
 			url = as_file_url(path)
 			if os.path.isfile(path):
 				self.pane.set_path(
-					parent(url),
+					dirname(url),
 					callback=lambda url=url: self.pane.place_cursor_at(url)
 				)
 			elif os.path.isdir(path):
@@ -916,7 +916,7 @@ class SuggestLocations:
 		is_case_sensitive = PLATFORM == 'Linux'
 		if is_case_sensitive:
 			return path
-		dir_ = dirname(path)
+		dir_ = os.path.dirname(path)
 		if dir_ == path:
 			# We're at the root of the file system.
 			return path

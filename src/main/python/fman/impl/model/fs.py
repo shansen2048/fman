@@ -28,8 +28,6 @@ class FileSystem:
 		raise NotImplementedError()
 	def resolve(self, path):
 		return resolve(self.scheme + path)
-	def parent(self, path):
-		return parent(path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):
@@ -49,7 +47,7 @@ class FileSystem:
 		except OSError as e:
 			if e.errno != ENOENT:
 				raise
-			self.makedirs(self.parent(path))
+			self.makedirs(parent(path))
 			self.mkdir(path)
 	def mkdir(self, path):
 		"""
@@ -118,10 +116,6 @@ class DefaultFileSystem(FileSystem):
 		return as_file_url(Path(path).resolve())
 	def samefile(self, f1, f2):
 		return samefile(f1, f2)
-	def parent(self, path):
-		# Unlike other functions, Path#parent can't handle C: instead of C:\
-		path = add_backslash_to_drive_if_missing(path)
-		return Path(path).parent.as_posix()
 	def copy(self, src, dst):
 		if self.is_dir(src):
 			copytree(src, dst, symlinks=True)
@@ -146,8 +140,6 @@ if PLATFORM == 'Windows':
 			if path in self._get_drives():
 				return as_file_url(path + '\\')
 			raise FileNotFoundError(path)
-		def parent(self, path):
-			return ''
 		def iterdir(self, path):
 			if path:
 				raise FileNotFoundError(path)

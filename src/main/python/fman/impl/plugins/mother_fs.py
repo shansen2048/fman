@@ -1,5 +1,5 @@
 from fman.impl.util import Event, CachedIterable
-from fman.url import splitscheme, basename, join, dirname
+from fman.url import splitscheme, basename, dirname
 from functools import partial
 from threading import Lock
 from weakref import WeakValueDictionary
@@ -75,11 +75,6 @@ class MotherFileSystem:
 	def resolve(self, url):
 		scheme, path = splitscheme(url)
 		return self._children[scheme].resolve(path)
-	def parent(self, url):
-		return self._query_cache(url, 'parent', self._parent)
-	def _parent(self, url):
-		parent_path = self._query(url, 'parent')
-		return join(splitscheme(url)[0], parent_path)
 	def samefile(self, url_1, url_2):
 		scheme_1, path_1 = splitscheme(self.resolve(url_1))
 		scheme_2, path_2 = splitscheme(self.resolve(url_2))

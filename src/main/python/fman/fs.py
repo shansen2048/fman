@@ -31,9 +31,6 @@ def move_to_trash(url):
 def delete(url):
 	_get_fs().delete(url)
 
-def parent(url):
-	return _get_fs().parent(url)
-
 def samefile(url_1, url_2):
 	return _get_fs().samefile(url_1, url_2)
 
