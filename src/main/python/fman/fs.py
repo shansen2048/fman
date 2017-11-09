@@ -13,9 +13,6 @@ def makedirs(url, exist_ok=False):
 def is_dir(url):
 	return _get_fs().is_dir(url)
 
-def is_file(url):
-	return _get_fs().is_file(url)
-
 def getsize(url):
 	return _get_fs().getsize(url)
 

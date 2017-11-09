@@ -8,8 +8,7 @@ from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
 from io import UnsupportedOperation
 from math import log
 from os import remove, makedirs, rename
-from os.path import isdir, getsize, getmtime, basename, isfile, samefile, \
-	join, dirname
+from os.path import isdir, getsize, getmtime, basename, samefile, join, dirname
 from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
@@ -95,8 +94,6 @@ class DefaultFileSystem(FileSystem):
 			yield entry.name
 	def is_dir(self, path):
 		return isdir(path)
-	def is_file(self, path):
-		return isfile(path)
 	def getsize(self, path):
 		return getsize(path)
 	def getmtime(self, path):

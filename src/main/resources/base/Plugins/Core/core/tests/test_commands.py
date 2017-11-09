@@ -20,9 +20,6 @@ class ConfirmTreeOperationTest(TestCase):
 		def is_dir(self, url):
 			return self._files.get(url, {}).get('is_dir', False)
 
-		def is_file(self, url):
-			return self.exists(url) and not self.is_dir(url)
-
 	def test_no_files(self):
 		self._expect_alert(('No file is selected!',), answer=OK)
 		self._check(None, ([], '', ''))

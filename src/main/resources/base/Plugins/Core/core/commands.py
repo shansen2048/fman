@@ -8,8 +8,8 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from fman import *
 from fman.url import splitscheme, as_file_url, join, basename, split, \
 	as_human_readable, dirname
-from fman.fs import exists, touch, mkdir, is_dir, is_file, move, \
-	move_to_trash, delete, samefile
+from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
+	samefile
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
@@ -266,7 +266,7 @@ class CreateAndEditFile(OpenWithEditor):
 
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
-		if file_under_cursor and is_file(file_under_cursor):
+		if file_under_cursor and not is_dir(file_under_cursor):
 			default_name = basename(file_under_cursor)
 		else:
 			default_name = ''
@@ -307,7 +307,7 @@ class _TreeCommand(_CorePaneCommand):
 			return
 		if len(files) == 1:
 			file_, = files
-			dest_name = basename(file_) if fs.is_file(file_) else ''
+			dest_name = '' if fs.is_dir(file_) else basename(file_)
 			files_descr = '"%s"' % basename(file_)
 		else:
 			dest_name = ''
