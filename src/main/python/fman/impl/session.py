@@ -1,7 +1,7 @@
 from base64 import b64encode, b64decode
 from fman.impl.util.path import make_absolute
 from fman.impl.util.url import get_existing_pardir
-from fman.url import as_file_url, dirname
+from fman.url import as_url, dirname
 from os import getcwd
 from os.path import expanduser
 
@@ -41,7 +41,7 @@ class SessionManager:
 				path = make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
-			url = path if '://' in path else as_file_url(path)
+			url = path if '://' in path else as_url(path)
 			if self._fs.is_dir(url):
 				pane.set_path(url)
 			elif self._fs.exists(url):
@@ -52,7 +52,7 @@ class SessionManager:
 				)
 			else:
 				url = get_existing_pardir(url, self._fs.is_dir) \
-					  or as_file_url(expanduser('~'))
+					  or as_url(expanduser('~'))
 				pane.set_path(url)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)

@@ -1,7 +1,7 @@
 from core.fileoperations import CopyFiles, MoveFiles
 from core.tests import StubUI
 from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, PLATFORM
-from fman.url import join, dirname, as_file_url, as_human_readable
+from fman.url import join, dirname, as_url, as_human_readable
 from os.path import exists
 from tempfile import TemporaryDirectory
 from unittest import TestCase, skipIf
@@ -206,7 +206,7 @@ class FileTreeOperationAT:
 		super().setUp()
 		self.ui = StubUI(self)
 		self._tmp_dir = TemporaryDirectory()
-		self._root = as_file_url(self._tmp_dir.name)
+		self._root = as_url(self._tmp_dir.name)
 		# We need intermediate 'src-parent' for test_relative_path_parent_dir:
 		self.src = join(self._root, 'src-parent', 'src')
 		self._makedirs(self.src)
@@ -248,7 +248,7 @@ class FileTreeOperationAT:
 	def _islink(self, file_url):
 		return os.path.islink(as_human_readable(file_url))
 	def _readlink(self, link_url):
-		return as_file_url(os.readlink(as_human_readable(link_url)))
+		return as_url(os.readlink(as_human_readable(link_url)))
 	def _expect_alert(self, args, answer):
 		self.ui.expect_alert(args, answer)
 	def _expect_files(self, files, in_dir=None):

@@ -1,5 +1,5 @@
 from fman.impl.model.fs import ZipFileSystem
-from fman.url import as_file_url
+from fman.url import as_url
 from fman_integrationtest import get_resource
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -48,7 +48,7 @@ class ZipFileSystemTest(TestCase):
 			with TemporaryDirectory() as tmp_dir:
 				self._fs.copy(
 					'zip://' + self._path('nonexistent'),
-					as_file_url(tmp_dir)
+					as_url(tmp_dir)
 				)
 	def _test_extract(self, path_in_zip):
 		expected_files = self._get_zip_contents()
@@ -57,7 +57,7 @@ class ZipFileSystemTest(TestCase):
 				expected_files = expected_files[part]
 		with TemporaryDirectory() as dst_dir:
 			self._fs.copy(
-				'zip://' + self._path(path_in_zip), as_file_url(dst_dir)
+				'zip://' + self._path(path_in_zip), as_url(dst_dir)
 			)
 			self.assertEqual(expected_files, self._read_directory(dst_dir))
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):

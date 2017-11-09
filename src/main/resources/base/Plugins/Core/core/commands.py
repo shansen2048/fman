@@ -6,7 +6,7 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
-from fman.url import splitscheme, as_file_url, join, basename, split, \
+from fman.url import splitscheme, as_url, join, basename, split, \
 	as_human_readable, dirname
 from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
 	samefile
@@ -624,7 +624,7 @@ def _get_volumes_url():
 			contents = os.listdir('/media')
 			user_name = _get_user()
 			if contents == [user_name]:
-				return as_file_url(join('/media', user_name))
+				return as_url(join('/media', user_name))
 			else:
 				return 'file:///media'
 		else:
@@ -658,7 +658,7 @@ class GoTo(_CorePaneCommand):
 			if not os.path.exists(path):
 				# Maybe the user copy-pasted and there's some extra whitespace:
 				path = path.rstrip()
-			url = as_file_url(path)
+			url = as_url(path)
 			if os.path.isfile(path):
 				self.pane.set_path(
 					dirname(url),
@@ -1044,7 +1044,7 @@ class ZenOfFman(ApplicationCommand):
 
 class OpenDataDirectory(DirectoryPaneCommand):
 	def __call__(self):
-		self.pane.set_path(as_file_url(DATA_DIRECTORY))
+		self.pane.set_path(as_url(DATA_DIRECTORY))
 
 class GoBack(DirectoryPaneCommand):
 	def __call__(self):
@@ -1245,7 +1245,7 @@ class ListPlugins(DirectoryPaneCommand):
 		if result:
 			plugin_dir = result[1]
 			if plugin_dir:
-				self.pane.set_path(as_file_url(plugin_dir))
+				self.pane.set_path(as_url(plugin_dir))
 	def _get_matching_plugins(self, query):
 		result = []
 		for plugin_dir in _get_thirdparty_plugins():

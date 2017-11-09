@@ -2,7 +2,7 @@ from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.impl.util.url import resolve
-from fman.url import as_file_url, splitscheme
+from fman.url import as_url, splitscheme
 from fman.impl.trash import move_to_trash
 from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
 from io import UnsupportedOperation
@@ -115,7 +115,7 @@ class DefaultFileSystem(FileSystem):
 	def resolve(self, path):
 		# Unlike other functions, Path#resolve can't handle C: instead of C:\
 		path = add_backslash_to_drive_if_missing(path)
-		return as_file_url(Path(path).resolve())
+		return as_url(Path(path).resolve())
 	def samefile(self, f1, f2):
 		return samefile(f1, f2)
 	def copy(self, src_url, dst_url):
@@ -147,7 +147,7 @@ if PLATFORM == 'Windows':
 				# Showing the list of all drives:
 				return self.scheme
 			if path in self._get_drives():
-				return as_file_url(path + '\\')
+				return as_url(path + '\\')
 			raise FileNotFoundError(path)
 		def iterdir(self, path):
 			if path:
@@ -192,7 +192,7 @@ class ZipFileSystem(FileSystem):
 		if '.zip' in path:
 			# Return zip:// + path:
 			return super().resolve(path)
-		return as_file_url(path)
+		return as_url(path)
 	def is_dir(self, path):
 		try:
 			zip_path, dir_path = self._split(path)

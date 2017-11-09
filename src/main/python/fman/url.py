@@ -13,13 +13,13 @@ def splitscheme(url):
 		raise ValueError('Not a valid URL: %r' % url) from None
 	return url[:split_point], url[split_point:]
 
-def as_file_url(file_path):
+def as_url(local_file_path, scheme='file://'):
 	# We purposely don't use Path#as_uri here because it escapes the URL.
 	# For instance: Path('/a b').as_uri() returns 'file:///a%20b'. The entire
 	# code base would get unnecessarily complicated if it had to escape URL
 	# characters like %20 all the time. So we do not escape URLs and return
 	# "file:///a b" instead:
-	return 'file://' + PurePath(file_path).as_posix()
+	return scheme + PurePath(local_file_path).as_posix()
 
 def as_human_readable(url):
 	scheme, path = splitscheme(url)
