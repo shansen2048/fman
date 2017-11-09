@@ -56,6 +56,4 @@ def relpath(target, base):
 			"Cannot construct a relative path across different URL schemes "
 			"(%s -> %s)" % (base_scheme, target_scheme)
 		)
-	base_dir = '.' + base_path
-	target = '.' + target_path
-	return posixpath.relpath(target, start=base_dir)
+	return posixpath.relpath(target_path, start=base_path)
