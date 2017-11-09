@@ -67,6 +67,24 @@ class ZipFileSystemTest(TestCase):
 				with open(as_human_readable(dest_url)) as f:
 					actual_contents = f.read()
 				self.assertEqual(file_contents, actual_contents)
+	def test_add_directory(self):
+		with TemporaryDirectory() as zip_contents:
+			with ZipFile(self._zip) as zip_file:
+				zip_file.extractall(zip_contents)
+			with TemporaryDirectory() as zip_container:
+				dest_zip_file = os.path.join(zip_container, 'test.zip')
+				with ZipFile(dest_zip_file, 'w'):
+					pass
+				self._fs.copy(
+					as_url(os.path.join(zip_contents, 'ZipFileTest')),
+					join(as_url(dest_zip_file, 'zip://'), 'ZipFileTest')
+				)
+				with TemporaryDirectory() as dest_dir:
+					with ZipFile(dest_zip_file) as zip_file:
+						zip_file.extractall(dest_dir)
+					self.assertEqual(
+						self._get_zip_contents(), self._read_directory(dest_dir)
+					)
 	def _test_extract(self, path_in_zip):
 		expected_files = self._get_zip_contents()
 		if path_in_zip:

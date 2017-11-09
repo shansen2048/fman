@@ -8,7 +8,7 @@ from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
 from io import UnsupportedOperation
 from math import log
 from os import remove
-from os.path import isdir, getsize, getmtime, basename, samefile
+from os.path import isdir, getsize, getmtime, basename, samefile, relpath
 from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
@@ -17,6 +17,7 @@ from threading import Lock
 from zipfile import ZipFile
 
 import fman.fs
+import os
 import posixpath
 import re
 
@@ -228,7 +229,17 @@ class ZipFileSystem(FileSystem):
 		elif src_scheme == 'file://' and dst_scheme == self.scheme:
 			zip_path, path_in_zip = self._split(dst_path)
 			with ZipFile(zip_path, 'a') as zipfile:
-				zipfile.write(src_path, path_in_zip)
+				if isdir(src_path):
+					for dirpath, dirnames, filenames in os.walk(src_path):
+						for file_name in dirnames + filenames:
+							file_path = os.path.join(dirpath, file_name)
+							rel_path = relpath(file_path, src_path)
+							zipfile.write(
+								file_path,
+								'/'.join([path_in_zip] + rel_path.split(os.sep))
+							)
+				else:
+					zipfile.write(src_path, path_in_zip)
 		else:
 			raise UnsupportedOperation()
 	def _extract(self, zip_path, path_in_zip, dst_path):
