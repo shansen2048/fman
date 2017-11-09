@@ -22,44 +22,29 @@ class ConfirmTreeOperationTest(TestCase):
 
 	def test_no_files(self):
 		self._expect_alert(('No file is selected!',), answer=OK)
-		self._check(None, ([], '', ''))
+		self._check([], None)
 	def test_one_file(self):
 		dest_path = as_human_readable(join(self._dest, 'a.txt'))
 		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
-		self._check(
-			(self._dest, 'a.txt'),
-			([self._a_txt], self._dest, self._src)
-		)
+		self._check([self._a_txt], (self._dest, 'a.txt'))
 	def test_one_dir(self):
 		dest_path = as_human_readable(self._dest)
 		self._expect_prompt(('Move "a" to', dest_path), (dest_path, True))
-		self._check(
-			(self._dest, None),
-			([self._a], self._dest, self._src)
-		)
+		self._check([self._a], (self._dest, None))
 	def test_two_files(self):
 		dest_path = as_human_readable(self._dest)
 		self._expect_prompt(('Move 2 files to', dest_path), (dest_path, True))
-		self._check(
-			(self._dest, None),
-			([self._a_txt, self._b_txt], self._dest, self._src)
-		)
+		self._check([self._a_txt, self._b_txt], (self._dest, None))
 	def test_into_subfolder(self):
 		dest_path = as_human_readable(join(self._dest, 'a.txt'))
 		self._expect_prompt(('Move "a.txt" to', dest_path), ('a', True))
-		self._check(
-			(self._a, None),
-			([self._a_txt], self._dest, self._src)
-		)
+		self._check([self._a_txt], (self._a, None))
 	def test_overwrite_single_file(self):
 		dest_url = join(self._dest, 'a.txt')
 		self._fs._files[dest_url] = {'is_dir': False}
 		dest_path = as_human_readable(dest_url)
 		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
-		self._check(
-			(self._dest, 'a.txt'),
-			([self._a_txt], self._dest, self._src)
-		)
+		self._check([self._a_txt], (self._dest, 'a.txt'))
 	def test_multiple_files_over_one(self):
 		dest_url = join(self._dest, 'a.txt')
 		self._fs._files[dest_url] = {'is_dir': False}
@@ -71,19 +56,13 @@ class ConfirmTreeOperationTest(TestCase):
 		self._expect_alert(
 			('You cannot move multiple files to a single file!',), answer=OK
 		)
-		self._check(
-			None,
-			([self._a_txt, self._b_txt], self._dest, self._src)
-		)
+		self._check([self._a_txt, self._b_txt], None)
 	def test_renamed_destination(self):
 		self._expect_prompt(
 			('Move "a.txt" to', as_human_readable(join(self._dest, 'a.txt'))),
 			(as_human_readable(join(self._dest, 'z.txt')), True)
 		)
-		self._check(
-			(self._dest, 'z.txt'),
-			([self._a_txt], self._dest, self._src)
-		)
+		self._check([self._a_txt], (self._dest, 'z.txt'))
 	def test_multiple_files_nonexistent_dest(self):
 		dest_url = join(self._dest, 'dir')
 		dest_path = as_human_readable(dest_url)
@@ -96,25 +75,20 @@ class ConfirmTreeOperationTest(TestCase):
 			 'move the files there?' % dest_path, YES | NO, YES),
 			answer=YES
 		)
-		self._check(
-			(dest_url, None),
-			([self._a_txt, self._b_txt], self._dest, self._src)
-		)
+		self._check([self._a_txt, self._b_txt], (dest_url, None))
 	def test_file_system_root(self):
 		dest_path = as_human_readable(join(self._root, 'a.txt'))
 		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
-		self._check(
-			(self._root, 'a.txt'),
-			([self._a_txt], self._root, self._src)
-		)
+		self._check([self._a_txt], (self._root, 'a.txt'), dest_dir=self._root)
 	def _expect_alert(self, args, answer):
 		self._ui.expect_alert(args, answer)
 	def _expect_prompt(self, args, answer):
 		self._ui.expect_prompt(args, answer)
-	def _check(self, expected_result, inputs):
-		files, dest_dir, src_dir = inputs
+	def _check(self, files, expected_result, dest_dir=None):
+		if dest_dir is None:
+			dest_dir = self._dest
 		actual_result = Move._confirm_tree_operation(
-			files, dest_dir, src_dir, self._ui, self._fs
+			files, dest_dir, self._src, self._ui, self._fs
 		)
 		self._ui.verify_expected_dialogs_were_shown()
 		self.assertEqual(expected_result, actual_result)
