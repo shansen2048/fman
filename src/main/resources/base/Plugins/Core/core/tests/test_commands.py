@@ -2,7 +2,7 @@ from core.commands import SuggestLocations, History, Move
 from core.tests import StubUI
 from fman import OK, YES, NO, PLATFORM
 from fman.impl.util.system import is_linux, is_windows
-from fman.url import join, as_human_readable, as_file_url
+from fman.url import join, as_human_readable, as_file_url, dirname
 from os.path import normpath
 from unittest import TestCase, skipIf
 
@@ -80,15 +80,23 @@ class ConfirmTreeOperationTest(TestCase):
 		dest_path = as_human_readable(join(self._root, 'a.txt'))
 		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
 		self._check([self._a_txt], (self._root, 'a.txt'), dest_dir=self._root)
+	def test_different_scheme(self):
+		dest_path = as_human_readable(join(self._dest, 'a.txt'))
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		src_url = 'zip:///dest.zip/a.txt'
+		src_dir = dirname(src_url)
+		self._check([src_url], (self._dest, 'a.txt'), src_dir=src_dir)
 	def _expect_alert(self, args, answer):
 		self._ui.expect_alert(args, answer)
 	def _expect_prompt(self, args, answer):
 		self._ui.expect_prompt(args, answer)
-	def _check(self, files, expected_result, dest_dir=None):
+	def _check(self, files, expected_result, src_dir=None, dest_dir=None):
+		if src_dir is None:
+			src_dir = self._src
 		if dest_dir is None:
 			dest_dir = self._dest
 		actual_result = Move._confirm_tree_operation(
-			files, dest_dir, self._src, self._ui, self._fs
+			files, dest_dir, src_dir, self._ui, self._fs
 		)
 		self._ui.verify_expected_dialogs_were_shown()
 		self.assertEqual(expected_result, actual_result)

@@ -322,7 +322,8 @@ class _TreeCommand(_CorePaneCommand):
 			except ValueError as no_scheme:
 				# Treat dest as relative to src_dir:
 				src_scheme, src_path = splitscheme(src_dir)
-				dest = src_scheme + PurePath(src_path, dest).as_posix()
+				dest_scheme = splitscheme(dest_dir)[0]
+				dest = dest_scheme + PurePath(src_path, dest).as_posix()
 			if fs.exists(dest):
 				if fs.is_dir(dest):
 					return dest, None
