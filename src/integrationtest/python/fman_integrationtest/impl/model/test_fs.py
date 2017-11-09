@@ -1,5 +1,6 @@
+from errno import ENOENT
 from fman.impl.model.fs import ZipFileSystem
-from fman.url import as_url, join, as_human_readable
+from fman.url import as_url, join, as_human_readable, splitscheme
 from fman_integrationtest import get_resource
 from pathlib import Path
 from shutil import copyfile
@@ -72,19 +73,35 @@ class ZipFileSystemTest(TestCase):
 			with ZipFile(self._zip) as zip_file:
 				zip_file.extractall(zip_contents)
 			with TemporaryDirectory() as zip_container:
-				dest_zip_file = os.path.join(zip_container, 'test.zip')
-				with ZipFile(dest_zip_file, 'w'):
-					pass
+				zip_path = os.path.join(zip_container, 'test.zip')
+				self._create_empty_zip(zip_path)
 				self._fs.copy(
 					as_url(os.path.join(zip_contents, 'ZipFileTest')),
-					join(as_url(dest_zip_file, 'zip://'), 'ZipFileTest')
+					join(as_url(zip_path, 'zip://'), 'ZipFileTest')
 				)
-				with TemporaryDirectory() as dest_dir:
-					with ZipFile(dest_zip_file) as zip_file:
-						zip_file.extractall(dest_dir)
-					self.assertEqual(
-						self._get_zip_contents(), self._read_directory(dest_dir)
-					)
+				self._expect_zip_contents(self._get_zip_contents(), zip_path)
+	def test_mkdir(self):
+		with TemporaryDirectory() as tmp_dir:
+			zip_path = os.path.join(tmp_dir, 'test.zip')
+			self._create_empty_zip(zip_path)
+			self._fs.mkdir(splitscheme(as_url(zip_path, 'zip://'))[1] + '/dir')
+			self._expect_zip_contents({'dir': {}}, zip_path)
+	def test_mkdir_raises_fileexistserror(self):
+		with TemporaryDirectory() as tmp_dir:
+			zip_path = os.path.join(tmp_dir, 'test.zip')
+			self._create_empty_zip(zip_path)
+			dir_url_path = splitscheme(as_url(zip_path, 'zip://'))[1] + '/dir'
+			self._fs.mkdir(dir_url_path)
+			with self.assertRaises(FileExistsError):
+				self._fs.mkdir(dir_url_path)
+	def test_mkdir_raises_filenotfounderror(self):
+		with TemporaryDirectory() as tmp_dir:
+			zip_path = os.path.join(tmp_dir, 'test.zip')
+			self._create_empty_zip(zip_path)
+			zip_url_path = splitscheme(as_url(zip_path, 'zip://'))[1]
+			with self.assertRaises(OSError) as cm:
+				self._fs.mkdir(zip_url_path + '/nonexistent/dir')
+			self.assertEqual(ENOENT, cm.exception.errno)
 	def _test_extract(self, path_in_zip):
 		expected_files = self._get_zip_contents()
 		if path_in_zip:
@@ -116,6 +133,13 @@ class ZipFileSystemTest(TestCase):
 				child_contents = child.read_text()
 			result[child.name] = child_contents
 		return result
+	def _expect_zip_contents(self, contents, zip_file_path):
+		with TemporaryDirectory() as tmp_dir:
+			with ZipFile(zip_file_path) as zip_file:
+				zip_file.extractall(tmp_dir)
+			self.assertEqual(contents, self._read_directory(tmp_dir))
+	def _create_empty_zip(self, path):
+		ZipFile(path, 'w').close()
 	def setUp(self):
 		self._fs = ZipFileSystem()
 		self._zip = get_resource('ZipFileSystemTest.zip')

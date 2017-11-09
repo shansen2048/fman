@@ -242,6 +242,15 @@ class ZipFileSystem(FileSystem):
 					zipfile.write(src_path, path_in_zip)
 		else:
 			raise UnsupportedOperation()
+	def mkdir(self, path):
+		if self.exists(path):
+			raise FileExistsError(path)
+		if path and not self.exists(str(PurePosixPath(path).parent)):
+			raise FileNotFoundError(ENOENT, path)
+		zip_path, path_in_zip = self._split(path)
+		with ZipFile(zip_path, 'a') as zip_file:
+			with TemporaryDirectory() as tmp_dir:
+				zip_file.write(tmp_dir, path_in_zip)
 	def _extract(self, zip_path, path_in_zip, dst_path):
 		found = False
 		with ZipFile(zip_path) as zipfile:
