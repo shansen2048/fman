@@ -228,9 +228,11 @@ class ZipFileSystem(FileSystem):
 		else:
 			raise UnsupportedOperation()
 	def _extract(self, zip_path, path_in_zip, dst_path):
+		found = False
 		with ZipFile(zip_path) as zipfile:
 			for entry in zipfile.namelist():
 				if self._contains(path_in_zip, entry):
+					found = True
 					relpath = self._relpath(entry, path_in_zip)
 					if relpath != '.':
 						entry_dst_path = join(dst_path, relpath)
@@ -244,6 +246,8 @@ class ZipFileSystem(FileSystem):
 					with TemporaryDirectory() as tmp_dir:
 						effective_path = zipfile.extract(entry, tmp_dir)
 						rename(effective_path, entry_dst_path)
+		if not found:
+			raise FileNotFoundError()
 	def _contains(self, parent, child):
 		return not parent or child == parent or child.startswith(parent + '/')
 	def _relpath(self, target, base):

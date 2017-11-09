@@ -43,6 +43,13 @@ class ZipFileSystemTest(TestCase):
 		self._test_extract('ZipFileTest/Directory')
 	def test_extract_empty_directory(self):
 		self._test_extract('ZipFileTest/Empty directory')
+	def test_extract_nonexistent(self):
+		with self.assertRaises(FileNotFoundError):
+			with TemporaryDirectory() as tmp_dir:
+				self._fs.copy(
+					'zip://' + self._path('nonexistent'),
+					as_file_url(tmp_dir)
+				)
 	def _test_extract(self, path_in_zip):
 		expected_files = self._get_zip_contents()
 		if path_in_zip:
