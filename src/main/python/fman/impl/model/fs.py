@@ -2,19 +2,23 @@ from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.impl.util.url import resolve
-from fman.url import as_file_url
+from fman.url import as_file_url, splitscheme
 from fman.impl.trash import move_to_trash
 from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
+from io import UnsupportedOperation
 from math import log
-from os import remove
-from os.path import isdir, getsize, getmtime, basename, isfile, samefile
+from os import remove, makedirs, rename
+from os.path import isdir, getsize, getmtime, basename, isfile, samefile, \
+	join, dirname
 from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
+from tempfile import TemporaryDirectory
 from threading import Lock
 from zipfile import ZipFile
 
 import fman.fs
+import posixpath
 import re
 
 class FileSystem:
@@ -101,8 +105,9 @@ class DefaultFileSystem(FileSystem):
 		Path(path).touch()
 	def mkdir(self, path):
 		Path(path).mkdir()
-	def move(self, old_path, new_path):
-		move(old_path, new_path)
+	def move(self, src_url, dst_url):
+		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
+		move(src_path, dst_path)
 	def move_to_trash(self, file_path):
 		move_to_trash(file_path)
 	def delete(self, path):
@@ -116,16 +121,23 @@ class DefaultFileSystem(FileSystem):
 		return as_file_url(Path(path).resolve())
 	def samefile(self, f1, f2):
 		return samefile(f1, f2)
-	def copy(self, src, dst):
-		if self.is_dir(src):
-			copytree(src, dst, symlinks=True)
+	def copy(self, src_url, dst_url):
+		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
+		if self.is_dir(src_path):
+			copytree(src_path, dst_path, symlinks=True)
 		else:
-			copyfile(src, dst, follow_symlinks=False)
-			copystat(src, dst, follow_symlinks=False)
+			copyfile(src_path, dst_path, follow_symlinks=False)
+			copystat(src_path, dst_path, follow_symlinks=False)
 	def watch(self, path):
 		self._watcher.addPath(path)
 	def unwatch(self, path):
 		self._watcher.removePath(path)
+	def _get_src_dst_path(self, src_url, dst_url):
+		src_scheme, src_path = splitscheme(src_url)
+		dst_scheme, dst_path = splitscheme(dst_url)
+		if src_scheme != self.scheme or dst_scheme != self.scheme:
+			raise UnsupportedOperation()
+		return src_path, dst_path
 
 if PLATFORM == 'Windows':
 
@@ -207,9 +219,38 @@ class ZipFileSystem(FileSystem):
 			return True
 		with ZipFile(zip_path) as zipfile:
 			for entry in zipfile.namelist():
-				if entry == path_in_zip or entry.startswith(path_in_zip + '/'):
+				if self._contains(path_in_zip, entry):
 					return True
 		return False
+	def copy(self, src_url, dst_url):
+		src_scheme, src_path = splitscheme(src_url)
+		dst_scheme, dst_path = splitscheme(dst_url)
+		if src_scheme == self.scheme and dst_scheme == 'file://':
+			zip_path, path_in_zip = self._split(src_path)
+			self._extract(zip_path, path_in_zip, dst_path)
+		else:
+			raise UnsupportedOperation()
+	def _extract(self, zip_path, path_in_zip, dst_path):
+		with ZipFile(zip_path) as zipfile:
+			for entry in zipfile.namelist():
+				if self._contains(path_in_zip, entry):
+					relpath = self._relpath(entry, path_in_zip)
+					if relpath != '.':
+						entry_dst_path = join(dst_path, relpath)
+					else:
+						entry_dst_path = dst_path
+					makedirs(dirname(entry_dst_path), exist_ok=True)
+					# Python's ZipFile#extract nests files in subdirectories.
+					# Eg. #extract(a/b.txt, /tmp) places at /tmp/a/b.txt.
+					# For our purposes, we would need /tmp/b.txt. To achieve
+					# this, extract to a temporary directory, then move files:
+					with TemporaryDirectory() as tmp_dir:
+						effective_path = zipfile.extract(entry, tmp_dir)
+						rename(effective_path, entry_dst_path)
+	def _contains(self, parent, child):
+		return not parent or child == parent or child.startswith(parent + '/')
+	def _relpath(self, target, base):
+		return posixpath.relpath(target, start=base)
 	def _split(self, path):
 		suffix = '.zip'
 		try:

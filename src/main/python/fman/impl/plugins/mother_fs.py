@@ -1,5 +1,6 @@
 from fman.impl.util import Event, CachedIterable
 from fman.url import splitscheme, basename, dirname
+from io import UnsupportedOperation
 from functools import partial
 from threading import Lock
 from weakref import WeakValueDictionary
@@ -42,26 +43,28 @@ class MotherFileSystem:
 		scheme, path = splitscheme(url)
 		with TriggerFileAdded(self, url):
 			self._children[scheme].makedirs(path, exist_ok=exist_ok)
-	def move(self, old_url, new_url):
+	def move(self, src_url, dst_url):
 		"""
-		:param new_url: must be the final destination url, not just the parent
+		:param dst_url: must be the final destination url, not just the parent
 		                directory.
 		"""
-		old_scheme, old_path = splitscheme(old_url)
-		new_scheme, new_path = splitscheme(new_url)
-		if old_scheme != new_scheme:
-			raise ValueError(
-				'Renaming across file systems is not supported (%s -> %s)'
-				% (old_scheme, new_scheme)
-			)
-		self._children[old_scheme].move(old_path, new_path)
+		src_scheme, src_path = splitscheme(src_url)
+		dst_scheme, dst_path = splitscheme(dst_url)
 		try:
-			self._cache[new_url] = self._cache.pop(old_url)
+			self._children[src_scheme].move(src_url, dst_url)
+		except UnsupportedOperation:
+			if src_scheme == dst_scheme:
+				raise
+			else:
+				# Maybe the destination FS can handle the operation:
+				self._children[dst_scheme].move(src_url, dst_url)
+		try:
+			self._cache[dst_url] = self._cache.pop(src_url)
 		except KeyError:
 			pass
-		self._remove_from_parent(old_url)
-		self._add_to_parent(new_url)
-		self.file_moved.trigger(old_url, new_url)
+		self._remove_from_parent(src_url)
+		self._add_to_parent(dst_url)
+		self.file_moved.trigger(src_url, dst_url)
 	def move_to_trash(self, url):
 		scheme, path = splitscheme(url)
 		self._children[scheme].move_to_trash(path)
@@ -84,12 +87,15 @@ class MotherFileSystem:
 	def copy(self, src_url, dst_url):
 		src_scheme, src_path = splitscheme(src_url)
 		dst_scheme, dst_path = splitscheme(dst_url)
-		if src_scheme != dst_scheme:
-			raise ValueError(
-				'Cannot copy from %s to %s' % (src_scheme, dst_scheme)
-			)
 		with TriggerFileAdded(self, dst_url):
-			self._children[src_scheme].copy(src_path, dst_path)
+			try:
+				self._children[src_scheme].copy(src_url, dst_url)
+			except UnsupportedOperation:
+				if src_scheme == dst_scheme:
+					raise
+				else:
+					# Maybe the destination FS can handle the operation:
+					self._children[dst_scheme].copy(src_url, dst_url)
 	def add_file_changed_callback(self, url, callback):
 		scheme, path = splitscheme(url)
 		self._children[scheme]._add_file_changed_callback(path, callback)

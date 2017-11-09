@@ -31,7 +31,7 @@ class FileTreeOperation:
 		self.ui.clear_status_message()
 	def _call_on_file(self, src):
 		self._report_processing_of_file(src)
-		dest = self._get_dest_path(src)
+		dest = self._get_dest_url(src)
 		try:
 			if fman.fs.is_dir(src):
 				if fman.fs.exists(dest):
@@ -39,7 +39,7 @@ class FileTreeOperation:
 						return True
 					else:
 						for file_url in self._walk(src):
-							dst = self._get_dest_path(file_url)
+							dst = self._get_dest_url(file_url)
 							try:
 								if not self.perform_on_file(file_url, dst):
 									return False
@@ -110,7 +110,7 @@ class FileTreeOperation:
 		return True
 	def postprocess_directory(self, src_dir_path):
 		pass
-	def _get_dest_path(self, src_file):
+	def _get_dest_url(self, src_file):
 		dest_name = self.dest_name or basename(src_file)
 		if self.src_dir:
 			try:

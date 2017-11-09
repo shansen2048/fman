@@ -1,4 +1,6 @@
 from fman.impl.model.fs import FileSystem
+from fman.url import splitscheme
+from io import UnsupportedOperation
 
 class StubFileSystem(FileSystem):
 
@@ -24,7 +26,11 @@ class StubFileSystem(FileSystem):
 		self._items[path] = {}
 	def mkdir(self, path):
 		self._items[path] = {'is_dir': True}
-	def move(self, old_path, new_path):
-		self._items[new_path] = self._items.pop(old_path)
+	def move(self, src_url, dst_url):
+		src_scheme, src_path = splitscheme(src_url)
+		dst_scheme, dst_path = splitscheme(dst_url)
+		if src_scheme != self.scheme or dst_scheme != self.scheme:
+			raise UnsupportedOperation()
+		self._items[dst_path] = self._items.pop(src_path)
 	def delete(self, path):
 		del self._items[path]
