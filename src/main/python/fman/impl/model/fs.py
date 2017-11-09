@@ -7,8 +7,8 @@ from fman.impl.trash import move_to_trash
 from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
 from io import UnsupportedOperation
 from math import log
-from os import remove, makedirs, rename
-from os.path import isdir, getsize, getmtime, basename, samefile, join, dirname
+from os import remove
+from os.path import isdir, getsize, getmtime, basename, samefile
 from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
@@ -225,27 +225,30 @@ class ZipFileSystem(FileSystem):
 		if src_scheme == self.scheme and dst_scheme == 'file://':
 			zip_path, path_in_zip = self._split(src_path)
 			self._extract(zip_path, path_in_zip, dst_path)
+		elif src_scheme == 'file://' and dst_scheme == self.scheme:
+			zip_path, path_in_zip = self._split(dst_path)
+			with ZipFile(zip_path, 'a') as zipfile:
+				zipfile.write(src_path, path_in_zip)
 		else:
 			raise UnsupportedOperation()
 	def _extract(self, zip_path, path_in_zip, dst_path):
 		found = False
 		with ZipFile(zip_path) as zipfile:
-			for entry in zipfile.namelist():
-				if self._contains(path_in_zip, entry):
-					found = True
-					relpath = self._relpath(entry, path_in_zip)
-					if relpath != '.':
-						entry_dst_path = join(dst_path, relpath)
-					else:
-						entry_dst_path = dst_path
-					makedirs(dirname(entry_dst_path), exist_ok=True)
-					# Python's ZipFile#extract nests files in subdirectories.
-					# Eg. #extract(a/b.txt, /tmp) places at /tmp/a/b.txt.
-					# For our purposes, we would need /tmp/b.txt. To achieve
-					# this, extract to a temporary directory, then move files:
-					with TemporaryDirectory() as tmp_dir:
-						effective_path = zipfile.extract(entry, tmp_dir)
-						rename(effective_path, entry_dst_path)
+			# Python's ZipFile#extract nests files in subdirectories.
+			# Eg. #extract(a/b.txt, /tmp) places at /tmp/a/b.txt.
+			# But we need /tmp/b.txt. To achieve this, extract to a temporary
+			# directory, then move files:
+			with TemporaryDirectory() as tmp_dir:
+				for entry in zipfile.namelist():
+					if self._contains(path_in_zip, entry):
+						found = True
+						zipfile.extract(entry, tmp_dir)
+				root = Path(tmp_dir, *path_in_zip.split('/'))
+				if root.is_dir():
+					for path in root.iterdir():
+						path.rename(Path(dst_path, path.name))
+				else:
+					root.rename(dst_path)
 		if not found:
 			raise FileNotFoundError()
 	def _contains(self, parent, child):

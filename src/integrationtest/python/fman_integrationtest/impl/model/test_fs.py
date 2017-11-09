@@ -1,12 +1,14 @@
 from fman.impl.model.fs import ZipFileSystem
-from fman.url import as_url
+from fman.url import as_url, join, as_human_readable
 from fman_integrationtest import get_resource
 from pathlib import Path
+from shutil import copyfile
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from zipfile import ZipFile
 
 import os
+import os.path
 
 class ZipFileSystemTest(TestCase):
 	def test_iterdir(self):
@@ -47,9 +49,24 @@ class ZipFileSystemTest(TestCase):
 		with self.assertRaises(FileNotFoundError):
 			with TemporaryDirectory() as tmp_dir:
 				self._fs.copy(
-					'zip://' + self._path('nonexistent'),
-					as_url(tmp_dir)
+					'zip://' + self._path('nonexistent'), as_url(tmp_dir)
 				)
+	def test_add_file(self):
+		with TemporaryDirectory() as tmp_dir:
+			file_to_add = os.path.join(tmp_dir, 'tmp.txt')
+			file_contents = 'added!'
+			with open(file_to_add, 'w') as f:
+				f.write(file_contents)
+			zip_file = copyfile(self._zip, os.path.join(tmp_dir, 'test.zip'))
+			path_in_zip = ('ZipFileTest', 'Directory', 'added.txt')
+			dest_url_in_zip = join(as_url(zip_file, 'zip://'), *path_in_zip)
+			self._fs.copy(as_url(file_to_add), dest_url_in_zip)
+			with TemporaryDirectory() as dest_dir:
+				dest_url = join(as_url(dest_dir), 'extracted.txt')
+				self._fs.copy(dest_url_in_zip, dest_url)
+				with open(as_human_readable(dest_url)) as f:
+					actual_contents = f.read()
+				self.assertEqual(file_contents, actual_contents)
 	def _test_extract(self, path_in_zip):
 		expected_files = self._get_zip_contents()
 		if path_in_zip:
