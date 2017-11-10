@@ -49,6 +49,9 @@ _APPLICATION_CONTEXT = None
 class ApplicationContext:
 	def __init__(self):
 		self._main_window = None
+		# Many Qt classes require a QApplication to have been instantiated.
+		# Do this here, before everything else, to achieve this:
+		self.app
 	def setup_signals(self):
 		# We don't build fman as a console app on Windows, so no point in
 		# installing the SIGINT handler:
