@@ -15,7 +15,6 @@ from shutil import rmtree, copytree, move, copyfile, copystat
 from subprocess import Popen, PIPE, DEVNULL
 from tempfile import TemporaryDirectory
 from threading import Lock
-from zipfile import ZipFile
 
 import fman.fs
 import re
@@ -239,9 +238,8 @@ class ZipFileSystem(FileSystem):
 		if path and not self.exists(str(PurePosixPath(path).parent)):
 			raise FileNotFoundError(ENOENT, path)
 		zip_path, path_in_zip = self._split(path)
-		with ZipFile(zip_path, 'a') as zip_file:
-			with TemporaryDirectory() as tmp_dir:
-				zip_file.write(tmp_dir, path_in_zip)
+		with TemporaryDirectory() as tmp_dir:
+			self._add_to_zip(tmp_dir, zip_path, path_in_zip)
 	def _extract(self, zip_path, path_in_zip, dst_path):
 		with TemporaryDirectory() as tmp_dir:
 			args = ['x', zip_path, '-o' + tmp_dir]
