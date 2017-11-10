@@ -2,6 +2,7 @@ from errno import ENOENT
 from fman.impl.model.fs import ZipFileSystem
 from fman.url import as_url, join, as_human_readable, splitscheme
 from fman_integrationtest import get_resource
+from os import listdir
 from pathlib import Path
 from shutil import copyfile
 from tempfile import TemporaryDirectory
@@ -52,6 +53,18 @@ class ZipFileSystemTest(TestCase):
 		self._test_extract('ZipFileTest/Directory')
 	def test_extract_empty_directory(self):
 		self._test_extract('ZipFileTest/Empty directory')
+	def test_extract_file(self):
+		with TemporaryDirectory() as tmp_dir:
+			self._fs.copy(
+				as_url(self._path('ZipFileTest/file.txt'), 'zip://'),
+				join(as_url(tmp_dir), 'file.txt')
+			)
+			self.assertEqual(['file.txt'], listdir(tmp_dir))
+			with open(os.path.join(tmp_dir, 'file.txt')) as f:
+				self.assertEqual(
+					self._get_zip_contents()['ZipFileTest']['file.txt'],
+					f.read()
+				)
 	def test_extract_nonexistent(self):
 		with self.assertRaises(FileNotFoundError):
 			with TemporaryDirectory() as tmp_dir:
