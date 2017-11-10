@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
@@ -8,15 +9,16 @@ from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
 from io import UnsupportedOperation
 from math import log
 from os import remove
-from os.path import isdir, getsize, getmtime, basename, samefile
+from os.path import isdir, getsize, getmtime, basename, samefile, join, dirname
 from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
-from subprocess import Popen, PIPE, DEVNULL
+from subprocess import Popen, PIPE, DEVNULL, CalledProcessError
 from tempfile import TemporaryDirectory
 from threading import Lock
 
 import fman.fs
+import os
 import re
 
 class FileSystem:
@@ -171,7 +173,10 @@ class ZipFileSystem(FileSystem):
 
 	scheme = 'zip://'
 
-	_7ZIP = '/usr/bin/7za'
+	if PLATFORM == 'Windows':
+		_7ZIP = join(dirname(__file__), '7za.exe')
+	else:
+		_7ZIP = '/usr/bin/7za'
 	_7ZIP_WARNING = 1
 
 	def resolve(self, path):
@@ -203,8 +208,8 @@ class ZipFileSystem(FileSystem):
 			return True
 		try:
 			for info in self._iter_infos(zip_path, dir_path):
-				if info['Path'] == dir_path:
-					return info.get('Folder', '-') == '+'
+				if info.path == dir_path:
+					return info.is_dir
 				return True
 		except FileNotFoundError:
 			return False
@@ -262,7 +267,10 @@ class ZipFileSystem(FileSystem):
 			dest.parent.mkdir(parents=True, exist_ok=True)
 			src = Path(src_path)
 			dest.symlink_to(src, src.is_dir())
-			self._run_7zip(['a', '-l', zip_path, path_in_zip], cwd=tmp_dir)
+			args = ['a', zip_path, path_in_zip]
+			if PLATFORM != 'Windows':
+				args.insert(1, '-l')
+			self._run_7zip(args, cwd=tmp_dir)
 	def _split(self, path):
 		suffix = '.zip'
 		try:
@@ -272,8 +280,10 @@ class ZipFileSystem(FileSystem):
 		return path[:split_point], path[split_point:].lstrip('/')
 	def _iter_names(self, zip_path, path_in_zip):
 		for file_info in self._iter_infos(zip_path, path_in_zip):
-			yield file_info['Path']
+			yield file_info.path
 	def _iter_infos(self, zip_path, path_in_zip):
+		# Raise FileNotFoundError if zip_path does not exist:
+		os.stat(zip_path)
 		args = ['l', '-ba', '-slt', zip_path]
 		if path_in_zip:
 			args.append(path_in_zip)
@@ -296,26 +306,28 @@ class ZipFileSystem(FileSystem):
 		exit_code = process.wait()
 		try:
 			if exit_code and exit_code != self._7ZIP_WARNING:
-				error_msg = process.stdout.readline().rstrip('\n')
-				if error_msg.startswith('Error: ') \
-					and error_msg.endswith('is not file'):
-					raise FileNotFoundError(error_msg)
-				raise OSError(error_msg)
+				raise CalledProcessError(exit_code, process.args)
 		finally:
 			process.stdout.close()
 	def _run_7zip(self, args, **kwargs):
 		process = self._start_7zip(args, **kwargs)
 		self._close_7zip(process)
 	def _read_file_info(self, stdout):
-		result = {}
+		path = None
+		is_dir = False
 		for line in stdout:
 			line = line.rstrip('\n')
-			if line:
-				key, value = line.split(' = ', 1)
-				result[key] = value
-			else:
+			if line.startswith('Path = '):
+				path = line[len('Path = '):].replace(os.sep, '/')
+			elif line.startswith('Folder = '):
+				folder = line[len('Folder = '):]
+				is_dir = folder == '+'
+			elif not line:
 				break
-		return result
+		if path:
+			return ZipInfo(path, is_dir)
+
+ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir'))
 
 class Column:
 	def get_str(cls, url):
