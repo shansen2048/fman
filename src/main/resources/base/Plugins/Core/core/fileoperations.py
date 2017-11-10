@@ -12,23 +12,23 @@ class FileTreeOperation:
 			raise ValueError(
 				'Destination name can only be given when there is one file.'
 			)
-		self.ui = ui
-		self.files = files
-		self.dest_dir = dest_dir
-		self.descr_verb = descr_verb
-		self.src_dir = src_dir
-		self.dest_name = dest_name
-		self.cannot_move_to_self_shown = False
-		self.override_all = None
+		self._ui = ui
+		self._files = files
+		self._dest_dir = dest_dir
+		self._descr_verb = descr_verb
+		self._src_dir = src_dir
+		self._dest_name = dest_name
+		self._cannot_move_to_self_shown = False
+		self._override_all = None
 	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
 		raise NotImplementedError()
 	def _perform_on_file(self, src, dest):
 		raise NotImplementedError()
 	def __call__(self):
-		for src in self.files:
+		for src in self._files:
 			if not self._call_on_file(src):
 				break
-		self.ui.clear_status_message()
+		self._ui.clear_status_message()
 	def _call_on_file(self, src):
 		self._report_processing_of_file(src)
 		dest = self._get_dest_url(src)
@@ -71,39 +71,39 @@ class FileTreeOperation:
 		for dir_ in dirs:
 			yield from self._walk(join(url, dir_))
 	def _handle_exception(self, file_path):
-		choice = self.ui.show_alert(
+		choice = self._ui.show_alert(
 			'Could not %s %s. Do you want to continue?'
-			% (self.descr_verb, file_path), YES | YES_TO_ALL | ABORT, YES
+			% (self._descr_verb, file_path), YES | YES_TO_ALL | ABORT, YES
 		)
 		return choice & YES or choice & YES_TO_ALL
 	def _report_processing_of_file(self, file_):
-		verb = self.descr_verb.capitalize()
+		verb = self._descr_verb.capitalize()
 		verbing = (verb[:-1] if verb.endswith('e') else verb) + 'ing'
-		self.ui.show_status_message('%s %s...' % (verbing, basename(file_)))
+		self._ui.show_status_message('%s %s...' % (verbing, basename(file_)))
 	def perform_on_file(self, src, dest):
 		self._report_processing_of_file(src)
 		if fman.fs.exists(dest):
 			if fman.fs.samefile(src, dest):
-				if not self.cannot_move_to_self_shown:
-					self.ui.show_alert(
-						"You cannot %s a file to itself." % self.descr_verb
+				if not self._cannot_move_to_self_shown:
+					self._ui.show_alert(
+						"You cannot %s a file to itself." % self._descr_verb
 					)
-					self.cannot_move_to_self_shown = True
+					self._cannot_move_to_self_shown = True
 				return True
-			if self.override_all is None:
-				choice = self.ui.show_alert(
+			if self._override_all is None:
+				choice = self._ui.show_alert(
 					"%s exists. Do you want to overwrite it?" % basename(src),
 					YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
 				)
 				if choice & NO:
 					return True
 				elif choice & NO_TO_ALL:
-					self.override_all = False
+					self._override_all = False
 				elif choice & YES_TO_ALL:
-					self.override_all = True
+					self._override_all = True
 				elif choice & ABORT:
 					return False
-			if self.override_all is False:
+			if self._override_all is False:
 				return True
 		fman.fs.makedirs(dirname(dest), exist_ok=True)
 		self._perform_on_file(src, dest)
@@ -111,26 +111,26 @@ class FileTreeOperation:
 	def postprocess_directory(self, src_dir_path):
 		pass
 	def _get_dest_url(self, src_file):
-		dest_name = self.dest_name or basename(src_file)
-		if self.src_dir:
+		dest_name = self._dest_name or basename(src_file)
+		if self._src_dir:
 			try:
 				rel_path = \
-					relpath(join(dirname(src_file), dest_name), self.src_dir)
+					relpath(join(dirname(src_file), dest_name), self._src_dir)
 			except ValueError as e:
 				raise ValueError(
 					'Could not construct path. '
 					'src_file: %r, dest_name: %r, src_dir: %r' %
-					(src_file, dest_name, self.src_dir)
+					(src_file, dest_name, self._src_dir)
 				) from e
 			is_in_src_dir = not rel_path.startswith(pardir)
 			if is_in_src_dir:
 				try:
-					splitscheme(self.dest_dir)
+					splitscheme(self._dest_dir)
 				except ValueError as no_scheme:
-					return join(self.src_dir, self.dest_dir, rel_path)
+					return join(self._src_dir, self._dest_dir, rel_path)
 				else:
-					return join(self.dest_dir, rel_path)
-		return join(self.dest_dir, dest_name)
+					return join(self._dest_dir, rel_path)
+		return join(self._dest_dir, dest_name)
 
 class CopyFiles(FileTreeOperation):
 	def __init__(self, ui, files, dest_dir, src_dir=None, dest_name=None):
