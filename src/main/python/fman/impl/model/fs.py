@@ -8,17 +8,16 @@ from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
 from io import UnsupportedOperation
 from math import log
 from os import remove
-from os.path import isdir, getsize, getmtime, basename, samefile, relpath
+from os.path import isdir, getsize, getmtime, basename, samefile
 from pathlib import Path, PurePosixPath
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
+from subprocess import Popen, PIPE, DEVNULL
 from tempfile import TemporaryDirectory
 from threading import Lock
 from zipfile import ZipFile
 
 import fman.fs
-import os
-import posixpath
 import re
 
 class FileSystem:
@@ -173,27 +172,29 @@ class ZipFileSystem(FileSystem):
 
 	scheme = 'zip://'
 
-	def iterdir(self, path):
-		zip_path, dir_path = self._split(path)
-		with ZipFile(zip_path) as zipfile:
-			already_yielded = set()
-			for candidate in zipfile.namelist():
-				while candidate:
-					candidate_path = PurePosixPath(candidate)
-					parent = str(candidate_path.parent)
-					if parent == '.':
-						parent = ''
-					if parent == dir_path:
-						name = candidate_path.name
-						if name not in already_yielded:
-							yield name
-							already_yielded.add(name)
-					candidate = parent
+	_7ZIP = '/usr/bin/7za'
+	_7ZIP_WARNING = 1
+
 	def resolve(self, path):
 		if '.zip' in path:
 			# Return zip:// + path:
 			return super().resolve(path)
 		return as_url(path)
+	def iterdir(self, path):
+		zip_path, path_in_zip = self._split(path)
+		already_yielded = set()
+		for candidate in self._iter_names(zip_path, path_in_zip):
+			while candidate:
+				candidate_path = PurePosixPath(candidate)
+				parent = str(candidate_path.parent)
+				if parent == '.':
+					parent = ''
+				if parent == path_in_zip:
+					name = candidate_path.name
+					if name not in already_yielded:
+						yield name
+						already_yielded.add(name)
+				candidate = parent
 	def is_dir(self, path):
 		try:
 			zip_path, dir_path = self._split(path)
@@ -201,12 +202,13 @@ class ZipFileSystem(FileSystem):
 			return False
 		if not dir_path:
 			return True
-		if not dir_path.endswith('/'):
-			dir_path += '/'
-		with ZipFile(zip_path) as zipfile:
-			for entry in zipfile.namelist():
-				if entry.startswith(dir_path):
-					return True
+		try:
+			for info in self._iter_infos(zip_path, dir_path):
+				if info['Path'] == dir_path:
+					return info.get('Folder', '-') == '+'
+				return True
+		except FileNotFoundError:
+			return False
 		return False
 	def exists(self, path):
 		try:
@@ -215,11 +217,11 @@ class ZipFileSystem(FileSystem):
 			return False
 		if not path_in_zip:
 			return True
-		with ZipFile(zip_path) as zipfile:
-			for entry in zipfile.namelist():
-				if self._contains(path_in_zip, entry):
-					return True
-		return False
+		try:
+			next(iter(self._iter_infos(zip_path, path_in_zip)))
+		except FileNotFoundError:
+			return False
+		return True
 	def copy(self, src_url, dst_url):
 		src_scheme, src_path = splitscheme(src_url)
 		dst_scheme, dst_path = splitscheme(dst_url)
@@ -228,18 +230,7 @@ class ZipFileSystem(FileSystem):
 			self._extract(zip_path, path_in_zip, dst_path)
 		elif src_scheme == 'file://' and dst_scheme == self.scheme:
 			zip_path, path_in_zip = self._split(dst_path)
-			with ZipFile(zip_path, 'a') as zipfile:
-				if isdir(src_path):
-					for dirpath, dirnames, filenames in os.walk(src_path):
-						for file_name in dirnames + filenames:
-							file_path = os.path.join(dirpath, file_name)
-							rel_path = relpath(file_path, src_path)
-							zipfile.write(
-								file_path,
-								'/'.join([path_in_zip] + rel_path.split(os.sep))
-							)
-				else:
-					zipfile.write(src_path, path_in_zip)
+			self._add_to_zip(src_path, zip_path, path_in_zip)
 		else:
 			raise UnsupportedOperation()
 	def mkdir(self, path):
@@ -252,29 +243,28 @@ class ZipFileSystem(FileSystem):
 			with TemporaryDirectory() as tmp_dir:
 				zip_file.write(tmp_dir, path_in_zip)
 	def _extract(self, zip_path, path_in_zip, dst_path):
-		found = False
-		with ZipFile(zip_path) as zipfile:
-			# Python's ZipFile#extract nests files in subdirectories.
-			# Eg. #extract(a/b.txt, /tmp) places at /tmp/a/b.txt.
-			# But we need /tmp/b.txt. To achieve this, extract to a temporary
-			# directory, then move files:
-			with TemporaryDirectory() as tmp_dir:
-				for entry in zipfile.namelist():
-					if self._contains(path_in_zip, entry):
-						found = True
-						zipfile.extract(entry, tmp_dir)
-				root = Path(tmp_dir, *path_in_zip.split('/'))
-				if root.is_dir():
-					for path in root.iterdir():
-						path.rename(Path(dst_path, path.name))
-				else:
-					root.rename(dst_path)
-		if not found:
-			raise FileNotFoundError()
-	def _contains(self, parent, child):
-		return not parent or child == parent or child.startswith(parent + '/')
-	def _relpath(self, target, base):
-		return posixpath.relpath(target, start=base)
+		with TemporaryDirectory() as tmp_dir:
+			args = ['x', zip_path, '-o' + tmp_dir]
+			if path_in_zip:
+				args.insert(2, path_in_zip)
+			self._run_7zip(args)
+			root = Path(tmp_dir, *path_in_zip.split('/'))
+			if root.is_dir():
+				for path in root.iterdir():
+					path.rename(Path(dst_path, path.name))
+			else:
+				root.rename(dst_path)
+	def _add_to_zip(self, src_path, zip_path, path_in_zip):
+		if not path_in_zip:
+			raise ValueError(
+				'Must specify the destination path inside the archive'
+			)
+		with TemporaryDirectory() as tmp_dir:
+			dest = Path(tmp_dir, *path_in_zip.split('/'))
+			dest.parent.mkdir(parents=True, exist_ok=True)
+			src = Path(src_path)
+			dest.symlink_to(src, src.is_dir())
+			self._run_7zip(['a', '-l', zip_path, path_in_zip], cwd=tmp_dir)
 	def _split(self, path):
 		suffix = '.zip'
 		try:
@@ -282,6 +272,52 @@ class ZipFileSystem(FileSystem):
 		except ValueError:
 			raise FileNotFoundError('Not a .zip file: %r' % path) from None
 		return path[:split_point], path[split_point:].lstrip('/')
+	def _iter_names(self, zip_path, path_in_zip):
+		for file_info in self._iter_infos(zip_path, path_in_zip):
+			yield file_info['Path']
+	def _iter_infos(self, zip_path, path_in_zip):
+		args = ['l', '-ba', '-slt', zip_path]
+		if path_in_zip:
+			args.append(path_in_zip)
+		process = self._start_7zip(args)
+		try:
+			file_info = self._read_file_info(process.stdout)
+			if not file_info:
+				raise FileNotFoundError(zip_path + '/' + path_in_zip)
+			while file_info:
+				yield file_info
+				file_info = self._read_file_info(process.stdout)
+		finally:
+			self._close_7zip(process)
+	def _start_7zip(self, args, **kwargs):
+		return Popen(
+			[self._7ZIP] + args,
+			stdout=PIPE, stderr=DEVNULL, universal_newlines=True, **kwargs
+		)
+	def _close_7zip(self, process):
+		exit_code = process.wait()
+		try:
+			if exit_code and exit_code != self._7ZIP_WARNING:
+				error_msg = process.stdout.readline().rstrip('\n')
+				if error_msg.startswith('Error: ') \
+					and error_msg.endswith('is not file'):
+					raise FileNotFoundError(error_msg)
+				raise OSError(error_msg)
+		finally:
+			process.stdout.close()
+	def _run_7zip(self, args, **kwargs):
+		process = self._start_7zip(args, **kwargs)
+		self._close_7zip(process)
+	def _read_file_info(self, stdout):
+		result = {}
+		for line in stdout:
+			line = line.rstrip('\n')
+			if line:
+				key, value = line.split(' = ', 1)
+				result[key] = value
+			else:
+				break
+		return result
 
 class Column:
 	def get_str(cls, url):

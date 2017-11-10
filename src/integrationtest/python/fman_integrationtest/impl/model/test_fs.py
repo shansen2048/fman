@@ -24,6 +24,12 @@ class ZipFileSystemTest(TestCase):
 			'ZipFileTest/Directory/Subdirectory', {'file 3.txt'}
 		)
 		self._expect_iterdir_result('ZipFileTest/Empty directory', set())
+	def test_iterdir_nonexistent_zip(self):
+		with self.assertRaises(FileNotFoundError):
+			list(self._fs.iterdir('nonexistent.zip'))
+	def test_iterdir_nonexistent_path_in_zip(self):
+		with self.assertRaises(FileNotFoundError):
+			list(self._fs.iterdir(self._path('nonexistent')))
 	def test_is_dir(self):
 		for dir_ in self._dirs_in_zip:
 			self.assertTrue(self._fs.is_dir(self._path(dir_)), dir_)
@@ -80,6 +86,24 @@ class ZipFileSystemTest(TestCase):
 					join(as_url(zip_path, 'zip://'), 'ZipFileTest')
 				)
 				self._expect_zip_contents(self._get_zip_contents(), zip_path)
+	def test_replace_file(self):
+		with TemporaryDirectory() as tmp_dir:
+			zip_path = os.path.join(tmp_dir, 'test.zip')
+			some_file = os.path.join(tmp_dir, 'tmp.txt')
+			with open(some_file, 'w') as f:
+				f.write('added!')
+			with ZipFile(zip_path, 'w') as zip_file:
+				zip_file.write(some_file, 'tmp.txt')
+			expected_contents = b'replaced!'
+			with open(some_file, 'wb') as f:
+				f.write(expected_contents)
+			dest_url_in_zip = join(as_url(zip_path, 'zip://'), 'tmp.txt')
+			self._fs.copy(as_url(some_file), dest_url_in_zip)
+			with ZipFile(zip_path) as zip_file:
+				# A primitive implementation would have two 'tmp.txt' entries:
+				self.assertEqual(['tmp.txt'], zip_file.namelist())
+				with zip_file.open('tmp.txt') as f_in_zip:
+					self.assertEqual(expected_contents, f_in_zip.read())
 	def test_mkdir(self):
 		with TemporaryDirectory() as tmp_dir:
 			zip_path = os.path.join(tmp_dir, 'test.zip')
