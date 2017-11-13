@@ -2,6 +2,7 @@ from collections import namedtuple
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
+from fman.fs import delete
 from fman.impl.util.url import resolve
 from fman.url import as_url, splitscheme
 from fman.impl.trash import move_to_trash
@@ -237,6 +238,9 @@ class ZipFileSystem(FileSystem):
 			self._add_to_zip(src_path, zip_path, path_in_zip)
 		else:
 			raise UnsupportedOperation()
+	def move(self, src_url, dst_url):
+		self.copy(src_url, dst_url)
+		delete(src_url)
 	def mkdir(self, path):
 		if self.exists(path):
 			raise FileExistsError(path)
@@ -249,19 +253,36 @@ class ZipFileSystem(FileSystem):
 		if not self.exists(path):
 			raise FileNotFoundError(path)
 		zip_path, path_in_zip = self._split(path)
+		lost_parent = False
+		parent = str(PurePosixPath(path_in_zip).parent)
+		if parent != '.':
+			parent_fullpath = zip_path + '/' + parent
+			try:
+				iterator = iter(self.iterdir(parent_fullpath))
+				next(iterator)
+				next(iterator)
+			except StopIteration:
+				# When deleting the last file in a directory, 7-Zip deletes the
+				# containing directory as well. We don't want this:
+				lost_parent = True
 		self._run_7zip(['d', zip_path, path_in_zip])
+		if lost_parent:
+			self.makedirs(parent_fullpath)
 	def _extract(self, zip_path, path_in_zip, dst_path):
-		with TemporaryDirectory() as tmp_dir:
-			args = ['x', zip_path, '-o' + tmp_dir]
+		tmp_dir = TemporaryDirectory()
+		try:
+			args = ['x', zip_path, '-o' + tmp_dir.name]
 			if path_in_zip:
 				args.insert(2, path_in_zip)
 			self._run_7zip(args)
-			root = Path(tmp_dir, *path_in_zip.split('/'))
-			if root.is_dir():
-				for path in root.iterdir():
-					path.rename(Path(dst_path, path.name))
-			else:
-				root.rename(dst_path)
+			root = Path(tmp_dir.name, *path_in_zip.split('/'))
+			root.rename(dst_path)
+		finally:
+			try:
+				tmp_dir.cleanup()
+			except FileNotFoundError:
+				# This happens when path_in_zip = ''
+				pass
 	def _add_to_zip(self, src_path, zip_path, path_in_zip):
 		if not path_in_zip:
 			raise ValueError(

@@ -48,11 +48,22 @@ class ZipFileSystemTest(TestCase):
 				self._fs.exists(self._path(nonexistent)), nonexistent
 			)
 	def test_extract_entire_zip(self):
-		self._test_extract('')
+		self._test_extract_dir('')
+	def _test_extract_dir(self, path_in_zip):
+		expected_files = self._get_zip_contents()
+		if path_in_zip:
+			for part in path_in_zip.split('/'):
+				expected_files = expected_files[part]
+		with TemporaryDirectory() as tmp_dir:
+			# Create a subdirectory because the destination directory of a copy
+			# operation must not yet exist:
+			dst_dir = os.path.join(tmp_dir, 'dest')
+			self._fs.copy(self._url(path_in_zip), as_url(dst_dir))
+			self.assertEqual(expected_files, self._read_directory(dst_dir))
 	def test_extract_subdir(self):
-		self._test_extract('ZipFileTest/Directory')
+		self._test_extract_dir('ZipFileTest/Directory')
 	def test_extract_empty_directory(self):
-		self._test_extract('ZipFileTest/Empty directory')
+		self._test_extract_dir('ZipFileTest/Empty directory')
 	def test_extract_file(self):
 		with TemporaryDirectory() as tmp_dir:
 			self._fs.copy(
@@ -135,14 +146,10 @@ class ZipFileSystemTest(TestCase):
 				self._fs.mkdir(zip_url_path + '/nonexistent/dir')
 			self.assertEqual(ENOENT, cm.exception.errno)
 	def test_delete_file(self):
-		self._test_delete('ZipFileTest/Directory/file 2.txt')
+		self._test_delete('ZipFileTest/Directory/Subdirectory/file 3.txt')
 	def _test_delete(self, path_in_zip):
 		expected_contents = self._get_zip_contents()
-		parts = path_in_zip.split('/')
-		dir_ = expected_contents
-		for part in parts[:-1]:
-			dir_ = dir_[part]
-		del dir_[parts[-1]]
+		self._pop_from_dir_dict(expected_contents, path_in_zip)
 		self._fs.delete(self._path(path_in_zip))
 		self.assertEqual(expected_contents, self._get_zip_contents())
 	def test_delete_directory(self):
@@ -154,14 +161,30 @@ class ZipFileSystemTest(TestCase):
 	def test_delete_nonexistent(self):
 		with self.assertRaises(FileNotFoundError):
 			self._fs.delete(self._path('nonexistent'))
-	def _test_extract(self, path_in_zip):
-		expected_files = self._get_zip_contents()
-		if path_in_zip:
-			for part in path_in_zip.split('/'):
-				expected_files = expected_files[part]
-		with TemporaryDirectory() as dst_dir:
-			self._fs.copy(self._url(path_in_zip), as_url(dst_dir))
-			self.assertEqual(expected_files, self._read_directory(dst_dir))
+	def test_move_file_out_of_archive(self):
+		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
+		expected_zip_contents = self._get_zip_contents()
+		removed = self._pop_from_dir_dict(expected_zip_contents, file_path)
+		with TemporaryDirectory() as tmp_dir:
+			dst = os.path.join(tmp_dir, 'test.tzt')
+			self._fs.move(self._url(file_path), as_url(dst))
+			self.assertEqual(expected_zip_contents, self._get_zip_contents())
+			with open(dst) as f:
+				self.assertEqual(removed, f.read())
+	def test_move_dir_out_of_archive(self):
+		self._test_move_dir_out_of_archive('ZipFileTest/Directory')
+	def test_move_empty_dir_out_of_archive(self):
+		self._test_move_dir_out_of_archive('ZipFileTest/Empty directory')
+	def test_move_main_dir_out_of_archive(self):
+		self._test_move_dir_out_of_archive('ZipFileTest')
+	def _test_move_dir_out_of_archive(self, path_in_zip):
+		expected_zip_contents = self._get_zip_contents()
+		removed = self._pop_from_dir_dict(expected_zip_contents, path_in_zip)
+		with TemporaryDirectory() as tmp_dir:
+			dst_dir = os.path.join(tmp_dir, 'dest')
+			self._fs.move(self._url(path_in_zip), as_url(dst_dir))
+			self.assertEqual(expected_zip_contents, self._get_zip_contents())
+			self.assertEqual(removed, self._read_directory(dst_dir))
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))
@@ -176,6 +199,11 @@ class ZipFileSystemTest(TestCase):
 			with ZipFile(self._zip) as zipfile:
 				zipfile.extractall(tmp_dir)
 			return self._read_directory(tmp_dir)
+	def _pop_from_dir_dict(self, dir_dict, path):
+		parts = path.split('/')
+		for part in parts[:-1]:
+			dir_dict = dir_dict[part]
+		return dir_dict.pop(parts[-1])
 	def _read_directory(self, dir_path):
 		result = {}
 		for child in Path(dir_path).iterdir():
