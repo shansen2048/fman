@@ -56,7 +56,7 @@ class ZipFileSystemTest(TestCase):
 	def test_extract_file(self):
 		with TemporaryDirectory() as tmp_dir:
 			self._fs.copy(
-				as_url(self._path('ZipFileTest/file.txt'), 'zip://'),
+				self._url('ZipFileTest/file.txt'),
 				join(as_url(tmp_dir), 'file.txt')
 			)
 			self.assertEqual(['file.txt'], listdir(tmp_dir))
@@ -68,25 +68,20 @@ class ZipFileSystemTest(TestCase):
 	def test_extract_nonexistent(self):
 		with self.assertRaises(FileNotFoundError):
 			with TemporaryDirectory() as tmp_dir:
-				self._fs.copy(
-					'zip://' + self._path('nonexistent'), as_url(tmp_dir)
-				)
+				self._fs.copy(self._url('nonexistent'), as_url(tmp_dir))
 	def test_add_file(self):
 		with TemporaryDirectory() as tmp_dir:
 			file_to_add = os.path.join(tmp_dir, 'tmp.txt')
 			file_contents = 'added!'
 			with open(file_to_add, 'w') as f:
 				f.write(file_contents)
-			zip_file = copyfile(self._zip, os.path.join(tmp_dir, 'test.zip'))
-			path_in_zip = ('ZipFileTest', 'Directory', 'added.txt')
-			dest_url_in_zip = join(as_url(zip_file, 'zip://'), *path_in_zip)
+			dest_url_in_zip = self._url('ZipFileTest/Directory/added.txt')
 			self._fs.copy(as_url(file_to_add), dest_url_in_zip)
-			with TemporaryDirectory() as dest_dir:
-				dest_url = join(as_url(dest_dir), 'extracted.txt')
-				self._fs.copy(dest_url_in_zip, dest_url)
-				with open(as_human_readable(dest_url)) as f:
-					actual_contents = f.read()
-				self.assertEqual(file_contents, actual_contents)
+			dest_url = join(as_url(tmp_dir), 'extracted.txt')
+			self._fs.copy(dest_url_in_zip, dest_url)
+			with open(as_human_readable(dest_url)) as f:
+				actual_contents = f.read()
+			self.assertEqual(file_contents, actual_contents)
 	def test_add_directory(self):
 		with TemporaryDirectory() as zip_contents:
 			with ZipFile(self._zip) as zip_file:
@@ -139,19 +134,39 @@ class ZipFileSystemTest(TestCase):
 			with self.assertRaises(OSError) as cm:
 				self._fs.mkdir(zip_url_path + '/nonexistent/dir')
 			self.assertEqual(ENOENT, cm.exception.errno)
+	def test_delete_file(self):
+		self._test_delete('ZipFileTest/Directory/file 2.txt')
+	def _test_delete(self, path_in_zip):
+		expected_contents = self._get_zip_contents()
+		parts = path_in_zip.split('/')
+		dir_ = expected_contents
+		for part in parts[:-1]:
+			dir_ = dir_[part]
+		del dir_[parts[-1]]
+		self._fs.delete(self._path(path_in_zip))
+		self.assertEqual(expected_contents, self._get_zip_contents())
+	def test_delete_directory(self):
+		self._test_delete('ZipFileTest/Directory')
+	def test_delete_empty_directory(self):
+		self._test_delete('ZipFileTest/Empty directory')
+	def test_delete_main_directory(self):
+		self._test_delete('ZipFileTest')
+	def test_delete_nonexistent(self):
+		with self.assertRaises(FileNotFoundError):
+			self._fs.delete(self._path('nonexistent'))
 	def _test_extract(self, path_in_zip):
 		expected_files = self._get_zip_contents()
 		if path_in_zip:
 			for part in path_in_zip.split('/'):
 				expected_files = expected_files[part]
 		with TemporaryDirectory() as dst_dir:
-			self._fs.copy(
-				'zip://' + self._path(path_in_zip), as_url(dst_dir)
-			)
+			self._fs.copy(self._url(path_in_zip), as_url(dst_dir))
 			self.assertEqual(expected_files, self._read_directory(dst_dir))
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))
+	def _url(self, path_in_zip):
+		return as_url(self._path(path_in_zip), 'zip://')
 	def _path(self, path_in_zip):
 		return self._zip.replace(os.sep, '/') + \
 			   ('/' if path_in_zip else '') + \
@@ -178,8 +193,13 @@ class ZipFileSystemTest(TestCase):
 	def _create_empty_zip(self, path):
 		ZipFile(path, 'w').close()
 	def setUp(self):
+		super().setUp()
 		self._fs = ZipFileSystem()
-		self._zip = get_resource('ZipFileSystemTest.zip')
+		self._tmp_dir = TemporaryDirectory()
+		self._zip = copyfile(
+			get_resource('ZipFileSystemTest.zip'),
+			os.path.join(self._tmp_dir.name, 'ZipFileSystemTest.zip')
+		)
 		self._dirs_in_zip = (
 			'', 'ZipFileTest', 'ZipFileTest/Directory',
 			'ZipFileTest/Directory/Subdirectory', 'ZipFileTest/Empty directory'
@@ -189,3 +209,6 @@ class ZipFileSystemTest(TestCase):
 			'ZipFileTest/Directory/Subdirectory/file 3.txt'
 		)
 		self.maxDiff = None
+	def tearDown(self):
+		self._tmp_dir.cleanup()
+		super().tearDown()

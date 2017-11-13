@@ -245,6 +245,11 @@ class ZipFileSystem(FileSystem):
 		zip_path, path_in_zip = self._split(path)
 		with TemporaryDirectory() as tmp_dir:
 			self._add_to_zip(tmp_dir, zip_path, path_in_zip)
+	def delete(self, path):
+		if not self.exists(path):
+			raise FileNotFoundError(path)
+		zip_path, path_in_zip = self._split(path)
+		self._run_7zip(['d', zip_path, path_in_zip])
 	def _extract(self, zip_path, path_in_zip, dst_path):
 		with TemporaryDirectory() as tmp_dir:
 			args = ['x', zip_path, '-o' + tmp_dir]
