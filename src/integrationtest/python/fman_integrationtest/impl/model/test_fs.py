@@ -196,6 +196,24 @@ class ZipFileSystemTest(TestCase):
 			self.assertFalse(Path(file_path).exists())
 			expected_zip_contents['test_dest.txt'] = 'success!'
 			self.assertEqual(expected_zip_contents, self._get_zip_contents())
+	def test_rename_directory(self):
+		expected_zip_contents = self._get_zip_contents()
+		expected_zip_contents['Destination'] = \
+			expected_zip_contents['ZipFileTest'].pop('Directory')
+		self._fs.move(
+			self._url('ZipFileTest/Directory'), self._url('Destination')
+		)
+		self.assertEqual(expected_zip_contents, self._get_zip_contents())
+	def test_rename_file(self):
+		expected_zip_contents = self._get_zip_contents()
+		src_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
+		expected_zip_contents['ZipFileTest']['Directory']['destination.txt'] = \
+			self._pop_from_dir_dict(expected_zip_contents, src_path)
+		self._fs.move(
+			self._url(src_path),
+			self._url('ZipFileTest/Directory/destination.txt')
+		)
+		self.assertEqual(expected_zip_contents, self._get_zip_contents())
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))

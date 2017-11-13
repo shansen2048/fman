@@ -177,7 +177,7 @@ class ZipFileSystem(FileSystem):
 	if PLATFORM == 'Windows':
 		_7ZIP = join(dirname(__file__), '7za.exe')
 	else:
-		_7ZIP = '/usr/bin/7za'
+		_7ZIP = join(dirname(__file__), '7za')
 	_7ZIP_WARNING = 1
 
 	def resolve(self, path):
@@ -239,8 +239,26 @@ class ZipFileSystem(FileSystem):
 		else:
 			raise UnsupportedOperation()
 	def move(self, src_url, dst_url):
-		self.copy(src_url, dst_url)
-		delete(src_url)
+		src_scheme, src_path = splitscheme(src_url)
+		dst_scheme, dst_path = splitscheme(dst_url)
+		if src_scheme == dst_scheme:
+			# Guaranteed by fman's file system implemnetation:
+			assert src_scheme == self.scheme
+			src_zip, src_pth_in_zip = self._split(src_path)
+			dst_zip, dst_pth_in_zip = self._split(dst_path)
+			if src_zip == dst_zip:
+				with self._preserve_empty_parent(src_zip, src_pth_in_zip):
+					self._run_7zip(
+						['rn', src_zip, src_pth_in_zip, dst_pth_in_zip]
+					)
+			else:
+				with TemporaryDirectory() as tmp_dir:
+					tmp_src_dir = join(as_url(tmp_dir), 'tmp')
+					self.copy(src_url, tmp_src_dir)
+					self.move(tmp_src_dir, dst_url)
+		else:
+			self.copy(src_url, dst_url)
+			delete(src_url)
 	def mkdir(self, path):
 		if self.exists(path):
 			raise FileExistsError(path)
@@ -253,21 +271,27 @@ class ZipFileSystem(FileSystem):
 		if not self.exists(path):
 			raise FileNotFoundError(path)
 		zip_path, path_in_zip = self._split(path)
-		lost_parent = False
+		with self._preserve_empty_parent(zip_path, path_in_zip):
+			self._run_7zip(['d', zip_path, path_in_zip])
+	def _preserve_empty_parent(self, zip_path, path_in_zip):
+		# 7-Zip deletes empty directories that remain after an operation. For
+		# instance, when deleting the last file from a directory, or when moving
+		# it out of the directory. We don't want this to happen. The present
+		# method allows us to preserve the parent directory, even if empty:
 		parent = str(PurePosixPath(path_in_zip).parent)
-		if parent != '.':
-			parent_fullpath = zip_path + '/' + parent
-			try:
-				iterator = iter(self.iterdir(parent_fullpath))
-				next(iterator)
-				next(iterator)
-			except StopIteration:
-				# When deleting the last file in a directory, 7-Zip deletes the
-				# containing directory as well. We don't want this:
-				lost_parent = True
-		self._run_7zip(['d', zip_path, path_in_zip])
-		if lost_parent:
-			self.makedirs(parent_fullpath)
+		parent_fullpath = zip_path + '/' + parent
+		class CM:
+			def __enter__(cm):
+				if parent != '.':
+					cm._parent_wasdir_before = self.is_dir(parent_fullpath)
+				else:
+					cm._parent_wasdir_before = False
+			def __exit__(cm, exc_type, exc_val, exc_tb):
+				if not exc_val:
+					if cm._parent_wasdir_before:
+						if not self.is_dir(parent_fullpath):
+							self.makedirs(parent_fullpath)
+		return CM()
 	def _extract(self, zip_path, path_in_zip, dst_path):
 		tmp_dir = TemporaryDirectory()
 		try:
