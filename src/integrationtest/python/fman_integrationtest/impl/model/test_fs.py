@@ -185,6 +185,17 @@ class ZipFileSystemTest(TestCase):
 			self._fs.move(self._url(path_in_zip), as_url(dst_dir))
 			self.assertEqual(expected_zip_contents, self._get_zip_contents())
 			self.assertEqual(removed, self._read_directory(dst_dir))
+	def test_move_file_into_archive(self):
+		expected_zip_contents = self._get_zip_contents()
+		with TemporaryDirectory() as tmp_dir:
+			file_path = os.path.join(tmp_dir, 'test.txt')
+			with open(file_path, 'w') as f:
+				f.write('success!')
+			dst_url = self._url('test_dest.txt')
+			self._fs.move(as_url(file_path), dst_url)
+			self.assertFalse(Path(file_path).exists())
+			expected_zip_contents['test_dest.txt'] = 'success!'
+			self.assertEqual(expected_zip_contents, self._get_zip_contents())
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))
