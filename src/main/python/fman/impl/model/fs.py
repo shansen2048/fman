@@ -242,7 +242,7 @@ class ZipFileSystem(FileSystem):
 		src_scheme, src_path = splitscheme(src_url)
 		dst_scheme, dst_path = splitscheme(dst_url)
 		if src_scheme == dst_scheme:
-			# Guaranteed by fman's file system implemnetation:
+			# Guaranteed by fman's file system implementation:
 			assert src_scheme == self.scheme
 			src_zip, src_pth_in_zip = self._split(src_path)
 			dst_zip, dst_pth_in_zip = self._split(dst_path)
