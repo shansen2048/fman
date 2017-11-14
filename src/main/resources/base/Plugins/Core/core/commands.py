@@ -156,7 +156,7 @@ class GoUp(_CorePaneCommand):
 					self.pane.place_cursor_at(cursor_dest)
 				except ValueError as dest_doesnt_exist:
 					self.pane.move_cursor_home()
-		self.pane.set_path(os.path.dirname(path_before), callback)
+		self.pane.set_path(dirname(path_before), callback)
 
 class Open(_CorePaneCommand):
 	def __call__(self):
