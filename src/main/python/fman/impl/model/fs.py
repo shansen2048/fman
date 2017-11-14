@@ -178,6 +178,7 @@ class ZipFileSystem(FileSystem):
 		_7ZIP = join(dirname(__file__), '7za.exe')
 	else:
 		_7ZIP = join(dirname(__file__), '7za')
+
 	_7ZIP_WARNING = 1
 
 	def resolve(self, path):
@@ -354,17 +355,21 @@ class ZipFileSystem(FileSystem):
 				yield file_info
 				file_info = self._read_file_info(process.stdout)
 		finally:
-			self._close_7zip(process)
+			self._close_7zip(process, terminate=True)
 	def _start_7zip(self, args, **kwargs):
 		return Popen(
 			[self._7ZIP] + args,
 			stdout=PIPE, stderr=DEVNULL, universal_newlines=True, **kwargs
 		)
-	def _close_7zip(self, process):
-		exit_code = process.wait()
+	def _close_7zip(self, process, terminate=False):
 		try:
-			if exit_code and exit_code != self._7ZIP_WARNING:
-				raise CalledProcessError(exit_code, process.args)
+			if terminate:
+				process.terminate()
+				process.wait()
+			else:
+				exit_code = process.wait()
+				if exit_code and exit_code != self._7ZIP_WARNING:
+					raise CalledProcessError(exit_code, process.args)
 		finally:
 			process.stdout.close()
 	def _run_7zip(self, args, **kwargs):
