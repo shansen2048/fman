@@ -214,6 +214,27 @@ class ZipFileSystemTest(TestCase):
 			self._url('ZipFileTest/Directory/destination.txt')
 		)
 		self.assertEqual(expected_zip_contents, self._get_zip_contents())
+	def test_move_file_between_archives(self):
+		src_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
+		expected_zip_contents = self._get_zip_contents()
+		src_contents = self._pop_from_dir_dict(expected_zip_contents, src_path)
+		with TemporaryDirectory() as dst_dir:
+			dst_zip = os.path.join(dst_dir, 'dest.zip')
+			# Give the Zip file some contents:
+			dummy_txt = os.path.join(dst_dir, 'dummy.txt')
+			dummy_contents = 'some contents'
+			with open(dummy_txt, 'w') as f:
+				f.write(dummy_contents)
+			with ZipFile(dst_zip, 'w') as zip_file:
+				zip_file.write(dummy_txt, 'dummy.txt')
+			self._fs.move(
+				self._url(src_path), join(as_url(dst_zip, 'zip://'), 'dest.txt')
+			)
+			self.assertEqual(expected_zip_contents, self._get_zip_contents())
+			self.assertEqual(
+				{'dummy.txt': dummy_contents, 'dest.txt': src_contents},
+				self._get_zip_contents(dst_zip)
+			)
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))
@@ -223,10 +244,12 @@ class ZipFileSystemTest(TestCase):
 		return self._zip.replace(os.sep, '/') + \
 			   ('/' if path_in_zip else '') + \
 			   path_in_zip
-	def _get_zip_contents(self):
+	def _get_zip_contents(self, zip_path=None):
+		if zip_path is None:
+			zip_path = self._zip
 		with TemporaryDirectory() as tmp_dir:
-			with ZipFile(self._zip) as zipfile:
-				zipfile.extractall(tmp_dir)
+			with ZipFile(zip_path) as zip_file:
+				zip_file.extractall(tmp_dir)
 			return self._read_directory(tmp_dir)
 	def _pop_from_dir_dict(self, dir_dict, path):
 		parts = path.split('/')

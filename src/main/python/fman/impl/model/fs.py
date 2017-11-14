@@ -253,9 +253,10 @@ class ZipFileSystem(FileSystem):
 					)
 			else:
 				with TemporaryDirectory() as tmp_dir:
-					tmp_src_dir = join(as_url(tmp_dir), 'tmp')
-					self.copy(src_url, tmp_src_dir)
-					self.move(tmp_src_dir, dst_url)
+					tmp_dst = join(as_url(tmp_dir), 'tmp')
+					self.copy(src_url, tmp_dst)
+					self.move(tmp_dst, dst_url)
+					self.delete(src_path)
 		else:
 			self.copy(src_url, dst_url)
 			delete(src_url)
