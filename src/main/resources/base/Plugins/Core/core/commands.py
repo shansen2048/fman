@@ -162,42 +162,51 @@ class Open(_CorePaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
-			# Use `run_command` to delegate the actual task of opening the file.
-			# This makes it possible for plugins to modify the default open
-			# behaviour by implementing DirectoryPaneListener#on_command(...).
-			self.pane.run_command('default_open', {'url': file_under_cursor})
+			_open(self.pane, file_under_cursor)
 		else:
 			show_alert('No file is selected!')
 
 class OpenListener(DirectoryPaneListener):
 	def on_doubleclicked(self, file_url):
-		# Use `run_command` to delegate the actual task of opening the file.
-		# This makes it possible for plugins to modify the default open
-		# behaviour by implementing DirectoryPaneListener#on_command(...).
-		self.pane.run_command('default_open', {'url': file_url})
+		_open(self.pane, file_url)
 
-class DefaultOpen(DirectoryPaneCommand):
+def _open(pane, url):
+	# Use `run_command` to delegate the actual task of opening the file.
+	# This makes it possible for plugins to modify the default open
+	# behaviour by implementing DirectoryPaneListener#on_command(...).
+	if is_dir(url):
+		pane.run_command('open_directory', {'url': url})
+	else:
+		pane.run_command('open_file', {'url': url})
+
+class OpenDirectory(DirectoryPaneCommand):
 	def __call__(self, url):
 		if is_dir(url):
 			self.pane.set_path(url)
 		else:
-			if PLATFORM == 'Linux':
-				scheme, path = splitscheme(url)
-				if scheme == 'file://':
-					use_qt = False
-					try:
-						Popen(
-							[path], stdin=DEVNULL, stdout=DEVNULL,
-							stderr=DEVNULL
-						)
-					except (OSError, ValueError):
-						use_qt = True
-				else:
+			def callback():
+				self.pane.place_cursor_at(url)
+			self.pane.set_path(dirname(url), callback=callback)
+
+class OpenFile(DirectoryPaneCommand):
+	def __call__(self, url):
+		if PLATFORM == 'Linux':
+			scheme, path = splitscheme(url)
+			if scheme == 'file://':
+				use_qt = False
+				try:
+					Popen(
+						[path], stdin=DEVNULL, stdout=DEVNULL,
+						stderr=DEVNULL
+					)
+				except (OSError, ValueError):
 					use_qt = True
 			else:
 				use_qt = True
-			if use_qt:
-				QDesktopServices.openUrl(QUrl(url))
+		else:
+			use_qt = True
+		if use_qt:
+			QDesktopServices.openUrl(QUrl(url))
 
 class OpenWithEditor(_CorePaneCommand):
 
@@ -575,10 +584,8 @@ class _OpenInPaneCommand(_CorePaneCommand):
 			# we would thus open a subdirectory of the left pane. That's not
 			# what we want. We want to open the directory of the left pane:
 			to_open = source_pane.get_path()
-		if not is_dir(to_open):
-			to_open = dirname(to_open)
 		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
-		dest_pane.set_path(to_open)
+		dest_pane.run_command('open_directory', {'url': to_open})
 	def get_source_pane(self, this_pane, num_panes):
 		raise NotImplementedError()
 	def get_destination_pane(self, this_pane, num_panes):
