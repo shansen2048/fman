@@ -159,25 +159,23 @@ class GoUp(_CorePaneCommand):
 		self.pane.set_path(dirname(path_before), callback)
 
 class Open(_CorePaneCommand):
-	def __call__(self):
-		file_under_cursor = self.pane.get_file_under_cursor()
-		if file_under_cursor:
-			_open(self.pane, file_under_cursor)
+	def __call__(self, url=None):
+		if url is None:
+			url = self.pane.get_file_under_cursor()
+		if url:
+			# Use `run_command` to delegate the actual task of opening the file.
+			# This makes it possible for plugins to modify the default open
+			# behaviour by implementing DirectoryPaneListener#on_command(...).
+			if is_dir(url):
+				self.pane.run_command('open_directory', {'url': url})
+			else:
+				self.pane.run_command('open_file', {'url': url})
 		else:
 			show_alert('No file is selected!')
 
 class OpenListener(DirectoryPaneListener):
 	def on_doubleclicked(self, file_url):
-		_open(self.pane, file_url)
-
-def _open(pane, url):
-	# Use `run_command` to delegate the actual task of opening the file.
-	# This makes it possible for plugins to modify the default open
-	# behaviour by implementing DirectoryPaneListener#on_command(...).
-	if is_dir(url):
-		pane.run_command('open_directory', {'url': url})
-	else:
-		pane.run_command('open_file', {'url': url})
+		self.pane.run_command('open', {'url': file_url})
 
 class OpenDirectory(DirectoryPaneCommand):
 	def __call__(self, url):
@@ -187,6 +185,8 @@ class OpenDirectory(DirectoryPaneCommand):
 			def callback():
 				self.pane.place_cursor_at(url)
 			self.pane.set_path(dirname(url), callback=callback)
+	def is_visible(self):
+		return False
 
 class OpenFile(DirectoryPaneCommand):
 	def __call__(self, url):
@@ -207,6 +207,8 @@ class OpenFile(DirectoryPaneCommand):
 			use_qt = True
 		if use_qt:
 			QDesktopServices.openUrl(QUrl(url))
+	def is_visible(self):
+		return False
 
 class OpenWithEditor(_CorePaneCommand):
 
@@ -986,6 +988,8 @@ class CommandPalette(_CorePaneCommand):
 	def _get_all_commands(self):
 		result = []
 		for cmd_name in self.pane.get_commands():
+			if not self.pane.is_command_visible(cmd_name):
+				continue
 			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
 			# defined-in-a-loop-with-different-values-all-return-the-same-result
 			aliases = self.pane.get_command_aliases(cmd_name)

@@ -220,6 +220,8 @@ class CommandWrapper:
 			class_name = self.command.__class__.__name__
 			return re.sub(r'([a-z])([A-Z])', r'\1 \2', class_name)\
 					   .lower().capitalize(),
+	def is_visible(self):
+		return self.command.is_visible()
 
 class ListenerWrapper:
 	def __init__(self, listener, error_handler):

@@ -70,6 +70,8 @@ class DirectoryPane:
 		return self._commands[name](**args)
 	def get_command_aliases(self, command_name):
 		return self._commands[command_name].get_aliases()
+	def is_command_visible(self, command_name):
+		return self._commands[command_name].is_visible()
 	def _register_command(self, command_name, command):
 		self._commands[command_name] = command
 
@@ -130,6 +132,8 @@ class DirectoryPaneCommand:
 		self.pane = pane
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
+	def is_visible(self):
+		return True
 	def get_chosen_files(self):
 		selected_files = self.pane.get_selected_files()
 		if selected_files:
