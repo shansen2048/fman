@@ -9,7 +9,7 @@ from fman import *
 from fman.url import splitscheme, as_url, join, basename, split, \
 	as_human_readable, dirname
 from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
-	samefile
+	samefile, copy
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
@@ -18,7 +18,7 @@ from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
 from pathlib import PurePath
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
-from shutil import copy, rmtree
+from shutil import rmtree
 from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
@@ -296,17 +296,13 @@ class _TreeCommand(_CorePaneCommand):
 		else:
 			src_dir=None
 		if dest_dir is None:
-			dest_dir = self.other_pane.get_path()
+			dest_dir = _get_opposite_pane(self.pane).get_path()
 		proceed = self._confirm_tree_operation(files, dest_dir, src_dir)
 		if proceed:
 			dest_dir, dest_name = proceed
 			self._call(files, dest_dir, src_dir, dest_name)
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
 		raise NotImplementedError()
-	@property
-	def other_pane(self):
-		panes = self.pane.window.get_panes()
-		return panes[(panes.index(self.pane) + 1) % len(panes)]
 	@classmethod
 	def _confirm_tree_operation(
 		cls, files, dest_dir, src_dir, ui=fman, fs=fman.fs
@@ -326,13 +322,7 @@ class _TreeCommand(_CorePaneCommand):
 		dest = as_human_readable(join(dest_dir, dest_name))
 		dest, ok = ui.show_prompt(message, dest)
 		if dest and ok:
-			try:
-				splitscheme(dest)
-			except ValueError as no_scheme:
-				# Treat dest as relative to src_dir:
-				src_scheme, src_path = splitscheme(src_dir)
-				dest_scheme = splitscheme(dest_dir)[0]
-				dest = dest_scheme + PurePath(src_path, dest).as_posix()
+			dest = _from_human_readable(dest, dest_dir, src_dir)
 			if fs.exists(dest):
 				if fs.is_dir(dest):
 					return dest, None
@@ -356,6 +346,20 @@ class _TreeCommand(_CorePaneCommand):
 					)
 					if choice & YES:
 						return dest, None
+
+def _get_opposite_pane(pane):
+	panes = pane.window.get_panes()
+	return panes[(panes.index(pane) + 1) % len(panes)]
+
+def _from_human_readable(path_or_url, dest_dir, src_dir):
+	try:
+		splitscheme(path_or_url)
+	except ValueError as no_scheme:
+		# Treat dest as relative to src_dir:
+		src_scheme, src_path = splitscheme(src_dir)
+		dest_scheme = splitscheme(dest_dir)[0]
+		path_or_url = dest_scheme + PurePath(src_path, path_or_url).as_posix()
+	return path_or_url
 
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
@@ -1028,7 +1032,7 @@ class InstallLicenseKey(DirectoryPaneCommand):
 			)
 			return
 		destination_directory = os.path.join(DATA_DIRECTORY, 'Local')
-		copy(license_key, destination_directory)
+		shutil.copy(license_key, destination_directory)
 		show_alert(
 			"Thank you! Please restart fman to complete the registration. You "
 			"should no longer see the annoying popup when it starts."
@@ -1309,3 +1313,58 @@ if PLATFORM == 'Mac':
 				stdout=DEVNULL, stderr=DEVNULL
 			)
 			process.communicate(script.encode('ascii'))
+
+class Pack(DirectoryPaneCommand):
+	def __call__(self):
+		files = self.get_chosen_files()
+		if not files:
+			show_alert('No file is selected!')
+			return
+		if len(files) == 1:
+			descr = basename(files[0])
+			dest_name = PurePath(basename(files[0])).stem + '.zip'
+		else:
+			descr = '%d files' % len(files)
+			dest_name = basename(self.pane.get_path()) + '.zip'
+		dest_dir = _get_opposite_pane(self.pane).get_path()
+		dest_url = join(dest_dir, dest_name)
+		dest, ok = show_prompt(
+			'Pack %s to (.zip, .7z, ...):' % descr,
+			as_human_readable(dest_url)
+		)
+		if dest and ok:
+			dest = _from_human_readable(dest, dest_dir, self.pane.get_path())
+			scheme = _get_handler_for_archive(basename(dest))
+			if not scheme:
+				show_alert('Sorry, but this archive format is not supported.')
+				return
+			dest_rewritten = scheme + splitscheme(dest)[1]
+			mkdir(dest_rewritten)
+			for file_url in files:
+				file_name = basename(file_url)
+				with StatusMessage('Packing %s...' % file_name):
+					copy(file_url, join(dest_rewritten, file_name))
+
+def _get_handler_for_archive(file_name):
+	settings = load_json('Core Settings.json', default={})
+	archive_types = sorted(
+		settings.get('archive_handlers', {}).items(),
+		key=lambda tpl: -len(tpl[0])
+	)
+	for suffix, scheme in archive_types:
+		if file_name.endswith(suffix):
+			return scheme
+
+class ArchiveOpenListener(DirectoryPaneListener):
+	def on_command(self, command, args):
+		if command in ('open_file', 'open_directory'):
+			try:
+				scheme, path = splitscheme(args['url'])
+			except (KeyError, ValueError):
+				return None
+			if scheme == 'file://':
+				new_scheme = _get_handler_for_archive(basename(path))
+				if new_scheme:
+					new_args = dict(args)
+					new_args['url'] = new_scheme + path
+					return 'open_directory', new_args

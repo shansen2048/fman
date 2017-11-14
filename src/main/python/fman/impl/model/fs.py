@@ -206,7 +206,7 @@ class ZipFileSystem(FileSystem):
 		except FileNotFoundError:
 			return False
 		if not dir_path:
-			return True
+			return Path(zip_path).exists()
 		try:
 			for info in self._iter_infos(zip_path, dir_path):
 				if info.path == dir_path:
@@ -221,7 +221,7 @@ class ZipFileSystem(FileSystem):
 		except FileNotFoundError:
 			return False
 		if not path_in_zip:
-			return True
+			return Path(zip_path).exists()
 		try:
 			next(iter(self._iter_infos(zip_path, path_in_zip)))
 		except FileNotFoundError:
@@ -263,11 +263,18 @@ class ZipFileSystem(FileSystem):
 	def mkdir(self, path):
 		if self.exists(path):
 			raise FileExistsError(path)
-		if path and not self.exists(str(PurePosixPath(path).parent)):
-			raise FileNotFoundError(ENOENT, path)
 		zip_path, path_in_zip = self._split(path)
-		with TemporaryDirectory() as tmp_dir:
-			self._add_to_zip(tmp_dir, zip_path, path_in_zip)
+		if not path_in_zip:
+			# Run 7-Zip in an empty directory to create an empty archive:
+			with TemporaryDirectory() as tmp_dir:
+				name = PurePosixPath(zip_path).name
+				self._run_7zip(['a', name], cwd=tmp_dir)
+				Path(tmp_dir, name).rename(zip_path)
+		elif not self.exists(str(PurePosixPath(path).parent)):
+			raise FileNotFoundError(ENOENT, path)
+		else:
+			with TemporaryDirectory() as tmp_dir:
+				self._add_to_zip(tmp_dir, zip_path, path_in_zip)
 	def delete(self, path):
 		if not self.exists(path):
 			raise FileNotFoundError(path)

@@ -145,6 +145,12 @@ class ZipFileSystemTest(TestCase):
 			with self.assertRaises(OSError) as cm:
 				self._fs.mkdir(zip_url_path + '/nonexistent/dir')
 			self.assertEqual(ENOENT, cm.exception.errno)
+	def test_mkdir_empty(self):
+		with TemporaryDirectory() as tmp_dir:
+			zip_path = os.path.join(tmp_dir, 'test.zip')
+			self._fs.mkdir(splitscheme(as_url(zip_path))[1])
+			with ZipFile(zip_path) as zip_file:
+				self.assertEqual([], zip_file.namelist())
 	def test_delete_file(self):
 		self._test_delete('ZipFileTest/Directory/Subdirectory/file 3.txt')
 	def _test_delete(self, path_in_zip):
