@@ -2,7 +2,7 @@ from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.fs import NameColumn, SizeColumn, LastModifiedColumn
-from fman.impl.util import is_debug, EqMixin, ReprMixin, ConstructorMixin
+from fman.impl.util import is_debug
 from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
@@ -60,16 +60,57 @@ class DragAndDropMixin(QAbstractTableModel):
 	def _get_drop_dest(self, index):
 		return self.url(index) if index.isValid() else self.location()
 
-class PreloadedRow(ConstructorMixin, EqMixin, ReprMixin):
+class PreloadedRow(
+	namedtuple('PreloadedRow', ('url', 'is_dir', 'icon', 'columns'))
+):
 	"""
-	The sole purpose of this subclass is to compare icons by their `.cacheKey()`
-	rather than directly (which always returns False, except for self == self).
+	The sole purpose of this subclass is to exclude .icon from == comparisons.
+	The reason for this is that QFileIconProvider returns objects that don't
+	compare equal even if they are equal. This is a problem particularly on
+	Windows. For when we reload a directory, QFileIconProvider returns "new"
+	icon values so our implementation must assume that all files in the
+	directory have changed, when most likely they haven't. Besides a performance
+	penalty, this also leads to bugs: Consider the example where the user
+	creates a file. The file system implementation appends it to the list
+	of existing files in the current directory:
+	 b.txt
+	 a.txt <- new
+	The cursor is placed at the new file, which is the row with index "1". This
+	happens synchronously, as the file is created. But then, we are notified of
+	the external file system change and reload the directory. This gives us:
+	 a.txt
+	 b.txt
+	If these new rows compared equal to the previous ones, then the file system
+	model could figure out that the rows were merely moved - and move the cursor
+	with them. But they usually don't - because the icon "changes" with every
+	reload - so that the current model implementation merely sees that all rows
+	have changed and updates them without moving the cursor. This leaves the
+	cursor at b.txt (=row with index "1"), which is wrong.
+
+	An earlier implementation used QIcon#cacheKey() in an attempt to solve the
+	above problem. In theory, #cacheKey() is precisely meant to help with this.
+	But in reality, especially on Windows, the problem remains (loading the icon
+	of a file with QFileIconProvider twice gives two QIcon instances that look
+	the same but have different cacheKey's).
+
+	A better implementation will be to rewrite the file system model to take the
+	.url property into account to determine when rows have moved. (At the time
+	of this writing, the implementation uses == equality as the sole criterion.)
+	It is not unlikely that this will have to be implemented in the future.
 	"""
 
-	_FIELDS = ('url', 'is_dir', 'icon', 'columns')
-
-	def _get_field_values(self):
-		return (self.url, self.is_dir, self.icon.cacheKey(), self.columns)
+	def _get_attrs_for_eq(self):
+		# Note how .icon is not contained in this tuple:
+		return self.url, self.is_dir, self.columns
+	def __eq__(self, other):
+		try:
+			return self._get_attrs_for_eq() == other._get_attrs_for_eq()
+		except AttributeError:
+			return False
+	def __ne__(self, other):
+		return not self.__eq__(other)
+	def __hash__(self):
+		return hash(self._get_attrs_for_eq())
 
 PreloadedColumn = \
 	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
