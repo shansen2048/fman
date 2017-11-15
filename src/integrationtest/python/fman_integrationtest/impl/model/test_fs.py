@@ -1,3 +1,4 @@
+from datetime import datetime
 from errno import ENOENT
 from fman.impl.model.fs import ZipFileSystem
 from fman.url import as_url, join, as_human_readable, splitscheme
@@ -252,6 +253,22 @@ class ZipFileSystemTest(TestCase):
 	def test_getsize_nonexistent_path_in_zip(self):
 		with self.assertRaises(FileNotFoundError):
 			self._fs.getsize(self._path('nonexistent'))
+	def test_getmtime_file(self):
+		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
+		mtime = self._fs.getmtime(self._path(file_path))
+		self.assertEqual(datetime(2017, 11, 8, 13, 26, 42), mtime)
+	def test_getmtime_dir(self):
+		self.assertIsNone(
+			self._fs.getmtime(self._path('ZipFileTest/Directory/Subdirectory'))
+		)
+	def test_getmtime_root(self):
+		self.assertIsNone(self._fs.getmtime(self._path('')))
+	def test_getmtime_nonexistent_zip(self):
+		with self.assertRaises(FileNotFoundError):
+			self._fs.getmtime('nonexistent')
+	def test_getmtime_nonexistent_path_in_zip(self):
+		with self.assertRaises(FileNotFoundError):
+			self._fs.getmtime(self._path('nonexistent'))
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))

@@ -99,7 +99,7 @@ class DefaultFileSystem(FileSystem):
 	def getsize(self, path):
 		return getsize(path)
 	def getmtime(self, path):
-		return getmtime(path)
+		return datetime.fromtimestamp(getmtime(path))
 	def touch(self, path):
 		Path(path).touch()
 	def mkdir(self, path):
@@ -289,6 +289,13 @@ class ZipFileSystem(FileSystem):
 				return info.size
 			# Is a directory:
 			return None
+	def getmtime(self, path):
+		zip_path, dir_path = self._split(path)
+		for info in self._iter_infos(zip_path, dir_path):
+			if info.path == dir_path:
+				return info.mtime
+			# Is a directory:
+			return None
 	def _preserve_empty_parent(self, zip_path, path_in_zip):
 		# 7-Zip deletes empty directories that remain after an operation. For
 		# instance, when deleting the last file from a directory, or when moving
@@ -384,7 +391,7 @@ class ZipFileSystem(FileSystem):
 		process = self._start_7zip(args, **kwargs)
 		self._close_7zip(process)
 	def _read_file_info(self, stdout):
-		path = size = None
+		path = size = mtime = None
 		is_dir = False
 		for line in stdout:
 			line = line.rstrip('\n')
@@ -397,10 +404,14 @@ class ZipFileSystem(FileSystem):
 				is_dir = folder == '+'
 			elif line.startswith('Size = '):
 				size = int(line[len('Size = '):])
+			elif line.startswith('Modified = '):
+				mtime_str = line[len('Modified = '):]
+				if mtime_str:
+					mtime = datetime.strptime(mtime_str, '%Y-%m-%d %H:%M:%S')
 		if path:
-			return ZipInfo(path, is_dir, size)
+			return ZipInfo(path, is_dir, size, mtime)
 
-ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir', 'size'))
+ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir', 'size', 'mtime'))
 
 class Column:
 	def get_str(cls, url):
@@ -478,8 +489,7 @@ class LastModifiedColumn(Column):
 			return ''
 		if mtime is None:
 			return ''
-		modified = datetime.fromtimestamp(mtime)
-		return modified.strftime('%Y-%m-%d %H:%M')
+		return mtime.strftime('%Y-%m-%d %H:%M')
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.is_dir(url)
 		return is_dir ^ is_ascending, self._fs.getmtime(url)
