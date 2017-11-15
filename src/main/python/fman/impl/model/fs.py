@@ -49,16 +49,13 @@ class FileSystem:
 		except FileExistsError:
 			if not exist_ok or not self.is_dir(path):
 				raise
-		except OSError as e:
-			if e.errno != ENOENT:
-				raise
+		except FileNotFoundError:
 			self.makedirs(parent(path))
 			self.mkdir(path)
 	def mkdir(self, path):
 		"""
 		Should raise FileExistsError if `path` already exists. If `path` is in
-		a directory that does not yet exist, should raise an OSError with
-		.errno = ENOENT. Typically this would be FileNotFoundError(ENOENT, ...).
+		a directory that does not yet exist, should raise a FileNotFoundError.
 		"""
 		raise NotImplementedError()
 	def getsize(self, path):
@@ -103,7 +100,15 @@ class DefaultFileSystem(FileSystem):
 	def touch(self, path):
 		Path(path).touch()
 	def mkdir(self, path):
-		Path(path).mkdir()
+		try:
+			Path(path).mkdir()
+		except FileNotFoundError:
+			raise
+		except OSError as e:
+			if e.errno == ENOENT:
+				raise FileNotFoundError(path) from e
+			else:
+				raise
 	def move(self, src_url, dst_url):
 		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
 		move(src_path, dst_path)
