@@ -7,6 +7,7 @@ from os.path import normpath
 from unittest import TestCase, skipIf
 
 import os
+import os.path
 
 class ConfirmTreeOperationTest(TestCase):
 
@@ -156,6 +157,27 @@ class SuggestLocationsTest(TestCase):
 				return sorted(list(self._get_dir(path)))
 			except KeyError as e:
 				raise FileNotFoundError(repr(path)) from e
+		def resolve(self, path):
+			is_case_sensitive = PLATFORM == 'Linux'
+			if is_case_sensitive:
+				return path
+			dir_ = os.path.dirname(path)
+			if dir_ == path:
+				# We're at the root of the file system.
+				return path
+			dir_ = self.resolve(dir_)
+			try:
+				dir_contents = self.listdir(dir_)
+			except OSError:
+				matching_names = []
+			else:
+				matching_names = [
+					f for f in dir_contents
+					if f.lower() == os.path.basename(path).lower()
+				]
+			if not matching_names:
+				return path
+			return os.path.join(dir_, matching_names[0])
 		def samefile(self, f1, f2):
 			return self._get_dir(f1) == self._get_dir(f2)
 		def find_folders_starting_with(self, prefix):

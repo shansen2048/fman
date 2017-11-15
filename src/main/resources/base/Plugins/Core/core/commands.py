@@ -15,7 +15,7 @@ from io import BytesIO
 from itertools import chain, islice
 from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
 	islink
-from pathlib import PurePath
+from pathlib import PurePath, Path
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import rmtree
@@ -796,6 +796,8 @@ class SuggestLocations:
 					# consistency, treat DaS like a symlink to \Users:
 					return os.listdir(splitdrive(path)[0] + r'\Users')
 				raise
+		def resolve(self, path):
+			return str(Path(path).resolve())
 		def samefile(self, f1, f2):
 			return os.path.samefile(f1, f2)
 		def find_folders_starting_with(self, pattern, timeout_secs=0.02):
@@ -881,10 +883,10 @@ class SuggestLocations:
 		if isabs(path):
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
 			if self.fs.isdir(path):
-				dir_ = self._realcase(path)
+				dir_ = self.fs.resolve(path)
 				return [self._unexpand_user(dir_)] + get_subdirs(dir_)
 			elif self.fs.isdir(os.path.dirname(path)):
-				return get_subdirs(self._realcase(os.path.dirname(path)))
+				return get_subdirs(self.fs.resolve(os.path.dirname(path)))
 		result = set(self.visited_paths)
 		if len(query) > 2:
 			"""Compensate for directories not yet in self.visited_paths:"""
@@ -924,29 +926,6 @@ class SuggestLocations:
 				file_path = os.path.join(dir_, name)
 				if self.fs.isdir(file_path):
 					yield self._unexpand_user(file_path)
-	def _realcase(self, path):
-		# TODO: Use Path(...).resolve() instead?
-		# NB: `path` must exist!
-		is_case_sensitive = PLATFORM == 'Linux'
-		if is_case_sensitive:
-			return path
-		dir_ = os.path.dirname(path)
-		if dir_ == path:
-			# We're at the root of the file system.
-			return path
-		dir_ = self._realcase(dir_)
-		try:
-			dir_contents = self.fs.listdir(dir_)
-		except OSError:
-			matching_names = []
-		else:
-			matching_names = [
-				f for f in dir_contents
-				if f.lower() == os.path.basename(path).lower()
-			]
-		if not matching_names:
-			return path
-		return os.path.join(dir_, matching_names[0])
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 
