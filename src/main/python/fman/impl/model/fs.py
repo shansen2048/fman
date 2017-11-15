@@ -282,6 +282,13 @@ class ZipFileSystem(FileSystem):
 		zip_path, path_in_zip = self._split(path)
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			self._run_7zip(['d', zip_path, path_in_zip])
+	def getsize(self, path):
+		zip_path, dir_path = self._split(path)
+		for info in self._iter_infos(zip_path, dir_path):
+			if info.path == dir_path:
+				return info.size
+			# Is a directory:
+			return None
 	def _preserve_empty_parent(self, zip_path, path_in_zip):
 		# 7-Zip deletes empty directories that remain after an operation. For
 		# instance, when deleting the last file from a directory, or when moving
@@ -341,8 +348,7 @@ class ZipFileSystem(FileSystem):
 		for file_info in self._iter_infos(zip_path, path_in_zip):
 			yield file_info.path
 	def _iter_infos(self, zip_path, path_in_zip):
-		# Raise FileNotFoundError if zip_path does not exist:
-		os.stat(zip_path)
+		self._raise_filenotfounderror_if_not_exists(zip_path)
 		args = ['l', '-ba', '-slt', zip_path]
 		if path_in_zip:
 			args.append(path_in_zip)
@@ -356,6 +362,8 @@ class ZipFileSystem(FileSystem):
 				file_info = self._read_file_info(process.stdout)
 		finally:
 			self._close_7zip(process, terminate=True)
+	def _raise_filenotfounderror_if_not_exists(self, zip_path):
+		os.stat(zip_path)
 	def _start_7zip(self, args, **kwargs):
 		return Popen(
 			[self._7ZIP] + args,
@@ -376,21 +384,23 @@ class ZipFileSystem(FileSystem):
 		process = self._start_7zip(args, **kwargs)
 		self._close_7zip(process)
 	def _read_file_info(self, stdout):
-		path = None
+		path = size = None
 		is_dir = False
 		for line in stdout:
 			line = line.rstrip('\n')
+			if not line:
+				break
 			if line.startswith('Path = '):
 				path = line[len('Path = '):].replace(os.sep, '/')
 			elif line.startswith('Folder = '):
 				folder = line[len('Folder = '):]
 				is_dir = folder == '+'
-			elif not line:
-				break
+			elif line.startswith('Size = '):
+				size = int(line[len('Size = '):])
 		if path:
-			return ZipInfo(path, is_dir)
+			return ZipInfo(path, is_dir, size)
 
-ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir'))
+ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir', 'size'))
 
 class Column:
 	def get_str(cls, url):

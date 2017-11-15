@@ -50,10 +50,7 @@ class ZipFileSystemTest(TestCase):
 	def test_extract_entire_zip(self):
 		self._test_extract_dir('')
 	def _test_extract_dir(self, path_in_zip):
-		expected_files = self._get_zip_contents()
-		if path_in_zip:
-			for part in path_in_zip.split('/'):
-				expected_files = expected_files[part]
+		expected_files = self._get_zip_contents(path_in_zip=path_in_zip)
 		with TemporaryDirectory() as tmp_dir:
 			# Create a subdirectory because the destination directory of a copy
 			# operation must not yet exist:
@@ -66,16 +63,13 @@ class ZipFileSystemTest(TestCase):
 		self._test_extract_dir('ZipFileTest/Empty directory')
 	def test_extract_file(self):
 		with TemporaryDirectory() as tmp_dir:
-			self._fs.copy(
-				self._url('ZipFileTest/file.txt'),
-				join(as_url(tmp_dir), 'file.txt')
-			)
+			file_path = 'ZipFileTest/file.txt'
+			dest_path = os.path.join(tmp_dir, 'file.txt')
+			self._fs.copy(self._url(file_path), as_url(dest_path))
 			self.assertEqual(['file.txt'], listdir(tmp_dir))
-			with open(os.path.join(tmp_dir, 'file.txt')) as f:
-				self.assertEqual(
-					self._get_zip_contents()['ZipFileTest']['file.txt'],
-					f.read()
-				)
+			expected_contents = self._get_zip_contents(path_in_zip=file_path)
+			with open(dest_path) as f:
+				self.assertEqual(expected_contents, f.read())
 	def test_extract_nonexistent(self):
 		with self.assertRaises(FileNotFoundError):
 			with TemporaryDirectory() as tmp_dir:
@@ -203,27 +197,26 @@ class ZipFileSystemTest(TestCase):
 			expected_zip_contents['test_dest.txt'] = 'success!'
 			self.assertEqual(expected_zip_contents, self._get_zip_contents())
 	def test_rename_directory(self):
-		expected_zip_contents = self._get_zip_contents()
-		expected_zip_contents['Destination'] = \
-			expected_zip_contents['ZipFileTest'].pop('Directory')
-		self._fs.move(
-			self._url('ZipFileTest/Directory'), self._url('Destination')
-		)
-		self.assertEqual(expected_zip_contents, self._get_zip_contents())
+		expected_contents = self._get_zip_contents()
+		file_path = 'ZipFileTest/Directory'
+		expected_contents['Destination'] = \
+			self._pop_from_dir_dict(expected_contents, file_path)
+		self._fs.move(self._url(file_path), self._url('Destination'))
+		self.assertEqual(expected_contents, self._get_zip_contents())
 	def test_rename_file(self):
-		expected_zip_contents = self._get_zip_contents()
+		expected_contents = self._get_zip_contents()
 		src_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
-		expected_zip_contents['ZipFileTest']['Directory']['destination.txt'] = \
-			self._pop_from_dir_dict(expected_zip_contents, src_path)
+		expected_contents['ZipFileTest']['Directory']['destination.txt'] = \
+			self._pop_from_dir_dict(expected_contents, src_path)
 		self._fs.move(
 			self._url(src_path),
 			self._url('ZipFileTest/Directory/destination.txt')
 		)
-		self.assertEqual(expected_zip_contents, self._get_zip_contents())
+		self.assertEqual(expected_contents, self._get_zip_contents())
 	def test_move_file_between_archives(self):
 		src_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
-		expected_zip_contents = self._get_zip_contents()
-		src_contents = self._pop_from_dir_dict(expected_zip_contents, src_path)
+		expected_contents = self._get_zip_contents()
+		src_contents = self._pop_from_dir_dict(expected_contents, src_path)
 		with TemporaryDirectory() as dst_dir:
 			dst_zip = os.path.join(dst_dir, 'dest.zip')
 			# Give the Zip file some contents:
@@ -236,11 +229,29 @@ class ZipFileSystemTest(TestCase):
 			self._fs.move(
 				self._url(src_path), join(as_url(dst_zip, 'zip://'), 'dest.txt')
 			)
-			self.assertEqual(expected_zip_contents, self._get_zip_contents())
+			self.assertEqual(expected_contents, self._get_zip_contents())
 			self.assertEqual(
 				{'dummy.txt': dummy_contents, 'dest.txt': src_contents},
 				self._get_zip_contents(dst_zip)
 			)
+	def test_getsize_file(self):
+		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
+		file_contents = self._get_zip_contents(path_in_zip=file_path)
+		self.assertEqual(
+			len(file_contents), self._fs.getsize(self._path(file_path))
+		)
+	def test_getsize_dir(self):
+		self.assertIsNone(
+			self._fs.getsize(self._path('ZipFileTest/Directory/Subdirectory'))
+		)
+	def test_getsize_root(self):
+		self.assertIsNone(self._fs.getsize(self._path('')))
+	def test_getsize_nonexistent_zip(self):
+		with self.assertRaises(FileNotFoundError):
+			self._fs.getsize('nonexistent')
+	def test_getsize_nonexistent_path_in_zip(self):
+		with self.assertRaises(FileNotFoundError):
+			self._fs.getsize(self._path('nonexistent'))
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))
@@ -250,18 +261,25 @@ class ZipFileSystemTest(TestCase):
 		return self._zip.replace(os.sep, '/') + \
 			   ('/' if path_in_zip else '') + \
 			   path_in_zip
-	def _get_zip_contents(self, zip_path=None):
+	def _get_zip_contents(self, zip_path=None, path_in_zip=None):
 		if zip_path is None:
 			zip_path = self._zip
 		with TemporaryDirectory() as tmp_dir:
 			with ZipFile(zip_path) as zip_file:
 				zip_file.extractall(tmp_dir)
-			return self._read_directory(tmp_dir)
+			zip_contents = self._read_directory(tmp_dir)
+			return self._get_from_dir_dict(zip_contents, path_in_zip)
 	def _pop_from_dir_dict(self, dir_dict, path):
 		parts = path.split('/')
 		for part in parts[:-1]:
 			dir_dict = dir_dict[part]
 		return dir_dict.pop(parts[-1])
+	def _get_from_dir_dict(self, dir_dict, path):
+		if not path:
+			return dir_dict
+		for part in path.split('/'):
+			dir_dict = dir_dict[part]
+		return dir_dict
 	def _read_directory(self, dir_path):
 		result = {}
 		for child in Path(dir_path).iterdir():
