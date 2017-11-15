@@ -58,7 +58,7 @@ class FileSystem:
 		a directory that does not yet exist, should raise a FileNotFoundError.
 		"""
 		raise NotImplementedError()
-	def getsize(self, path):
+	def get_size_bytes(self, path):
 		return None
 	def getmtime(self, path):
 		return None
@@ -93,7 +93,7 @@ class DefaultFileSystem(FileSystem):
 			yield entry.name
 	def is_dir(self, path):
 		return isdir(path)
-	def getsize(self, path):
+	def get_size_bytes(self, path):
 		return getsize(path)
 	def getmtime(self, path):
 		return datetime.fromtimestamp(getmtime(path))
@@ -287,11 +287,11 @@ class ZipFileSystem(FileSystem):
 		zip_path, path_in_zip = self._split(path)
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			self._run_7zip(['d', zip_path, path_in_zip])
-	def getsize(self, path):
+	def get_size_bytes(self, path):
 		zip_path, dir_path = self._split(path)
 		for info in self._iter_infos(zip_path, dir_path):
 			if info.path == dir_path:
-				return info.size
+				return info.size_bytes
 			# Is a directory:
 			return None
 	def getmtime(self, path):
@@ -416,7 +416,7 @@ class ZipFileSystem(FileSystem):
 		if path:
 			return ZipInfo(path, is_dir, size, mtime)
 
-ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir', 'size', 'mtime'))
+ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir', 'size_bytes', 'mtime'))
 
 class Column:
 	def get_str(cls, url):
@@ -460,7 +460,7 @@ class SizeColumn(Column):
 	def get_str(self, url):
 		if self._fs.is_dir(url):
 			return ''
-		size_bytes = self._fs.getsize(url)
+		size_bytes = self._fs.get_size_bytes(url)
 		if size_bytes is None:
 			return ''
 		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
@@ -477,7 +477,7 @@ class SizeColumn(Column):
 			ord_ = ord if is_ascending else lambda c: -ord(c)
 			minor = tuple(ord_(c) for c in basename(url).lower())
 		else:
-			minor = self._fs.getsize(url)
+			minor = self._fs.get_size_bytes(url)
 		return is_dir ^ is_ascending, minor
 
 class LastModifiedColumn(Column):

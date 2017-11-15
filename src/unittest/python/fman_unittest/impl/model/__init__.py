@@ -18,7 +18,7 @@ class StubFileSystem(FileSystem):
 			return self._items[path]['is_dir']
 		except KeyError:
 			return False
-	def getsize(self, path):
+	def get_size_bytes(self, path):
 		return self._items[path].get('size', 1)
 	def getmtime(self, path):
 		return self._items[path].get('mtime', 1473339041.0)
