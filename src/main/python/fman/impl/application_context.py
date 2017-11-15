@@ -140,7 +140,7 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(
-				self.app, self.help_menu_actions, self.theme, self.fs
+				self.app, self.help_menu_actions, self.theme, self.mother_fs
 			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
@@ -190,10 +190,10 @@ class ApplicationContext:
 	def builtin_plugin(self):
 		return BuiltinPlugin(
 			self.tutorial, self.plugin_error_handler, self.command_callback,
-			self.key_bindings, self.fs
+			self.key_bindings, self.mother_fs
 		)
 	@cached_property
-	def fs(self):
+	def mother_fs(self):
 		# Resolve the cyclic dependency MotherFileSystem <-> IconProvider:
 		result = MotherFileSystem(None)
 		result._icon_provider = self._get_icon_provider(result)
@@ -232,7 +232,7 @@ class ApplicationContext:
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_error_handler, self.command_callback, self.key_bindings,
-			self.fs, self.config, self.theme, self.font_database,
+			self.mother_fs, self.config, self.theme, self.font_database,
 			self.builtin_plugin
 		)
 	@cached_property
@@ -329,7 +329,7 @@ class ApplicationContext:
 	def session_manager(self):
 		settings = Settings(self._get_local_data_file('Session.json'))
 		return SessionManager(
-			settings, self.fs, self.fman_version, self.is_licensed
+			settings, self.mother_fs, self.fman_version, self.is_licensed
 		)
 	@cached_property
 	def theme(self):
