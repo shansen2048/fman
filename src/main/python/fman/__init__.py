@@ -100,10 +100,10 @@ class DirectoryPane:
 		self._widget.place_cursor_at(file_url)
 	# TODO: Rename to get_location()
 	def get_path(self):
-		return self._widget.get_path()
+		return self._widget.get_location()
 	# TODO: Rename to set_location(...)
 	def set_path(self, dir_url, callback=None):
-		self._widget.set_path(dir_url, callback)
+		self._widget.set_location(dir_url, callback)
 	def edit_name(self, file_url):
 		self._widget.edit_name(file_url)
 	def select_all(self):

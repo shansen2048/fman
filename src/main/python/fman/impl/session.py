@@ -43,9 +43,9 @@ class SessionManager:
 				path = pane_info.get('location', expanduser('~'))
 			url = path if '://' in path else as_url(path)
 			if self._fs.is_dir(url):
-				pane.set_path(url)
+				pane.set_location(url)
 			elif self._fs.exists(url):
-				pane.set_path(
+				pane.set_location(
 					dirname(url),
 					callback=lambda pane=pane, url=url: \
 						pane.place_cursor_at(url)
@@ -53,7 +53,7 @@ class SessionManager:
 			else:
 				url = get_existing_pardir(url, self._fs.is_dir) \
 					  or as_url(expanduser('~'))
-				pane.set_path(url)
+				pane.set_location(url)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
 	def _restore_window_geometry(self, main_window):
@@ -83,7 +83,7 @@ class SessionManager:
 			pass
 	def _read_pane_settings(self, pane):
 		return {
-			'location': pane.get_path(),
+			'location': pane.get_location(),
 			'col_widths': pane.get_column_widths()
 		}
 

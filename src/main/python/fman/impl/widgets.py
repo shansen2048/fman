@@ -93,11 +93,11 @@ class DirectoryPane(QWidget):
 	def get_file_under_cursor(self):
 		return self._file_view.get_file_under_cursor()
 	@run_in_main_thread
-	def get_path(self):
+	def get_location(self):
 		return self._model.location()
 	@run_in_main_thread
-	def set_path(self, path, callback=None):
-		index = self._model_sorted.set_location(path, callback)
+	def set_location(self, url, callback=None):
+		index = self._model_sorted.set_location(url, callback)
 		self._file_view.setRootIndex(index)
 	@run_in_main_thread
 	def place_cursor_at(self, file_path):
