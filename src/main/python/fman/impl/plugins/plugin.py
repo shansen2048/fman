@@ -1,5 +1,5 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
-from fman.fs import FileSystem
+from fman.fs import FileSystem, Column
 from fman.impl.util import listdir_absolute
 from glob import glob
 from importlib.machinery import SourceFileLoader
@@ -68,6 +68,8 @@ class Plugin:
 		file_system = self._instantiate_file_system(cls)
 		if file_system:
 			self._mother_fs.add_child(file_system)
+	def _register_column(self, cls):
+		self._mother_fs.register_column(cls.__name__, cls())
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -154,6 +156,8 @@ class ExternalPlugin(Plugin):
 					self._register_directory_pane_listener(cls)
 				elif FileSystem in superclasses:
 					self._register_file_system(cls)
+				elif Column in superclasses:
+					self._register_column(cls)
 		self._load_key_bindings()
 	def unload(self):
 		self._key_bindings.unload(self._loaded_key_bindings)

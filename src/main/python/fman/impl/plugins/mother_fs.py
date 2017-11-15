@@ -13,10 +13,17 @@ class MotherFileSystem:
 		self.file_removed = Event()
 		self._children = {}
 		self._icon_provider = icon_provider
+		self._columns = {}
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
 	def add_child(self, file_system):
 		self._children[file_system.scheme] = file_system
+	def register_column(self, column_name, column):
+		self._columns[column_name] = column
+	def get_columns(self, url):
+		scheme, path = splitscheme(url)
+		column_names = self._children[scheme].get_default_columns(path)
+		return tuple(self._columns[name] for name in column_names)
 	def exists(self, url):
 		return self._query(url, 'exists')
 	def iterdir(self, url):

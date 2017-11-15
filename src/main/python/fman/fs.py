@@ -48,6 +48,8 @@ class FileSystem:
 	def __init__(self):
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
+	def get_default_columns(self, path):
+		raise NotImplementedError()
 	def iterdir(self, path):
 		raise NotImplementedError()
 	def resolve(self, path):

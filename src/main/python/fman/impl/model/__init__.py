@@ -127,9 +127,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._location_loaded = False
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
-		# TODO: Inject these columns automatically. Don't import core here!!
-		from core.fs import NameColumn, SizeColumn, LastModifiedColumn
-		self._columns = (NameColumn(), SizeColumn(), LastModifiedColumn())
+		self._columns = ()
 		self._file_watcher = FileWatcher(fs, self._on_file_changed)
 		self._connect_signals()
 	def _connect_signals(self):
@@ -189,19 +187,20 @@ class FileSystemModel(DragAndDropMixin):
 			callback()
 		else:
 			self._file_watcher.clear()
-			self._location = url
-			self._location_loaded = False
-			self.location_changed.emit(url)
-			self._clear_rows()
+			self._prepare_new_location(url)
 			if is_in_main_thread():
 				self._execute_async(self._load_rows, url, callback)
 			else:
 				self._load_rows(url, callback)
 		return QModelIndex()
 	@run_in_main_thread
-	def _clear_rows(self):
+	def _prepare_new_location(self, url):
+		self._location = url
+		self._location_loaded = False
+		self.location_changed.emit(url)
 		self.beginResetModel()
 		self._rows = []
+		self._columns = self._fs.get_columns(url)
 		self.endResetModel()
 	def url(self, index):
 		if not self._index_is_valid(index):
