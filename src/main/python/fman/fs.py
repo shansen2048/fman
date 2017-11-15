@@ -16,8 +16,8 @@ def is_dir(url):
 def get_size_bytes(url):
 	return _get_fs().get_size_bytes(url)
 
-def getmtime(url):
-	return _get_fs().getmtime(url)
+def get_modified_datetime(url):
+	return _get_fs().get_modified_datetime(url)
 
 def move(old_url, new_url):
 	_get_fs().move(old_url, new_url)

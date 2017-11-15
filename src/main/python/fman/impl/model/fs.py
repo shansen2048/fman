@@ -60,7 +60,7 @@ class FileSystem:
 		raise NotImplementedError()
 	def get_size_bytes(self, path):
 		return None
-	def getmtime(self, path):
+	def get_modified_datetime(self, path):
 		return None
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
@@ -95,7 +95,7 @@ class DefaultFileSystem(FileSystem):
 		return isdir(path)
 	def get_size_bytes(self, path):
 		return getsize(path)
-	def getmtime(self, path):
+	def get_modified_datetime(self, path):
 		return datetime.fromtimestamp(getmtime(path))
 	def touch(self, path):
 		Path(path).touch()
@@ -294,7 +294,7 @@ class ZipFileSystem(FileSystem):
 				return info.size_bytes
 			# Is a directory:
 			return None
-	def getmtime(self, path):
+	def get_modified_datetime(self, path):
 		zip_path, dir_path = self._split(path)
 		for info in self._iter_infos(zip_path, dir_path):
 			if info.path == dir_path:
@@ -489,7 +489,7 @@ class LastModifiedColumn(Column):
 		self._fs = fs
 	def get_str(self, url):
 		try:
-			mtime = self._fs.getmtime(url)
+			mtime = self._fs.get_modified_datetime(url)
 		except OSError:
 			return ''
 		if mtime is None:
@@ -497,4 +497,4 @@ class LastModifiedColumn(Column):
 		return mtime.strftime('%Y-%m-%d %H:%M')
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.is_dir(url)
-		return is_dir ^ is_ascending, self._fs.getmtime(url)
+		return is_dir ^ is_ascending, self._fs.get_modified_datetime(url)
