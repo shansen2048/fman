@@ -12,7 +12,7 @@ from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
 
-class DefaultFileSystem(FileSystem):
+class LocalFileSystem(FileSystem):
 
 	scheme = 'file://'
 

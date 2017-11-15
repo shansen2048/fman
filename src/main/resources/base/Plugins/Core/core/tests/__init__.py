@@ -1,4 +1,4 @@
-from core import DefaultFileSystem
+from core import LocalFileSystem
 from fman.url import splitscheme
 
 class StubUI:
@@ -38,7 +38,7 @@ class StubUI:
 
 class StubFS:
 	def __init__(self):
-		self._impl = DefaultFileSystem()
+		self._impl = LocalFileSystem()
 	def is_dir(self, url):
 		return self._impl.is_dir(self._as_path(url))
 	def exists(self, url):
