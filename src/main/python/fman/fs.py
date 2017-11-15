@@ -1,3 +1,7 @@
+from fman.impl.util.path import parent
+from fman.impl.util.url import resolve
+from threading import Lock
+
 def exists(url):
 	return _get_fs().exists(url)
 
@@ -36,6 +40,61 @@ def copy(src, dst):
 
 def iterdir(url):
 	return _get_fs().iterdir(url)
+
+class FileSystem:
+
+	scheme = ''
+
+	def __init__(self):
+		self._file_changed_callbacks = {}
+		self._file_changed_callbacks_lock = Lock()
+	def iterdir(self, path):
+		raise NotImplementedError()
+	def resolve(self, path):
+		return resolve(self.scheme + path)
+	def watch(self, path):
+		pass
+	def unwatch(self, path):
+		pass
+	def notify_file_changed(self, path):
+		for callback in self._file_changed_callbacks.get(path, []):
+			callback(self.scheme + path)
+	def samefile(self, f1, f2):
+		return self.resolve(f1) == self.resolve(f2)
+	def makedirs(self, path, exist_ok=True):
+		# Copied / adapted from pathlib.Path#mkdir(...).
+		try:
+			self.mkdir(path)
+		except FileExistsError:
+			if not exist_ok or not self.is_dir(path):
+				raise
+		except FileNotFoundError:
+			self.makedirs(parent(path))
+			self.mkdir(path)
+	def mkdir(self, path):
+		"""
+		Should raise FileExistsError if `path` already exists. If `path` is in
+		a directory that does not yet exist, should raise a FileNotFoundError.
+		"""
+		raise NotImplementedError()
+	def get_size_bytes(self, path):
+		return None
+	def get_modified_datetime(self, path):
+		return None
+	def _add_file_changed_callback(self, path, callback):
+		with self._file_changed_callbacks_lock:
+			try:
+				self._file_changed_callbacks[path].append(callback)
+			except KeyError:
+				self._file_changed_callbacks[path] = [callback]
+				self.watch(path)
+	def _remove_file_changed_callback(self, path, callback):
+		with self._file_changed_callbacks_lock:
+			path_callbacks = self._file_changed_callbacks[path]
+			path_callbacks.remove(callback)
+			if not path_callbacks:
+				del self._file_changed_callbacks[path]
+				self.unwatch(path)
 
 def _get_fs():
 	from fman.impl.application_context import get_application_context

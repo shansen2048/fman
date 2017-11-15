@@ -2,11 +2,10 @@ from collections import namedtuple
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
-from fman.fs import delete
-from fman.impl.util.url import resolve
-from fman.url import as_url, splitscheme
+from fman.fs import delete, FileSystem
 from fman.impl.trash import move_to_trash
-from fman.impl.util.path import add_backslash_to_drive_if_missing, parent
+from fman.impl.util.path import add_backslash_to_drive_if_missing
+from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from math import log
 from os import remove
@@ -16,66 +15,10 @@ from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
 from subprocess import Popen, PIPE, DEVNULL, CalledProcessError
 from tempfile import TemporaryDirectory
-from threading import Lock
 
 import fman.fs
 import os
 import re
-
-class FileSystem:
-
-	scheme = ''
-
-	def __init__(self):
-		self._file_changed_callbacks = {}
-		self._file_changed_callbacks_lock = Lock()
-	def iterdir(self, path):
-		raise NotImplementedError()
-	def resolve(self, path):
-		return resolve(self.scheme + path)
-	def watch(self, path):
-		pass
-	def unwatch(self, path):
-		pass
-	def notify_file_changed(self, path):
-		for callback in self._file_changed_callbacks.get(path, []):
-			callback(self.scheme + path)
-	def samefile(self, f1, f2):
-		return self.resolve(f1) == self.resolve(f2)
-	def makedirs(self, path, exist_ok=True):
-		# Copied / adapted from pathlib.Path#mkdir(...).
-		try:
-			self.mkdir(path)
-		except FileExistsError:
-			if not exist_ok or not self.is_dir(path):
-				raise
-		except FileNotFoundError:
-			self.makedirs(parent(path))
-			self.mkdir(path)
-	def mkdir(self, path):
-		"""
-		Should raise FileExistsError if `path` already exists. If `path` is in
-		a directory that does not yet exist, should raise a FileNotFoundError.
-		"""
-		raise NotImplementedError()
-	def get_size_bytes(self, path):
-		return None
-	def get_modified_datetime(self, path):
-		return None
-	def _add_file_changed_callback(self, path, callback):
-		with self._file_changed_callbacks_lock:
-			try:
-				self._file_changed_callbacks[path].append(callback)
-			except KeyError:
-				self._file_changed_callbacks[path] = [callback]
-				self.watch(path)
-	def _remove_file_changed_callback(self, path, callback):
-		with self._file_changed_callbacks_lock:
-			path_callbacks = self._file_changed_callbacks[path]
-			path_callbacks.remove(callback)
-			if not path_callbacks:
-				del self._file_changed_callbacks[path]
-				self.unwatch(path)
 
 class DefaultFileSystem(FileSystem):
 

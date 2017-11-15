@@ -1,4 +1,4 @@
-from fman.impl.model.fs import FileSystem
+from fman.fs import FileSystem
 from fman.url import splitscheme
 from io import UnsupportedOperation
 
