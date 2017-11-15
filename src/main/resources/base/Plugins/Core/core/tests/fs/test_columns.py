@@ -1,4 +1,4 @@
-from fman.impl.model import NameColumn, SizeColumn, LastModifiedColumn
+from core.fs import NameColumn, SizeColumn, LastModifiedColumn
 from fman_unittest.impl.model import StubFileSystem
 from unittest import TestCase
 

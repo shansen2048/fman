@@ -1,12 +1,11 @@
 from core.fileoperations import CopyFiles, MoveFiles
-from core.tests import StubUI
+from core.tests import StubUI, StubFS
 from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, PLATFORM
 from fman.url import join, dirname, as_url, as_human_readable
 from os.path import exists
 from tempfile import TemporaryDirectory
 from unittest import TestCase, skipIf
 
-import fman.fs
 import os
 import os.path
 import stat
@@ -159,7 +158,7 @@ class FileTreeOperationAT:
 		symlink_dest = join(self.dest, 'symlink')
 		self.assertTrue(self._islink(symlink_dest))
 		symlink_dest_source = self._readlink(symlink_dest)
-		self.assertTrue(fman.fs.samefile(symlink_source, symlink_dest_source))
+		self.assertTrue(self._fs.samefile(symlink_source, symlink_dest_source))
 		return symlink
 	def test_dest_name(self, src_equals_dest=False, preserves_files=True):
 		src_dir = self.dest if src_equals_dest else self.src
@@ -204,6 +203,7 @@ class FileTreeOperationAT:
 		self._assert_file_contents_equal(join(subdir, 'test.txt'), '1234')
 	def setUp(self):
 		super().setUp()
+		self._fs = StubFS()
 		self.ui = StubUI(self)
 		self._tmp_dir = TemporaryDirectory()
 		self._root = as_url(self._tmp_dir.name)
@@ -222,21 +222,23 @@ class FileTreeOperationAT:
 	def _perform_on(self, *files, dest_dir=None, dest_name=None):
 		if dest_dir is None:
 			dest_dir = self.dest
-		self.operation(self.ui, files, dest_dir, self.src, dest_name)()
+		self.operation(
+			self.ui, files, dest_dir, self.src, dest_name, self._fs
+		)()
 		self.ui.verify_expected_dialogs_were_shown()
 	def _assert_file_contents_equal(self, url, expected_contents):
 		with self._open(url, 'r') as f:
 			self.assertEqual(expected_contents, f.read())
 	def _touch(self, file_url, contents=None):
 		self._makedirs(dirname(file_url), exist_ok=True)
-		fman.fs.touch(file_url)
+		self._fs.touch(file_url)
 		if contents is not None:
 			with self._open(file_url, 'w') as f:
 				f.write(contents)
 	def _mkdir(self, dir_url):
-		fman.fs.mkdir(dir_url)
+		self._fs.mkdir(dir_url)
 	def _makedirs(self, dir_url, exist_ok=False):
-		fman.fs.makedirs(dir_url, exist_ok=exist_ok)
+		self._fs.makedirs(dir_url, exist_ok=exist_ok)
 	def _open(self, file_url, mode):
 		return open(as_human_readable(file_url), mode)
 	def _stat(self, file_url):
@@ -254,7 +256,7 @@ class FileTreeOperationAT:
 	def _expect_files(self, files, in_dir=None):
 		if in_dir is None:
 			in_dir = self.dest
-		self.assertEqual(files, set(fman.fs.iterdir(in_dir)))
+		self.assertEqual(files, set(self._fs.iterdir(in_dir)))
 
 try:
 	from os import geteuid
@@ -274,11 +276,11 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 		# chown the file as a different user, but then the test would require
 		# root privileges. So keep it here only for now.
 		dir_ = join(self.src, 'dir')
-		fman.fs.makedirs(dir_)
+		self._fs.makedirs(dir_)
 		src_file = join(dir_, 'foo.txt')
 		self._touch(src_file, 'dstn')
 		dest_dir = join(self.dest, 'dir')
-		fman.fs.makedirs(dest_dir)
+		self._fs.makedirs(dest_dir)
 		locked_dest_file = join(dest_dir, 'foo.txt')
 		self._touch(locked_dest_file)
 		self._chmod(locked_dest_file, 0o444)
@@ -350,7 +352,7 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		)
 		self._perform_on(src_dir)
 		self.assertTrue(
-			fman.fs.exists(src_file),
+			self._fs.exists(src_file),
 			"Source file was skipped and should not have been deleted."
 		)
 		self._assert_file_contents_equal(src_file, 'src contents')

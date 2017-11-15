@@ -2,132 +2,30 @@ from collections import namedtuple
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
-from fman.fs import delete, FileSystem, Column
-from fman.impl.trash import move_to_trash
-from fman.impl.util.path import add_backslash_to_drive_if_missing
+from fman.fs import FileSystem
 from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
-from math import log
-from os import remove
-from os.path import isdir, getsize, getmtime, basename, samefile, join, dirname
-from pathlib import Path, PurePosixPath
-from PyQt5.QtCore import QFileSystemWatcher
-from shutil import rmtree, copytree, move, copyfile, copystat
+from os.path import join, dirname
+from pathlib import PurePosixPath, Path
 from subprocess import Popen, PIPE, DEVNULL, CalledProcessError
 from tempfile import TemporaryDirectory
 
 import fman.fs
 import os
-import re
 
-class DefaultFileSystem(FileSystem):
-
-	scheme = 'file://'
-
-	def __init__(self):
-		super().__init__()
-		self._watcher = QFileSystemWatcher()
-		self._watcher.directoryChanged.connect(self.notify_file_changed)
-		self._watcher.fileChanged.connect(self.notify_file_changed)
-	def exists(self, path):
-		return Path(path).exists()
-	def iterdir(self, path):
-		for entry in Path(path).iterdir():
-			yield entry.name
-	def is_dir(self, path):
-		return isdir(path)
-	def get_size_bytes(self, path):
-		return getsize(path)
-	def get_modified_datetime(self, path):
-		return datetime.fromtimestamp(getmtime(path))
-	def touch(self, path):
-		Path(path).touch()
-	def mkdir(self, path):
-		try:
-			Path(path).mkdir()
-		except FileNotFoundError:
-			raise
-		except OSError as e:
-			if e.errno == ENOENT:
-				raise FileNotFoundError(path) from e
-			else:
-				raise
-	def move(self, src_url, dst_url):
-		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
-		move(src_path, dst_path)
-	def move_to_trash(self, file_path):
-		move_to_trash(file_path)
-	def delete(self, path):
-		if self.is_dir(path):
-			rmtree(path)
-		else:
-			remove(path)
-	def resolve(self, path):
-		# Unlike other functions, Path#resolve can't handle C: instead of C:\
-		path = add_backslash_to_drive_if_missing(path)
-		return as_url(Path(path).resolve())
-	def samefile(self, f1, f2):
-		return samefile(f1, f2)
-	def copy(self, src_url, dst_url):
-		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
-		if self.is_dir(src_path):
-			copytree(src_path, dst_path, symlinks=True)
-		else:
-			copyfile(src_path, dst_path, follow_symlinks=False)
-			copystat(src_path, dst_path, follow_symlinks=False)
-	def watch(self, path):
-		self._watcher.addPath(path)
-	def unwatch(self, path):
-		self._watcher.removePath(path)
-	def _get_src_dst_path(self, src_url, dst_url):
-		src_scheme, src_path = splitscheme(src_url)
-		dst_scheme, dst_path = splitscheme(dst_url)
-		if src_scheme != self.scheme or dst_scheme != self.scheme:
-			raise UnsupportedOperation()
-		return src_path, dst_path
-
-if PLATFORM == 'Windows':
-
-	class DrivesFileSystem(FileSystem):
-
-		scheme = 'drives://'
-
-		def resolve(self, path):
-			if not path:
-				# Showing the list of all drives:
-				return self.scheme
-			if path in self._get_drives():
-				return as_url(path + '\\')
-			raise FileNotFoundError(path)
-		def iterdir(self, path):
-			if path:
-				raise FileNotFoundError(path)
-			return self._get_drives()
-		def is_dir(self, path):
-			return self.exists(path)
-		def exists(self, path):
-			return not path or path in self._get_drives()
-		def _get_drives(self):
-			from ctypes import windll
-			import string
-			result = []
-			bitmask = windll.kernel32.GetLogicalDrives()
-			for letter in string.ascii_uppercase:
-				if bitmask & 1:
-					result.append(letter + ':')
-				bitmask >>= 1
-			return result
+_BIN_DIR = join(dirname(dirname(dirname(__file__))), 'bin', PLATFORM)
 
 class ZipFileSystem(FileSystem):
 
 	scheme = 'zip://'
 
-	if PLATFORM == 'Windows':
-		_7ZIP = join(dirname(__file__), '7za.exe')
-	else:
-		_7ZIP = join(dirname(__file__), '7za')
+	_7ZIP = join(_BIN_DIR, '7za' + ('.exe' if PLATFORM == 'Windows' else ''))
 
 	_7ZIP_WARNING = 1
+
+	def __init__(self, fs=fman.fs):
+		super().__init__()
+		self._fs = fs
 
 	def resolve(self, path):
 		if '.zip' in path:
@@ -208,7 +106,11 @@ class ZipFileSystem(FileSystem):
 					self.delete(src_path)
 		else:
 			self.copy(src_url, dst_url)
-			delete(src_url)
+			src_scheme, src_path = splitscheme(src_url)
+			if src_scheme == 'zip://':
+				self.delete(src_path)
+			else:
+				self._fs.delete(src_url)
 	def mkdir(self, path):
 		if self.exists(path):
 			raise FileExistsError(path)
@@ -357,74 +259,6 @@ class ZipFileSystem(FileSystem):
 				if mtime_str:
 					mtime = datetime.strptime(mtime_str, '%Y-%m-%d %H:%M:%S')
 		if path:
-			return ZipInfo(path, is_dir, size, mtime)
+			return _FileInfo(path, is_dir, size, mtime)
 
-ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir', 'size_bytes', 'mtime'))
-
-class NameColumn(Column):
-
-	name = 'Name'
-
-	def __init__(self, fs=fman.fs):
-		super().__init__()
-		self._fs = fs
-	def get_str(self, url):
-		if re.match('/+', url):
-			return '/'
-		url = url.rstrip('/')
-		try:
-			return url[url.rindex('/')+1:]
-		except ValueError:
-			return url
-	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.is_dir(url)
-		return is_dir ^ is_ascending, basename(url).lower()
-
-class SizeColumn(Column):
-
-	name = 'Size'
-
-	def __init__(self, fs=fman.fs):
-		super().__init__()
-		self._fs = fs
-	def get_str(self, url):
-		if self._fs.is_dir(url):
-			return ''
-		size_bytes = self._fs.get_size_bytes(url)
-		if size_bytes is None:
-			return ''
-		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
-		if size_bytes <= 0:
-			unit_index = 0
-		else:
-			unit_index = min(int(log(size_bytes, 1024)), len(units) - 1)
-		unit = units[unit_index]
-		base = 1024 ** unit_index
-		return unit % (size_bytes / base)
-	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.is_dir(url)
-		if is_dir:
-			ord_ = ord if is_ascending else lambda c: -ord(c)
-			minor = tuple(ord_(c) for c in basename(url).lower())
-		else:
-			minor = self._fs.get_size_bytes(url)
-		return is_dir ^ is_ascending, minor
-
-class LastModifiedColumn(Column):
-
-	name = 'Modified'
-
-	def __init__(self, fs=fman.fs):
-		super().__init__()
-		self._fs = fs
-	def get_str(self, url):
-		try:
-			mtime = self._fs.get_modified_datetime(url)
-		except OSError:
-			return ''
-		if mtime is None:
-			return ''
-		return mtime.strftime('%Y-%m-%d %H:%M')
-	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.is_dir(url)
-		return is_dir ^ is_ascending, self._fs.get_modified_datetime(url)
+_FileInfo = namedtuple('_FileInfo', ('path', 'is_dir', 'size_bytes', 'mtime'))

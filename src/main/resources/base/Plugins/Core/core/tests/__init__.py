@@ -1,3 +1,6 @@
+from core import DefaultFileSystem
+from fman.url import splitscheme
+
 class StubUI:
 	def __init__(self, test_case):
 		self._expected_alerts = []
@@ -32,3 +35,34 @@ class StubUI:
 		pass
 	def clear_status_message(self):
 		pass
+
+class StubFS:
+	def __init__(self):
+		self._impl = DefaultFileSystem()
+	def is_dir(self, url):
+		return self._impl.is_dir(self._as_path(url))
+	def exists(self, url):
+		return self._impl.exists(self._as_path(url))
+	def samefile(self, url1, url2):
+		return self._impl.samefile(self._as_path(url1), self._as_path(url2))
+	def iterdir(self, url):
+		return self._impl.iterdir(self._as_path(url))
+	def makedirs(self, url, exist_ok=False):
+		self._impl.makedirs(self._as_path(url), exist_ok=exist_ok)
+	def copy(self, src_url, dst_url):
+		self._impl.copy(src_url, dst_url)
+	def delete(self, url):
+		self._impl.delete(self._as_path(url))
+	def move(self, src_url, dst_url):
+		self._impl.move(src_url, dst_url)
+	def touch(self, url):
+		self._impl.touch(self._as_path(url))
+	def mkdir(self, url):
+		self._impl.mkdir(self._as_path(url))
+	def _as_path(self, url):
+		scheme, path = splitscheme(url)
+		if scheme != 'file://':
+			raise ValueError(
+				'This stub implementation only supports file:// urls.'
+			)
+		return path

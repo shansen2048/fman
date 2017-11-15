@@ -1,6 +1,7 @@
-from datetime import datetime
 from errno import ENOENT
-from fman.impl.model.fs import ZipFileSystem
+from core.fs.zip import ZipFileSystem
+from core.tests import StubFS
+from datetime import datetime
 from fman.url import as_url, join, as_human_readable, splitscheme
 from fman_integrationtest import get_resource
 from os import listdir
@@ -313,7 +314,7 @@ class ZipFileSystemTest(TestCase):
 		ZipFile(path, 'w').close()
 	def setUp(self):
 		super().setUp()
-		self._fs = ZipFileSystem()
+		self._fs = ZipFileSystem(StubFS())
 		self._tmp_dir = TemporaryDirectory()
 		self._zip = copyfile(
 			get_resource('ZipFileSystemTest.zip'),

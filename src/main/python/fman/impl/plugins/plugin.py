@@ -1,4 +1,5 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
+from fman.fs import FileSystem
 from fman.impl.util import listdir_absolute
 from glob import glob
 from importlib.machinery import SourceFileLoader
@@ -13,10 +14,13 @@ import re
 import sys
 
 class Plugin:
-	def __init__(self, error_handler, command_callback, key_bindings):
+	def __init__(
+		self, error_handler, command_callback, key_bindings, mother_fs
+	):
 		self._error_handler = error_handler
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
+		self._mother_fs = mother_fs
 		self._application_command_instances = {}
 		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
@@ -60,6 +64,10 @@ class Plugin:
 		self._directory_pane_listeners.append(cls)
 	def _unregister_directory_pane_listener(self, cls):
 		self._directory_pane_listeners.remove(cls)
+	def _register_file_system(self, cls):
+		file_system = self._instantiate_file_system(cls)
+		if file_system:
+			self._mother_fs.add_child(file_system)
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -80,6 +88,15 @@ class Plugin:
 			)
 			listener = DirectoryPaneListener(*args, **kwargs)
 		return ListenerWrapper(listener, self._error_handler)
+	def _instantiate_file_system(self, fs_cls):
+		try:
+			instance = fs_cls()
+		except:
+			self._error_handler.report(
+				'Could not instantiate file system %r.' % fs_cls.__name__
+			)
+		else:
+			return FileSystemWrapper(instance, self._error_handler)
 	def __str__(self):
 		return '<%s %r>' % (self.__class__.__name__, self.name)
 
@@ -91,11 +108,8 @@ def _get_command_name(command_class):
 	return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class).lower()
 
 class ExternalPlugin(Plugin):
-	def __init__(
-		self, error_handler, command_callback, key_bindings, path, config,
-		theme, font_database
-	):
-		super().__init__(error_handler, command_callback, key_bindings)
+	def __init__(self, path, config, theme, font_database, *super_args):
+		super().__init__(*super_args)
 		self._path = path
 		self._config = config
 		self._theme = theme
@@ -138,6 +152,8 @@ class ExternalPlugin(Plugin):
 					self._register_directory_pane_command(cls)
 				elif DirectoryPaneListener in superclasses:
 					self._register_directory_pane_listener(cls)
+				elif FileSystem in superclasses:
+					self._register_file_system(cls)
 		self._load_key_bindings()
 	def unload(self):
 		self._key_bindings.unload(self._loaded_key_bindings)
@@ -255,3 +271,10 @@ class ListenerWrapper:
 			'DirectoryPaneListener %r raised error.' %
 			self._listener.__class__.__name__
 		)
+
+class FileSystemWrapper:
+	def __init__(self, file_system, error_handler):
+		self._fs = file_system
+		self._error_handler = error_handler
+	def __getattr__(self, item):
+		return getattr(self._fs, item)

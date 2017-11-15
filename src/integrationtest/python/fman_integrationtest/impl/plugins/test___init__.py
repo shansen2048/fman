@@ -144,8 +144,8 @@ class PluginSupportTest(TestCase):
 		theme = StubTheme()
 		font_db = StubFontDatabase()
 		self.plugin_support = PluginSupport(
-			self.error_handler, self.command_callback, key_bindings, config,
-			theme, font_db
+			self.error_handler, self.command_callback, key_bindings, None,
+			config, theme, font_db
 		)
 		self.plugin_support.load_plugin(self.shipped_plugin)
 		self.plugin_support.load_plugin(self.thirdparty_plugin)

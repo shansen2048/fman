@@ -1,7 +1,6 @@
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from fman.impl.model.diff import ComputeDiff
-from fman.impl.model.fs import NameColumn, SizeColumn, LastModifiedColumn
 from fman.impl.util import is_debug
 from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
@@ -128,6 +127,8 @@ class FileSystemModel(DragAndDropMixin):
 		self._location_loaded = False
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
+		# TODO: Inject these columns automatically. Don't import core here!!
+		from core.fs import NameColumn, SizeColumn, LastModifiedColumn
 		self._columns = (NameColumn(), SizeColumn(), LastModifiedColumn())
 		self._file_watcher = FileWatcher(fs, self._on_file_changed)
 		self._connect_signals()

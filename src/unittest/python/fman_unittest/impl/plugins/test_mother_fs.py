@@ -9,11 +9,11 @@ class MotherFileSystemTest(TestCase):
 		fs = StubFileSystem({
 			'a': {}
 		})
-		cached_fs = MotherFileSystem([fs], None)
-		self.assertTrue(cached_fs.exists('stub://a'))
-		self.assertFalse(cached_fs.exists('stub://b'))
-		cached_fs.touch('stub://b')
-		self.assertTrue(cached_fs.exists('stub://b'))
+		mother_fs = self._create_mother_fs(fs)
+		self.assertTrue(mother_fs.exists('stub://a'))
+		self.assertFalse(mother_fs.exists('stub://b'))
+		mother_fs.touch('stub://b')
+		self.assertTrue(mother_fs.exists('stub://b'))
 	def test_delete_removes_from_pardir_cache(self):
 		fs = StubFileSystem({
 			'a': {
@@ -21,62 +21,66 @@ class MotherFileSystemTest(TestCase):
 			},
 			'a/b': {}
 		})
-		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
-		cached_fs.delete('stub://a/b')
-		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
+		mother_fs = self._create_mother_fs(fs)
+		self.assertEqual(['b'], list(mother_fs.iterdir('stub://a')))
+		mother_fs.delete('stub://a/b')
+		self.assertEqual([], list(mother_fs.iterdir('stub://a')))
 	def test_move_updates_pardir(self):
 		fs = StubFileSystem({
 			'a': { 'is_dir': True , 'files': ['b']},
 			'a/b': {},
 			'c': { 'is_dir': True }
 		})
-		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
-		self.assertEqual([], list(cached_fs.iterdir('stub://c')))
-		cached_fs.move('stub://a/b', 'stub://c/b')
-		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
-		self.assertEqual(['b'], list(cached_fs.iterdir('stub://c')))
+		mother_fs = self._create_mother_fs(fs)
+		self.assertEqual(['b'], list(mother_fs.iterdir('stub://a')))
+		self.assertEqual([], list(mother_fs.iterdir('stub://c')))
+		mother_fs.move('stub://a/b', 'stub://c/b')
+		self.assertEqual([], list(mother_fs.iterdir('stub://a')))
+		self.assertEqual(['b'], list(mother_fs.iterdir('stub://c')))
 	def test_touch(self):
 		fs = StubFileSystem({
 			'a': { 'is_dir': True }
 		})
-		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
-		cached_fs.touch('stub://a/b')
-		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
+		mother_fs = self._create_mother_fs(fs)
+		self.assertEqual([], list(mother_fs.iterdir('stub://a')))
+		mother_fs.touch('stub://a/b')
+		self.assertEqual(['b'], list(mother_fs.iterdir('stub://a')))
 	def test_mkdir(self):
 		fs = StubFileSystem({
 			'a': { 'is_dir': True }
 		})
-		cached_fs = MotherFileSystem([fs], None)
-		self.assertEqual([], list(cached_fs.iterdir('stub://a')))
-		cached_fs.mkdir('stub://a/b')
-		self.assertEqual(['b'], list(cached_fs.iterdir('stub://a')))
+		mother_fs = self._create_mother_fs(fs)
+		self.assertEqual([], list(mother_fs.iterdir('stub://a')))
+		mother_fs.mkdir('stub://a/b')
+		self.assertEqual(['b'], list(mother_fs.iterdir('stub://a')))
 	def test_no_concurrent_is_dir_queries(self):
 		fs = FileSystemCountingIsdirCalls()
-		cached_fs = MotherFileSystem([fs], None)
+		mother_fs = self._create_mother_fs(fs)
 		def _new_thread():
-			return Thread(target=cached_fs.is_dir, args=('fscic://test',))
+			return Thread(target=mother_fs.is_dir, args=('fscic://test',))
 		t1, t2 = _new_thread(), _new_thread()
 		t1.start()
 		t2.start()
 		t1.join()
 		t2.join()
 		self.assertEqual(1, fs.num_is_dir_calls)
-		self.assertEqual({}, cached_fs._cache_locks, 'Likely memory leak!')
+		self.assertEqual({}, mother_fs._cache_locks, 'Likely memory leak!')
 	def test_permission_error(self):
 		fs = FileSystemRaisingError()
-		cached_fs = MotherFileSystem([fs], None)
+		mother_fs = self._create_mother_fs(fs)
 		# Put 'foo' in cache:
-		cached_fs.is_dir('fsre://foo')
+		mother_fs.is_dir('fsre://foo')
 		with self.assertRaises(PermissionError):
-			cached_fs.iterdir('fsre://foo')
+			mother_fs.iterdir('fsre://foo')
 	def test_is_dir_exists_false(self):
 		fs = StubFileSystem({})
-		cached_fs = MotherFileSystem([fs], None)
-		self.assertFalse(cached_fs.is_dir('stub://non-existent'))
-		self.assertFalse(cached_fs.exists('stub://non-existent'))
+		mother_fs = self._create_mother_fs(fs)
+		self.assertFalse(mother_fs.is_dir('stub://non-existent'))
+		self.assertFalse(mother_fs.exists('stub://non-existent'))
+	def _create_mother_fs(self, fs):
+		result = MotherFileSystem(None)
+		result.add_child(fs)
+		return result
 
 class FileSystemCountingIsdirCalls:
 

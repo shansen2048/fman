@@ -23,8 +23,8 @@ def get_size_bytes(url):
 def get_modified_datetime(url):
 	return _get_fs().get_modified_datetime(url)
 
-def move(old_url, new_url):
-	_get_fs().move(old_url, new_url)
+def move(src_url, dst_url):
+	_get_fs().move(src_url, dst_url)
 
 def move_to_trash(url):
 	_get_fs().move_to_trash(url)
@@ -32,11 +32,11 @@ def move_to_trash(url):
 def delete(url):
 	_get_fs().delete(url)
 
-def samefile(url_1, url_2):
-	return _get_fs().samefile(url_1, url_2)
+def samefile(url1, url2):
+	return _get_fs().samefile(url1, url2)
 
-def copy(src, dst):
-	_get_fs().copy(src, dst)
+def copy(src_url, dst_url):
+	_get_fs().copy(src_url, dst_url)
 
 def iterdir(url):
 	return _get_fs().iterdir(url)
@@ -59,8 +59,8 @@ class FileSystem:
 	def notify_file_changed(self, path):
 		for callback in self._file_changed_callbacks.get(path, []):
 			callback(self.scheme + path)
-	def samefile(self, f1, f2):
-		return self.resolve(f1) == self.resolve(f2)
+	def samefile(self, path1, path2):
+		return self.resolve(path1) == self.resolve(path2)
 	def makedirs(self, path, exist_ok=True):
 		# Copied / adapted from pathlib.Path#mkdir(...).
 		try:

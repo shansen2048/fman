@@ -9,7 +9,6 @@ from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 	GnomeNotAvailable, IconProvider
-from fman.impl.model.fs import DefaultFileSystem, ZipFileSystem
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
@@ -190,17 +189,13 @@ class ApplicationContext:
 	@cached_property
 	def builtin_plugin(self):
 		return BuiltinPlugin(
-			self.plugin_error_handler, self.command_callback,
-			self.key_bindings, self.tutorial
+			self.tutorial, self.plugin_error_handler, self.command_callback,
+			self.key_bindings, self.fs
 		)
 	@cached_property
 	def fs(self):
-		file_systems = [DefaultFileSystem(), ZipFileSystem()]
-		if PLATFORM == 'Windows':
-			from fman.impl.model.fs import DrivesFileSystem
-			file_systems.append(DrivesFileSystem())
 		# Resolve the cyclic dependency MotherFileSystem <-> IconProvider:
-		result = MotherFileSystem(file_systems, None)
+		result = MotherFileSystem(None)
 		result._icon_provider = self._get_icon_provider(result)
 		return result
 	def _get_icon_provider(self, fs):
@@ -237,7 +232,8 @@ class ApplicationContext:
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_error_handler, self.command_callback, self.key_bindings,
-			self.config, self.theme, self.font_database, self.builtin_plugin
+			self.fs, self.config, self.theme, self.font_database,
+			self.builtin_plugin
 		)
 	@cached_property
 	def plugin_error_handler(self):

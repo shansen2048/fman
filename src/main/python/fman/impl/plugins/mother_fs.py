@@ -6,15 +6,17 @@ from threading import Lock
 from weakref import WeakValueDictionary
 
 class MotherFileSystem:
-	def __init__(self, children, icon_provider):
+	def __init__(self, icon_provider):
 		super().__init__()
 		self.file_added = Event()
 		self.file_moved = Event()
 		self.file_removed = Event()
-		self._children = {child.scheme: child for child in children}
+		self._children = {}
 		self._icon_provider = icon_provider
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
+	def add_child(self, file_system):
+		self._children[file_system.scheme] = file_system
 	def exists(self, url):
 		return self._query(url, 'exists')
 	def iterdir(self, url):
@@ -76,9 +78,9 @@ class MotherFileSystem:
 	def resolve(self, url):
 		scheme, path = splitscheme(url)
 		return self._children[scheme].resolve(path)
-	def samefile(self, url_1, url_2):
-		scheme_1, path_1 = splitscheme(self.resolve(url_1))
-		scheme_2, path_2 = splitscheme(self.resolve(url_2))
+	def samefile(self, url1, url2):
+		scheme_1, path_1 = splitscheme(self.resolve(url1))
+		scheme_2, path_2 = splitscheme(self.resolve(url2))
 		if scheme_1 == scheme_2:
 			return self._children[scheme_1].samefile(path_1, path_2)
 		return False
