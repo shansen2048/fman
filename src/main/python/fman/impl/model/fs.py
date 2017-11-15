@@ -2,7 +2,7 @@ from collections import namedtuple
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
-from fman.fs import delete, FileSystem
+from fman.fs import delete, FileSystem, Column
 from fman.impl.trash import move_to_trash
 from fman.impl.util.path import add_backslash_to_drive_if_missing
 from fman.url import as_url, splitscheme
@@ -360,19 +360,6 @@ class ZipFileSystem(FileSystem):
 			return ZipInfo(path, is_dir, size, mtime)
 
 ZipInfo = namedtuple('ZipInfo', ('path', 'is_dir', 'size_bytes', 'mtime'))
-
-class Column:
-	def get_str(cls, url):
-		raise NotImplementedError()
-	def get_sort_value(self, url, is_ascending):
-		"""
-		This method should generally be independent of is_ascending.
-		When is_ascending is False, Qt simply reverses the sort order.
-		However, we may sometimes want to change the sort order in a way other
-		than a simple reversal when is_ascending is False. That's why this
-		method receives is_ascending as a parameter.
-		"""
-		raise NotImplementedError()
 
 class NameColumn(Column):
 

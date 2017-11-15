@@ -96,6 +96,19 @@ class FileSystem:
 				del self._file_changed_callbacks[path]
 				self.unwatch(path)
 
+class Column:
+	def get_str(cls, url):
+		raise NotImplementedError()
+	def get_sort_value(self, url, is_ascending):
+		"""
+		This method should generally be independent of is_ascending.
+		When is_ascending is False, Qt simply reverses the sort order.
+		However, we may sometimes want to change the sort order in a way other
+		than a simple reversal when is_ascending is False. That's why this
+		method receives is_ascending as a parameter.
+		"""
+		raise NotImplementedError()
+
 def _get_fs():
 	from fman.impl.application_context import get_application_context
 	return get_application_context().fs
