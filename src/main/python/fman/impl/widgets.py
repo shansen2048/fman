@@ -33,6 +33,7 @@ class Application(QApplication):
 
 class DirectoryPane(QWidget):
 
+	# TODO: Rename to location_changed
 	path_changed = pyqtSignal(QWidget)
 
 	def __init__(self, fs, parent):
