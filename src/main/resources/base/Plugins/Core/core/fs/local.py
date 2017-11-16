@@ -50,7 +50,10 @@ class LocalFileSystem(FileSystem):
 		move_to_trash(file_path)
 	def delete(self, path):
 		if self.is_dir(path):
-			rmtree(path)
+			def handle_error(func, path, exc_info):
+				if not isinstance(exc_info[1], FileNotFoundError):
+					raise
+			rmtree(path, onerror=handle_error)
 		else:
 			remove(path)
 	def resolve(self, path):
