@@ -38,12 +38,6 @@ class Tutorial:
 			'StartedTutorialStep', {'step': self._curr_step_index}
 		)
 		self._show_current_screen()
-	def _previous_step(self):
-		self._curr_step_index -= 1
-		self._metrics.track(
-			'StartedTutorialStep', {'step': self._curr_step_index}
-		)
-		self._show_current_screen()
 	def _show_current_screen(self):
 		if self._curr_step:
 			self.close()
