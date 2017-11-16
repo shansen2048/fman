@@ -34,10 +34,12 @@ class Tutorial:
 		self._curr_step = None
 	def _next_step(self, delta=1):
 		self._curr_step_index += delta
+		self._track_current_step()
+		self._show_current_screen()
+	def _track_current_step(self):
 		self._metrics.track(
 			'StartedTutorialStep', {'step': self._curr_step_index}
 		)
-		self._show_current_screen()
 	def _show_current_screen(self):
 		if self._curr_step:
 			self.close()
