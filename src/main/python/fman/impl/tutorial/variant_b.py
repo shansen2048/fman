@@ -2,7 +2,8 @@ from fman.impl.tutorial import Tutorial, TutorialStep
 from fman.impl.util import is_below_dir
 from fman.impl.util.qt import run_in_main_thread
 from fman.impl.util.system import is_mac, is_windows
-from os.path import expanduser, relpath, realpath, splitdrive, basename, split
+from os.path import expanduser, relpath, realpath, splitdrive, basename, \
+	split, normpath
 from PyQt5.QtWidgets import QFileDialog
 from time import time
 
@@ -220,6 +221,11 @@ class TutorialVariantB(Tutorial):
 			self._main_window, 'Pick a folder', expanduser('~'),
 			QFileDialog.ShowDirsOnly
 		)
+		# On Windows, QFileDialog.getExistingDirectory(...) returns paths with
+		# forward slashes instead of backslashes. Because the path is used later
+		# to check whether the user jumped to the right directory, we need to
+		# fix this:
+		dir_path = normpath(dir_path)
 		if dir_path:
 			self._target_directory = dir_path
 			self._source_directory = self._get_source_directory(dir_path)
