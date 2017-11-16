@@ -5,7 +5,7 @@ from fman.impl.util import is_debug
 from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
-	run_in_main_thread, is_in_main_thread
+	run_in_main_thread, is_in_main_thread, ToolTipRole
 from fman.impl.util.url import get_existing_pardir, is_pardir
 from fman.url import dirname, join
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
@@ -171,6 +171,8 @@ class FileSystemModel(DragAndDropMixin):
 				return self._rows[index.row()].columns[index.column()].str
 			elif role == DecorationRole and index.column() == 0:
 				return self._rows[index.row()].icon
+			elif role == ToolTipRole and index.column() == 0:
+				return super(FileSystemModel, self).data(index, DisplayRole)
 		return QVariant()
 	def headerData(self, section, orientation, role=DisplayRole):
 		if orientation == Qt.Horizontal and role == DisplayRole \

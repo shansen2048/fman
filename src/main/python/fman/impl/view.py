@@ -1,12 +1,12 @@
 from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Home, \
 	Key_End, ShiftModifier, ControlModifier, AltModifier, MoveAction, \
-	NoButton, CopyAction, Key_Return, Key_Enter
+	NoButton, CopyAction, Key_Return, Key_Enter, ToolTipRole
 from fman.impl.util.system import is_mac
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	QItemSelectionModel
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
-	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QHeaderView
+	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QHeaderView, QToolTip
 
 class PathView(QLineEdit):
 	def __init__(self, parent=None):
@@ -84,6 +84,12 @@ class CompositeItemDelegate(QStyledItemDelegate):
 				if result:
 					return result
 		return super().eventFilter(editor, event)
+	def helpEvent(self, event, view, option, index):
+		for item in self._items:
+			result = item.helpEvent(event, view, option, index)
+			if result:
+				return result
+		return super().helpEvent(event, view, option, index)
 	def _is_python_method(self, method):
 		return hasattr(method, '__func__')
 
@@ -319,6 +325,22 @@ class FileListItemDelegate(QStyledItemDelegate):
 			# We work around this by setting the fake :has-children selector on
 			# the item when it is in the first column:
 			option.state |= QStyle.State_Children
+	def helpEvent(self, event, view, option, index):
+		if not event or not view:
+			# Mimic super implementation.
+			return False
+		if event.type() == QEvent.ToolTip:
+			text_width = self.sizeHint(view.viewOptions(), index).width()
+			column_width = view.columnWidth(index.column())
+			if text_width > column_width:
+				# Show the tooltip.
+				tooltip_text = index.data(ToolTipRole)
+			else:
+				# Hide the tooltip.
+				tooltip_text = ''
+			QToolTip.showText(event.globalPos(), tooltip_text, view)
+			return True
+		return super().helpEvent(event, view, option, index)
 
 class Layout(QVBoxLayout):
 	def __init__(self, path_view, file_view):
