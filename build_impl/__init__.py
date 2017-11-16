@@ -1,8 +1,9 @@
 from glob import glob
 from importlib import import_module
 from os import makedirs, readlink, symlink, remove
-from os.path import dirname, join, relpath, samefile, islink, isdir, basename, \
-	isfile, pardir, exists, normpath, splitext
+from os.path import dirname, join, relpath, islink, isdir, basename, isfile, \
+	pardir, exists, normpath, splitext
+from pathlib import Path
 from shutil import copy, copytree, copymode
 from subprocess import Popen, STDOUT, CalledProcessError, check_output
 from time import time
@@ -13,6 +14,7 @@ import re
 import sys
 
 PROJECT_DIR = join(dirname(__file__), pardir)
+_ALL_OSS = {'mac', 'windows', 'linux'}
 
 class LazyOptions:
 	def __init__(self):
@@ -46,13 +48,26 @@ OPTIONS.update({
 	'files_to_filter': []
 })
 
-def generate_resources(dest_dir=path('target/resources'), exclude=None):
+def generate_resources(
+	dest_dir=path('target/resources'), dest_dir_for_base=None, exclude=None
+):
+	if dest_dir_for_base is None:
+		dest_dir_for_base = dest_dir
+	if exclude is None:
+		exclude = []
+	exclude = exclude + _get_dirs_to_exclude_from_core_plugin()
 	copy_with_filtering(
-		path('src/main/resources/base'), dest_dir, exclude=exclude
+		path('src/main/resources/base'), dest_dir_for_base, exclude=exclude
 	)
 	os_resources_dir = path('src/main/resources/' + get_canonical_os_name())
 	if exists(os_resources_dir):
 		copy_with_filtering(os_resources_dir, dest_dir, exclude=exclude)
+
+def _get_dirs_to_exclude_from_core_plugin():
+	other_oss = set(_ALL_OSS)
+	other_oss.remove(get_canonical_os_name())
+	core_bin = 'src/main/resources/base/Plugins/Core/bin'
+	return [path(core_bin) + '/' + to_exclude for to_exclude in other_oss]
 
 def copy_with_filtering(
 	src_dir_or_file, dest_dir, replacements=None, files_to_filter=None,
@@ -105,9 +120,13 @@ def _copy_with_filtering(
 
 class _paths:
 	def __init__(self, paths):
-		self.paths = paths
+		self._paths = [Path(p).resolve() for p in paths]
 	def __contains__(self, item):
-		return any(samefile(item, p) for p in self.paths)
+		item = Path(item).resolve()
+		for p in self._paths:
+			if p.samefile(item) or p in item.parents:
+				return True
+		return False
 
 def replace_in_files(dir_, string, replacement):
 	for subdir, _, files in os.walk(dir_):

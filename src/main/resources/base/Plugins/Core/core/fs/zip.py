@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 import fman.fs
 import os
 
-_BIN_DIR = join(dirname(dirname(dirname(__file__))), 'bin', PLATFORM)
+_BIN_DIR = join(dirname(dirname(dirname(__file__))), 'bin', PLATFORM.lower())
 
 class ZipFileSystem(FileSystem):
 
