@@ -1,13 +1,12 @@
+from core.trash import move_to_trash
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.fs import FileSystem
-from fman.impl.trash import move_to_trash
-from fman.impl.util.path import add_backslash_to_drive_if_missing
 from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from os import remove
-from os.path import isdir, getsize, getmtime, samefile
+from os.path import isdir, getsize, getmtime, samefile, splitdrive
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
@@ -56,8 +55,18 @@ class LocalFileSystem(FileSystem):
 			remove(path)
 	def resolve(self, path):
 		# Unlike other functions, Path#resolve can't handle C: instead of C:\
-		path = add_backslash_to_drive_if_missing(path)
+		path = self._add_backslash_to_drive_if_missing(path)
 		return as_url(Path(path).resolve())
+	def _add_backslash_to_drive_if_missing(self, file_path):
+		"""
+		Normalize "C:" -> "C:\". Required for some path functions on Windows.
+		"""
+		if PLATFORM == 'Windows' and file_path:
+			drive_or_unc, path = splitdrive(file_path)
+			is_drive = drive_or_unc.endswith(':')
+			if is_drive and file_path == drive_or_unc:
+				return file_path + '\\'
+		return file_path
 	def samefile(self, path1, path2):
 		return samefile(path1, path2)
 	def copy(self, src_url, dst_url):

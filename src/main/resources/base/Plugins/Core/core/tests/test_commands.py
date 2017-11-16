@@ -1,7 +1,6 @@
 from core.commands import SuggestLocations, History, Move
 from core.tests import StubUI
 from fman import OK, YES, NO, PLATFORM
-from fman.impl.util.system import is_linux, is_windows
 from fman.url import join, as_human_readable, as_url, dirname
 from os.path import normpath
 from unittest import TestCase, skipIf
@@ -125,7 +124,7 @@ class SuggestLocationsTest(TestCase):
 			self.files = files
 			self.home_dir = home_dir
 		def isdir(self, path):
-			if is_windows() and path.endswith(' '):
+			if PLATFORM == 'Windows' and path.endswith(' '):
 				# Strange behaviour on Windows: isdir('X ') returns True if X
 				# (without space) exists.
 				path = path.rstrip(' ')
@@ -192,7 +191,7 @@ class SuggestLocationsTest(TestCase):
 					# want '/sub_f' but join(f, sub_f) would give just 'sub_f'.
 					yield f + os.sep + sub_f
 		def _normcase(self, path):
-			return path if is_linux() else path.lower()
+			return path if PLATFORM == 'Linux' else path.lower()
 
 	def test_empty_suggests_recent_locations(self):
 		expected_paths = [
@@ -223,7 +222,7 @@ class SuggestLocationsTest(TestCase):
 		self._check_query_returns(
 			'~/Unvisited', ['~/Unvisited', '~/Unvisited/Dir']
 		)
-	@skipIf(is_linux(), 'Case-insensitive file systems only')
+	@skipIf(PLATFORM == 'Linux', 'Case-insensitive file systems only')
 	def test_existing_path_wrong_case(self):
 		self._check_query_returns(
 			'~/unvisited', ['~/Unvisited', '~/Unvisited/Dir']
@@ -251,7 +250,7 @@ class SuggestLocationsTest(TestCase):
 			self._replace_pathsep('~/Dropbox/Work'): 5,
 			self._replace_pathsep('~/Dropbox/Private'): 2
 		}
-		root = 'C:' if is_windows() else ''
+		root = 'C:' if PLATFORM == 'Windows' else ''
 		files = {
 			root: {
 				'Users': {
@@ -269,7 +268,7 @@ class SuggestLocationsTest(TestCase):
 			},
 			'.': {}
 		}
-		if is_windows():
+		if PLATFORM == 'Windows':
 			home_dir = r'C:\Users\michael'
 		else:
 			home_dir = '/Users/michael'
