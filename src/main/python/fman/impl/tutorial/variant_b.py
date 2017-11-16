@@ -233,9 +233,8 @@ class TutorialVariantB(Tutorial):
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
-		steps = self._get_navigation_steps(
-			self._target_directory, self._pane.get_path()
-		)
+		steps = \
+			_get_navigation_steps(self._target_directory, self._pane.get_path())
 		if not steps:
 			# We have arrived:
 			self._time_taken = time() - self._start_time
@@ -265,11 +264,9 @@ class TutorialVariantB(Tutorial):
 		encouragement = self._get_encouragement() if self._last_step else ''
 		if instruction == 'show drives':
 			result.append(
-				"First, we need to switch to your *%s* drive." %
+				"First, we need to switch to your *%s* drive. Please press "
+				"*Alt+F1* to see an overview of your drives." %
 				splitdrive(self._target_directory)[0]
-			)
-			result.append(
-				"Please press *Alt+F1* to see an overview of your drives."
 			)
 			self._last_step = 'show drives'
 		elif instruction == 'open':
@@ -298,32 +295,13 @@ class TutorialVariantB(Tutorial):
 		return result
 	def _get_source_directory(self, target_dir):
 		current = self._pane.get_path()
-		if len(self._get_navigation_steps(target_dir, current)) >= 3:
+		if len(_get_navigation_steps(target_dir, current)) >= 3:
 			return current
 		home = expanduser('~')
 		if is_below_dir(target_dir, home):
-			if len(self._get_navigation_steps(target_dir, home)) >= 3:
+			if len(_get_navigation_steps(target_dir, home)) >= 3:
 				return home
 		return splitdrive(target_dir)[0] or '/'
-	def _get_navigation_steps(self, target_dir, source_dir):
-		result = []
-		target_dir = realpath(target_dir)
-		source_dir = realpath(source_dir)
-		target_drive = splitdrive(target_dir)[0]
-		source_drive, source_path = splitdrive(source_dir)
-		if target_drive != source_drive:
-			result.append(('show drives', ''))
-			result.append(('open', target_drive))
-			source_dir = target_drive + source_path
-		rel = relpath(target_dir, source_dir)
-		while rel and rel != '.':
-			rel, current = split(rel)
-			if current == '..':
-				step = ('go up', '')
-			else:
-				step = ('open', current)
-			result.insert(0, step)
-		return result
 	def _format_next_step_paragraph(self, *values):
 		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
 		for i, value in enumerate(values):
@@ -369,3 +347,28 @@ class TutorialVariantB(Tutorial):
 		self._next_step()
 	def _skip_steps(self, num_steps):
 		return lambda: self._next_step(num_steps + 1)
+
+def _get_navigation_steps(target_dir, source_dir):
+	result = []
+	target_dir = realpath(target_dir)
+	target_drive = splitdrive(target_dir)[0]
+	if not source_dir:
+		result.append(('open', target_drive))
+		source_dir = target_drive
+	source_dir = realpath(source_dir)
+	source_drive, source_path = splitdrive(source_dir)
+	if target_drive != source_drive:
+		result.append(('show drives', ''))
+		result.append(('open', target_drive))
+		source_dir = realpath(target_drive)
+	result_samedrive = []
+	rel = relpath(target_dir, source_dir)
+	while rel and rel != '.':
+		rel, current = split(rel)
+		if current == '..':
+			step = ('go up', '')
+		else:
+			step = ('open', current)
+		result_samedrive.insert(0, step)
+	result.extend(result_samedrive)
+	return result
