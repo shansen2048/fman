@@ -80,8 +80,7 @@ class TutorialVariantB(Tutorial):
 				'',
 				[
 					"GoTo lets you quickly jump to directories.",
-					"Start typing *%s* into the dialog. fman will suggest "
-					"your directory. Press *Enter* to open it."
+					"%s"
 				],
 				{
 					'after': {
@@ -334,8 +333,14 @@ class TutorialVariantB(Tutorial):
 		self._next_step()
 	def _before_goto(self):
 		self._start_time = time()
-		goto_dir = basename(self._target_directory)
-		self._format_next_step_paragraph((), goto_dir)
+		if self._target_directory == expanduser('~'):
+			text = "To open your home directory with GoTo, type&nbsp;*~*. " \
+				   "Then, press *Enter*."
+		else:
+			goto_dir = basename(self._target_directory)
+			text = "Start typing *%s* into the dialog. fman will suggest " \
+					"your directory. Press *Enter* to open it." % goto_dir
+		self._format_next_step_paragraph((), text)
 		self._next_step()
 	def _after_goto(self):
 		path = self._pane.get_path()
