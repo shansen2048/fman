@@ -1,7 +1,9 @@
 from base64 import b64encode, b64decode
-from fman.util import system
+from fman.impl.util.path import make_absolute
+from fman.impl.util.url import get_existing_pardir
+from fman.url import as_url, dirname
 from os import getcwd
-from os.path import expanduser, realpath, normpath, splitdrive, dirname, isfile
+from os.path import expanduser
 
 import sys
 
@@ -11,9 +13,10 @@ class SessionManager:
 	DEFAULT_COLUMN_WIDTHS = [200, 75]
 	_MAIN_WINDOW_VERSION = 1
 
-	def __init__(self, settings, fman_version, is_licensed):
+	def __init__(self, settings, fs, fman_version, is_licensed):
 		self.is_first_run = not settings
 		self._settings = settings
+		self._fs = fs
 		self._fman_version = fman_version
 		self._is_licensed = is_licensed
 	@property
@@ -36,17 +39,22 @@ class SessionManager:
 		for i, pane_info in enumerate(panes):
 			pane = main_window.add_pane()
 			try:
-				path = _make_absolute(paths_on_command_line[i], getcwd())
+				path = make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
-			if isfile(path):
-				pane.set_path(
-					dirname(path),
-					callback=lambda pane=pane, path=path: \
-						pane.place_cursor_at(path)
+			url = path if '://' in path else as_url(path)
+			if self._fs.is_dir(url):
+				pane.set_location(url)
+			elif self._fs.exists(url):
+				pane.set_location(
+					dirname(url),
+					callback=lambda pane=pane, url=url: \
+						pane.place_cursor_at(url)
 				)
 			else:
-				pane.set_path(path)
+				url = get_existing_pardir(url, self._fs.is_dir) \
+					  or as_url(expanduser('~'))
+				pane.set_location(url)
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
 	def _restore_window_geometry(self, main_window):
@@ -79,17 +87,9 @@ class SessionManager:
 			pass
 	def _read_pane_settings(self, pane):
 		return {
-			'location': pane.get_path(),
+			'location': pane.get_location(),
 			'col_widths': pane.get_column_widths()
 		}
-
-def _make_absolute(path, cwd):
-	if normpath(path) == '.':
-		return cwd
-	if system.is_windows() and path == splitdrive(path)[0]:
-		# Add trailing backslash for drives, eg. "C:"
-		return path + ('' if path.endswith('\\') else '\\')
-	return realpath(expanduser(path))
 
 def _encode(bytes_):
 	return b64encode(bytes_).decode('ascii')

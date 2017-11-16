@@ -1,5 +1,6 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
-from fman.util import listdir_absolute
+from fman.fs import FileSystem, Column
+from fman.impl.util import listdir_absolute
 from glob import glob
 from importlib.machinery import SourceFileLoader
 from inspect import getmro
@@ -13,10 +14,13 @@ import re
 import sys
 
 class Plugin:
-	def __init__(self, error_handler, command_callback, key_bindings):
+	def __init__(
+		self, error_handler, command_callback, key_bindings, mother_fs
+	):
 		self._error_handler = error_handler
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
+		self._mother_fs = mother_fs
 		self._application_command_instances = {}
 		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
@@ -28,7 +32,9 @@ class Plugin:
 			command = self._instantiate_command(cmd_class, pane)
 			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
-			pane._add_listener(self._instantiate_listener(listener_class, pane))
+			pane._add_listener(
+				self._instantiate_listener(listener_class, pane)
+			)
 	def get_application_commands(self):
 		return self._application_command_instances
 	def get_directory_pane_commands(self):
@@ -58,6 +64,12 @@ class Plugin:
 		self._directory_pane_listeners.append(cls)
 	def _unregister_directory_pane_listener(self, cls):
 		self._directory_pane_listeners.remove(cls)
+	def _register_file_system(self, cls):
+		file_system = self._instantiate_file_system(cls)
+		if file_system:
+			self._mother_fs.add_child(file_system)
+	def _register_column(self, cls):
+		self._mother_fs.register_column(cls.__name__, cls())
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -78,6 +90,15 @@ class Plugin:
 			)
 			listener = DirectoryPaneListener(*args, **kwargs)
 		return ListenerWrapper(listener, self._error_handler)
+	def _instantiate_file_system(self, fs_cls):
+		try:
+			instance = fs_cls()
+		except:
+			self._error_handler.report(
+				'Could not instantiate file system %r.' % fs_cls.__name__
+			)
+		else:
+			return FileSystemWrapper(instance, self._error_handler)
 	def __str__(self):
 		return '<%s %r>' % (self.__class__.__name__, self.name)
 
@@ -89,11 +110,8 @@ def _get_command_name(command_class):
 	return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class).lower()
 
 class ExternalPlugin(Plugin):
-	def __init__(
-		self, error_handler, command_callback, key_bindings, path, config,
-		theme, font_database
-	):
-		super().__init__(error_handler, command_callback, key_bindings)
+	def __init__(self, path, config, theme, font_database, *super_args):
+		super().__init__(*super_args)
 		self._path = path
 		self._config = config
 		self._theme = theme
@@ -136,6 +154,10 @@ class ExternalPlugin(Plugin):
 					self._register_directory_pane_command(cls)
 				elif DirectoryPaneListener in superclasses:
 					self._register_directory_pane_listener(cls)
+				elif FileSystem in superclasses:
+					self._register_file_system(cls)
+				elif Column in superclasses:
+					self._register_column(cls)
 		self._load_key_bindings()
 	def unload(self):
 		self._key_bindings.unload(self._loaded_key_bindings)
@@ -218,11 +240,13 @@ class CommandWrapper:
 			class_name = self.command.__class__.__name__
 			return re.sub(r'([a-z])([A-Z])', r'\1 \2', class_name)\
 					   .lower().capitalize(),
+	def is_visible(self):
+		return self.command.is_visible()
 
 class ListenerWrapper:
 	def __init__(self, listener, error_handler):
-		self.listener = listener
-		self.error_handler = error_handler
+		self._listener = listener
+		self._error_handler = error_handler
 	def on_doubleclicked(self, *args):
 		self._notify_listener('on_doubleclicked', *args)
 	def on_name_edited(self, *args):
@@ -231,16 +255,30 @@ class ListenerWrapper:
 		self._notify_listener('on_path_changed')
 	def on_files_dropped(self, *args):
 		self._notify_listener('on_files_dropped', *args)
+	def on_command(self, command, args):
+		try:
+			return self._listener.on_command(command, args)
+		except:
+			self._report_exception()
 	def _notify_listener(self, *args):
 		Thread(
 			target=self._notify_listener_in_thread, args=args, daemon=True
 		).start()
 	def _notify_listener_in_thread(self, event, *args):
-		listener_method = getattr(self.listener, event)
+		listener_method = getattr(self._listener, event)
 		try:
 			listener_method(*args)
 		except:
-			self.error_handler.report(
-				'DirectoryPaneListener %r raised error.' %
-				self.listener.__class__.__name__
-			)
+			self._report_exception()
+	def _report_exception(self):
+		self._error_handler.report(
+			'DirectoryPaneListener %r raised error.' %
+			self._listener.__class__.__name__
+		)
+
+class FileSystemWrapper:
+	def __init__(self, file_system, error_handler):
+		self._fs = file_system
+		self._error_handler = error_handler
+	def __getattr__(self, item):
+		return getattr(self._fs, item)

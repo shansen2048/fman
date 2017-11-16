@@ -1,5 +1,5 @@
 from base64 import b64decode
-from fman.util import parse_version
+from fman.impl.util import parse_version
 from rsa import PublicKey, VerificationError
 from rsa.common import byte_size as get_byte_size
 

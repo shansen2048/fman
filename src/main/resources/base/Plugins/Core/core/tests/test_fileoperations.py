@@ -1,11 +1,13 @@
 from core.fileoperations import CopyFiles, MoveFiles
+from core.tests import StubUI, StubFS
 from fman import YES, NO, OK, YES_TO_ALL, NO_TO_ALL, ABORT, PLATFORM
-from os import listdir, mkdir, chmod, makedirs, readlink
-from os.path import basename, join, dirname, exists, islink, realpath, samefile
+from fman.url import join, dirname, as_url, as_human_readable
+from os.path import exists
 from tempfile import TemporaryDirectory
 from unittest import TestCase, skipIf
 
 import os
+import os.path
 import stat
 
 class FileTreeOperationAT:
@@ -19,17 +21,17 @@ class FileTreeOperationAT:
 		src_file = join(self.src, 'test.txt')
 		self._touch(src_file, '1234')
 		self._perform_on(src_file, dest_dir=dest_dir)
-		self.assertEqual(['test.txt'], listdir(dest_dir))
+		self._expect_files({'test.txt'}, dest_dir)
 		self._assert_file_contents_equal(join(dest_dir, 'test.txt'), '1234')
 		return src_file
 	def test_singe_file_dest_dir_does_not_exist(self):
 		self.test_single_file(dest_dir=join(self.dest, 'subdir'))
 	def test_empty_directory(self):
 		empty_dir = join(self.src, 'test')
-		mkdir(empty_dir)
+		self._mkdir(empty_dir)
 		self._perform_on(empty_dir)
-		self.assertEqual(['test'], listdir(self.dest))
-		self.assertEqual([], listdir(join(self.dest, 'test')))
+		self._expect_files({'test'})
+		self._expect_files(set(), in_dir=join(self.dest, 'test'))
 		return empty_dir
 	def test_directory_several_files(self, dest_dir=None):
 		if dest_dir is None:
@@ -37,23 +39,21 @@ class FileTreeOperationAT:
 		file_outside_dir = join(self.src, 'file1.txt')
 		self._touch(file_outside_dir)
 		dir_ = join(self.src, 'dir')
-		mkdir(dir_)
+		self._mkdir(dir_)
 		file_in_dir = join(dir_, 'file.txt')
 		self._touch(file_in_dir)
 		executable_in_dir = join(dir_, 'executable')
 		self._touch(executable_in_dir, 'abc')
 		if PLATFORM != 'Windows':
-			st_mode = os.stat(executable_in_dir).st_mode
-			chmod(executable_in_dir, st_mode | stat.S_IEXEC)
+			st_mode = self._stat(executable_in_dir).st_mode
+			self._chmod(executable_in_dir, st_mode | stat.S_IEXEC)
 		self._perform_on(file_outside_dir, dir_, dest_dir=dest_dir)
-		self.assertEqual({'file1.txt', 'dir'}, set(listdir(dest_dir)))
-		self.assertEqual(
-			{'executable', 'file.txt'}, set(listdir(join(dest_dir, 'dir')))
-		)
+		self._expect_files({'file1.txt', 'dir'}, dest_dir)
+		self._expect_files({'executable', 'file.txt'}, join(dest_dir, 'dir'))
 		executable_dst = join(dest_dir, 'dir', 'executable')
 		self._assert_file_contents_equal(executable_dst, 'abc')
 		if PLATFORM != 'Windows':
-			self.assertTrue(os.stat(executable_dst).st_mode & stat.S_IEXEC)
+			self.assertTrue(self._stat(executable_dst).st_mode & stat.S_IEXEC)
 		return [file_outside_dir, dir_]
 	def test_directory_several_files_dest_dir_does_not_exist(self):
 		self.test_directory_several_files(dest_dir=join(self.dest, 'subdir'))
@@ -65,15 +65,15 @@ class FileTreeOperationAT:
 			perform_on_files = files
 		src_files = [join(self.src, *relpath.split('/')) for relpath in files]
 		dest_files = [join(self.dest, *relpath.split('/')) for relpath in files]
-		file_contents = lambda src_file_path: basename(src_file_path)
+		file_contents = lambda src_file_path: os.path.basename(src_file_path)
 		for i, src_file_path in enumerate(src_files):
-			makedirs(dirname(src_file_path), exist_ok=True)
+			self._makedirs(dirname(src_file_path), exist_ok=True)
 			self._touch(src_file_path, file_contents(src_file_path))
 			dest_file_path = dest_files[i]
-			makedirs(dirname(dest_file_path), exist_ok=True)
+			self._makedirs(dirname(dest_file_path), exist_ok=True)
 			self._touch(dest_file_path)
 		for i, answer in enumerate(answers):
-			file_name = basename(files[i])
+			file_name = os.path.basename(files[i])
 			self._expect_alert(
 				('%s exists. Do you want to overwrite it?' % file_name,
 				 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES),
@@ -82,7 +82,7 @@ class FileTreeOperationAT:
 		self._perform_on(*[join(self.src, fname) for fname in perform_on_files])
 		for i, expect_override in enumerate(expect_overrides):
 			dest_file = dest_files[i]
-			with open(dest_file, 'r') as f:
+			with self._open(dest_file, 'r') as f:
 				contents = f.read()
 			if expect_override:
 				self.assertEqual(file_contents(src_files[i]), contents)
@@ -90,7 +90,7 @@ class FileTreeOperationAT:
 				self.assertEqual(
 					'', contents,
 					'File %s was overwritten, contrary to expectations.' %
-					basename(dest_file)
+					os.path.basename(dest_file)
 				)
 		return src_files
 	def test_overwrite_files_no_yes(self):
@@ -116,7 +116,7 @@ class FileTreeOperationAT:
 		a, b = join(self.dest, 'a'), join(self.dest, 'b')
 		c = join(self.external_dir, 'c')
 		dir_ = join(self.dest, 'dir')
-		makedirs(dir_)
+		self._makedirs(dir_)
 		files = [a, b, c]
 		for file_ in files:
 			self._touch(file_)
@@ -127,40 +127,38 @@ class FileTreeOperationAT:
 		)
 		self._perform_on(dir_, *files)
 		# Should still have copied c:
-		self.assertEqual({'a', 'b', 'c', 'dir'}, set(listdir(self.dest)))
+		self._expect_files({'a', 'b', 'c', 'dir'})
 		return c
 	def test_external_file(self):
 		external_file = join(self.external_dir, 'test.txt')
 		self._touch(external_file)
 		self._perform_on(external_file)
-		self.assertEqual(['test.txt'], listdir(self.dest))
+		self._expect_files({'test.txt'})
 		return external_file
 	def test_nested_dir(self):
 		parent_dir = join(self.src, 'parent_dir')
 		nested_dir = join(parent_dir, 'nested_dir')
 		text_file = join(nested_dir, 'file.txt')
-		makedirs(nested_dir)
+		self._makedirs(nested_dir)
 		self._touch(text_file)
 		self._perform_on(parent_dir)
-		self.assertEqual(['parent_dir'], listdir(self.dest))
-		self.assertEqual(
-			['nested_dir'], listdir(join(self.dest, 'parent_dir'))
-		)
-		self.assertEqual(
-			['file.txt'], listdir(join(self.dest, 'parent_dir', 'nested_dir'))
+		self._expect_files({'parent_dir'})
+		self._expect_files({'nested_dir'}, join(self.dest, 'parent_dir'))
+		self._expect_files(
+			{'file.txt'}, join(self.dest, 'parent_dir', 'nested_dir')
 		)
 		return parent_dir
 	def test_symlink(self):
 		symlink_source = join(self.src, 'symlink_source')
 		self._touch(symlink_source)
 		symlink = join(self.src, 'symlink')
-		os.symlink(symlink_source, symlink)
+		self._symlink(symlink_source, symlink)
 		self._perform_on(symlink)
-		self.assertEqual(['symlink'], listdir(self.dest))
+		self._expect_files({'symlink'})
 		symlink_dest = join(self.dest, 'symlink')
-		self.assertTrue(islink(symlink_dest))
-		symlink_dest_source = realpath(readlink(symlink_dest))
-		self.assertTrue(samefile(symlink_source, symlink_dest_source))
+		self.assertTrue(self._islink(symlink_dest))
+		symlink_dest_source = self._readlink(symlink_dest)
+		self.assertTrue(self._fs.samefile(symlink_source, symlink_dest_source))
 		return symlink
 	def test_dest_name(self, src_equals_dest=False, preserves_files=True):
 		src_dir = self.dest if src_equals_dest else self.src
@@ -170,7 +168,7 @@ class FileTreeOperationAT:
 		expected_files = {'bar'}
 		if preserves_files and src_equals_dest:
 			expected_files.add('foo')
-		self.assertEqual(expected_files, set(listdir(self.dest)))
+		self._expect_files(expected_files)
 		self._assert_file_contents_equal(join(self.dest, 'bar'), '1234')
 		return foo
 	def test_dest_name_same_dir(self):
@@ -185,7 +183,7 @@ class FileTreeOperationAT:
 			 YES | YES_TO_ALL | ABORT, YES), answer=YES if do_continue else ABORT
 		)
 		self._perform_on(nonexistent_file, existent_file)
-		self.assertEqual(['bar.txt'] if do_continue else [], listdir(self.dest))
+		self._expect_files({'bar.txt'} if do_continue else set())
 	def test_error_abort(self):
 		self.test_error_continue(do_continue=False)
 	def test_relative_path_parent_dir(self):
@@ -193,49 +191,72 @@ class FileTreeOperationAT:
 		self._touch(src_file, '1234')
 		self._perform_on(src_file, dest_dir='..')
 		dest_dir_abs = dirname(self.src)
-		self.assertEqual({'src', 'test.txt'}, set(listdir(dest_dir_abs)))
+		self._expect_files({'src', 'test.txt'}, dest_dir_abs)
 		self._assert_file_contents_equal(join(dest_dir_abs, 'test.txt'), '1234')
 	def test_relative_path_subdir(self):
 		src_file = join(self.src, 'test.txt')
 		self._touch(src_file, '1234')
 		subdir = join(self.src, 'subdir')
-		makedirs(subdir, exist_ok=True)
+		self._makedirs(subdir, exist_ok=True)
 		self._perform_on(src_file, dest_dir='subdir')
-		self.assertEqual(['test.txt'], listdir(subdir))
+		self._expect_files({'test.txt'}, subdir)
 		self._assert_file_contents_equal(join(subdir, 'test.txt'), '1234')
 	def setUp(self):
+		super().setUp()
+		self._fs = StubFS()
 		self.ui = StubUI(self)
-		self._src = TemporaryDirectory()
-		self.src = join(self._src.name, 'src')
-		makedirs(self.src)
-		self._dest = TemporaryDirectory()
-		self.dest = join(self._dest.name, 'dest')
-		makedirs(self.dest)
-		self._external_dir = TemporaryDirectory()
+		self._tmp_dir = TemporaryDirectory()
+		self._root = as_url(self._tmp_dir.name)
+		# We need intermediate 'src-parent' for test_relative_path_parent_dir:
+		self.src = join(self._root, 'src-parent', 'src')
+		self._makedirs(self.src)
+		self.dest = join(self._root, 'dest')
+		self._makedirs(self.dest)
+		self.external_dir = join(self._root, 'external-dir')
+		self._makedirs(self.external_dir)
 		# Create a dummy file to test that not _all_ files are copied from src:
 		self._touch(join(self.src, 'dummy'))
+	def tearDown(self):
+		self._tmp_dir.cleanup()
+		super().tearDown()
 	def _perform_on(self, *files, dest_dir=None, dest_name=None):
 		if dest_dir is None:
 			dest_dir = self.dest
-		self.operation(self.ui, files, dest_dir, self.src, dest_name)()
-		self.ui.verify_expected_alerts_were_shown()
-	def _assert_file_contents_equal(self, file_path, expected_contents):
-		with open(file_path, 'r') as f:
+		self.operation(
+			self.ui, files, dest_dir, self.src, dest_name, self._fs
+		)()
+		self.ui.verify_expected_dialogs_were_shown()
+	def _assert_file_contents_equal(self, url, expected_contents):
+		with self._open(url, 'r') as f:
 			self.assertEqual(expected_contents, f.read())
-	@property
-	def external_dir(self):
-		return self._external_dir.name
-	def tearDown(self):
-		self._src.cleanup()
-		self._dest.cleanup()
-		self._external_dir.cleanup()
-	def _touch(self, file_path, contents=None):
-		makedirs(dirname(file_path), exist_ok=True)
-		with open(file_path, 'w') as f:
-			if contents:
+	def _touch(self, file_url, contents=None):
+		self._makedirs(dirname(file_url), exist_ok=True)
+		self._fs.touch(file_url)
+		if contents is not None:
+			with self._open(file_url, 'w') as f:
 				f.write(contents)
+	def _mkdir(self, dir_url):
+		self._fs.mkdir(dir_url)
+	def _makedirs(self, dir_url, exist_ok=False):
+		self._fs.makedirs(dir_url, exist_ok=exist_ok)
+	def _open(self, file_url, mode):
+		return open(as_human_readable(file_url), mode)
+	def _stat(self, file_url):
+		return os.stat(as_human_readable(file_url))
+	def _chmod(self, file_url, mode):
+		return os.chmod(as_human_readable(file_url), mode)
+	def _symlink(self, src_url, dst_url):
+		os.symlink(as_human_readable(src_url), as_human_readable(dst_url))
+	def _islink(self, file_url):
+		return os.path.islink(as_human_readable(file_url))
+	def _readlink(self, link_url):
+		return as_url(os.readlink(as_human_readable(link_url)))
 	def _expect_alert(self, args, answer):
 		self.ui.expect_alert(args, answer)
+	def _expect_files(self, files, in_dir=None):
+		if in_dir is None:
+			in_dir = self.dest
+		self.assertEqual(files, set(self._fs.iterdir(in_dir)))
 
 try:
 	from os import geteuid
@@ -255,14 +276,14 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 		# chown the file as a different user, but then the test would require
 		# root privileges. So keep it here only for now.
 		dir_ = join(self.src, 'dir')
-		makedirs(dir_)
+		self._fs.makedirs(dir_)
 		src_file = join(dir_, 'foo.txt')
 		self._touch(src_file, 'dstn')
 		dest_dir = join(self.dest, 'dir')
-		makedirs(dest_dir)
+		self._fs.makedirs(dest_dir)
 		locked_dest_file = join(dest_dir, 'foo.txt')
 		self._touch(locked_dest_file)
-		chmod(locked_dest_file, 0o444)
+		self._chmod(locked_dest_file, 0o444)
 		try:
 			self._expect_alert(
 				('foo.txt exists. Do you want to overwrite it?',
@@ -276,7 +297,7 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 		finally:
 			# Make the file writeable again because on Windows, the temp dir
 			# containing it can't be cleaned up otherwise.
-			chmod(locked_dest_file, 0o777)
+			self._chmod(locked_dest_file, 0o777)
 
 class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def __init__(self, methodName='runTest'):
@@ -317,11 +338,11 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		super().test_dest_name(src_equals_dest, preserves_files=False)
 	def test_overwrite_dir_skip_file(self):
 		src_dir = join(self.src, 'dir')
-		makedirs(src_dir)
+		self._makedirs(src_dir)
 		src_file = join(src_dir, 'test.txt')
 		self._touch(src_file, 'src contents')
 		dest_dir = join(self.dest, 'dir')
-		makedirs(dest_dir)
+		self._makedirs(dest_dir)
 		dest_file = join(dest_dir, 'test.txt')
 		self._touch(dest_file, 'dest contents')
 		self._expect_alert(
@@ -331,30 +352,8 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		)
 		self._perform_on(src_dir)
 		self.assertTrue(
-			exists(src_file),
+			self._fs.exists(src_file),
 			"Source file was skipped and should not have been deleted."
 		)
 		self._assert_file_contents_equal(src_file, 'src contents')
 		self._assert_file_contents_equal(dest_file, 'dest contents')
-
-class StubUI:
-	def __init__(self, test_case):
-		self.expected_alerts = []
-		self.test_case = test_case
-	def expect_alert(self, args, answer):
-		self.expected_alerts.append((args, answer))
-	def verify_expected_alerts_were_shown(self):
-		self.test_case.assertEqual(
-			[], self.expected_alerts, 'Did not receive all expected alerts.'
-		)
-	def show_alert(self, *args, **_):
-		if not self.expected_alerts:
-			self.test_case.fail('Unexpected alert: %r' % args[0])
-			return
-		expected_args, answer = self.expected_alerts.pop(0)
-		self.test_case.assertEqual(expected_args, args)
-		return answer
-	def show_status_message(self, _):
-		pass
-	def clear_status_message(self):
-		pass

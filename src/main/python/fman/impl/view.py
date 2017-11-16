@@ -1,8 +1,7 @@
-from fman.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Home, Key_End, \
-	ShiftModifier, ControlModifier, AltModifier, MoveAction, NoButton, \
-	CopyAction, Key_Return, Key_Enter, ToolTipRole
-from fman.util.system import is_mac
-from os.path import normpath
+from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Home, \
+	Key_End, ShiftModifier, ControlModifier, AltModifier, MoveAction, \
+	NoButton, CopyAction, Key_Return, Key_Enter, ToolTipRole
+from fman.impl.util.system import is_mac
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	QItemSelectionModel
 from PyQt5.QtGui import QPen
@@ -66,8 +65,16 @@ class CompositeItemDelegate(QStyledItemDelegate):
 	def remove(self, item):
 		self._items.remove(item)
 	def initStyleOption(self, option, index):
+		super().initStyleOption(option, index)
 		for item in self._items:
-			item.initStyleOption(option, index)
+			# Unlike the other methods in this class, we don't call
+			# `item.initStyleOption(...)` here, for the following reason:
+			# It would have to call `super().initStyleOption(...)`. This is
+			# an expensive operation. To avoid having to call it for every
+			# `item`, we therefore call it only once - above this for loop -
+			# then use `item#adapt_style_option(...)` to make the necessary
+			# changes. When 350 files are displayed, this saves about 700ms.
+			item.adapt_style_option(option, index)
 	def eventFilter(self, editor, event):
 		for item in self._items:
 			# eventFilter(...) is protected. We can only call it if we
@@ -147,8 +154,7 @@ class SingleRowModeDelegate(QStyledItemDelegate):
 	def __init__(self, view):
 		super().__init__(view)
 		self._view = view
-	def initStyleOption(self, option, index):
-		super().initStyleOption(option, index)
+	def adapt_style_option(self, option, index):
 		if self._should_draw_cursor(index):
 			option.state |= QStyle.State_HasFocus
 	def _should_draw_cursor(self, index):
@@ -250,6 +256,7 @@ class FileListView(
 		self.setAttribute(WA_MacShowFocusRect, 0)
 		self.horizontalHeader().setStretchLastSection(True)
 		self.horizontalHeader().setHighlightSections(False)
+		self.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
 		self.setWordWrap(False)
 		self.setTabKeyNavigation(False)
 		# Double click should not open editor:
@@ -258,17 +265,18 @@ class FileListView(
 		self.add_delegate(FileListItemDelegate())
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
-		return [normpath(self._get_path(index)) for index in indexes]
+		return [self._get_url(index) for index in indexes]
 	def get_file_under_cursor(self):
-		return self._get_path(self.currentIndex())
-	def place_cursor_at(self, file_path):
-		self.setCurrentIndex(self._get_index(file_path))
-	def toggle_selection(self, file_path):
+		index = self.currentIndex()
+		return self._get_url(index) if index.isValid() else ''
+	def place_cursor_at(self, file_url):
+		self.setCurrentIndex(self._get_index(file_url))
+	def toggle_selection(self, file_url):
 		self.selectionModel().select(
-			self._get_index(file_path), QISM.Toggle | QISM.Rows
+			self._get_index(file_url), QISM.Toggle | QISM.Rows
 		)
-	def edit_name(self, file_path):
-		self.edit(self._get_index(file_path))
+	def edit_name(self, file_url):
+		self.edit(self._get_index(file_url))
 	def keyPressEvent(self, event):
 		if event.key() in (Key_Return, Key_Enter) \
 			and self.state() == self.EditingState:
@@ -287,12 +295,12 @@ class FileListView(
 		vertical_header.setStyleSheet("QHeaderView::section { padding: 0px; }")
 		vertical_header.setMinimumSectionSize(0)
 		vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-	def _get_index(self, file_path):
+	def _get_index(self, file_url):
 		model = self.model()
-		return model.mapFromSource(model.sourceModel().index(file_path))
-	def _get_path(self, index):
+		return model.mapFromSource(model.sourceModel().find(file_url))
+	def _get_url(self, index):
 		model = self.model()
-		return model.sourceModel().filePath(model.mapToSource(index))
+		return model.sourceModel().url(model.mapToSource(index))
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):
@@ -310,8 +318,7 @@ class FileListItemDelegate(QStyledItemDelegate):
 				update_cursor(bool(event.modifiers() & ShiftModifier))
 				return True
 		return False
-	def initStyleOption(self, option, index):
-		super().initStyleOption(option, index)
+	def adapt_style_option(self, option, index):
 		if index.column() == 0:
 			# We want to be able to style the first column via QSS. However,
 			# unlike QTreeView::item, QTableView::item has no :first selector.

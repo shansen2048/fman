@@ -1,11 +1,13 @@
 from fman.impl.tutorial import Tutorial, TutorialStep
-from fman.util import is_below_dir
-from fman.util.qt import run_in_main_thread
-from fman.util.system import is_mac, is_windows
+from fman.impl.util import is_below_dir
+from fman.impl.util.qt import run_in_main_thread
+from fman.impl.util.system import is_mac, is_windows
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
-	split, join, normpath
+	split, normpath
 from PyQt5.QtWidgets import QFileDialog
 from time import time
+
+import fman.url
 
 class TutorialVariantB(Tutorial):
 	def __init__(self, *args, **kwargs):
@@ -238,7 +240,7 @@ class TutorialVariantB(Tutorial):
 		if not steps:
 			# We have arrived:
 			self._time_taken = time() - self._start_time
-			current_dir = basename(self._pane.get_path())
+			current_dir = fman.url.basename(self._pane.get_path())
 			self._format_next_step_paragraph((current_dir, self._time_taken))
 			self._next_step()
 			return
@@ -248,7 +250,9 @@ class TutorialVariantB(Tutorial):
 			'', step_paras, {'on': {'path_changed': self._navigate}}
 		)
 		if step[0] == 'open' and step[1] != '..':
-			self._pane.toggle_selection(join(self._pane.get_path(), step[1]))
+			self._pane.toggle_selection(
+				fman.url.join(self._pane.get_path(), step[1])
+			)
 		self._show_current_screen()
 	def _get_step_paras(self, navigation_step):
 		result = []
@@ -331,7 +335,7 @@ class TutorialVariantB(Tutorial):
 					"yourself: Isn't it tedious to click through directory "
 					"trees all the time? GoTo is the answer."
 					% basename(path)
-				 ]
+				]
 			else:
 				paras = [
 					"Awesome! Did you see how quick that was? Once you're used "

@@ -1,12 +1,12 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.quicksearch import Quicksearch
-from fman.impl.view import FileListView, Layout, PathView
-from fman.util.system import is_windows, is_mac
-from fman.util.qt import connect_once, run_in_main_thread, \
+from fman.impl.util.qt import run_in_main_thread, \
 	disable_window_animations_mac, Key_Escape, AscendingOrder
-from os.path import exists, normpath, dirname, splitdrive, abspath
-from PyQt5.QtCore import QDir, pyqtSignal, QTimer, Qt, QEvent
+from fman.impl.util.system import is_windows, is_mac
+from fman.impl.view import FileListView, Layout, PathView
+from fman.url import as_human_readable
+from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
@@ -33,15 +33,13 @@ class Application(QApplication):
 
 class DirectoryPane(QWidget):
 
+	# TODO: Rename to location_changed
 	path_changed = pyqtSignal(QWidget)
 
-	def __init__(self, parent, icon_provider=None):
+	def __init__(self, fs, parent):
 		super().__init__(parent)
 		self._path_view = PathView(self)
-		self._model = FileSystemModel()
-		if icon_provider is not None:
-			self._model.setIconProvider(icon_provider)
-		self._model.setFilter(self._model.filter() | QDir.Hidden | QDir.System)
+		self._model = FileSystemModel(fs)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
 		self._model_sorted = SortDirectoriesBeforeFiles(self)
@@ -51,11 +49,12 @@ class DirectoryPane(QWidget):
 		self._file_view.setModel(self._model_sorted)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
 		self._file_view.key_press_event_filter = self._on_key_pressed
-		self._file_view.hideColumn(2)
 		self.setLayout(Layout(self._path_view, self._file_view))
 		self._path_view.setFocusProxy(self._file_view)
 		self.setFocusProxy(self._file_view)
 		self._controller = None
+		self._model.location_changed.connect(self._on_location_changed)
+		self._model.directory_loaded.connect(self._on_directory_loaded)
 	def set_controller(self, controller):
 		self._controller = controller
 	@run_in_main_thread
@@ -95,55 +94,11 @@ class DirectoryPane(QWidget):
 	def get_file_under_cursor(self):
 		return self._file_view.get_file_under_cursor()
 	@run_in_main_thread
-	def get_path(self):
-		"""
-		Returns '' if displaying "My Computer".
-		"""
-		result = self._model.rootPath()
-		if not result:
-			# Displaying "My Computer" - see QFileSystemModel#myComputer()
-			return ''
-		return normpath(result)
+	def get_location(self):
+		return self._model.location()
 	@run_in_main_thread
-	def set_path(self, path, callback=None):
-		"""
-		Pass '' as `path` to display "My Computer".
-		"""
-		if callback is None:
-			callback = lambda: None
-		if path:
-			# Prevent (in particular) drive letters without backslashes ('C:'
-			# instead of 'C:\') on Windows:
-			path = abspath(path)
-		if is_windows() and _is_documents_and_settings(path):
-			# When listing C:\, QFileSystemModel includes the "Documents and
-			# Settings" folder. However, it displays no contents when you open
-			# that directory. (Actually, no Windows program can display
-			# the contents of "C:\Documents and Settings". Explorer says "Access
-			# denied", Python gets a PermissionError.) But "C:\Documents and
-			# Settings\Michael" does work and displays "C:\Users\Michael".
-			# Gracefully handle "C:\Documents and Settings" for the case when
-			# the user presses Enter while the cursor is over it:
-			path = splitdrive(path)[0] + r'\Users'
-		if path == self.get_path():
-			# Don't mess up the cursor if we're already in the right location.
-			callback()
-			return
-		my_computer = self._model.myComputer()
-		path = self._skip_to_existing_pardir(path) if path else my_computer
-		self._file_view.reset()
-		self._path_view.setText(path)
-		if path == my_computer:
-			# directoryLoaded doesn't work for myComputer. Use rootPathChanged:
-			signal = self._model.rootPathChanged
-		else:
-			signal = self._model.directoryLoaded
-		def callback_():
-			self._file_view.move_cursor_home()
-			self.path_changed.emit(self)
-			callback()
-		connect_once(signal, lambda _: callback_())
-		index = self._model_sorted.setRootPath(path)
+	def set_location(self, url, callback=None):
+		index = self._model_sorted.set_location(url, callback)
 		self._file_view.setRootIndex(index)
 	@run_in_main_thread
 	def place_cursor_at(self, file_path):
@@ -165,17 +120,9 @@ class DirectoryPane(QWidget):
 	def set_column_widths(self, column_widths):
 		for i, width in enumerate(column_widths):
 			self._file_view.setColumnWidth(i, width)
-	def _skip_to_existing_pardir(self, path):
-		path = normpath(path)
-		while not exists(path):
-			new_path = dirname(path)
-			if path == new_path:
-				break
-			path = new_path
-		return path
 	def _on_doubleclicked(self, index):
 		self._controller.on_doubleclicked(
-			self, self._model.filePath(self._model_sorted.mapToSource(index))
+			self, self._model.url(self._model_sorted.mapToSource(index))
 		)
 	def _on_key_pressed(self, file_view, event):
 		return self._controller.on_key_pressed(self, event)
@@ -183,9 +130,12 @@ class DirectoryPane(QWidget):
 		self._controller.on_file_renamed(self, *args)
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
-
-def _is_documents_and_settings(path):
-	return splitdrive(normpath(path))[1].lower() == '\\documents and settings'
+	def _on_location_changed(self, url):
+		self._path_view.setText(as_human_readable(url))
+	def _on_directory_loaded(self, url):
+		if not self.get_file_under_cursor():
+			self.move_cursor_home()
+		self.path_changed.emit(self)
 
 class MainWindow(QMainWindow):
 
@@ -194,11 +144,11 @@ class MainWindow(QMainWindow):
 	closed = pyqtSignal()
 	before_quicksearch = pyqtSignal(Quicksearch)
 
-	def __init__(self, app, help_menu_actions, theme, icon_provider=None):
+	def __init__(self, app, help_menu_actions, theme, fs):
 		super().__init__()
 		self._app = app
 		self._theme = theme
-		self._icon_provider = icon_provider
+		self._fs = fs
 		self._panes = []
 		self._splitter = Splitter(self)
 		self.setCentralWidget(self._splitter)
@@ -299,7 +249,7 @@ class MainWindow(QMainWindow):
 	def clear_status_message(self):
 		self.show_status_message('Ready.')
 	def add_pane(self):
-		result = DirectoryPane(self._splitter, self._icon_provider)
+		result = DirectoryPane(self._fs, self._splitter)
 		self._panes.append(result)
 		self._splitter.addWidget(result)
 		self.pane_added.emit(result)

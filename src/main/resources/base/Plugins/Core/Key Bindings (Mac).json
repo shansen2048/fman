@@ -14,5 +14,6 @@
 	{ "keys": ["Cmd+Shift+P"], "command": "command_palette" },
 	{ "keys": ["Cmd+Left"], "command": "go_back" },
 	{ "keys": ["Cmd+Right"], "command": "go_forward" },
-	{ "keys": ["Cmd+I"], "command": "get_info" }
+	{ "keys": ["Cmd+I"], "command": "get_info" },
+  	{ "keys": ["Cmd+F5"], "command": "pack" }
 ]

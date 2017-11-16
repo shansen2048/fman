@@ -7,39 +7,41 @@ from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
-from fman.impl.model import GnomeFileIconProvider, GnomeNotAvailable
+from fman.impl.model.icon_provider import GnomeFileIconProvider, \
+	GnomeNotAvailable, IconProvider
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.config import Config
+from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
 from fman.impl.tutorial import TutorialController
 from fman.impl.tutorial.variant_b import TutorialVariantB
 from fman.impl.updater import MacUpdater
+from fman.impl.util import system, cached_property, is_frozen
+from fman.impl.util.qt import connect_once
+from fman.impl.util.settings import Settings
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
-from fman.util import system, cached_property
-from fman.util.qt import connect_once
-from fman.util.settings import Settings
 from os import makedirs
 from os.path import dirname, join, pardir, normpath, exists
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette, QIcon
-from PyQt5.QtWidgets import QStyleFactory
+from PyQt5.QtWidgets import QStyleFactory, QFileIconProvider
 from signal import signal, SIGINT
 
 import fman
 import json
+import logging
 import sys
 
 def get_application_context():
 	global _APPLICATION_CONTEXT
 	if _APPLICATION_CONTEXT is None:
-		is_frozen = getattr(sys, 'frozen', False)
-		cls = FrozenApplicationContext if is_frozen else ApplicationContext
+		cls = FrozenApplicationContext if is_frozen() else ApplicationContext
 		_APPLICATION_CONTEXT = cls()
 	return _APPLICATION_CONTEXT
 
@@ -48,6 +50,9 @@ _APPLICATION_CONTEXT = None
 class ApplicationContext:
 	def __init__(self):
 		self._main_window = None
+		# Many Qt classes require a QApplication to have been instantiated.
+		# Do this here, before everything else, to achieve this:
+		self.app
 	def setup_signals(self):
 		# We don't build fman as a console app on Windows, so no point in
 		# installing the SIGINT handler:
@@ -55,6 +60,7 @@ class ApplicationContext:
 			_ = self.signal_wakeup_handler
 			signal(SIGINT, lambda *_: self.app.exit(130))
 	def run(self):
+		self.init_logging()
 		fman.FMAN_VERSION = self.fman_version
 		self.excepthook.install()
 		self.metrics.initialize()
@@ -66,6 +72,8 @@ class ApplicationContext:
 			self.plugin_support.load_plugin(plugin_dir)
 		self.session_manager.show_main_window(self.main_window)
 		return self.app.exec_()
+	def init_logging(self):
+		logging.basicConfig()
 	@property
 	def fman_version(self):
 		return self.constants['version']
@@ -130,17 +138,11 @@ class ApplicationContext:
 	@cached_property
 	def excepthook(self):
 		return Excepthook(self.plugin_dirs, self.plugin_error_handler)
-	@cached_property
-	def icon_provider(self):
-		try:
-			return GnomeFileIconProvider()
-		except GnomeNotAvailable:
-			pass
 	@property
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(
-				self.app, self.help_menu_actions, self.theme, self.icon_provider
+				self.app, self.help_menu_actions, self.theme, self.mother_fs
 			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
@@ -190,9 +192,23 @@ class ApplicationContext:
 	@cached_property
 	def builtin_plugin(self):
 		return BuiltinPlugin(
-			self.plugin_error_handler, self.command_callback,
-			self.key_bindings, self.tutorial_controller
+			self.tutorial_controller, self.plugin_error_handler,
+			self.command_callback, self.key_bindings, self.mother_fs
 		)
+	@cached_property
+	def mother_fs(self):
+		# Resolve the cyclic dependency MotherFileSystem <-> IconProvider:
+		result = MotherFileSystem(None)
+		result._icon_provider = self._get_icon_provider(result)
+		return result
+	def _get_icon_provider(self, fs):
+		try:
+			qt_icon_provider = GnomeFileIconProvider()
+		except GnomeNotAvailable:
+			qt_icon_provider = QFileIconProvider()
+		icons_dir = self._get_local_data_file('Cache', 'Icons')
+		makedirs(icons_dir, exist_ok=True)
+		return IconProvider(qt_icon_provider, fs, icons_dir)
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
@@ -220,7 +236,8 @@ class ApplicationContext:
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_error_handler, self.command_callback, self.key_bindings,
-			self.config, self.theme, self.font_database, self.builtin_plugin
+			self.mother_fs, self.config, self.theme, self.font_database,
+			self.builtin_plugin
 		)
 	@cached_property
 	def plugin_error_handler(self):
@@ -315,7 +332,9 @@ class ApplicationContext:
 	@cached_property
 	def session_manager(self):
 		settings = Settings(self._get_local_data_file('Session.json'))
-		return SessionManager(settings, self.fman_version, self.is_licensed)
+		return SessionManager(
+			settings, self.mother_fs, self.fman_version, self.is_licensed
+		)
 	@cached_property
 	def theme(self):
 		qss_files = [self._get_resource('styles.qss')]
@@ -340,13 +359,15 @@ class ApplicationContext:
 			return os_path
 		base_dir = join(res_dir, 'base')
 		return normpath(join(base_dir, *rel_path))
-	def _get_local_data_file(self, file_name):
-		return join(DATA_DIRECTORY, 'Local', file_name)
+	def _get_local_data_file(self, *rel_path):
+		return join(DATA_DIRECTORY, 'Local', *rel_path)
 
 class FrozenApplicationContext(ApplicationContext):
 	def __init__(self):
 		super().__init__()
 		self._updater = None
+	def init_logging(self):
+		logging.basicConfig(level=logging.CRITICAL)
 	@cached_property
 	def updater(self):
 		if self._should_auto_update():

@@ -1,5 +1,5 @@
 from fman.impl.plugins import SETTINGS_PLUGIN_NAME
-from fman.util import listdir_absolute
+from fman.impl.util import listdir_absolute
 from os.path import isdir, basename, join
 
 def find_plugin_dirs(shipped_plugins, thirdparty_plugins, user_plugins):

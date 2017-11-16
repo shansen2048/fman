@@ -25,7 +25,13 @@ def run_in_thread(thread_fn):
 		return result
 	return decorator
 
-run_in_main_thread = run_in_thread(lambda: QApplication.instance().thread())
+def _main_thread():
+	return QApplication.instance().thread()
+
+run_in_main_thread = run_in_thread(_main_thread)
+
+def is_in_main_thread():
+	return QThread.currentThread() == _main_thread()
 
 class Task:
 	def __init__(self, fn, args, kwargs):
@@ -118,6 +124,7 @@ DisplayRole = Qt.DisplayRole
 ToolTipRole = Qt.ToolTipRole
 UserRole = Qt.UserRole
 SizeHintRole = Qt.SizeHintRole
+DecorationRole = Qt.DecorationRole
 ItemIsDragEnabled = Qt.ItemIsDragEnabled
 ItemIsDropEnabled = Qt.ItemIsDropEnabled
 CopyAction = Qt.CopyAction

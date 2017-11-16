@@ -1,6 +1,7 @@
-from fman.util.system import is_linux, is_windows, is_gnome_based, is_kde_based
-from fman.util.qt import run_in_main_thread
-from os.path import basename, normpath
+from fman.impl.util.system import is_linux, is_windows, is_gnome_based, \
+	is_kde_based
+from fman.impl.util.qt import run_in_main_thread
+from os.path import basename
 from PyQt5.QtCore import QMimeData, QUrl
 from PyQt5.QtWidgets import QApplication
 
@@ -24,15 +25,15 @@ def get_text():
 	return _clipboard().text()
 
 @run_in_main_thread
-def copy_files(files):
+def copy_files(file_urls):
 	if is_linux():
-		extra_data = _get_extra_copy_cut_data_linux(files, 'copy')
+		extra_data = _get_extra_copy_cut_data_linux(file_urls, 'copy')
 	else:
 		extra_data = {}
-	_place_on_clipboard(files, extra_data)
+	_place_on_clipboard(file_urls, extra_data)
 
 @run_in_main_thread
-def cut_files(files):
+def cut_files(file_urls):
 	if is_windows():
 		extra_data = {
 			# Make pasting work in Explorer:
@@ -41,22 +42,14 @@ def cut_files(files):
 			_CF_PREFERREDDROPEFFECT: _DROPEFFECT_MOVE
 		}
 	elif is_linux():
-		extra_data = _get_extra_copy_cut_data_linux(files, 'cut')
+		extra_data = _get_extra_copy_cut_data_linux(file_urls, 'cut')
 	else:
 		raise NotImplementedError('Cutting files is not supported on this OS.')
-	_place_on_clipboard(files, extra_data)
+	_place_on_clipboard(file_urls, extra_data)
 
 @run_in_main_thread
 def get_files():
-	result = []
-	for url in _clipboard().mimeData().urls():
-		if url.isLocalFile():
-			# On (at least) OS X, url.toLocalFile() returns paths of the form
-			# '/foo/bar/' for directories. But os.path.basename('/foo/bar/')
-			# returns '' instead of 'bar', which has lead to bugs in the past.
-			# We use normpath(...) here to get rid of the trailing slash:
-			result.append(normpath(url.toLocalFile()))
-	return result
+	return [url.toString() for url in _clipboard().mimeData().urls()]
 
 @run_in_main_thread
 def files_were_cut():
@@ -72,20 +65,19 @@ def files_were_cut():
 def _clipboard():
 	return QApplication.instance().clipboard()
 
-def _place_on_clipboard(files, extra_data):
-	urls = [QUrl.fromLocalFile(file_) for file_ in files]
+def _place_on_clipboard(file_urls, extra_data):
+	urls = [QUrl(file_) for file_ in file_urls]
 	new_clipboard_data = QMimeData()
 	new_clipboard_data.setUrls(urls)
-	new_clipboard_data.setText('\n'.join(map(basename, files)))
+	new_clipboard_data.setText('\n'.join(map(basename, file_urls)))
 	for key, value in extra_data.items():
 		new_clipboard_data.setData(key, value)
 	_clipboard().setMimeData(new_clipboard_data)
 
-def _get_extra_copy_cut_data_linux(files, copy_or_cut):
+def _get_extra_copy_cut_data_linux(file_urls, copy_or_cut):
 	result = {}
 	mime_type = _get_linux_copy_cut_mime_type()
 	if mime_type:
-		file_urls = [QUrl.fromLocalFile(f).toString() for f in files]
 		result[mime_type] = '\n'.join([copy_or_cut] + file_urls).encode('utf-8')
 	return result
 

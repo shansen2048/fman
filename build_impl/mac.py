@@ -1,7 +1,7 @@
 from build_impl import run, path, copy_framework, get_canonical_os_name, \
-	OPTIONS, copy_python_library, upload_file, run_on_server,\
+	OPTIONS, copy_python_library, upload_file, run_on_server, \
 	check_output_decode, get_path_on_server, run_pyinstaller, \
-	copy_with_filtering, get_icons, upload_installer_to_aws
+	get_icons, upload_installer_to_aws, generate_resources
 from build_impl.init import create_venv, install_requirements, install_sip, \
 	install_pyqt
 from glob import glob
@@ -25,13 +25,10 @@ def app():
 	])
 	_remove_unwanted_pyinstaller_files()
 	_fix_sparkle_delta_updates()
-	copy_with_filtering(
-		path('src/main/resources/base'),
-		dest_dir=path('target/fman.app/Contents/Resources'),
+	generate_resources(
+		dest_dir=path('target/fman.app'),
+		dest_dir_for_base=path('target/fman.app/Contents/Resources'),
 		exclude=[path('src/main/resources/base/fman.ico')]
-	)
-	copy_with_filtering(
-		path('src/main/resources/mac'), dest_dir=path('target/fman.app')
 	)
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),

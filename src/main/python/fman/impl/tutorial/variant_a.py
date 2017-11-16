@@ -1,6 +1,6 @@
 from fman.impl.tutorial import Tutorial, TutorialStep
-from fman.util import listdir_absolute
-from fman.util.system import is_mac
+from fman.impl.util import listdir_absolute
+from fman.impl.util.system import is_mac
 from os import listdir
 from os.path import expanduser, isdir, join, getmtime, basename, abspath
 

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from fman.util.css import parse_css, CSSEngine
+from fman.impl.util.css import parse_css, CSSEngine
 from PyQt5.QtGui import QColor
 from tinycss.parsing import ParseError
 

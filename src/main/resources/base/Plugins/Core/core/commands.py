@@ -5,26 +5,31 @@ from core.os_ import open_terminal_in_directory, open_native_file_manager, \
 from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
-from core.trash import move_to_trash
 from fman import *
+from fman.url import splitscheme, as_url, join, basename, split, \
+	as_human_readable, dirname
+from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
+	samefile, copy
 from getpass import getuser
 from io import BytesIO
 from itertools import chain, islice
-from os import mkdir, rename, listdir, remove
-from os.path import join, isfile, exists, splitdrive, basename, normpath, \
-	isdir, split, dirname, realpath, expanduser, samefile, isabs, pardir, \
+from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
 	islink
+from pathlib import PurePath, Path
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
-from shutil import copy, move, rmtree
+from shutil import rmtree
 from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
 import fman
+import fman.fs
 import json
 import os
+import os.path
 import re
+import shutil
 import sys
 
 class About(ApplicationCommand):
@@ -33,7 +38,7 @@ class About(ApplicationCommand):
 		msg += "\n" + self._get_registration_info()
 		show_alert(msg)
 	def _get_registration_info(self):
-		user_json_path = join(DATA_DIRECTORY, 'Local', 'User.json')
+		user_json_path = os.path.join(DATA_DIRECTORY, 'Local', 'User.json')
 		try:
 			with open(user_json_path, 'r') as f:
 				data = json.load(f)
@@ -49,11 +54,6 @@ class Help(ApplicationCommand):
 		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings?s=f'))
 
 class _CorePaneCommand(DirectoryPaneCommand):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		# The field `ui` is useful for automated tests: Tests can overwrite it
-		# with a stub implementation to run without an actual GUI.
-		self.ui = fman
 	def toggle_selection(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
@@ -105,14 +105,15 @@ class MoveToTrash(_CorePaneCommand):
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
-			description = to_delete[0]
+			description = as_human_readable(to_delete[0])
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
-		choice = self.ui.show_alert(
+		choice = show_alert(
 			"Do you really want to move %s to the %s?" % (description, trash),
 			YES | NO, YES
 		)
 		if choice & YES:
-			move_to_trash(*to_delete)
+			for url in to_delete:
+				move_to_trash(url)
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self):
@@ -123,7 +124,7 @@ class DeletePermanently(DirectoryPaneCommand):
 		if len(to_delete) > 1:
 			description = 'these %d items' % len(to_delete)
 		else:
-			description = to_delete[0]
+			description = as_human_readable(to_delete[0])
 		choice = show_alert(
 			"Do you really want to PERMANENTLY delete %s? This action cannot "
 			"be undone!" % description,
@@ -131,58 +132,83 @@ class DeletePermanently(DirectoryPaneCommand):
 		)
 		if choice & YES:
 			for file_path in to_delete:
-				if isdir(file_path):
-					def handle_error(func, path, exc_info):
-						if not isinstance(exc_info[1], FileNotFoundError):
-							raise
-					rmtree(file_path, onerror=handle_error)
-				else:
-					remove(file_path)
+				delete(file_path)
 
 class GoUp(_CorePaneCommand):
 
 	aliases = ('Go up', 'Go to parent directory')
 
 	def __call__(self):
-		current_dir = self.pane.get_path()
-		drive = splitdrive(current_dir)[1]
-		if not drive or drive == os.sep:
-			# We catch this case because the callback below doesn't handle it.
-			# Consider: current_dir is '/'. Say the cursor is at /bin. We want
-			# it to stay there. But the callback would attempt to place it at /.
-			# This doesn't make sense.
-			return
-		callback = lambda: self.pane.place_cursor_at(current_dir)
-		self.pane.set_path(dirname(current_dir), callback)
+		path_before = self.pane.get_path()
+		def callback():
+			path_now = self.pane.get_path()
+			# Only move the cursor if we actually changed directories; For
+			# instance, we don't want to move the cursor if the user presses
+			# Backspace while at C:\ and the cursor is already at
+			# C:\Program Files.
+			if path_now != path_before:
+				# Consider: The user is in zip:///Temp.zip and invokes GoUp.
+				# This takes us to file:///. We want to place the cursor at
+				# file:///Temp.zip. "Switch" schemes to make this happen:
+				cursor_dest = splitscheme(path_now)[0] + \
+							  splitscheme(path_before)[1]
+				try:
+					self.pane.place_cursor_at(cursor_dest)
+				except ValueError as dest_doesnt_exist:
+					self.pane.move_cursor_home()
+		self.pane.set_path(dirname(path_before), callback)
 
 class Open(_CorePaneCommand):
-	def __call__(self):
-		file_under_cursor = self.pane.get_file_under_cursor()
-		if file_under_cursor:
-			_open(self.pane, file_under_cursor)
+	def __call__(self, url=None):
+		if url is None:
+			url = self.pane.get_file_under_cursor()
+		if url:
+			# Use `run_command` to delegate the actual task of opening the file.
+			# This makes it possible for plugins to modify the default open
+			# behaviour by implementing DirectoryPaneListener#on_command(...).
+			if is_dir(url):
+				self.pane.run_command('open_directory', {'url': url})
+			else:
+				self.pane.run_command('open_file', {'url': url})
 		else:
 			show_alert('No file is selected!')
 
 class OpenListener(DirectoryPaneListener):
-	def on_doubleclicked(self, file_path):
-		_open(self.pane, file_path)
+	def on_doubleclicked(self, file_url):
+		self.pane.run_command('open', {'url': file_url})
 
-def _open(pane, file_path):
-	if isdir(file_path):
-		pane.set_path(realpath(file_path))
-	else:
+class OpenDirectory(DirectoryPaneCommand):
+	def __call__(self, url):
+		if is_dir(url):
+			self.pane.set_path(url)
+		else:
+			def callback():
+				self.pane.place_cursor_at(url)
+			self.pane.set_path(dirname(url), callback=callback)
+	def is_visible(self):
+		return False
+
+class OpenFile(DirectoryPaneCommand):
+	def __call__(self, url):
 		if PLATFORM == 'Linux':
-			use_qt = False
-			try:
-				Popen(
-					[file_path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL
-				)
-			except (OSError, ValueError):
+			scheme, path = splitscheme(url)
+			if scheme == 'file://':
+				use_qt = False
+				try:
+					Popen(
+						[path], stdin=DEVNULL, stdout=DEVNULL,
+						stderr=DEVNULL
+					)
+				except (OSError, ValueError):
+					use_qt = True
+			else:
 				use_qt = True
 		else:
 			use_qt = True
 		if use_qt:
-			QDesktopServices.openUrl(QUrl.fromLocalFile(file_path))
+			QDesktopServices.openUrl(QUrl(url))
+	def is_visible(self):
+		return False
 
 class OpenWithEditor(_CorePaneCommand):
 
@@ -193,50 +219,57 @@ class OpenWithEditor(_CorePaneCommand):
 		'Windows': 'Applications (*.exe)',
 		'Linux': 'Applications (*)'
 	}
-	def __call__(self, create_new=None):
-		if create_new is not None:
-			# TODO: Remove this migration in October 2017
-			show_alert(
-				'Error: Command open_with_editor no longer supports argument '
-				'`create_new`. Please update your Key Bindings.json to use '
-				'the new command create_and_edit_file instead.'
-			)
-			return
+	def __call__(self):
 		self._open_with_editor(self.pane.get_file_under_cursor())
-	def _open_with_editor(self, file_path):
-		if not exists(file_path):
+	def _open_with_editor(self, file_url):
+		if not file_url:
 			show_alert('No file is selected!')
 			return
+		scheme, path = splitscheme(file_url)
+		if scheme != 'file://':
+			show_alert('Currently, only local files can be edited.')
+			return
+		editor = self._get_editor()
+		if editor:
+			popen_kwargs = strformat_dict_values(editor, {'file': path})
+			Popen(**popen_kwargs)
+	def _get_editor(self):
 		settings = load_json('Core Settings.json', default={})
-		editor = settings.get('editor', {})
-		if not editor:
-			choice = self.ui.show_alert(
+		result = settings.get('editor', {})
+		if not result:
+			choice = show_alert(
 				'Editor is currently not configured. Please pick one.',
 				OK | CANCEL, OK
 			)
 			if choice & OK:
-				editor_path = self.ui.show_file_open_dialog(
+				editor_path = show_file_open_dialog(
 					'Pick an Editor', self._get_applications_directory(),
 					self._PLATFORM_APPLICATIONS_FILTER[PLATFORM]
 				)
 				if editor_path:
-					editor = get_popen_kwargs_for_opening('{file}', editor_path)
-					settings['editor'] = editor
+					result = get_popen_kwargs_for_opening('{file}', editor_path)
+					settings['editor'] = result
 					save_json('Core Settings.json')
-		if editor:
-			popen_kwargs = strformat_dict_values(editor, {'file': file_path})
-			Popen(**popen_kwargs)
+		return result
 	def _get_applications_directory(self):
 		if PLATFORM == 'Mac':
 			return '/Applications'
 		elif PLATFORM == 'Windows':
-			result = r'c:\Program Files'
-			if not exists(result):
+			result = _get_program_files()
+			if not os.path.exists(result):
+				result = _get_program_files_x86()
+			if not os.path.exists(result):
 				result = splitdrive(sys.executable)[0] + '\\'
 			return result
 		elif PLATFORM == 'Linux':
 			return '/usr/bin'
 		raise NotImplementedError(PLATFORM)
+
+def _get_program_files():
+	return os.environ.get('PROGRAMW6432', r'C:\Program Files')
+
+def _get_program_files_x86():
+	return os.environ.get('PROGRAMFILES', r'C:\Program Files (x86)')
 
 class CreateAndEditFile(OpenWithEditor):
 
@@ -244,7 +277,7 @@ class CreateAndEditFile(OpenWithEditor):
 
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
-		if isfile(file_under_cursor):
+		if file_under_cursor and not is_dir(file_under_cursor):
 			default_name = basename(file_under_cursor)
 		else:
 			default_name = ''
@@ -253,7 +286,7 @@ class CreateAndEditFile(OpenWithEditor):
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
 			if not exists(file_to_edit):
-				open(file_to_edit, 'w').close()
+				touch(file_to_edit)
 			self.pane.place_cursor_at(file_to_edit)
 			self._open_with_editor(file_to_edit)
 
@@ -265,43 +298,41 @@ class _TreeCommand(_CorePaneCommand):
 		else:
 			src_dir=None
 		if dest_dir is None:
-			dest_dir = self.other_pane.get_path()
+			dest_dir = _get_opposite_pane(self.pane).get_path()
 		proceed = self._confirm_tree_operation(files, dest_dir, src_dir)
 		if proceed:
 			dest_dir, dest_name = proceed
 			self._call(files, dest_dir, src_dir, dest_name)
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
 		raise NotImplementedError()
-	@property
-	def other_pane(self):
-		panes = self.pane.window.get_panes()
-		return panes[(panes.index(self.pane) + 1) % len(panes)]
-	def _confirm_tree_operation(self, files, dest_dir, src_dir):
+	@classmethod
+	def _confirm_tree_operation(
+		cls, files, dest_dir, src_dir, ui=fman, fs=fman.fs
+	):
 		if not files:
-			show_alert('No file is selected!')
+			ui.show_alert('No file is selected!')
 			return
 		if len(files) == 1:
 			file_, = files
-			dest_name = basename(file_) if isfile(file_) else ''
+			dest_name = '' if fs.is_dir(file_) else basename(file_)
 			files_descr = '"%s"' % basename(file_)
 		else:
 			dest_name = ''
 			files_descr = '%d files' % len(files)
-		descr_verb = self.__class__.__name__
+		descr_verb = cls.__name__
 		message = '%s %s to' % (descr_verb, files_descr)
-		dest = normpath(join(dest_dir, dest_name))
-		dest, ok = self.ui.show_prompt(message, dest)
-		if ok:
-			if not isabs(dest):
-				dest = join(src_dir, dest)
-			if exists(dest):
-				if isdir(dest):
+		dest = as_human_readable(join(dest_dir, dest_name))
+		dest, ok = ui.show_prompt(message, dest)
+		if dest and ok:
+			dest = _from_human_readable(dest, dest_dir, src_dir)
+			if fs.exists(dest):
+				if fs.is_dir(dest):
 					return dest, None
 				else:
 					if len(files) == 1:
 						return split(dest)
 					else:
-						self.ui.show_alert(
+						ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
 							descr_verb.lower()
 						)
@@ -309,26 +340,43 @@ class _TreeCommand(_CorePaneCommand):
 				if len(files) == 1:
 					return split(dest)
 				else:
-					choice = self.ui.show_alert(
+					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(dest, descr_verb.lower()), YES | NO, YES
+						(as_human_readable(dest), descr_verb.lower()),
+						YES | NO, YES
 					)
 					if choice & YES:
 						return dest, None
 
+def _get_opposite_pane(pane):
+	panes = pane.window.get_panes()
+	return panes[(panes.index(pane) + 1) % len(panes)]
+
+def _from_human_readable(path_or_url, dest_dir, src_dir):
+	try:
+		splitscheme(path_or_url)
+	except ValueError as no_scheme:
+		# Treat dest as relative to src_dir:
+		src_scheme, src_path = splitscheme(src_dir)
+		dest_scheme = splitscheme(dest_dir)[0]
+		path_or_url = dest_scheme + PurePath(src_path, path_or_url).as_posix()
+	return path_or_url
+
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		CopyFiles(self.ui, files, dest_dir, src_dir, dest_name)()
+		CopyFiles(fman, files, dest_dir, src_dir, dest_name)()
 
 class Move(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		MoveFiles(self.ui, files, dest_dir, src_dir, dest_name)()
+		MoveFiles(fman, files, dest_dir, src_dir, dest_name)()
 
 class DragAndDropListener(DirectoryPaneListener):
-	def on_files_dropped(self, files, dest_dir, is_copy_not_move):
+	def on_files_dropped(self, file_urls, dest_dir, is_copy_not_move):
 		command = 'copy' if is_copy_not_move else 'move'
-		self.pane.run_command(command, {'files': files, 'dest_dir': dest_dir})
+		self.pane.run_command(
+			command, {'files': file_urls, 'dest_dir': dest_dir}
+		)
 
 class Rename(_CorePaneCommand):
 	def __call__(self):
@@ -339,8 +387,8 @@ class Rename(_CorePaneCommand):
 			show_alert('No file is selected!')
 
 class RenameListener(DirectoryPaneListener):
-	def on_name_edited(self, file_path, new_name):
-		old_name = basename(file_path)
+	def on_name_edited(self, file_url, new_name):
+		old_name = basename(file_url)
 		if not new_name or new_name == old_name:
 			return
 		is_relative = \
@@ -352,19 +400,23 @@ class RenameListener(DirectoryPaneListener):
 				'instead.'
 			)
 			return
-		new_path = join(dirname(file_path), new_name)
+		new_url = join(dirname(file_url), new_name)
 		do_rename = True
-		if exists(new_path):
+		do_replace = False
+		if exists(new_url):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
-			if not samefile(new_path, file_path):
+			if not samefile(new_url, file_url):
 				response = show_alert(
 					new_name + ' already exists. Do you want to overwrite it?',
 					buttons=YES|NO, default_button=NO
 				)
 				do_rename = response & YES
+				do_replace = True
 		if do_rename:
+			if do_replace:
+				delete(new_url)
 			try:
-				rename(file_path, new_path)
+				move(file_url, new_url)
 			except OSError as e:
 				if isinstance(e, PermissionError):
 					message = 'Access was denied trying to rename %s to %s.'
@@ -372,7 +424,7 @@ class RenameListener(DirectoryPaneListener):
 					message = 'Could not rename %s to %s.'
 				show_alert(message % (old_name, new_name))
 			else:
-				self.pane.place_cursor_at(new_path)
+				self.pane.place_cursor_at(new_url)
 
 class CreateDirectory(_CorePaneCommand):
 
@@ -381,13 +433,13 @@ class CreateDirectory(_CorePaneCommand):
 	)
 
 	def __call__(self):
-		name, ok = self.ui.show_prompt("New folder (directory)")
+		name, ok = show_prompt("New folder (directory)")
 		if ok and name:
 			dir_path = join(self.pane.get_path(), name)
 			try:
 				mkdir(dir_path)
 			except FileExistsError:
-				if isdir(dir_path):
+				if is_dir(dir_path):
 					show_alert("This directory already exists!")
 				else:
 					show_alert("A file with this name already exists!")
@@ -400,7 +452,13 @@ class OpenTerminal(_CorePaneCommand):
 	)
 
 	def __call__(self):
-		open_terminal_in_directory(self.pane.get_path())
+		scheme, path = splitscheme(self.pane.get_path())
+		if scheme != 'file://':
+			show_alert(
+				"Can currently open the terminal only in local directories."
+			)
+			return
+		open_terminal_in_directory(path)
 
 class OpenNativeFileManager(_CorePaneCommand):
 	def __call__(self):
@@ -412,7 +470,8 @@ class CopyPathsToClipboard(_CorePaneCommand):
 		if not chosen_files:
 			show_alert('No file is selected!')
 			return
-		files = '\n'.join(map(normpath, chosen_files))
+		to_copy = [as_human_readable(url) for url in chosen_files]
+		files = '\n'.join(to_copy)
 		clipboard.clear()
 		clipboard.set_text(files)
 
@@ -433,10 +492,20 @@ class Cut(_CorePaneCommand):
 			)
 			return
 		files = self.get_chosen_files()
-		if files:
-			clipboard.cut_files(files)
-		else:
+		if not files:
 			show_alert('No file is selected!')
+			return
+		local_filepaths = _get_local_filepaths(files)
+		if local_filepaths:
+			clipboard.cut_files(local_filepaths)
+
+def _get_local_filepaths(urls):
+	result = []
+	for url in urls:
+		scheme, path = splitscheme(url)
+		if scheme == 'file://':
+			result.append(path)
+	return result
 
 class Paste(_CorePaneCommand):
 	def __call__(self):
@@ -456,7 +525,10 @@ class PasteCut(_CorePaneCommand):
 			# This can happen when the paste-cut has already been performed.
 			return
 		dest_dir = self.pane.get_path()
-		self.pane.run_command('move', {'files': files, 'dest_dir': dest_dir})
+		self.pane.run_command('move', {
+			'files': files,
+			'dest_dir': dest_dir
+		})
 
 class SelectAll(_CorePaneCommand):
 	def __call__(self):
@@ -479,12 +551,13 @@ class ToggleHiddenFiles(_CorePaneCommand):
 			settings.append(default.copy())
 		self.pane_info = settings[pane_index]
 		self.pane._add_filter(self.should_display)
-	def should_display(self, file_path):
+	def should_display(self, url):
 		if self.show_hidden_files:
 			return True
-		if PLATFORM == 'Mac' and file_path == '/Volumes':
+		if PLATFORM == 'Mac' and url == 'file:///Volumes':
 			return True
-		return not _is_hidden(file_path)
+		scheme, path = splitscheme(url)
+		return scheme != 'file://' or not _is_hidden(path)
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
 		self.pane._invalidate_filters()
@@ -517,10 +590,8 @@ class _OpenInPaneCommand(_CorePaneCommand):
 			# we would thus open a subdirectory of the left pane. That's not
 			# what we want. We want to open the directory of the left pane:
 			to_open = source_pane.get_path()
-		if not isdir(to_open):
-			to_open = dirname(to_open)
 		dest_pane = panes[self.get_destination_pane(this_pane, num_panes)]
-		dest_pane.set_path(to_open)
+		dest_pane.run_command('open_directory', {'url': to_open})
 	def get_source_pane(self, this_pane, num_panes):
 		raise NotImplementedError()
 	def get_destination_pane(self, this_pane, num_panes):
@@ -551,24 +622,26 @@ class ShowVolumes(_CorePaneCommand):
 			pane = self.pane
 		else:
 			pane = self.pane.window.get_panes()[pane_index]
-		pane.set_path(_get_volumes_path(), callback=pane.focus)
+		def callback():
+			pane.focus()
+			pane.move_cursor_home()
+		pane.set_path(_get_volumes_url(), callback=callback)
 
-def _get_volumes_path():
+def _get_volumes_url():
 	if PLATFORM == 'Mac':
-		return '/Volumes'
+		return 'file:///Volumes'
 	elif PLATFORM == 'Windows':
-		# Go to "My Computer":
-		return ''
+		return 'drives://'
 	elif PLATFORM == 'Linux':
-		if isdir('/media'):
-			contents = listdir('/media')
+		if os.path.isdir('/media'):
+			contents = os.listdir('/media')
 			user_name = _get_user()
 			if contents == [user_name]:
-				return join('/media', user_name)
+				return as_url(join('/media', user_name))
 			else:
-				return '/media'
+				return 'file:///media'
 		else:
-			return '/mnt'
+			return 'file:///mnt'
 	else:
 		raise NotImplementedError(PLATFORM)
 
@@ -576,10 +649,11 @@ def _get_user():
 	try:
 		return getuser()
 	except:
-		return basename(expanduser('~'))
+		return os.path.basename(expanduser('~'))
 
 class GoTo(_CorePaneCommand):
 	def __call__(self):
+		# TODO: Rename to Visited Locations.json?
 		visited_paths = load_json('Visited Paths.json', default={})
 		_migrate_visited_paths(visited_paths)
 		if not visited_paths:
@@ -593,18 +667,19 @@ class GoTo(_CorePaneCommand):
 			path = ''
 			if suggested_dir:
 				path = expanduser(suggested_dir)
-			if not isdir(path):
+			if not os.path.isdir(path):
 				path = expanduser(query)
-			if not exists(path):
+			if not os.path.exists(path):
 				# Maybe the user copy-pasted and there's some extra whitespace:
 				path = path.rstrip()
-			if isfile(path):
+			url = as_url(path)
+			if os.path.isfile(path):
 				self.pane.set_path(
-					dirname(path),
-					callback=lambda path=path: self.pane.place_cursor_at(path)
+					dirname(url),
+					callback=lambda url=url: self.pane.place_cursor_at(url)
 				)
-			elif isdir(path):
-				self.pane.set_path(path)
+			elif os.path.isdir(path):
+				self.pane.set_path(url)
 	def _get_tab_completion(self, curr_suggestion):
 		result = curr_suggestion
 		if not result.endswith(os.sep):
@@ -614,18 +689,18 @@ class GoTo(_CorePaneCommand):
 		home_dir = expanduser('~')
 		result = list(self._get_nonhidden_subdirs(home_dir))
 		if PLATFORM == 'Windows':
-			for candidate in (r'C:\Program Files', r'C:\Program Files (x86)'):
-				if isdir(candidate):
+			for candidate in (_get_program_files(), _get_program_files_x86()):
+				if os.path.isdir(candidate):
 					result.append(candidate)
 		elif PLATFORM == 'Mac':
 			result.append('/Volumes')
 		elif PLATFORM == 'Linux':
 			media_user = join('/media', _get_user())
-			if exists(media_user):
+			if os.path.exists(media_user):
 				result.append(media_user)
-			elif exists('/media'):
+			elif os.path.exists('/media'):
 				result.append('/media')
-			if exists('/mnt'):
+			if os.path.exists('/mnt'):
 				result.append('/mnt')
 			# We need to add more suggestions on Linux, because unlike Windows
 			# and Mac, we (currently) do not integrate with the OS's native
@@ -638,10 +713,10 @@ class GoTo(_CorePaneCommand):
 			)
 		return result
 	def _get_nonhidden_subdirs(self, dir_path):
-		for file_name in listdir(dir_path):
-			file_path = join(dir_path, file_name)
-			if isdir(file_path) and not _is_hidden(file_path):
-				yield join(dir_path, file_name)
+		for file_name in os.listdir(dir_path):
+			file_path = os.path.join(dir_path, file_name)
+			if os.path.isdir(file_path) and not _is_hidden(file_path):
+				yield os.path.join(dir_path, file_name)
 	def _traverse_by_mtime(self, dir_path, exclude=None):
 		if exclude is None:
 			exclude = set()
@@ -653,7 +728,7 @@ class GoTo(_CorePaneCommand):
 				continue
 			yield parent
 			try:
-				parent_contents = listdir(parent)
+				parent_contents = os.listdir(parent)
 			except OSError:
 				continue
 			for file_name in parent_contents:
@@ -661,7 +736,7 @@ class GoTo(_CorePaneCommand):
 					continue
 				file_path = join(parent, file_name)
 				try:
-					if not isdir(file_path) or islink(file_path):
+					if not os.path.isdir(file_path) or islink(file_path):
 						continue
 				except OSError:
 					continue
@@ -699,11 +774,12 @@ class GoToListener(DirectoryPaneListener):
 			# not a user-initiated path change, we don't want to count it:
 			self.is_first_path_change = False
 			return
-		new_path = self.pane.get_path()
+		scheme, path = splitscheme(self.pane.get_path())
+		if scheme != 'file://':
+			return
 		visited_paths = \
 			load_json('Visited Paths.json', default={}, save_on_quit=True)
-		_migrate_visited_paths(visited_paths)
-		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
+		visited_paths[path] = visited_paths.get(path, 0) + 1
 
 def unexpand_user(path, expanduser_=expanduser):
 	home_dir = expanduser_('~')
@@ -718,11 +794,91 @@ class SuggestLocations:
 		contains_chars_after_separator(os.sep), contains_chars
 	)
 
+	class LocalFileSystem:
+		def isdir(self, path):
+			return os.path.isdir(path)
+		def expanduser(self, path):
+			return expanduser(path)
+		def listdir(self, path):
+			try:
+				return os.listdir(path)
+			except PermissionError:
+				if PLATFORM == 'Windows' and self._is_documents_and_settings(
+					path):
+					# Python can't listdir("C:\Documents and Settings"). In
+					# fact, no Windows program can. But "C:\{DaS}\<Username>"
+					# does work, and displays "C:\Users\<Username>". For
+					# consistency, treat DaS like a symlink to \Users:
+					return os.listdir(splitdrive(path)[0] + r'\Users')
+				raise
+		def resolve(self, path):
+			return str(Path(path).resolve())
+		def samefile(self, f1, f2):
+			return os.path.samefile(f1, f2)
+		def find_folders_starting_with(self, pattern, timeout_secs=0.02):
+			if PLATFORM == 'Mac':
+				from objc import loadBundle
+				ns = {}
+				loadBundle(
+					'CoreServices.framework', ns,
+					bundle_identifier='com.apple.CoreServices'
+				)
+				pred = ns['NSPredicate'].predicateWithFormat_argumentArray_(
+					"kMDItemContentType == 'public.folder' && "
+					"kMDItemFSName BEGINSWITH[c] %@", [pattern]
+				)
+				query = ns['NSMetadataQuery'].alloc().init()
+				query.setPredicate_(pred)
+				query.setSearchScopes_(ns['NSArray'].arrayWithObject_('/'))
+				query.startQuery()
+				ns['NSRunLoop'].currentRunLoop().runUntilDate_(
+					ns['NSDate'].dateWithTimeIntervalSinceNow_(timeout_secs)
+				)
+				query.stopQuery()
+				for item in query.results():
+					yield item.valueForAttribute_("kMDItemPath")
+			elif PLATFORM == 'Windows':
+				import adodbapi
+				from pythoncom import com_error
+				try:
+					conn = adodbapi.connect(
+						"Provider=Search.CollatorDSO;"
+						"Extended Properties='Application=Windows';"
+					)
+					cursor = conn.cursor()
+
+					# adodbapi claims to support "paramstyles", which would let us
+					# pass parameters as an extra arg to .execute(...), without
+					# having to worry about escaping them. Alas, adodbapi raises an
+					# error when this feature is used. We thus have to escape the
+					# param ourselves:
+					def escape(param):
+						return re.subn(r'([%_\[\]\^])', r'[\1]', param)[0]
+
+					cursor.execute(
+						"SELECT TOP 5 System.ItemPathDisplay FROM SYSTEMINDEX "
+						"WHERE "
+						"System.ItemType = 'Directory' AND "
+						"System.ItemNameDisplay LIKE %r "
+						"ORDER BY System.ItemPathDisplay"
+						% (escape(pattern) + '%')
+					)
+					for row in iter(cursor.fetchone, None):
+						value = row['System.ItemPathDisplay']
+						# Seems to be None sometimes:
+						if value:
+							yield value
+				except (adodbapi.Error, com_error):
+					pass
+		def _is_documents_and_settings(self, path):
+			return splitdrive(normpath(path))[1].lower() == \
+				   '\\documents and settings'
+
 	def __init__(self, visited_paths, file_system=None):
 		if file_system is None:
 			# Encapsulating filesystem-related functionality in a separate field
 			# allows us to use a different implementation for testing.
-			file_system = FileSystem()
+			file_system = self.LocalFileSystem()
 		self.visited_paths = visited_paths
 		self.fs = file_system
 	def __call__(self, query):
@@ -737,15 +893,15 @@ class SuggestLocations:
 			path = path.rstrip(' ')
 			# Handle the case where the user has entered a drive such as 'E:'
 			# without the trailing backslash:
-			if path == splitdrive(path)[0]:
+			if re.match(r'^[A-Z]:$', path):
 				path += '\\'
 		if isabs(path):
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
 			if self.fs.isdir(path):
-				dir_ = self._realcase(path)
+				dir_ = self.fs.resolve(path)
 				return [dir_] + get_subdirs(dir_)
-			elif self.fs.isdir(dirname(path)):
-				return get_subdirs(self._realcase(dirname(path)))
+			elif self.fs.isdir(os.path.dirname(path)):
+				return get_subdirs(self.fs.resolve(os.path.dirname(path)))
 		result = set(self.visited_paths)
 		if len(query) > 2:
 			"""Compensate for directories not yet in self.visited_paths:"""
@@ -757,7 +913,8 @@ class SuggestLocations:
 			-self.visited_paths.get(dir_, 0), len(dir_), dir_.lower()
 		))
 	def _filter_matching(self, dirs, query):
-		use_tilde = not query.startswith(dirname(self.fs.expanduser('~')))
+		use_tilde = \
+			not query.startswith(os.path.dirname(self.fs.expanduser('~')))
 		result = [[] for _ in self._MATCHERS]
 		for dir_ in dirs:
 			title = self._unexpand_user(dir_) if use_tilde else dir_
@@ -786,106 +943,11 @@ class SuggestLocations:
 			pass
 		else:
 			for name in dir_contents:
-				file_path = join(dir_, name)
+				file_path = os.path.join(dir_, name)
 				if self.fs.isdir(file_path):
 					yield file_path
-	def _realcase(self, path):
-		# NB: `path` must exist!
-		is_case_sensitive = PLATFORM == 'Linux'
-		if is_case_sensitive:
-			return path
-		dir_ = dirname(path)
-		if dir_ == path:
-			# We're at the root of the file system.
-			return path
-		dir_ = self._realcase(dir_)
-		try:
-			dir_contents = self.fs.listdir(dir_)
-		except OSError:
-			matching_names = []
-		else:
-			matching_names = \
-				[f for f in dir_contents if f.lower() == basename(path).lower()]
-		if not matching_names:
-			return path
-		return join(dir_, matching_names[0])
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
-
-class FileSystem:
-	def isdir(self, path):
-		return isdir(path)
-	def expanduser(self, path):
-		return expanduser(path)
-	def listdir(self, path):
-		try:
-			return listdir(path)
-		except PermissionError:
-			if PLATFORM == 'Windows' and self._is_documents_and_settings(path):
-				# Python can't listdir("C:\Documents and Settings"). In fact, no
-				# Windows program can. But "C:\{DaS}\<Username>" does work, and
-				# displays "C:\Users\<Username>". For consistency, treat DaS
-				# like a symlink to \Users:
-				return listdir(splitdrive(path)[0] + r'\Users')
-			raise
-	def samefile(self, f1, f2):
-		return samefile(f1, f2)
-	def find_folders_starting_with(self, pattern, timeout_secs=0.02):
-		if PLATFORM == 'Mac':
-			from objc import loadBundle
-			ns = {}
-			loadBundle(
-				'CoreServices.framework', ns,
-				bundle_identifier='com.apple.CoreServices'
-			)
-			pred = ns['NSPredicate'].predicateWithFormat_argumentArray_(
-				"kMDItemContentType == 'public.folder' && "
-				"kMDItemFSName BEGINSWITH[c] %@", [pattern]
-			)
-			query = ns['NSMetadataQuery'].alloc().init()
-			query.setPredicate_(pred)
-			query.setSearchScopes_(ns['NSArray'].arrayWithObject_('/'))
-			query.startQuery()
-			ns['NSRunLoop'].currentRunLoop().runUntilDate_(
-				ns['NSDate'].dateWithTimeIntervalSinceNow_(timeout_secs)
-			)
-			query.stopQuery()
-			for item in query.results():
-				yield item.valueForAttribute_("kMDItemPath")
-		elif PLATFORM == 'Windows':
-			import adodbapi
-			from pythoncom import com_error
-			try:
-				conn = adodbapi.connect(
-					"Provider=Search.CollatorDSO;"
-					"Extended Properties='Application=Windows';"
-				)
-				cursor = conn.cursor()
-				# adodbapi claims to support "paramstyles", which would let us
-				# pass parameters as an extra arg to .execute(...), without
-				# having to worry about escaping them. Alas, adodbapi raises an
-				# error when this feature is used. We thus have to escape the
-				# param ourselves:
-				def escape(param):
-					return re.subn(r'([%_\[\]\^])', r'[\1]', param)[0]
-				cursor.execute(
-					"SELECT TOP 5 System.ItemPathDisplay FROM SYSTEMINDEX "
-					"WHERE "
-					"System.ItemType = 'Directory' AND "
-					"System.ItemNameDisplay LIKE %r "
-					"ORDER BY System.ItemPathDisplay"
-					% (escape(pattern) + '%')
-				)
-				for row in iter(cursor.fetchone, None):
-					value = row['System.ItemPathDisplay']
-					# Seems to be None sometimes:
-					if value:
-						yield value
-			except (adodbapi.Error, com_error):
-				pass
-	def _is_documents_and_settings(self, path):
-		return splitdrive(normpath(path))[1].lower() == \
-			   '\\documents and settings'
 
 class CommandPalette(_CorePaneCommand):
 
@@ -910,7 +972,8 @@ class CommandPalette(_CorePaneCommand):
 				for i, matcher in enumerate(self._MATCHERS):
 					match = matcher(alias.lower(), query.lower())
 					if match is not None:
-						hint = ', '.join(self._get_shortcuts_for_command(cmd_name))
+						shortcuts = self._get_shortcuts_for_command(cmd_name)
+						hint = ', '.join(shortcuts)
 						item = QuicksearchItem(command, alias, match, hint)
 						result[i].append(item)
 						this_alias_matched = True
@@ -924,6 +987,8 @@ class CommandPalette(_CorePaneCommand):
 	def _get_all_commands(self):
 		result = []
 		for cmd_name in self.pane.get_commands():
+			if not self.pane.is_command_visible(cmd_name):
+				continue
 			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
 			# defined-in-a-loop-with-different-values-all-return-the-same-result
 			aliases = self.pane.get_command_aliases(cmd_name)
@@ -956,17 +1021,23 @@ class Quit(ApplicationCommand):
 
 class InstallLicenseKey(DirectoryPaneCommand):
 	def __call__(self):
-		license_key = join(self.pane.get_path(), 'User.json')
-		if not exists(license_key):
+		scheme, curr_dirpath = splitscheme(self.pane.get_path())
+		if scheme != 'file://':
 			show_alert(
-				'Could not find license key file "User.json" in the current '
-				'directory %s.' % self.pane.get_path()
+				'Sorry, please copy User.json to your local file system first.'
 			)
 			return
-		destination_directory = join(DATA_DIRECTORY, 'Local')
-		copy(license_key, destination_directory)
+		license_key = os.path.join(curr_dirpath, 'User.json')
+		if not os.path.exists(license_key):
+			show_alert(
+				'Could not find license key file "User.json" in the current '
+				'directory %s.' % curr_dirpath
+			)
+			return
+		destination_directory = os.path.join(DATA_DIRECTORY, 'Local')
+		shutil.copy(license_key, destination_directory)
 		show_alert(
-			"Thank you! To complete the registration, please restart fman. You "
+			"Thank you! Please restart fman to complete the registration. You "
 			"should no longer see the annoying popup when it starts."
 		)
 
@@ -982,12 +1053,12 @@ class ZenOfFman(ApplicationCommand):
 			"But not at the expense of speed\n"
 			"I/O is better asynchronous\n"
 			"Updates should be transparent and continuous\n"
-			"Development speed matters more than program size"
+			"Don't reinvent the wheel"
 		)
 
 class OpenDataDirectory(DirectoryPaneCommand):
 	def __call__(self):
-		self.pane.set_path(DATA_DIRECTORY)
+		self.pane.set_path(as_url(DATA_DIRECTORY))
 
 class GoBack(DirectoryPaneCommand):
 	def __call__(self):
@@ -1074,7 +1145,8 @@ class InstallPlugin(ApplicationCommand):
 				show_alert('Plugin %r was successfully installed.' % repo.name)
 	def _get_matching_repos(self, query):
 		installed_plugins = set(
-			basename(plugin_dir) for plugin_dir in _get_thirdparty_plugins()
+			os.path.basename(plugin_dir)
+			for plugin_dir in _get_thirdparty_plugins()
 		)
 		for repo in self._plugin_repos:
 			if repo.name in installed_plugins:
@@ -1087,18 +1159,18 @@ class InstallPlugin(ApplicationCommand):
 					description=repo.description
 				)
 	def _install_plugin(self, name, zipball_contents):
-		dest_dir = join(_THIRDPARTY_PLUGINS_DIR, name)
-		if exists(dest_dir):
+		dest_dir = os.path.join(_THIRDPARTY_PLUGINS_DIR, name)
+		if os.path.exists(dest_dir):
 			raise ValueError('Plugin %s seems to already be installed.' % name)
 		with ZipFile(BytesIO(zipball_contents), 'r') as zipfile:
 			with TemporaryDirectory() as temp_dir:
 				zipfile.extractall(temp_dir)
-				dir_in_zip, = listdir(temp_dir)
-				move(join(temp_dir, dir_in_zip), dest_dir)
+				dir_in_zip, = os.listdir(temp_dir)
+				shutil.move(os.path.join(temp_dir, dir_in_zip), dest_dir)
 		return dest_dir
 	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
-		plugin_json = join(plugin_dir, 'Plugin.json')
-		if exists(plugin_json):
+		plugin_json = os.path.join(plugin_dir, 'Plugin.json')
+		if os.path.exists(plugin_json):
 			with open(plugin_json, 'r') as f:
 				data = json.load(f)
 		else:
@@ -1108,14 +1180,14 @@ class InstallPlugin(ApplicationCommand):
 		with open(plugin_json, 'w') as f:
 			json.dump(data, f)
 
-_THIRDPARTY_PLUGINS_DIR = join(DATA_DIRECTORY, 'Plugins', 'Third-party')
+_THIRDPARTY_PLUGINS_DIR = os.path.join(DATA_DIRECTORY, 'Plugins', 'Third-party')
 
 def _get_thirdparty_plugins():
 	return _list_plugins(_THIRDPARTY_PLUGINS_DIR)
 
 def _list_plugins(dir_path):
 	try:
-		return list(filter(isdir, listdir_absolute(dir_path)))
+		return list(filter(os.path.isdir, listdir_absolute(dir_path)))
 	except FileNotFoundError:
 		return []
 
@@ -1139,11 +1211,11 @@ class RemovePlugin(ApplicationCommand):
 					rmtree(plugin_dir)
 					show_alert(
 						'Plugin %r was successfully removed.'
-						% basename(plugin_dir)
+						% os.path.basename(plugin_dir)
 					)
 	def _get_matching_plugins(self, query):
 		for plugin_dir in self._installed_plugins:
-			plugin_name = basename(plugin_dir)
+			plugin_name = os.path.basename(plugin_dir)
 			match = contains_chars(plugin_name.lower(), query.lower())
 			if match or not query:
 				yield QuicksearchItem(plugin_dir, plugin_name, highlight=match)
@@ -1170,8 +1242,9 @@ def _get_plugins():
 def _get_user_plugins():
 	result = []
 	settings_plugin = ''
-	for plugin_dir in _list_plugins(join(DATA_DIRECTORY, 'Plugins', 'User')):
-		if basename(plugin_dir) == 'Settings':
+	user_plugins_dir = os.path.join(DATA_DIRECTORY, 'Plugins', 'User')
+	for plugin_dir in _list_plugins(user_plugins_dir):
+		if os.path.basename(plugin_dir) == 'Settings':
 			settings_plugin = plugin_dir
 		else:
 			result.append(plugin_dir)
@@ -1186,14 +1259,14 @@ class ListPlugins(DirectoryPaneCommand):
 		if result:
 			plugin_dir = result[1]
 			if plugin_dir:
-				self.pane.set_path(plugin_dir)
+				self.pane.set_path(as_url(plugin_dir))
 	def _get_matching_plugins(self, query):
 		result = []
 		for plugin_dir in _get_thirdparty_plugins():
-			plugin_name = basename(plugin_dir)
+			plugin_name = os.path.basename(plugin_dir)
 			match = contains_chars(plugin_name.lower(), query.lower())
 			if match or not query:
-				plugin_json = join(plugin_dir, 'Plugin.json')
+				plugin_json = os.path.join(plugin_dir, 'Plugin.json')
 				with open(plugin_json, 'r') as f:
 					ref = json.load(f).get('ref', '')
 				is_sha = len(ref) == 40
@@ -1203,7 +1276,7 @@ class ListPlugins(DirectoryPaneCommand):
 					plugin_dir, plugin_name, highlight=match, hint=ref
 				))
 		for plugin_dir in _get_user_plugins():
-			plugin_name = basename(plugin_dir)
+			plugin_name = os.path.basename(plugin_dir)
 			match = contains_chars(plugin_name.lower(), query.lower())
 			if match or not query:
 				result.append(
@@ -1233,7 +1306,7 @@ if PLATFORM == 'Mac':
 				'		end\n'
 				'	end\n'
 				'end\n',
-				files
+				_get_local_filepaths(files)
 			)
 		def _run_applescript(self, script, args=None):
 			if args is None:
@@ -1243,3 +1316,58 @@ if PLATFORM == 'Mac':
 				stdout=DEVNULL, stderr=DEVNULL
 			)
 			process.communicate(script.encode('ascii'))
+
+class Pack(DirectoryPaneCommand):
+	def __call__(self):
+		files = self.get_chosen_files()
+		if not files:
+			show_alert('No file is selected!')
+			return
+		if len(files) == 1:
+			descr = basename(files[0])
+			dest_name = PurePath(basename(files[0])).stem + '.zip'
+		else:
+			descr = '%d files' % len(files)
+			dest_name = basename(self.pane.get_path()) + '.zip'
+		dest_dir = _get_opposite_pane(self.pane).get_path()
+		dest_url = join(dest_dir, dest_name)
+		dest, ok = show_prompt(
+			'Pack %s to (.zip, .7z, ...):' % descr,
+			as_human_readable(dest_url)
+		)
+		if dest and ok:
+			dest = _from_human_readable(dest, dest_dir, self.pane.get_path())
+			scheme = _get_handler_for_archive(basename(dest))
+			if not scheme:
+				show_alert('Sorry, but this archive format is not supported.')
+				return
+			dest_rewritten = scheme + splitscheme(dest)[1]
+			mkdir(dest_rewritten)
+			for file_url in files:
+				file_name = basename(file_url)
+				with StatusMessage('Packing %s...' % file_name):
+					copy(file_url, join(dest_rewritten, file_name))
+
+def _get_handler_for_archive(file_name):
+	settings = load_json('Core Settings.json', default={})
+	archive_types = sorted(
+		settings.get('archive_handlers', {}).items(),
+		key=lambda tpl: -len(tpl[0])
+	)
+	for suffix, scheme in archive_types:
+		if file_name.endswith(suffix):
+			return scheme
+
+class ArchiveOpenListener(DirectoryPaneListener):
+	def on_command(self, command, args):
+		if command in ('open_file', 'open_directory'):
+			try:
+				scheme, path = splitscheme(args['url'])
+			except (KeyError, ValueError):
+				return None
+			if scheme == 'file://':
+				new_scheme = _get_handler_for_archive(basename(path))
+				if new_scheme:
+					new_args = dict(args)
+					new_args['url'] = new_scheme + path
+					return 'open_directory', new_args

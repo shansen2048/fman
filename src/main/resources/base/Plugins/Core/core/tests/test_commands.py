@@ -1,11 +1,198 @@
-from core.commands import SuggestLocations, History
-from fman.util.system import is_linux, is_windows
-from os.path import normpath, dirname
+from core.commands import SuggestLocations, History, Move
+from core.tests import StubUI
+from fman import OK, YES, NO, PLATFORM
+from fman.url import join, as_human_readable, as_url, dirname
+from os.path import normpath
 from unittest import TestCase, skipIf
 
 import os
+import os.path
+
+class ConfirmTreeOperationTest(TestCase):
+
+	class FileSystem:
+		def __init__(self, files):
+			self._files = files
+
+		def exists(self, url):
+			return url in self._files
+
+		def is_dir(self, url):
+			return self._files.get(url, {}).get('is_dir', False)
+
+	def test_no_files(self):
+		self._expect_alert(('No file is selected!',), answer=OK)
+		self._check([], None)
+	def test_one_file(self):
+		dest_path = as_human_readable(join(self._dest, 'a.txt'))
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		self._check([self._a_txt], (self._dest, 'a.txt'))
+	def test_one_dir(self):
+		dest_path = as_human_readable(self._dest)
+		self._expect_prompt(('Move "a" to', dest_path), (dest_path, True))
+		self._check([self._a], (self._dest, None))
+	def test_two_files(self):
+		dest_path = as_human_readable(self._dest)
+		self._expect_prompt(('Move 2 files to', dest_path), (dest_path, True))
+		self._check([self._a_txt, self._b_txt], (self._dest, None))
+	def test_into_subfolder(self):
+		dest_path = as_human_readable(join(self._dest, 'a.txt'))
+		self._expect_prompt(('Move "a.txt" to', dest_path), ('a', True))
+		self._check([self._a_txt], (self._a, None))
+	def test_overwrite_single_file(self):
+		dest_url = join(self._dest, 'a.txt')
+		self._fs._files[dest_url] = {'is_dir': False}
+		dest_path = as_human_readable(dest_url)
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		self._check([self._a_txt], (self._dest, 'a.txt'))
+	def test_multiple_files_over_one(self):
+		dest_url = join(self._dest, 'a.txt')
+		self._fs._files[dest_url] = {'is_dir': False}
+		dest_path = as_human_readable(dest_url)
+		self._expect_prompt(
+			('Move 2 files to', as_human_readable(self._dest)),
+			(dest_path, True)
+		)
+		self._expect_alert(
+			('You cannot move multiple files to a single file!',), answer=OK
+		)
+		self._check([self._a_txt, self._b_txt], None)
+	def test_renamed_destination(self):
+		self._expect_prompt(
+			('Move "a.txt" to', as_human_readable(join(self._dest, 'a.txt'))),
+			(as_human_readable(join(self._dest, 'z.txt')), True)
+		)
+		self._check([self._a_txt], (self._dest, 'z.txt'))
+	def test_multiple_files_nonexistent_dest(self):
+		dest_url = join(self._dest, 'dir')
+		dest_path = as_human_readable(dest_url)
+		self._expect_prompt(
+			('Move 2 files to', as_human_readable(self._dest)),
+			(dest_path, True)
+		)
+		self._expect_alert(
+			('%s does not exist. Do you want to create it as a directory and '
+			 'move the files there?' % dest_path, YES | NO, YES),
+			answer=YES
+		)
+		self._check([self._a_txt, self._b_txt], (dest_url, None))
+	def test_file_system_root(self):
+		dest_path = as_human_readable(join(self._root, 'a.txt'))
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		self._check([self._a_txt], (self._root, 'a.txt'), dest_dir=self._root)
+	def test_different_scheme(self):
+		dest_path = as_human_readable(join(self._dest, 'a.txt'))
+		self._expect_prompt(('Move "a.txt" to', dest_path), (dest_path, True))
+		src_url = 'zip:///dest.zip/a.txt'
+		src_dir = dirname(src_url)
+		self._check([src_url], (self._dest, 'a.txt'), src_dir=src_dir)
+	def _expect_alert(self, args, answer):
+		self._ui.expect_alert(args, answer)
+	def _expect_prompt(self, args, answer):
+		self._ui.expect_prompt(args, answer)
+	def _check(self, files, expected_result, src_dir=None, dest_dir=None):
+		if src_dir is None:
+			src_dir = self._src
+		if dest_dir is None:
+			dest_dir = self._dest
+		actual_result = Move._confirm_tree_operation(
+			files, dest_dir, src_dir, self._ui, self._fs
+		)
+		self._ui.verify_expected_dialogs_were_shown()
+		self.assertEqual(expected_result, actual_result)
+	def setUp(self):
+		super().setUp()
+		self._ui = StubUI(self)
+		self._root = as_url('C:\\' if PLATFORM == 'Windows' else '/')
+		self._src = join(self._root, 'src')
+		self._dest = join(self._root, 'dest')
+		self._a = join(self._root, 'src/a')
+		self._a_txt = join(self._root, 'src/a.txt')
+		self._b_txt = join(self._root, 'src/b.txt')
+		self._fs = self.FileSystem({
+			self._src: {'is_dir': True},
+			self._dest: {'is_dir': True},
+			self._a: {'is_dir': True},
+			self._a_txt: {'is_dir': False},
+			self._b_txt: {'is_dir': False},
+		})
 
 class SuggestLocationsTest(TestCase):
+
+	class StubLocalFileSystem:
+		def __init__(self, files, home_dir):
+			self.files = files
+			self.home_dir = home_dir
+		def isdir(self, path):
+			if PLATFORM == 'Windows' and path.endswith(' '):
+				# Strange behaviour on Windows: isdir('X ') returns True if X
+				# (without space) exists.
+				path = path.rstrip(' ')
+			try:
+				self._get_dir(path)
+			except KeyError:
+				return False
+			return True
+		def _get_dir(self, path):
+			if not path:
+				raise KeyError(path)
+			path = normpath(path)
+			parts = path.split(os.sep) if path != os.sep else ['']
+			if len(parts) > 1 and parts[-1] == '':
+				parts = parts[:-1]
+			curr = self.files
+			for part in parts:
+				for file_name, items in curr.items():
+					if self._normcase(file_name) == self._normcase(part):
+						curr = items
+						break
+				else:
+					raise KeyError(part)
+			return curr
+		def expanduser(self, path):
+			return path.replace('~', self.home_dir)
+		def listdir(self, path):
+			try:
+				return sorted(list(self._get_dir(path)))
+			except KeyError as e:
+				raise FileNotFoundError(repr(path)) from e
+		def resolve(self, path):
+			is_case_sensitive = PLATFORM == 'Linux'
+			if is_case_sensitive:
+				return path
+			dir_ = os.path.dirname(path)
+			if dir_ == path:
+				# We're at the root of the file system.
+				return path
+			dir_ = self.resolve(dir_)
+			try:
+				dir_contents = self.listdir(dir_)
+			except OSError:
+				matching_names = []
+			else:
+				matching_names = [
+					f for f in dir_contents
+					if f.lower() == os.path.basename(path).lower()
+				]
+			if not matching_names:
+				return path
+			return os.path.join(dir_, matching_names[0])
+		def samefile(self, f1, f2):
+			return self._get_dir(f1) == self._get_dir(f2)
+		def find_folders_starting_with(self, prefix):
+			return list(
+				self._find_folders_recursive(self.files, prefix.lower()))
+		def _find_folders_recursive(self, files, prefix):
+			for f, subfiles in files.items():
+				if f.lower().startswith(prefix):
+					yield f
+				for sub_f in self._find_folders_recursive(subfiles, prefix):
+					# We don't use join(...) here because of the case f=''. We
+					# want '/sub_f' but join(f, sub_f) would give just 'sub_f'.
+					yield f + os.sep + sub_f
+		def _normcase(self, path):
+			return path if PLATFORM == 'Linux' else path.lower()
+
 	def test_empty_suggests_recent_locations(self):
 		expected_paths = [
 			'~/Dropbox/Work', '~/Dropbox', '~/Downloads', '~/Dropbox/Private',
@@ -35,7 +222,7 @@ class SuggestLocationsTest(TestCase):
 		self._check_query_returns(
 			'~/Unvisited', ['~/Unvisited', '~/Unvisited/Dir']
 		)
-	@skipIf(is_linux(), 'Case-insensitive file systems only')
+	@skipIf(PLATFORM == 'Linux', 'Case-insensitive file systems only')
 	def test_existing_path_wrong_case(self):
 		self._check_query_returns(
 			'~/unvisited', ['~/Unvisited', '~/Unvisited/Dir']
@@ -57,10 +244,11 @@ class SuggestLocationsTest(TestCase):
 		self._check_query_returns('dow', ['~/Downloads'], [[2, 3, 4]])
 	def test_home_dir_expanded(self):
 		self._check_query_returns(
-			dirname(self.home_dir), [dirname(self.home_dir), self.home_dir]
+			os.path.dirname(self.home_dir),
+			[os.path.dirname(self.home_dir), self.home_dir]
 		)
 	def setUp(self):
-		root = 'C:' if is_windows() else ''
+		root = 'C:' if PLATFORM == 'Windows' else ''
 		files = {
 			root: {
 				'Users': {
@@ -78,11 +266,11 @@ class SuggestLocationsTest(TestCase):
 			},
 			'.': {}
 		}
-		if is_windows():
+		if PLATFORM == 'Windows':
 			self.home_dir = r'C:\Users\michael'
 		else:
 			self.home_dir = '/Users/michael'
-		self.fs = StubFileSystem(files, home_dir=self.home_dir)
+		self.fs = self.StubLocalFileSystem(files, home_dir=self.home_dir)
 		visited_paths = {
 			self._replace_pathsep(self.fs.expanduser(k)): v
 			for k, v in [
@@ -106,58 +294,6 @@ class SuggestLocationsTest(TestCase):
 		return path.replace('/', os.sep)
 	def _full_range(self, string):
 		return list(range(len(string)))
-
-class StubFileSystem:
-	def __init__(self, files, home_dir):
-		self.files = files
-		self.home_dir = home_dir
-	def isdir(self, path):
-		if is_windows() and path.endswith(' '):
-			# Strange behaviour on Windows: isdir('X ') returns True if X
-			# (without space) exists.
-			path = path.rstrip(' ')
-		try:
-			self._get_dir(path)
-		except KeyError:
-			return False
-		return True
-	def _get_dir(self, path):
-		if not path:
-			raise KeyError(path)
-		path = normpath(path)
-		parts = path.split(os.sep) if path != os.sep else ['']
-		if len(parts) > 1 and parts[-1] == '':
-			parts = parts[:-1]
-		curr = self.files
-		for part in parts:
-			for file_name, items in curr.items():
-				if self._normcase(file_name) == self._normcase(part):
-					curr = items
-					break
-			else:
-				raise KeyError(part)
-		return curr
-	def expanduser(self, path):
-		return path.replace('~', self.home_dir)
-	def listdir(self, path):
-		try:
-			return sorted(list(self._get_dir(path)))
-		except KeyError as e:
-			raise FileNotFoundError(repr(path)) from e
-	def samefile(self, f1, f2):
-		return self._get_dir(f1) == self._get_dir(f2)
-	def find_folders_starting_with(self, prefix):
-		return list(self._find_folders_recursive(self.files, prefix.lower()))
-	def _find_folders_recursive(self, files, prefix):
-		for f, subfiles in files.items():
-			if f.lower().startswith(prefix):
-				yield f
-			for sub_f in self._find_folders_recursive(subfiles, prefix):
-				# We don't use join(...) here because of the case f=''. We want
-				# '/sub_f' but join(f, sub_f) would give just 'sub_f'.
-				yield f + os.sep + sub_f
-	def _normcase(self, path):
-		return path if is_linux() else path.lower()
 
 class HistoryTest(TestCase):
 	def test_empty_back(self):

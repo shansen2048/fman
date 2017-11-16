@@ -1,4 +1,4 @@
-from fman.util.qt import Task
+from fman.impl.util.qt import Task
 from unittest import TestCase
 
 class TaskTest(TestCase):
