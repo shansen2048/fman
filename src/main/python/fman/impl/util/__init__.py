@@ -17,7 +17,7 @@ def get_user():
 	except:
 		return basename(expanduser('~'))
 
-def is_in_subdir(file_path, directory):
+def is_below_dir(file_path, directory):
 	if splitdrive(file_path)[0].lower() != splitdrive(directory)[0].lower():
 		return False
 	rel = relpath(realpath(dirname(file_path)), realpath(directory))

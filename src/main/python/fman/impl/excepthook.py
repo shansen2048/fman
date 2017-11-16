@@ -1,4 +1,4 @@
-from fman.impl.util import is_in_subdir
+from fman.impl.util import is_below_dir
 from os.path import basename
 from traceback import extract_tb
 
@@ -26,7 +26,7 @@ class Excepthook:
 	def _get_plugin_causing_error(self, traceback):
 		for frame in extract_tb(traceback):
 			for plugin_dir in self._plugin_dirs:
-				if is_in_subdir(frame.filename, plugin_dir):
+				if is_below_dir(frame.filename, plugin_dir):
 					return plugin_dir
 	def _enable_excepthook_for_threads(self):
 		"""

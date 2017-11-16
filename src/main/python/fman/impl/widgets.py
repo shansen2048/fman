@@ -11,7 +11,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
-	QFrame, QAction
+	QFrame, QAction, QSizePolicy
 from random import randint, randrange
 
 class Application(QApplication):
@@ -382,6 +382,13 @@ class Overlay(QFrame):
 		self.label.setWordWrap(True)
 		self.label.setText(html)
 
+		# The following two lines prevent the label from being "cut off" at the
+		# bottom under some circumstances:
+		layout.setSizeConstraint(layout.SetMinAndMaxSize)
+		self.label.setSizePolicy(
+			QSizePolicy.MinimumExpanding, QSizePolicy.Minimum
+		)
+
 		layout.addWidget(self.label)
 
 		if buttons:
@@ -390,6 +397,8 @@ class Overlay(QFrame):
 			for button_label, action in buttons:
 				button = QPushButton(button_label, button_container)
 				button.clicked.connect(lambda *_, action=action: action())
+				# Prevent button from gaining Tab focus:
+				button.setFocusPolicy(Qt.ClickFocus)
 				button_layout.addWidget(button)
 			button_container.setLayout(button_layout)
 			layout.addWidget(button_container)

@@ -18,7 +18,7 @@ from fman.impl.plugins.config import Config
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
-from fman.impl.tutorial import Tutorial
+from fman.impl.tutorial.variant_b import TutorialVariantB
 from fman.impl.updater import MacUpdater
 from fman.impl.util import system, cached_property, is_frozen
 from fman.impl.util.settings import Settings
@@ -225,7 +225,7 @@ class ApplicationContext:
 		return SplashScreen(self.main_window, self.app)
 	@cached_property
 	def tutorial(self):
-		return Tutorial(
+		return TutorialVariantB(
 			self.main_window, self.app, self.command_callback, self.metrics
 		)
 	@cached_property

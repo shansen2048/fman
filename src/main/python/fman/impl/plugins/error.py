@@ -1,4 +1,4 @@
-from fman.impl.util import is_in_subdir, is_debug
+from fman.impl.util import is_below_dir, is_debug
 from os.path import dirname
 from traceback import StackSummary, _some_str, extract_tb, TracebackException, \
 	print_exc
@@ -37,7 +37,7 @@ def format_traceback(exc, exclude_dirs):
 	def tb_filter(tb):
 		tb_file = extract_tb(tb)[0][0]
 		for dir_ in exclude_dirs:
-			if is_in_subdir(tb_file, dir_):
+			if is_below_dir(tb_file, dir_):
 				return False
 		return True
 	traceback_ = \
