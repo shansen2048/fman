@@ -1,3 +1,4 @@
+from threading import Lock
 from weakref import WeakSet
 from functools import lru_cache
 from getpass import getuser
@@ -85,6 +86,7 @@ class Event:
 class CachedIterable:
 	def __init__(self, source):
 		self._source = iter(source)
+		self._lock = Lock()
 		self._items = []
 		self._items_to_skip = []
 		self._items_to_add = []
@@ -108,10 +110,11 @@ class CachedIterable:
 			def __init__(self):
 				self._cur_item = -1
 			def __next__(self):
-				self._cur_item += 1
-				if self._cur_item >= len(iterable._items):
-					iterable._items.append(self._generate_next())
-				return iterable._items[self._cur_item]
+				with iterable._lock:
+					self._cur_item += 1
+					if self._cur_item >= len(iterable._items):
+						iterable._items.append(self._generate_next())
+					return iterable._items[self._cur_item]
 			def _generate_next(self):
 				while True:
 					try:

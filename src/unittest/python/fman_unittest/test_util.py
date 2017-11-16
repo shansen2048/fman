@@ -1,6 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor
 from fman.impl.util import is_below_dir, CachedIterable
 from fman.impl.util.system import is_windows
 from os.path import join
+from threading import Event
+from time import sleep
 from unittest import TestCase, skipIf
 
 class IsBelowDirTest(TestCase):
@@ -69,5 +72,28 @@ class CachedIterableTest(TestCase):
 		self.assertEqual([1, 2], list(iterable))
 		iterable.add(2)
 		self.assertEqual([1, 2], list(iterable))
+	def test_concurrent_read(self):
+		items = [1, 2]
+		iterable = CachedIterable(self._generate_slowly(*items))
+		thread_started = Event()
+		executor = ThreadPoolExecutor()
+		try:
+			future = \
+				executor.submit(self._consume, thread_started, iterable)
+			try:
+				thread_started.wait()
+				self.assertEqual(items, list(iterable))
+			finally:
+				# Wait for the thread to complete and re-raise any exceptions:
+				self.assertEqual(items, future.result())
+		finally:
+			executor.shutdown()
 	def _generate(self, *args):
 		yield from args
+	def _generate_slowly(self, *args):
+		for arg in args:
+			sleep(.1)
+			yield arg
+	def _consume(self, started, iterable):
+		started.set()
+		return list(iterable)
