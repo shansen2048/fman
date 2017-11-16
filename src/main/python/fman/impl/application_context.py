@@ -18,6 +18,7 @@ from fman.impl.plugins.config import Config
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
+from fman.impl.tutorial import TutorialController
 from fman.impl.tutorial.variant_b import TutorialVariantB
 from fman.impl.updater import MacUpdater
 from fman.impl.util import system, cached_property, is_frozen
@@ -87,7 +88,7 @@ class ApplicationContext:
 				)
 		else:
 			if self.session_manager.is_first_run:
-				self.tutorial.start()
+				self.tutorial_controller.start()
 			else:
 				self.splash_screen.exec()
 	def on_main_window_close(self):
@@ -191,8 +192,8 @@ class ApplicationContext:
 	@cached_property
 	def builtin_plugin(self):
 		return BuiltinPlugin(
-			self.tutorial, self.plugin_error_handler, self.command_callback,
-			self.key_bindings, self.mother_fs
+			self.tutorial_controller, self.plugin_error_handler,
+			self.command_callback, self.key_bindings, self.mother_fs
 		)
 	@cached_property
 	def mother_fs(self):
@@ -226,9 +227,10 @@ class ApplicationContext:
 	def splash_screen(self):
 		return SplashScreen(self.main_window, self.app)
 	@cached_property
-	def tutorial(self):
-		return TutorialVariantB(
-			self.main_window, self.app, self.command_callback, self.metrics
+	def tutorial_controller(self):
+		return TutorialController(
+			TutorialVariantB,
+			(self.main_window, self.app, self.command_callback, self.metrics)
 		)
 	@cached_property
 	def plugin_support(self):
