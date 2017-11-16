@@ -18,6 +18,10 @@ class StubFileSystem(FileSystem):
 			return self._items[path]['is_dir']
 		except KeyError:
 			return False
+	def get_size_bytes(self, path):
+		return self._items[path].get('size', 1)
+	def get_modified_datetime(self, path):
+		return self._items[path].get('mtime', 1473339041.0)
 	def touch(self, path):
 		self._items[path] = {}
 	def mkdir(self, path):

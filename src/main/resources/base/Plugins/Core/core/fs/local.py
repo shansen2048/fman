@@ -1,3 +1,4 @@
+from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.fs import FileSystem
@@ -6,7 +7,7 @@ from fman.impl.util.path import add_backslash_to_drive_if_missing
 from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from os import remove
-from os.path import isdir, samefile
+from os.path import isdir, getsize, getmtime, samefile
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import rmtree, copytree, move, copyfile, copystat
@@ -27,6 +28,10 @@ class LocalFileSystem(FileSystem):
 			yield entry.name
 	def is_dir(self, path):
 		return isdir(path)
+	def get_size_bytes(self, path):
+		return getsize(path)
+	def get_modified_datetime(self, path):
+		return datetime.fromtimestamp(getmtime(path))
 	def touch(self, path):
 		Path(path).touch()
 	def mkdir(self, path):

@@ -17,6 +17,12 @@ def makedirs(url, exist_ok=False):
 def is_dir(url):
 	return _get_mother_fs().is_dir(url)
 
+def get_size_bytes(url):
+	return _get_mother_fs().get_size_bytes(url)
+
+def get_modified_datetime(url):
+	return _get_mother_fs().get_modified_datetime(url)
+
 def move(src_url, dst_url):
 	_get_mother_fs().move(src_url, dst_url)
 
@@ -73,6 +79,10 @@ class FileSystem:
 		a directory that does not yet exist, should raise a FileNotFoundError.
 		"""
 		raise NotImplementedError()
+	def get_size_bytes(self, path):
+		return None
+	def get_modified_datetime(self, path):
+		return None
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:
