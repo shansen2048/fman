@@ -1,6 +1,8 @@
+from datetime import datetime
 from fman.fs import Column
+from fman.url import splitscheme
 from math import log
-from os.path import basename
+from os.path import basename, getsize, getmtime
 
 import fman.fs
 import re
@@ -34,8 +36,9 @@ class SizeColumn(Column):
 	def get_str(self, url):
 		if self._fs.is_dir(url):
 			return ''
-		size_bytes = self._fs.get_size_bytes(url)
-		if size_bytes is None:
+		try:
+			size_bytes = self._get_size(url)
+		except OSError:
 			return ''
 		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
 		if size_bytes <= 0:
@@ -51,8 +54,13 @@ class SizeColumn(Column):
 			ord_ = ord if is_ascending else lambda c: -ord(c)
 			minor = tuple(ord_(c) for c in basename(url).lower())
 		else:
-			minor = self._fs.get_size_bytes(url)
+			minor = self._get_size(url)
 		return is_dir ^ is_ascending, minor
+	def _get_size(self, url):
+		scheme, path = splitscheme(url)
+		if scheme != 'file://':
+			raise ValueError('Unsupported scheme: %r' % scheme)
+		return getsize(path)
 
 class LastModifiedColumn(Column):
 
@@ -63,12 +71,15 @@ class LastModifiedColumn(Column):
 		self._fs = fs
 	def get_str(self, url):
 		try:
-			mtime = self._fs.get_modified_datetime(url)
+			mtime = self._get_mtime(url)
 		except OSError:
 			return ''
-		if mtime is None:
-			return ''
-		return mtime.strftime('%Y-%m-%d %H:%M')
+		return datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M')
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.is_dir(url)
-		return is_dir ^ is_ascending, self._fs.get_modified_datetime(url)
+		return is_dir ^ is_ascending, self._get_mtime(url)
+	def _get_mtime(self, url):
+		scheme, path = splitscheme(url)
+		if scheme != 'file://':
+			raise ValueError('Unsupported scheme: %r' % scheme)
+		return getmtime(path)
