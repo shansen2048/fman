@@ -39,6 +39,8 @@ class Tutorial:
 		self._metrics.track('CompletedTutorial')
 		self.close()
 	def close(self):
+		if not self._curr_step:
+			return
 		self._curr_step.close()
 		self._command_callback.remove_listener(self._curr_step)
 		self._pane.path_changed.disconnect(self._curr_step.on_path_changed)
