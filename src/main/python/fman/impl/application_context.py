@@ -21,6 +21,7 @@ from fman.impl.signal_ import SignalWakeupHandler
 from fman.impl.tutorial.variant_b import TutorialVariantB
 from fman.impl.updater import MacUpdater
 from fman.impl.util import system, cached_property, is_frozen
+from fman.impl.util.qt import connect_once
 from fman.impl.util.settings import Settings
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
@@ -144,8 +145,9 @@ class ApplicationContext:
 			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
-			self._main_window.shown.connect(self.on_main_window_shown)
-			self._main_window.shown.connect(
+			connect_once(self._main_window.shown, self.on_main_window_shown)
+			connect_once(
+				self._main_window.shown,
 				lambda: self.plugin_error_handler.on_main_window_shown(
 					self.main_window
 				)
