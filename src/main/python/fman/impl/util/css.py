@@ -9,6 +9,8 @@ def parse_css(bytes_):
 	result = []
 	parser = tinycss.make_parser()
 	stylesheet = parser.parse_stylesheet_bytes(bytes_)
+	if stylesheet.errors:
+		raise stylesheet.errors[0]
 	for rule in stylesheet.rules:
 		selectors = rule.selector.as_css().split(', ')
 		declarations = [

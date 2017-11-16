@@ -1,3 +1,4 @@
+from fman.impl.theme import ThemeError
 from fman.impl.util import is_below_dir, is_debug
 from os.path import dirname
 from traceback import StackSummary, _some_str, extract_tb, TracebackException, \
@@ -31,6 +32,8 @@ class PluginErrorHandler:
 		if self._pending_error_messages:
 			self._main_window.show_alert(self._pending_error_messages[0])
 	def _get_plugin_traceback(self, exc):
+		if isinstance(exc, ThemeError):
+			return exc.description
 		return format_traceback(exc, exclude_dirs=[dirname(fman.__file__)])
 
 def format_traceback(exc, exclude_dirs):

@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from fman.impl.util.css import parse_css, CSSEngine
 from PyQt5.QtGui import QColor
+from tinycss.parsing import ParseError
 
 class Theme:
 
@@ -20,46 +21,69 @@ class Theme:
 				self._qss_base += f.read() + '\n'
 		self._css_rules = OrderedDict()
 		self._extra_qss_from_css = OrderedDict()
+		self._quicksearch_item_css = ''
+		self._css_engine = None
 	def load(self, css_file_path):
 		with open(css_file_path, 'rb') as f:
 			f_contents = f.read()
-		new_rules = parse_css(f_contents)
+		try:
+			new_rules = parse_css(f_contents)
+		except ParseError as e:
+			raise ThemeError(
+				'CSS Parse error in file %s at line %d, column %d: %s'
+				% (css_file_path, e.line, e.column, e.reason)
+			)
 		self._css_rules[css_file_path] = new_rules
 		self._extra_qss_from_css[css_file_path] = \
 			'\n'.join(map(self._css_rule_to_qss, new_rules))
+		try:
+			self._quicksearch_item_css = self._get_quicksearch_item_css()
+		except ValueError as e:
+			error_message = 'CSS error in %s: %s' % (css_file_path, e)
+			raise ThemeError(error_message) from None
 		self._update_app()
 	def unload(self, css_file_path):
 		del self._css_rules[css_file_path]
 		del self._extra_qss_from_css[css_file_path]
+		self._quicksearch_item_css = self._get_quicksearch_item_css()
 		self._update_app()
 	def get_quicksearch_item_css(self):
-		engine = CSSEngine([r for rs in self._css_rules.values() for r in rs])
-		item = engine.query('.quicksearch-item')
-		title = engine.query('.quicksearch-item-title')
-		title_highlight = engine.query('.quicksearch-item-title-highlight')
-		hint = engine.query('.quicksearch-item-hint')
-		description = engine.query('.quicksearch-item-description')
+		return self._quicksearch_item_css
+	def _get_quicksearch_item_css(self):
+		self._css_engine = \
+			CSSEngine([r for rs in self._css_rules.values() for r in rs])
 		return {
-			'padding-top_px': self._parse_px(item['padding-top']),
-			'padding-left_px': self._parse_px(item['padding-left']),
-			'padding-right_px': self._parse_px(item['padding-right']),
-			'border-top-width_px': self._parse_border_width(item['border-top']),
+			'padding-top_px':
+				self._parse_px('.quicksearch-item', 'padding-top'),
+			'padding-left_px':
+				self._parse_px('.quicksearch-item', 'padding-left'),
+			'padding-right_px':
+				self._parse_px('.quicksearch-item', 'padding-right'),
+			'border-top-width_px':
+				self._parse_border_width('.quicksearch-item', 'border-top'),
 			'border-bottom-width_px':
-				self._parse_border_width(item['border-bottom']),
+				self._parse_border_width('.quicksearch-item', 'border-bottom'),
 			'title': {
-				'font-size_pts': self._parse_pts(title['font-size']),
-				'color': self._parse_color(title['color']),
+				'font-size_pts':
+					self._parse_pts('.quicksearch-item-title', 'font-size'),
+				'color': self._parse_color('.quicksearch-item-title', 'color'),
 				'highlight': {
-					'color': self._parse_color(title_highlight['color'])
+					'color': self._parse_color(
+						'.quicksearch-item-title-highlight', 'color'
+					)
 				}
 			},
 			'hint': {
-				'font-size_pts': self._parse_pts(hint['font-size']),
-				'color': self._parse_color(hint['color'])
+				'font-size_pts':
+					self._parse_pts('.quicksearch-item-hint', 'font-size'),
+				'color': self._parse_color('.quicksearch-item-hint', 'color')
 			},
 			'description': {
-				'font-size_pts': self._parse_pts(description['font-size']),
-				'color': self._parse_color(description['color'])
+				'font-size_pts': self._parse_pts(
+					'.quicksearch-item-description', 'font-size'
+				),
+				'color':
+					self._parse_color('.quicksearch-item-description', 'color')
 			}
 		}
 	def _css_rule_to_qss(self, rule):
@@ -82,15 +106,51 @@ class Theme:
 	def _update_app(self):
 		qss = self._qss_base + ''.join(self._extra_qss_from_css.values())
 		self._app.set_style_sheet(qss)
-	def _parse_border_width(self, value):
-		return self._parse_px(value.split(' ')[0])
-	def _parse_pts(self, value):
+	def _parse_border_width(self, selector, declaration):
+		value = self._query(selector, declaration)
+		width = value.split(' ')[0]
+		error_message = \
+			'Invalid value for %s %s: %r. Should be of the form ' \
+			'"123px solid #ff0000".' % (selector, declaration, value)
+		if not width.endswith('px'):
+			raise ValueError(error_message)
+		try:
+			return int(width[:-2])
+		except ValueError:
+			raise ValueError(error_message) from None
+	def _parse_pts(self, selector, declaration):
+		value = self._query(selector, declaration)
+		error_message = \
+			'Invalid pt value for %s %s: %r' % (selector, declaration, value)
 		if not value.endswith('pt'):
-			raise ValueError('Invalid pt value: %r' % value)
-		return int(value[:-2])
-	def _parse_color(self, value):
+			raise ValueError(error_message)
+		try:
+			return int(value[:-2])
+		except ValueError:
+			raise ValueError(error_message) from None
+	def _parse_color(self, selector, declaration):
+		value = self._query(selector, declaration)
 		return QColor(value)
-	def _parse_px(self, value):
+	def _parse_px(self, selector, declaration):
+		value = self._query(selector, declaration)
+		error_message = \
+			'Invalid px value for %s %s: %r' % (selector, declaration, value)
 		if not value.endswith('px'):
-			raise ValueError('Invalid px value: %r' % value)
-		return int(value[:-2])
+			raise ValueError(error_message)
+		try:
+			return int(value[:-2])
+		except ValueError:
+			raise ValueError(error_message) from None
+	def _query(self, selector, declaration):
+		declarations = self._css_engine.query(selector)
+		try:
+			return declarations[declaration]
+		except KeyError:
+			raise ValueError(
+				'Could not find %s for %s' % (declaration, selector)
+			)
+
+class ThemeError(Exception):
+	@property
+	def description(self):
+		return self.args[0]
