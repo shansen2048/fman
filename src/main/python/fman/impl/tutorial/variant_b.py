@@ -116,8 +116,8 @@ class TutorialVariantB(Tutorial):
 			TutorialStep(
 				'',
 				[
-					"Well done! fman opened %s in your *%s* folder."
-					% (native_fm, '%s'),
+					"Well done! fman opened " + native_fm +
+					" in your *%s* folder.",
 					"Because fman always displays two directories, it is "
 					"called a *dual-pane file manager*. Have you used one "
 					"before?"
