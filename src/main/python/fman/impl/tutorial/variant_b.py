@@ -20,7 +20,7 @@ class TutorialVariantB(Tutorial):
 		self._encouragement_index = 0
 		self._last_step = ''
 	def _get_steps(self):
-		cmd_p = '⌘P' if is_mac() else 'Ctrl+P'
+		cmd_p = 'Cmd+P' if is_mac() else 'Ctrl+P'
 		if is_windows():
 			native_fm = 'Explorer'
 		elif is_mac():
@@ -28,7 +28,7 @@ class TutorialVariantB(Tutorial):
 		else:
 			native_fm = 'your native file manager'
 		if is_mac():
-			delete_key = '⌘+⌫'
+			delete_key = 'Cmd+Backspace'
 		else:
 			delete_key = 'Delete'
 		cmd_shift_p = 'Cmd+Shift+P' if is_mac() else 'Ctrl+Shift+P'
