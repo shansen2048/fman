@@ -239,17 +239,15 @@ class SuggestLocationsTest(TestCase):
 		self._check_query_returns('~/.', ['~/.hidden'])
 	def test_filesystem_search(self):
 		# No visited paths:
-		self.instance = SuggestLocations({}, self.file_system)
+		self.instance = SuggestLocations({}, self.fs)
 		# Should still find Downloads by prefix:
 		self._check_query_returns('dow', ['~/Downloads'], [[2, 3, 4]])
+	def test_home_dir_expanded(self):
+		self._check_query_returns(
+			os.path.dirname(self.home_dir),
+			[os.path.dirname(self.home_dir), self.home_dir]
+		)
 	def setUp(self):
-		visited_paths = {
-			'~': 1,
-			self._replace_pathsep('~/Downloads'): 3,
-			self._replace_pathsep('~/Dropbox'): 4,
-			self._replace_pathsep('~/Dropbox/Work'): 5,
-			self._replace_pathsep('~/Dropbox/Private'): 2
-		}
 		root = 'C:' if PLATFORM == 'Windows' else ''
 		files = {
 			root: {
@@ -269,21 +267,29 @@ class SuggestLocationsTest(TestCase):
 			'.': {}
 		}
 		if PLATFORM == 'Windows':
-			home_dir = r'C:\Users\michael'
+			self.home_dir = r'C:\Users\michael'
 		else:
-			home_dir = '/Users/michael'
-		self.file_system = self.StubLocalFileSystem(files, home_dir=home_dir)
-		self.instance = SuggestLocations(visited_paths, self.file_system)
+			self.home_dir = '/Users/michael'
+		self.fs = self.StubLocalFileSystem(files, home_dir=self.home_dir)
+		visited_paths = {
+			self._replace_pathsep(self.fs.expanduser(k)): v
+			for k, v in [
+				('~', 1),
+				('~/Downloads', 3),
+				('~/Dropbox', 4),
+				('~/Dropbox/Work', 5),
+				('~/Dropbox/Private', 2)
+			]
+		}
+		self.instance = SuggestLocations(visited_paths, self.fs)
 	def _check_query_returns(self, query, paths, highlights=None):
 		query = self._replace_pathsep(query)
 		paths = list(map(self._replace_pathsep, paths))
 		if highlights is None:
 			highlights = [self._full_range(query)] * len(paths)
 		result = list(self.instance(query))
-		actual_paths = [item.value for item in result]
-		actual_highlights = [item.highlight for item in result]
-		self.assertEqual(paths, actual_paths)
-		self.assertEqual(highlights, actual_highlights)
+		self.assertEqual(paths, [item.title for item in result])
+		self.assertEqual(highlights, [item.highlight for item in result])
 	def _replace_pathsep(self, path):
 		return path.replace('/', os.sep)
 	def _full_range(self, string):

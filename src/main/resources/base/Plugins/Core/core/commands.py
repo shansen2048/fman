@@ -655,6 +655,7 @@ class GoTo(_CorePaneCommand):
 	def __call__(self):
 		# TODO: Rename to Visited Locations.json?
 		visited_paths = load_json('Visited Paths.json', default={})
+		_migrate_visited_paths(visited_paths)
 		if not visited_paths:
 			visited_paths.update({
 				path: 0 for path in self._get_default_paths()
@@ -748,6 +749,21 @@ class GoTo(_CorePaneCommand):
 					to_visit.append((stat, file_path))
 			to_visit.sort(key=lambda tpl: tpl[0].st_mtime)
 
+# TODO: Remove this migration after November 2017
+def _migrate_visited_paths(visited_paths):
+	global _MIGRATED_VISITED_PATHS
+	if _MIGRATED_VISITED_PATHS:
+		return
+	new_visited_paths = {
+		expanduser(path): count
+		for path, count in visited_paths.items()
+	}
+	visited_paths.clear()
+	visited_paths.update(new_visited_paths)
+	_MIGRATED_VISITED_PATHS = True
+
+_MIGRATED_VISITED_PATHS = False
+
 class GoToListener(DirectoryPaneListener):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -763,8 +779,7 @@ class GoToListener(DirectoryPaneListener):
 			return
 		visited_paths = \
 			load_json('Visited Paths.json', default={}, save_on_quit=True)
-		new_path = unexpand_user(path)
-		visited_paths[new_path] = visited_paths.get(new_path, 0) + 1
+		visited_paths[path] = visited_paths.get(path, 0) + 1
 
 def unexpand_user(path, expanduser_=expanduser):
 	home_dir = expanduser_('~')
@@ -884,26 +899,31 @@ class SuggestLocations:
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
 			if self.fs.isdir(path):
 				dir_ = self.fs.resolve(path)
-				return [self._unexpand_user(dir_)] + get_subdirs(dir_)
+				return [dir_] + get_subdirs(dir_)
 			elif self.fs.isdir(os.path.dirname(path)):
 				return get_subdirs(self.fs.resolve(os.path.dirname(path)))
 		result = set(self.visited_paths)
 		if len(query) > 2:
 			"""Compensate for directories not yet in self.visited_paths:"""
 			fs_folders = islice(self.fs.find_folders_starting_with(query), 100)
-			result.update(self._sort(map(self._unexpand_user, fs_folders))[:10])
+			result.update(self._sort(fs_folders)[:10])
 		return self._sort(result)
 	def _sort(self, dirs):
 		return sorted(dirs, key=lambda dir_: (
 			-self.visited_paths.get(dir_, 0), len(dir_), dir_.lower()
 		))
 	def _filter_matching(self, dirs, query):
+		use_tilde = \
+			not query.startswith(os.path.dirname(self.fs.expanduser('~')))
 		result = [[] for _ in self._MATCHERS]
 		for dir_ in dirs:
+			title = self._unexpand_user(dir_) if use_tilde else dir_
 			for i, matcher in enumerate(self._MATCHERS):
-				match = matcher(dir_.lower(), query.lower())
+				match = matcher(title.lower(), query.lower())
 				if match is not None:
-					result[i].append(QuicksearchItem(dir_, highlight=match))
+					result[i].append(QuicksearchItem(
+						dir_, title, highlight=match
+					))
 					break
 		return list(chain.from_iterable(result))
 	def _remove_nonexistent(self, items):
@@ -925,7 +945,7 @@ class SuggestLocations:
 			for name in dir_contents:
 				file_path = os.path.join(dir_, name)
 				if self.fs.isdir(file_path):
-					yield self._unexpand_user(file_path)
+					yield file_path
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 
