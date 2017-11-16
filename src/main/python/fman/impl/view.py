@@ -1,11 +1,10 @@
-from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Down, \
-	Key_Up, Key_Home, Key_End, Key_PageDown, Key_PageUp, NoModifier, \
-	ShiftModifier, ControlModifier, AltModifier, MetaModifier, KeypadModifier, \
-	KeyboardModifier, GroupSwitchModifier, MoveAction, NoButton, CopyAction, \
-	Key_Return, Key_Enter
+from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Home, \
+	Key_End, ShiftModifier, ControlModifier, AltModifier, MoveAction, \
+	NoButton, CopyAction, Key_Return, Key_Enter
 from fman.impl.util.system import is_mac
-from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt
-from PyQt5.QtGui import QKeyEvent, QPen
+from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
+	QItemSelectionModel
+from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QHeaderView
 
@@ -17,66 +16,34 @@ class PathView(QLineEdit):
 		self.setReadOnly(True)
 
 class NiceCursorAndSelectionAPIMixin(QTableView):
-	"""
-	QTableView doesn't offer a clean, separated API for manipulating the cursor
-	position / selection. This class fixes this. Its implementation works by
-	sending fake key events to Qt that have the desired effects of moving the
-	cursor / updating the selection. When updating a selection, the
-	implementation encodes each selection flag as a modifier key (eg. Shift)
-	that is set on the fake key event. Qt's internals then call
-	selectionCommand() which decides how the selection should be updated. We
-	override this method to decode the modifier keys and make Qt perform the
-	desired selection action.
-	"""
-	_MODIFIERS_TO_SELECTION_FLAGS = [
-		(NoModifier, QISM.NoUpdate), (ShiftModifier, QISM.Clear),
-		(GroupSwitchModifier, QISM.Select), (AltModifier, QISM.Deselect),
-		(MetaModifier, QISM.Toggle), (KeypadModifier, QISM.Current)
-	]
 	def move_cursor_down(self, toggle_selection=False):
-		self._move_cursor(Key_Down, toggle_selection)
+		self._move_cursor(self.MoveDown, toggle_selection)
 	def move_cursor_up(self, toggle_selection=False):
-		self._move_cursor(Key_Up, toggle_selection)
+		self._move_cursor(self.MoveUp, toggle_selection)
 	def move_cursor_page_up(self, toggle_selection=False):
-		self._move_cursor(Key_PageUp, toggle_selection)
+		self._move_cursor(self.MovePageUp, toggle_selection)
 	def move_cursor_page_down(self, toggle_selection=False):
-		self._move_cursor(Key_PageDown, toggle_selection)
+		self._move_cursor(self.MovePageDown, toggle_selection)
 	def move_cursor_home(self, toggle_selection=False):
-		self._move_cursor(Key_Home, toggle_selection)
+		self._move_cursor(self.MoveHome, toggle_selection)
 	def move_cursor_end(self, toggle_selection=False):
-		self._move_cursor(Key_End, toggle_selection)
-	def _move_cursor(self, key, toggle_selection=False):
-		selection_flags = self._get_selection_flags(toggle_selection)
-		modifiers = self._selection_flag_to_modifier(selection_flags)
-		if key in (Key_Home, Key_End):
-			# Qt only moves to the last row for these keys when Ctrl is pressed:
-			modifiers |= ControlModifier
-		evt = QKeyEvent(QEvent.KeyPress, key, modifiers, '', False, 1)
-		super().keyPressEvent(evt)
-	def _get_selection_flags(self, toggle_selection):
-		if toggle_selection:
-			if self.selectionModel().isSelected(self.currentIndex()):
-				return QISM.Deselect | QISM.Current
-			else:
-				return QISM.Select | QISM.Current
-		else:
-			return QISM.NoUpdate
-	def selectionCommand(self, index, event):
-		if event and event.type() == QEvent.KeyPress:
-			return self._modifier_to_selection_flag(event.modifiers())
-		return super().selectionCommand(index, event)
-	def _modifier_to_selection_flag(self, modifiers):
-		result = 0
-		for modifier, selection_flag in self._MODIFIERS_TO_SELECTION_FLAGS:
-			if modifiers & modifier:
-				result |= selection_flag
-		return QISM.SelectionFlag(result)
-	def _selection_flag_to_modifier(self, selection_flags):
-		result = 0
-		for modifier, selection_flag in self._MODIFIERS_TO_SELECTION_FLAGS:
-			if selection_flags & selection_flag:
-				result |= modifier
-		return KeyboardModifier(result)
+		self._move_cursor(self.MoveEnd, toggle_selection)
+	def _move_cursor(self, cursor_action, toggle_selection=False):
+		modifiers = self._get_modifiers(cursor_action)
+		new_current = self.moveCursor(cursor_action, modifiers)
+		old_current = self.currentIndex()
+		if new_current != old_current and new_current.isValid():
+			self.setCurrentIndex(new_current)
+			if toggle_selection:
+				rect = QRect(self.visualRect(old_current).center(),
+							 self.visualRect(new_current).center())
+				command = self._get_toggle_selection_command()
+				self.setSelection(rect, command)
+		return
+	def _get_modifiers(self, cursor_action):
+		return Qt.NoModifier
+	def _get_toggle_selection_command(self):
+		return QItemSelectionModel.Toggle
 
 class CompositeDelegateMixin(QTableView):
 	""" Let a QTableView have multiple ItemDelegates. """
@@ -122,9 +89,7 @@ class CompositeItemDelegate(QStyledItemDelegate):
 
 class SingleRowModeMixin(
 	# We need to extend NiceCursorAndSelectionAPIMixin because we overwrite
-	# selectionCommand(...). If we didn't extend NCASAPIM here, our
-	# super().selectionCommand(...) would call the implementation in QTableView,
-	# not NCASAPIM's.
+	# some of its methods.
 	NiceCursorAndSelectionAPIMixin, CompositeDelegateMixin
 ):
 	def __init__(self, parent=None):
@@ -132,6 +97,13 @@ class SingleRowModeMixin(
 		self.setSelectionBehavior(QAbstractItemView.SelectRows)
 		self._single_row_delegate = None
 		self._would_have_focus = False
+	def _get_modifiers(self, cursor_action):
+		if cursor_action in (self.MoveHome, self.MoveEnd):
+			return Qt.ControlModifier
+		return super()._get_modifiers(cursor_action)
+	def _get_toggle_selection_command(self):
+		return super()._get_toggle_selection_command() \
+			   | QItemSelectionModel.Rows
 	def moveCursor(self, cursorAction, modifiers):
 		result = super().moveCursor(cursorAction, modifiers)
 		if result.isValid() and result.column() != 0:
