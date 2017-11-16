@@ -112,8 +112,8 @@ class MoveToTrash(_CorePaneCommand):
 			YES | NO, YES
 		)
 		if choice & YES:
-			for path in to_delete:
-				move_to_trash(path)
+			for url in to_delete:
+				move_to_trash(url)
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self):
