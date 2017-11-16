@@ -34,7 +34,7 @@ class SizeColumn(Column):
 	def get_str(self, url):
 		if self._fs.is_dir(url):
 			return ''
-		size_bytes = self._fs.get_size_bytes(url)
+		size_bytes = self._get_size(url)
 		if size_bytes is None:
 			return ''
 		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
@@ -51,8 +51,10 @@ class SizeColumn(Column):
 			ord_ = ord if is_ascending else lambda c: -ord(c)
 			minor = tuple(ord_(c) for c in basename(url).lower())
 		else:
-			minor = self._fs.get_size_bytes(url)
+			minor = self._get_size(url)
 		return is_dir ^ is_ascending, minor
+	def _get_size(self, url):
+		return self._fs.query(url, 'get_size_bytes')
 
 class LastModifiedColumn(Column):
 
@@ -63,7 +65,7 @@ class LastModifiedColumn(Column):
 		self._fs = fs
 	def get_str(self, url):
 		try:
-			mtime = self._fs.get_modified_datetime(url)
+			mtime = self._get_mtime(url)
 		except OSError:
 			return ''
 		if mtime is None:
@@ -71,4 +73,6 @@ class LastModifiedColumn(Column):
 		return mtime.strftime('%Y-%m-%d %H:%M')
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.is_dir(url)
-		return is_dir ^ is_ascending, self._fs.get_modified_datetime(url)
+		return is_dir ^ is_ascending, self._get_mtime(url)
+	def _get_mtime(self, url):
+		return self._fs.query(url, 'get_modified_datetime')

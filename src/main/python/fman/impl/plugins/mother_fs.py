@@ -30,12 +30,10 @@ class MotherFileSystem:
 		return self._query_cache(url, 'iterdir', self._iterdir)
 	def _iterdir(self, url):
 		return CachedIterable(self._query(url, 'iterdir'))
+	def query(self, url, fs_method_name):
+		return self._query_cache(url, fs_method_name)
 	def is_dir(self, url):
 		return self._query_cache(url, 'is_dir')
-	def get_size_bytes(self, url):
-		return self._query_cache(url, 'get_size_bytes')
-	def get_modified_datetime(self, url):
-		return self._query_cache(url, 'get_modified_datetime')
 	def icon(self, url):
 		return self._query_cache(url, 'icon', self._icon_provider.get_icon)
 	def touch(self, url):

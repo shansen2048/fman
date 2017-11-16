@@ -1,10 +1,12 @@
 from core.fs import NameColumn, SizeColumn, LastModifiedColumn
+from core.tests import StubFS
+from fman.url import as_url
 from fman_unittest.impl.model import StubFileSystem
 from unittest import TestCase
 
 class ColumnTest:
 	def setUp(self):
-		self.fs = StubFileSystem({
+		file_system = StubFileSystem({
 			'a': {
 				'is_dir': False, 'size': 1, 'mtime': 1473339042.0
 			},
@@ -22,7 +24,7 @@ class ColumnTest:
 			}
 
 		})
-		self._column = self.column_class(self.fs)
+		self._column = self.column_class(StubFS(file_system))
 	def assert_is_less(self, left, right, is_ascending=True):
 		self.assertLess(
 			self._get_sort_value(left, is_ascending),
@@ -40,7 +42,8 @@ class ColumnTest:
 			right = chain[i + 1]
 			self.assert_is_less(left, right, is_ascending)
 	def _get_sort_value(self, path, is_ascending):
-		return self._column.get_sort_value(path, is_ascending)
+		url = as_url(path, StubFileSystem.scheme)
+		return self._column.get_sort_value(url, is_ascending)
 
 class NameColumnTest(ColumnTest, TestCase):
 

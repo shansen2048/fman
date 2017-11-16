@@ -37,32 +37,39 @@ class StubUI:
 		pass
 
 class StubFS:
-	def __init__(self):
-		self._impl = LocalFileSystem()
+	def __init__(self, backend=None):
+		if backend is None:
+			backend = LocalFileSystem()
+		self._backend = backend
 	def is_dir(self, url):
-		return self._impl.is_dir(self._as_path(url))
+		return self._backend.is_dir(self._as_path(url))
 	def exists(self, url):
-		return self._impl.exists(self._as_path(url))
+		return self._backend.exists(self._as_path(url))
 	def samefile(self, url1, url2):
-		return self._impl.samefile(self._as_path(url1), self._as_path(url2))
+		return self._backend.samefile(self._as_path(url1), self._as_path(url2))
 	def iterdir(self, url):
-		return self._impl.iterdir(self._as_path(url))
+		return self._backend.iterdir(self._as_path(url))
 	def makedirs(self, url, exist_ok=False):
-		self._impl.makedirs(self._as_path(url), exist_ok=exist_ok)
+		self._backend.makedirs(self._as_path(url), exist_ok=exist_ok)
 	def copy(self, src_url, dst_url):
-		self._impl.copy(src_url, dst_url)
+		self._backend.copy(src_url, dst_url)
 	def delete(self, url):
-		self._impl.delete(self._as_path(url))
+		self._backend.delete(self._as_path(url))
 	def move(self, src_url, dst_url):
-		self._impl.move(src_url, dst_url)
+		self._backend.move(src_url, dst_url)
 	def touch(self, url):
-		self._impl.touch(self._as_path(url))
+		self._backend.touch(self._as_path(url))
 	def mkdir(self, url):
-		self._impl.mkdir(self._as_path(url))
+		self._backend.mkdir(self._as_path(url))
+	def query(self, url, fs_method_name):
+		path = self._as_path(url)
+		return getattr(self._backend, fs_method_name)(path)
 	def _as_path(self, url):
 		scheme, path = splitscheme(url)
-		if scheme != 'file://':
+		required_scheme = self._backend.scheme
+		if scheme != required_scheme:
 			raise ValueError(
-				'This stub implementation only supports file:// urls.'
+				'This stub implementation only supports %s urls.' %
+				required_scheme
 			)
 		return path
