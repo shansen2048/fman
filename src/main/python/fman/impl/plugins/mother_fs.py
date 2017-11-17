@@ -16,10 +16,18 @@ class MotherFileSystem:
 		self._columns = {}
 		self._cache = {}
 		self._cache_locks = WeakValueDictionary()
-	def add_child(self, file_system):
-		self._children[file_system.scheme] = file_system
+	def add_child(self, scheme, instance):
+		self._children[scheme] = instance
+	def remove_child(self, scheme):
+		del self._children[scheme]
+		self._cache = {
+			url: value for url, value in self._cache.items()
+			if not splitscheme(url)[0] == scheme
+		}
 	def register_column(self, column_name, column):
 		self._columns[column_name] = column
+	def unregister_column(self, column_name):
+		del self._columns[column_name]
 	def get_columns(self, url):
 		scheme, path = splitscheme(url)
 		column_names = self._children[scheme].get_default_columns(path)

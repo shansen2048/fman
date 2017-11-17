@@ -83,7 +83,10 @@ class ExternalPluginTest(TestCase):
 		from simple_plugin import TestFileSystem
 		loaded_file_systems = self._mother_fs.children
 		self.assertEqual(1, len(loaded_file_systems))
-		self.assertIsInstance(loaded_file_systems[0]._fs, TestFileSystem)
+		scheme, fs_wrapper = next(iter(loaded_file_systems.items()))
+		fs_instance = fs_wrapper._fs
+		self.assertEqual(scheme, fs_instance.scheme)
+		self.assertIsInstance(fs_instance, TestFileSystem)
 
 		from simple_plugin import TestColumn
 		loaded_columns = self._mother_fs.columns
@@ -94,6 +97,8 @@ class ExternalPluginTest(TestCase):
 	def test_unload(self):
 		self.test_load()
 		self._plugin.unload()
+		self.assertEqual({}, self._mother_fs.columns)
+		self.assertEqual({}, self._mother_fs.children)
 		self.assertEqual([], self._key_bindings.get_sanitized_bindings())
 		self.assertEqual([], self._plugin._directory_pane_listeners)
 		self.assertEqual({}, self._plugin.get_directory_pane_commands())

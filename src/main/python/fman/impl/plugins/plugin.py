@@ -65,11 +65,15 @@ class Plugin:
 	def _unregister_directory_pane_listener(self, cls):
 		self._directory_pane_listeners.remove(cls)
 	def _register_file_system(self, cls):
-		file_system = self._instantiate_file_system(cls)
-		if file_system:
-			self._mother_fs.add_child(file_system)
+		instance = self._instantiate_file_system(cls)
+		if instance:
+			self._mother_fs.add_child(cls.scheme, instance)
+	def _unregister_file_system(self, cls):
+		self._mother_fs.remove_child(cls.scheme)
 	def _register_column(self, cls):
 		self._mother_fs.register_column(cls.__name__, cls())
+	def _unregister_column(self, cls):
+		self._mother_fs.unregister_column(cls.__name__)
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -120,6 +124,11 @@ class ExternalPlugin(Plugin):
 		self._loaded_css_files = []
 		self._loaded_packages = []
 		self._loaded_key_bindings = []
+		self._registered_application_commands = []
+		self._registered_directory_pane_commands = []
+		self._registered_directory_pane_listeners = []
+		self._registered_file_systems = []
+		self._registered_columns = []
 	@property
 	def name(self):
 		return basename(self._path)
@@ -150,26 +159,32 @@ class ExternalPlugin(Plugin):
 				superclasses = getmro(cls)[1:]
 				if ApplicationCommand in superclasses:
 					self._register_application_command(cls)
+					self._registered_application_commands.append(cls)
 				elif DirectoryPaneCommand in superclasses:
 					self._register_directory_pane_command(cls)
+					self._registered_directory_pane_commands.append(cls)
 				elif DirectoryPaneListener in superclasses:
 					self._register_directory_pane_listener(cls)
+					self._registered_directory_pane_listeners.append(cls)
 				elif FileSystem in superclasses:
 					self._register_file_system(cls)
+					self._registered_file_systems.append(cls)
 				elif Column in superclasses:
 					self._register_column(cls)
+					self._registered_columns.append(cls)
 		self._load_key_bindings()
 	def unload(self):
 		self._key_bindings.unload(self._loaded_key_bindings)
-		for package in self._loaded_packages:
-			for cls in self._iterate_classes(package):
-				superclasses = getmro(cls)[1:]
-				if ApplicationCommand in superclasses:
-					self._unregister_application_command(cls)
-				elif DirectoryPaneCommand in superclasses:
-					self._unregister_directory_pane_command(cls)
-				elif DirectoryPaneListener in superclasses:
-					self._unregister_directory_pane_listener(cls)
+		for cls in self._registered_application_commands:
+			self._unregister_application_command(cls)
+		for cls in self._registered_directory_pane_commands:
+			self._unregister_directory_pane_command(cls)
+		for cls in self._registered_directory_pane_listeners:
+			self._unregister_directory_pane_listener(cls)
+		for cls in self._registered_file_systems:
+			self._unregister_file_system(cls)
+		for cls in self._registered_columns:
+			self._unregister_column(cls)
 		self._loaded_packages = []
 		sys.path.remove(self._path)
 		for css_file in self._loaded_css_files:

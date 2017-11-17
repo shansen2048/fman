@@ -77,9 +77,20 @@ class MotherFileSystemTest(TestCase):
 		mother_fs = self._create_mother_fs(fs)
 		self.assertFalse(mother_fs.is_dir('stub://non-existent'))
 		self.assertFalse(mother_fs.exists('stub://non-existent'))
+	def test_remove_child(self):
+		fs = StubFileSystem({
+			'a': {'is_dir': True}
+		})
+		mother_fs = self._create_mother_fs(fs)
+		self.assertTrue(mother_fs.is_dir('stub://a'))
+		mother_fs.remove_child(fs.scheme)
+		mother_fs.add_child(fs.scheme, StubFileSystem({}))
+		self.assertFalse(
+			mother_fs.is_dir('stub://a'), 'Should have cleared cache'
+		)
 	def _create_mother_fs(self, fs):
 		result = MotherFileSystem(None)
-		result.add_child(fs)
+		result.add_child(fs.scheme, fs)
 		return result
 
 class FileSystemCountingIsdirCalls:

@@ -33,9 +33,13 @@ class StubFontDatabase:
 
 class StubMotherFileSystem:
 	def __init__(self):
-		self.children = []
+		self.children = {}
 		self.columns = {}
-	def add_child(self, fs):
-		self.children.append(fs)
+	def add_child(self, scheme, instance):
+		self.children[scheme] = instance
+	def remove_child(self, scheme):
+		del self.children[scheme]
 	def register_column(self, column_name, column):
 		self.columns[column_name] = column
+	def unregister_column(self, column_name):
+		del self.columns[column_name]

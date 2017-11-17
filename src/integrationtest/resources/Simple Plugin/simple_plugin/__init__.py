@@ -19,7 +19,7 @@ class ListenerRaisingError(DirectoryPaneListener):
 		raise ValueError()
 
 class TestFileSystem(FileSystem):
-	pass
+	scheme = 'test://'
 
 class TestColumn(Column):
 	name = 'Test'
