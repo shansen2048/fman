@@ -105,32 +105,34 @@ class CachedIterable:
 	def add(self, item):
 		# N.B.: Behaves like set#add(...), not like list#append(...)!
 		self._items_to_add.append(item)
-	def __iter__(iterable):
-		class Iterator:
-			def __init__(self):
-				self._cur_item = -1
-			def __next__(self):
-				with iterable._lock:
-					self._cur_item += 1
-					if self._cur_item >= len(iterable._items):
-						iterable._items.append(self._generate_next())
-					return iterable._items[self._cur_item]
-			def _generate_next(self):
-				while True:
-					try:
-						next_item = next(iterable._source)
-					except StopIteration:
-						if iterable._items_to_add:
-							next_item = iterable._items_to_add.pop(0)
-							if next_item in iterable._items:
-								continue
-						else:
-							raise
-					items_to_skip = iterable._items_to_skip
-					if items_to_skip and next_item == items_to_skip[0]:
-						items_to_skip.pop(0)
-					else:
-						return next_item
-		result = Iterator()
-		iterable._iterators.add(result)
+	def __iter__(self):
+		result = _CachedIterator(self)
+		self._iterators.add(result)
 		return result
+	def __next__(self):
+		while True:
+			try:
+				next_item = next(self._source)
+			except StopIteration:
+				if self._items_to_add:
+					next_item = self._items_to_add.pop(0)
+					if next_item in self._items:
+						continue
+				else:
+					raise
+			items_to_skip = self._items_to_skip
+			if items_to_skip and next_item == items_to_skip[0]:
+				items_to_skip.pop(0)
+			else:
+				return next_item
+
+class _CachedIterator:
+	def __init__(self, source):
+		self._source = source
+		self._cur_item = -1
+	def __next__(self):
+		with self._source._lock:
+			self._cur_item += 1
+			if self._cur_item >= len(self._source._items):
+				self._source._items.append(next(self._source))
+			return self._source._items[self._cur_item]
