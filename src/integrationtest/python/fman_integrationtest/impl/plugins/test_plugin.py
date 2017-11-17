@@ -59,7 +59,7 @@ class FailToInstantiateDPL(DirectoryPaneListener):
 
 class ExternalPluginTest(TestCase):
 	def test_load(self):
-		self._plugin.load()
+		self.assertTrue(self._plugin.load(), self._error_handler.error_messages)
 		with open(join(self._plugin_dir, 'Key Bindings.json'), 'r') as f:
 			bindings = json.load(f)
 		self.assertEquals(bindings, self._config.load_json('Key Bindings.json'))
