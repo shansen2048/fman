@@ -84,55 +84,55 @@ class Event:
 			callback(*args)
 
 class CachedIterable:
+
+	_DELETED = object()
+
 	def __init__(self, source):
 		self._source = iter(source)
 		self._lock = Lock()
 		self._items = []
 		self._items_to_skip = []
 		self._items_to_add = []
-		self._iterators = WeakSet()
 	def remove(self, item):
 		try:
 			item_index = self._items.index(item)
 		except ValueError:
 			self._items_to_skip.append(item)
 		else:
-			del self._items[item_index]
-			for iterator in self._iterators:
-				if iterator._cur_item >= item_index:
-					# Need to adjust for changed indexes now the item is gone:
-					iterator._cur_item -= 1
+			self._items[item_index] = self._DELETED
 	def add(self, item):
 		# N.B.: Behaves like set#add(...), not like list#append(...)!
 		self._items_to_add.append(item)
 	def __iter__(self):
-		result = _CachedIterator(self)
-		self._iterators.add(result)
-		return result
-	def __next__(self):
+		return _CachedIterator(self)
+	def get_next(self, pointer):
+		with self._lock:
+			for pointer in range(pointer, len(self._items)):
+				item = self._items[pointer]
+				if item is not self._DELETED:
+					return pointer + 1, item
+			return pointer + 1, self._generate_next()
+	def _generate_next(self):
 		while True:
 			try:
-				next_item = next(self._source)
+				result = next(self._source)
 			except StopIteration:
-				if self._items_to_add:
-					next_item = self._items_to_add.pop(0)
-					if next_item in self._items:
-						continue
+				for i, result in enumerate(self._items_to_add):
+					if result not in self._items:
+						self._items_to_add = self._items_to_add[i + 1:]
+						break
 				else:
 					raise
-			items_to_skip = self._items_to_skip
-			if items_to_skip and next_item == items_to_skip[0]:
-				items_to_skip.pop(0)
+			if self._items_to_skip and result == self._items_to_skip[0]:
+				self._items_to_skip.pop(0)
 			else:
-				return next_item
+				self._items.append(result)
+				return result
 
 class _CachedIterator:
-	def __init__(self, source):
-		self._source = source
-		self._cur_item = -1
+	def __init__(self, parent):
+		self._parent = parent
+		self._pointer = 0
 	def __next__(self):
-		with self._source._lock:
-			self._cur_item += 1
-			if self._cur_item >= len(self._source._items):
-				self._source._items.append(next(self._source))
-			return self._source._items[self._cur_item]
+		self._pointer, result = self._parent.get_next(self._pointer)
+		return result
