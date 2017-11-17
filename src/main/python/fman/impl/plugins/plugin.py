@@ -133,52 +133,52 @@ class ExternalPlugin(Plugin):
 			return False
 		return True
 	def _load(self):
-		self._config.add_dir(self._path)
-		self._add_unload_action(self._config.remove_dir, self._path)
+		self._load_config()
 		for font in glob(join(self._path, '*.ttf')):
-			self._font_database.load(font)
-			self._add_unload_action(self._font_database.unload, font)
+			self._load_font(font)
 		for css_file in self._config.locate('Theme.css', self._path):
 			try:
-				self._theme.load(css_file)
+				self._load_css_file(css_file)
 			except FileNotFoundError:
 				pass
-			else:
-				self._add_unload_action(self._theme.unload, css_file)
+		self._extend_sys_path()
+		self._load_classes()
+		self._load_key_bindings()
+	def _load_config(self):
+		self._config.add_dir(self._path)
+		self._add_unload_action(self._config.remove_dir, self._path)
+	def _load_font(self, font):
+		self._font_database.load(font)
+		self._add_unload_action(self._font_database.unload, font)
+	def _load_css_file(self, css_file):
+		self._theme.load(css_file)
+		self._add_unload_action(self._theme.unload, css_file)
+	def _extend_sys_path(self):
 		sys.path.append(self._path)
 		self._add_unload_action(sys.path.remove, self._path)
+	def _load_classes(self):
 		for package in self._load_packages():
 			for cls in self._iterate_classes(package):
 				superclasses = getmro(cls)[1:]
 				if ApplicationCommand in superclasses:
-					self._register_application_command(cls)
-					self._add_unload_action(
-						self._unregister_application_command, cls
-					)
+					register = self._register_application_command
+					unregister = self._unregister_application_command
 				elif DirectoryPaneCommand in superclasses:
-					self._register_directory_pane_command(cls)
-					self._add_unload_action(
-						self._unregister_directory_pane_command, cls
-					)
+					register = self._register_directory_pane_command
+					unregister = self._unregister_directory_pane_command
 				elif DirectoryPaneListener in superclasses:
-					self._register_directory_pane_listener(cls)
-					self._add_unload_action(
-						self._unregister_directory_pane_listener, cls
-					)
+					register = self._register_directory_pane_listener
+					unregister = self._unregister_directory_pane_listener
 				elif FileSystem in superclasses:
-					self._register_file_system(cls)
-					self._add_unload_action(self._unregister_file_system, cls)
+					register = self._register_file_system
+					unregister = self._unregister_file_system
 				elif Column in superclasses:
-					self._register_column(cls)
-					self._add_unload_action(self._unregister_column, cls)
-		key_bindings = list(self._load_key_bindings())
-		self._add_unload_action(self._key_bindings.unload, key_bindings)
-	def _add_unload_action(self, f, *args, **kwargs):
-		self._unload_actions.append((f, args, kwargs))
-	def unload(self):
-		for f, args, kwargs in reversed(self._unload_actions):
-			f(*args, **kwargs)
-		self._unload_actions = []
+					register = self._register_column
+					unregister = self._unregister_column
+				else:
+					continue
+				register(cls)
+				self._add_unload_action(unregister, cls)
 	def _load_key_bindings(self):
 		for json_file in self._config.locate('Key Bindings.json', self._path):
 			try:
@@ -194,9 +194,15 @@ class ExternalPlugin(Plugin):
 				self._error_handler.report('Could not load key bindings.')
 			else:
 				errors = self._key_bindings.load(bindings)
+				self._add_unload_action(self._key_bindings.unload, bindings)
 				for error in errors:
 					self._error_handler.report(error)
-				yield from bindings
+	def _add_unload_action(self, f, *args, **kwargs):
+		self._unload_actions.append((f, args, kwargs))
+	def unload(self):
+		for f, args, kwargs in reversed(self._unload_actions):
+			f(*args, **kwargs)
+		self._unload_actions = []
 	def _load_packages(self):
 		for dir_ in [d for d in listdir_absolute(self._path) if isdir(d)]:
 			init = join(dir_, '__init__.py')
