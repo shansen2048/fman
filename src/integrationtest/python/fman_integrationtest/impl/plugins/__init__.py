@@ -30,3 +30,12 @@ class StubFontDatabase:
 		self.loaded_fonts.append(font_file)
 	def unload(self, font_file):
 		self.loaded_fonts.remove(font_file)
+
+class StubMotherFileSystem:
+	def __init__(self):
+		self.children = []
+		self.columns = {}
+	def add_child(self, fs):
+		self.children.append(fs)
+	def register_column(self, column_name, column):
+		self.columns[column_name] = column

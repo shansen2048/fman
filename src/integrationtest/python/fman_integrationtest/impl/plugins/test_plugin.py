@@ -6,7 +6,7 @@ from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.plugin import Plugin
 from fman_integrationtest import get_resource
 from fman_integrationtest.impl.plugins import StubErrorHandler, \
-	StubCommandCallback, StubTheme, StubFontDatabase
+	StubCommandCallback, StubTheme, StubFontDatabase, StubMotherFileSystem
 from os.path import join
 from unittest import TestCase
 
@@ -59,7 +59,8 @@ class FailToInstantiateDPL(DirectoryPaneListener):
 
 class ExternalPluginTest(TestCase):
 	def test_load(self):
-		self.assertTrue(self._plugin.load(), self._error_handler.error_messages)
+		if not self._plugin.load():
+			self.fail(self._error_handler.error_messages)
 		with open(join(self._plugin_dir, 'Key Bindings.json'), 'r') as f:
 			bindings = json.load(f)
 		self.assertEqual(bindings, self._config.load_json('Key Bindings.json'))
@@ -72,11 +73,24 @@ class ExternalPluginTest(TestCase):
 		self.assertIn(
 			'command_raising_error', self._plugin.get_directory_pane_commands()
 		)
+
 		from simple_plugin import ListenerRaisingError
 		self.assertIn(
 			ListenerRaisingError, self._plugin._directory_pane_listeners
 		)
 		self.assertEqual(bindings, self._key_bindings.get_sanitized_bindings())
+
+		from simple_plugin import TestFileSystem
+		loaded_file_systems = self._mother_fs.children
+		self.assertEqual(1, len(loaded_file_systems))
+		self.assertIsInstance(loaded_file_systems[0]._fs, TestFileSystem)
+
+		from simple_plugin import TestColumn
+		loaded_columns = self._mother_fs.columns
+		self.assertEqual(1, len(loaded_columns))
+		col_name, col_instance = next(iter(loaded_columns.items()))
+		self.assertEqual('TestColumn', col_name)
+		self.assertIsInstance(col_instance, TestColumn)
 	def test_unload(self):
 		self.test_load()
 		self._plugin.unload()
@@ -92,16 +106,17 @@ class ExternalPluginTest(TestCase):
 		super().setUp()
 		self._sys_path_before = list(sys.path)
 		self._plugin_dir = get_resource('Simple Plugin')
+		self._config = Config(PLATFORM)
+		self._theme = StubTheme()
+		self._font_database = StubFontDatabase()
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
 		self._key_bindings = KeyBindings()
-		self._config = Config(PLATFORM)
-		self._font_database = StubFontDatabase()
-		self._theme = StubTheme()
+		self._mother_fs = StubMotherFileSystem()
 		self._plugin = ExternalPlugin(
 			self._plugin_dir, self._config, self._theme, self._font_database,
 			self._error_handler, self._command_callback, self._key_bindings,
-			None
+			self._mother_fs
 		)
 	def tearDown(self):
 		sys.path = self._sys_path_before

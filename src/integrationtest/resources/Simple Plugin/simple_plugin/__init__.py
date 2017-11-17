@@ -1,5 +1,5 @@
 from fman import ApplicationCommand, DirectoryPaneCommand, DirectoryPaneListener
-from fman.fs import FileSystem
+from fman.fs import FileSystem, Column
 
 class TestCommand(ApplicationCommand):
 	RAN = False
@@ -20,3 +20,6 @@ class ListenerRaisingError(DirectoryPaneListener):
 
 class TestFileSystem(FileSystem):
 	pass
+
+class TestColumn(Column):
+	name = 'Test'
