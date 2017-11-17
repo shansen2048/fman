@@ -21,5 +21,7 @@ def add_backslash_to_drive_if_missing(file_path):
 	return file_path
 
 def parent(path):
+	if path == '/':
+		return ''
 	result = str(PurePosixPath(path).parent) if path else ''
 	return '' if result == '.' else result

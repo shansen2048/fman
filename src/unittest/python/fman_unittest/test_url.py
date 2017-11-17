@@ -26,8 +26,12 @@ class AsHumanReadableTest(TestCase):
 		self.assertEqual(root, as_human_readable(as_url(root)))
 
 class DirnameTest(TestCase):
-	def test_root(self):
+	def test_root_windows(self):
 		self.assertEqual('drives://', dirname('drives://C:'))
+	def test_root_unix(self):
+		self.assertEqual('file://', dirname('file:///'))
+	def test_top_level_folder_unix(self):
+		self.assertEqual('file:///', dirname('file:///home'))
 	def test_scheme_only(self):
 		self.assertEqual('file://', dirname('file://'))
 

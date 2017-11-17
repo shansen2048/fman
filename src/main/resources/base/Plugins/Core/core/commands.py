@@ -144,8 +144,8 @@ class GoUp(_CorePaneCommand):
 			path_now = self.pane.get_path()
 			# Only move the cursor if we actually changed directories; For
 			# instance, we don't want to move the cursor if the user presses
-			# Backspace while at C:\ and the cursor is already at
-			# C:\Program Files.
+			# Backspace while at drives:// and the cursor is already at
+			# drives://C:
 			if path_now != path_before:
 				# Consider: The user is in zip:///Temp.zip and invokes GoUp.
 				# This takes us to file:///. We want to place the cursor at
@@ -156,7 +156,13 @@ class GoUp(_CorePaneCommand):
 					self.pane.place_cursor_at(cursor_dest)
 				except ValueError as dest_doesnt_exist:
 					self.pane.move_cursor_home()
-		self.pane.set_path(dirname(path_before), callback)
+		parent_dir = dirname(path_before)
+		try:
+			self.pane.set_path(parent_dir, callback)
+		except FileNotFoundError:
+			# This for instance happens when the user pressed backspace when at
+			# file:/// on Unix.
+			pass
 
 class Open(_CorePaneCommand):
 	def __call__(self, url=None):

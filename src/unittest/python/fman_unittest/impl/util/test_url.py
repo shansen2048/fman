@@ -29,6 +29,8 @@ class IsPardirTest(TestCase):
 		self.assertTrue(is_pardir('file:///a', 'file:///a/b/c'))
 	def test_different_scheme(self):
 		self.assertFalse(is_pardir('file://C:', 'drives://C:'))
+	def test_scheme_root(self):
+		self.assertTrue(is_pardir('file://', 'file:///home'))
 
 class ResolveTest(TestCase):
 	def test_fine(self):

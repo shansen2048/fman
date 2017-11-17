@@ -57,6 +57,8 @@ class LocalFileSystem(FileSystem):
 		else:
 			remove(path)
 	def resolve(self, path):
+		if not path:
+			raise FileNotFoundError(path)
 		# Unlike other functions, Path#resolve can't handle C: instead of C:\
 		path = self._add_backslash_to_drive_if_missing(path)
 		return as_url(Path(path).resolve())
