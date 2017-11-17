@@ -11,21 +11,21 @@ import json
 class ConfigTest(TestCase):
 	def test_add_dir(self):
 		self._config.add_dir(self._dir_1)
-		self.assertEquals([1], self._config.load_json('Test.json'))
+		self.assertEqual([1], self._config.load_json('Test.json'))
 	def test_add_dir_updates_existing(self):
 		self._config.add_dir(self._dir_1)
 		value = self._config.load_json('Test.json')
-		self.assertEquals([1], value)
+		self.assertEqual([1], value)
 		self._config.add_dir(self._dir_2)
 		self.assertIs(value, self._config.load_json('Test.json'))
-		self.assertEquals([2, 1], value)
+		self.assertEqual([2, 1], value)
 	def test_remove_add_dir(self):
 		self._config.add_dir(self._dir_1)
-		self.assertEquals([1], self._config.load_json('Test.json'))
+		self.assertEqual([1], self._config.load_json('Test.json'))
 		self._config.remove_dir(self._dir_1)
 		self.assertIsNone(self._config.load_json('Test.json'))
 		self._config.add_dir(self._dir_2)
-		self.assertEquals([2], self._config.load_json('Test.json'))
+		self.assertEqual([2], self._config.load_json('Test.json'))
 	def test_save_on_quit_nonexistent(self):
 		value = self._config.load_json(
 			'Nonexistent.json', default=[], save_on_quit=True
@@ -35,7 +35,7 @@ class ConfigTest(TestCase):
 		self._config.on_quit()
 		config = Config(PLATFORM)
 		config.add_dir(self._dir_1)
-		self.assertEquals(value, config.load_json('Nonexistent.json'))
+		self.assertEqual(value, config.load_json('Nonexistent.json'))
 	def setUp(self):
 		super().setUp()
 		self._dir_1 = mkdtemp()

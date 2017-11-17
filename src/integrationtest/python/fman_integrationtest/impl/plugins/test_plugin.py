@@ -62,11 +62,11 @@ class ExternalPluginTest(TestCase):
 		self.assertTrue(self._plugin.load(), self._error_handler.error_messages)
 		with open(join(self._plugin_dir, 'Key Bindings.json'), 'r') as f:
 			bindings = json.load(f)
-		self.assertEquals(bindings, self._config.load_json('Key Bindings.json'))
+		self.assertEqual(bindings, self._config.load_json('Key Bindings.json'))
 		plugin_font = join(self._plugin_dir, 'Open Sans.ttf')
-		self.assertEquals([plugin_font], self._font_database.loaded_fonts)
+		self.assertEqual([plugin_font], self._font_database.loaded_fonts)
 		theme_css = join(self._plugin_dir, 'Theme.css')
-		self.assertEquals([theme_css], self._theme.loaded_css_files)
+		self.assertEqual([theme_css], self._theme.loaded_css_files)
 		self.assertIn(self._plugin_dir, sys.path)
 		self.assertIn('test_command', self._plugin.get_application_commands())
 		self.assertIn(
@@ -76,17 +76,17 @@ class ExternalPluginTest(TestCase):
 		self.assertIn(
 			ListenerRaisingError, self._plugin._directory_pane_listeners
 		)
-		self.assertEquals(bindings, self._key_bindings.get_sanitized_bindings())
+		self.assertEqual(bindings, self._key_bindings.get_sanitized_bindings())
 	def test_unload(self):
 		self.test_load()
 		self._plugin.unload()
-		self.assertEquals([], self._key_bindings.get_sanitized_bindings())
-		self.assertEquals([], self._plugin._directory_pane_listeners)
-		self.assertEquals({}, self._plugin.get_directory_pane_commands())
-		self.assertEquals({}, self._plugin.get_application_commands())
+		self.assertEqual([], self._key_bindings.get_sanitized_bindings())
+		self.assertEqual([], self._plugin._directory_pane_listeners)
+		self.assertEqual({}, self._plugin.get_directory_pane_commands())
+		self.assertEqual({}, self._plugin.get_application_commands())
 		self.assertNotIn(self._plugin_dir, sys.path)
-		self.assertEquals([], self._theme.loaded_css_files)
-		self.assertEquals([], self._font_database.loaded_fonts)
+		self.assertEqual([], self._theme.loaded_css_files)
+		self.assertEqual([], self._font_database.loaded_fonts)
 		self.assertIsNone(self._config.load_json('Key Bindings.json'))
 	def setUp(self):
 		super().setUp()

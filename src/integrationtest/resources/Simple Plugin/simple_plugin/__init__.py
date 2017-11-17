@@ -1,4 +1,5 @@
 from fman import ApplicationCommand, DirectoryPaneCommand, DirectoryPaneListener
+from fman.fs import FileSystem
 
 class TestCommand(ApplicationCommand):
 	RAN = False
@@ -16,3 +17,6 @@ class ListenerRaisingError(DirectoryPaneListener):
 		raise ValueError()
 	def on_name_edited(self, file_url, new_name):
 		raise ValueError()
+
+class TestFileSystem(FileSystem):
+	pass

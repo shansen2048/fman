@@ -4,7 +4,7 @@ from unittest import TestCase
 class ParseCSSTest(TestCase):
 	def test_parse_css(self):
 		self.maxDiff = None
-		self.assertEquals([
+		self.assertEqual([
 			Rule(['*'], [Declaration('font-size', '1pt')]),
 			Rule(['.a'], [Declaration('font-size', '2pt')]),
 			Rule(['.a', '.b'], [Declaration('font-size', '3pt')]),

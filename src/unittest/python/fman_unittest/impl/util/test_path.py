@@ -5,9 +5,9 @@ from unittest import TestCase, skipUnless
 
 class MakeAbsoluteTest(TestCase):
 	def test_dot(self):
-		self.assertEquals(self.cwd, self._make_absolute('.'))
+		self.assertEqual(self.cwd, self._make_absolute('.'))
 	def test_home_dir(self, sep='/'):
-		self.assertEquals(
+		self.assertEqual(
 			join(expanduser('~'), 'foo', 'test.txt'),
 			self._make_absolute(sep.join(['~', 'foo', 'test.txt']))
 		)
@@ -16,7 +16,7 @@ class MakeAbsoluteTest(TestCase):
 		self.test_home_dir(sep='\\')
 	@skipUnless(system.is_windows(), 'Only run this test on Windows')
 	def test_c_drive_no_backslash(self):
-		self.assertEquals('C:\\', self._make_absolute('C:'))
+		self.assertEqual('C:\\', self._make_absolute('C:'))
 	def setUp(self):
 		super().setUp()
 		self.cwd = self._make_path('foo/bar')
