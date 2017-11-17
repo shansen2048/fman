@@ -4,7 +4,7 @@ from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman_integrationtest import get_resource
 from fman_integrationtest.impl.plugins import StubErrorHandler, \
-	StubCommandCallback, StubTheme, StubFontDatabase
+	StubCommandCallback, StubTheme, StubFontDatabase, StubMotherFileSystem
 from os import mkdir
 from os.path import join
 from shutil import rmtree, copytree
@@ -142,11 +142,12 @@ class PluginSupportTest(TestCase):
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
 		key_bindings = KeyBindings()
+		mother_fs = StubMotherFileSystem()
 		theme = StubTheme()
 		font_db = StubFontDatabase()
 		self._plugin_support = PluginSupport(
-			self._error_handler, self._command_callback, key_bindings, None,
-			config, theme, font_db
+			self._error_handler, self._command_callback, key_bindings,
+			mother_fs, config, theme, font_db
 		)
 		self._plugin_support.load_plugin(self._shipped_plugin)
 		self._plugin_support.load_plugin(self._thirdparty_plugin)
