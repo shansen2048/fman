@@ -25,15 +25,18 @@ QTableView::item {
 }
 
 /*
- * Hack: Unlike QTreeView::item, QTableView::item has no :first selector. To
- * work around this, our backend sets State_Children, which we can catch here as
- * :has-children
+ * Hack: Unlike QTreeView::item, QTableView::item has no :first and :last
+ * selectors. To work around this, our backend sets State_Children and
+ * State_Open, which we can catch here as :has-children and :open, respectively.
  */
 QTableView::item:has-children {
 	color: white;
 	padding-left: 0.25em;
 	/* The padding directive has no effect unless we specify a background: */
 	background: transparent;
+}
+QTableView::item:open {
+	padding-right: 0.25em;
 }
 
 QTableView::item:selected {

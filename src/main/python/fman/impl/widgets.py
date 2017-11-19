@@ -135,6 +135,7 @@ class DirectoryPane(QWidget):
 	def _on_directory_loaded(self, url):
 		if not self.get_file_under_cursor():
 			self.move_cursor_home()
+		self._file_view.resizeColumnsToContents()
 		self.path_changed.emit(self)
 
 class MainWindow(QMainWindow):

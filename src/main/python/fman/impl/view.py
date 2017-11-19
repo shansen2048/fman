@@ -263,6 +263,10 @@ class FileListView(
 		self.setEditTriggers(self.NoEditTriggers)
 		self._init_vertical_header()
 		self.add_delegate(FileListItemDelegate())
+		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		self.horizontalHeader().sectionResized.connect(self._on_col_resized)
+		self._old_col_widths = None
+		self._handle_col_resize = True
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		return [self._get_url(index) for index in indexes]
@@ -286,6 +290,44 @@ class FileListView(
 			return
 		if not self.key_press_event_filter(self, event):
 			super().keyPressEvent(event)
+	def resizeEvent(self, event):
+		super().resizeEvent(event)
+		if self._old_col_widths:
+			self._resize_cols_to_contents(self._old_col_widths)
+		self._old_col_widths = self._get_column_widths()
+	def resizeColumnsToContents(self):
+		self._resize_cols_to_contents()
+	def _resize_cols_to_contents(self, curr_widths=None):
+		if curr_widths is None:
+			curr_widths = self._get_column_widths()
+		min_widths = self._get_min_col_widths()
+		self._apply_column_widths(
+			_get_ideal_column_widths(curr_widths, min_widths, self.width())
+		)
+	def _get_column_widths(self):
+		return [self.columnWidth(i) for i in range(self._num_columns)]
+	def _get_min_col_widths(self):
+		return [self.sizeHintForColumn(c) for c in range(self._num_columns)]
+	def _apply_column_widths(self, widths):
+		for col, width in enumerate(widths):
+			self.setColumnWidth(col, width)
+	@property
+	def _num_columns(self):
+		return self.horizontalHeader().count()
+	def _on_col_resized(self, col, old_size, new_size):
+		if not self._handle_col_resize:
+			# Prevent infinite recursion:
+			return
+		self._handle_col_resize = False
+		try:
+			widths = self._get_column_widths()
+			widths[col] = old_size
+			new_widths = _resize_column(
+				col, new_size, widths, self._get_min_col_widths(), self.width()
+			)
+			self._apply_column_widths(new_widths)
+		finally:
+			self._handle_col_resize = True
 	def _init_vertical_header(self):
 		# The vertical header is what would in Excel be displayed as the row
 		# numbers 0, 1, ... to the left of the table. Qt displays it by default.
@@ -301,6 +343,90 @@ class FileListView(
 	def _get_url(self, index):
 		model = self.model()
 		return model.sourceModel().url(model.mapToSource(index))
+
+def _get_ideal_column_widths(widths, min_widths, available_width):
+	result = list(widths)
+	width = sum(widths)
+	min_width = sum(min_widths)
+	truncated_columns = [
+		c for c, (w, m_w) in enumerate(zip(widths, min_widths))
+		if w < m_w
+	]
+	if truncated_columns:
+		if min_width <= available_width:
+			# Simply enlarge the truncated columns.
+			for c in truncated_columns:
+				result[c] = min_widths[c]
+			width = sum(result)
+	if width > available_width:
+		trim_required = width - available_width
+		trimmable_cols = [
+			c for c, (w, m_w) in enumerate(zip(result, min_widths))
+			if w > m_w
+		]
+		trimmable_widths = [result[c] - min_widths[c] for c in trimmable_cols]
+		trimmable_width = sum(trimmable_widths)
+		to_trim = min(trim_required, trimmable_width)
+		col_trims = _distribute_evenly(to_trim, trimmable_widths)
+		for c, trim in zip(trimmable_cols, col_trims):
+			result[c] -= trim
+		trim_required -= to_trim
+		if trim_required > 0:
+			col_trims = _distribute_exponentially(trim_required, result)
+			for c, trim in enumerate(col_trims):
+				result[c] -= trim
+	elif width < available_width:
+		result[0] += available_width - width
+	last_col_excess = result[-1] - min_widths[-1]
+	if last_col_excess > 0:
+		result[-1] -= last_col_excess
+		result[0] += last_col_excess
+	return result
+
+def _distribute_evenly(width, proportions):
+	total = sum(proportions)
+	if not total:
+		return [0] * len(proportions)
+	return [int(p / total * width) for p in proportions]
+
+def _distribute_exponentially(width, proportions):
+	total = sum(p * p for p in proportions)
+	if not total:
+		return [0] * len(proportions)
+	return [int(p * p / total * width) for p in proportions]
+
+def _resize_column(col, new_size, widths, min_widths, available_width):
+	old_size = widths[col]
+	result = list(widths)
+	result[col] = new_size
+	if old_size <= 0 or col == len(widths) - 1:
+		return result
+	delta = new_size - old_size
+	if delta > 0:
+		for c in range(col + 1, len(widths)):
+			width = widths[c]
+			trimmable = width - min_widths[c]
+			if trimmable > 0:
+				trim = min(delta, trimmable)
+				result[c] = width - trim
+				delta -= trim
+				if not delta:
+					break
+	else:
+		next_col = col + 1
+		if sum(result) < available_width:
+			result[next_col] -= delta
+	to_distribute = available_width - sum(result)
+	if to_distribute > 0:
+		for c, (w, m_w) in enumerate(zip(widths, min_widths)):
+			room = m_w - w
+			if room > 0:
+				expand = min(to_distribute, room)
+				result[c] += expand
+				to_distribute -= expand
+				if not to_distribute:
+					break
+	return result
 
 class FileListItemDelegate(QStyledItemDelegate):
 	def eventFilter(self, editor, event):
@@ -319,12 +445,14 @@ class FileListItemDelegate(QStyledItemDelegate):
 				return True
 		return False
 	def adapt_style_option(self, option, index):
+		# We want to be able to style the first and last columns with QSS.
+		# However, unlike QTreeView::item, QTableView::item has no :first or
+		# :last selectors. We work around this by setting the fake
+		# :has-children and :open selectors:
 		if index.column() == 0:
-			# We want to be able to style the first column via QSS. However,
-			# unlike QTreeView::item, QTableView::item has no :first selector.
-			# We work around this by setting the fake :has-children selector on
-			# the item when it is in the first column:
 			option.state |= QStyle.State_Children
+		if index.column() == index.model().columnCount() - 1:
+			option.state |= QStyle.State_Open
 	def helpEvent(self, event, view, option, index):
 		if not event or not view:
 			# Mimic super implementation.
