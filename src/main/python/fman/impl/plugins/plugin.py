@@ -128,8 +128,7 @@ class ExternalPlugin(Plugin):
 		try:
 			self._load()
 		except:
-			message = 'Plugin %r failed to load.' % self.name
-			self._error_handler.report(message)
+			self._error_handler.report('Plugin %r failed to load.' % self.name)
 			return False
 		return True
 	def _load(self):
