@@ -5,7 +5,10 @@ from fman.url import as_url, dirname
 from os import getcwd
 from os.path import expanduser
 
+import logging
 import sys
+
+_LOG = logging.getLogger(__name__)
 
 class SessionManager:
 
@@ -43,18 +46,21 @@ class SessionManager:
 			except IndexError:
 				path = pane_info.get('location', expanduser('~'))
 			url = path if '://' in path else as_url(path)
-			if self._fs.is_dir(url):
-				pane.set_location(url)
-			elif self._fs.exists(url):
-				pane.set_location(
-					dirname(url),
-					callback=lambda pane=pane, url=url: \
+			callback = None
+			try:
+				if self._fs.is_dir(url):
+					location = url
+				elif self._fs.exists(url):
+					location = dirname(url)
+					def callback(pane=pane, url=url):
 						pane.place_cursor_at(url)
-				)
-			else:
-				url = get_existing_pardir(url, self._fs.is_dir) \
-					  or as_url(expanduser('~'))
-				pane.set_location(url)
+				else:
+					location = get_existing_pardir(url, self._fs.is_dir) \
+							   or as_url(expanduser('~'))
+				pane.set_location(location, callback)
+			except:
+				_LOG.exception('Could not set pane location %r', url)
+				pane.set_location(as_url(expanduser('~')))
 			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
 			pane.set_column_widths(col_widths)
 	def _restore_window_geometry(self, main_window):
