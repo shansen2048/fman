@@ -30,8 +30,17 @@ class MotherFileSystem:
 		del self._columns[column_name]
 	def get_columns(self, url):
 		scheme, path = splitscheme(url)
-		column_names = self._children[scheme].get_default_columns(path)
-		return tuple(self._columns[name] for name in column_names)
+		child_get_cols = self._children[scheme].get_default_columns
+		column_names = child_get_cols(path)
+		try:
+			return tuple(self._columns[name] for name in column_names)
+		except KeyError as e:
+			available_columns = ', '.join(map(repr, self._columns))
+			fn_descr = child_get_cols.__qualname__.replace('.', '#') + '(...)'
+			message = '%s returned a column that does not exist: %r. ' \
+					  'Should have been one of %s.' % \
+					  (fn_descr, e.args[0], available_columns)
+			raise KeyError(message) from None
 	def exists(self, url):
 		return self._query(url, 'exists')
 	def iterdir(self, url):

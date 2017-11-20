@@ -19,7 +19,22 @@ class ListenerRaisingError(DirectoryPaneListener):
 		raise ValueError()
 
 class TestFileSystem(FileSystem):
+
 	scheme = 'test://'
 
 class TestColumn(Column):
 	name = 'Test'
+
+class NonexistentColumnFileSystem(FileSystem):
+
+	scheme = 'nonexistent-col://'
+
+	def get_default_columns(self, path):
+		return 'Nonexistent',
+
+class NoIterdirFileSystem(FileSystem):
+
+	scheme = 'noiterdir://'
+
+	def get_default_columns(self, path):
+		return 'TestColumn',

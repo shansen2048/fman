@@ -96,7 +96,6 @@ class DirectoryPaneWidget(QWidget):
 	@run_in_main_thread
 	def get_location(self):
 		return self._model.location()
-	@run_in_main_thread
 	def set_location(self, url, callback=None):
 		self._model_sorted.set_location(url, callback)
 	@run_in_main_thread
@@ -114,8 +113,10 @@ class DirectoryPaneWidget(QWidget):
 	@property
 	def window(self):
 		return self.parentWidget().parentWidget()
+	@run_in_main_thread
 	def get_column_widths(self):
 		return [self._file_view.columnWidth(i) for i in (0, 1)]
+	@run_in_main_thread
 	def set_column_widths(self, column_widths):
 		for i, width in enumerate(column_widths):
 			self._file_view.setColumnWidth(i, width)
@@ -248,6 +249,7 @@ class MainWindow(QMainWindow):
 	@run_in_main_thread
 	def clear_status_message(self):
 		self.show_status_message('Ready.')
+	@run_in_main_thread
 	def add_pane(self):
 		result = DirectoryPaneWidget(self._fs, self._splitter)
 		self._panes.append(result)

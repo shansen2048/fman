@@ -46,9 +46,12 @@ class FileSystem:
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
 	def get_default_columns(self, path):
-		raise NotImplementedError()
+		return 'NameColumn',
 	def iterdir(self, path):
-		raise NotImplementedError()
+		message = self.__class__.__name__ + ' does not implement iterdir(...)'
+		raise NotImplementedError(message)
+	def is_dir(self, path):
+		return True
 	def resolve(self, path):
 		return resolve(self.scheme + path)
 	def watch(self, path):

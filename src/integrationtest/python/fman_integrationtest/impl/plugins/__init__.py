@@ -3,8 +3,10 @@ from os.path import exists
 class StubErrorHandler:
 	def __init__(self):
 		self.error_messages = []
+		self.exceptions = []
 	def report(self, message, exc=None):
 		self.error_messages.append(message)
+		self.exceptions.append(exc)
 
 class StubCommandCallback:
 	def before_command(self, command_name):
@@ -31,15 +33,26 @@ class StubFontDatabase:
 	def unload(self, font_file):
 		self.loaded_fonts.remove(font_file)
 
-class StubMotherFileSystem:
-	def __init__(self):
-		self.children = {}
-		self.columns = {}
-	def add_child(self, scheme, instance):
-		self.children[scheme] = instance
-	def remove_child(self, scheme):
-		del self.children[scheme]
-	def register_column(self, column_name, column):
-		self.columns[column_name] = column
-	def unregister_column(self, column_name):
-		del self.columns[column_name]
+class StubDirectoryPaneWidget:
+	def __init__(self, fs):
+		self._fs = fs
+		self._location = ''
+		self._rows = []
+		self._columns = ()
+	def set_location(self, url, callback=None):
+		if callback is None:
+			callback = lambda: None
+		url = self._fs.resolve(url)
+		if url != self._location:
+			self._location = url
+			self._columns = self._fs.get_columns(url)
+			self._rows = [
+				(row_url, self._fs.is_dir(row_url), [(
+					column.get_str(row_url),
+					column.get_sort_value(row_url, True),
+					column.get_sort_value(row_url, False)
+				)])
+				for column in self._columns
+				for row_url in self._fs.iterdir(url)
+			]
+		callback()

@@ -2,7 +2,7 @@ from fman.impl.theme import ThemeError
 from fman.impl.util import is_below_dir, is_debug
 from os.path import dirname
 from traceback import StackSummary, _some_str, extract_tb, TracebackException, \
-	print_exc
+	print_exception
 
 import fman
 import sys
@@ -13,13 +13,13 @@ class PluginErrorHandler:
 		self._main_window = None
 		self._pending_error_messages = []
 	def report(self, message, exc=None):
-		if is_debug():
-			# The steps below only show a pruned stack trace. During
-			# development, it's useful if we also see the full stack trace:
-			print_exc()
 		if exc is None:
 			exc = sys.exc_info()[1]
 		if exc:
+			if is_debug():
+				# The steps further below only show a pruned stack trace. During
+				# development, it's useful if we also see the full stack trace:
+				print_exception(type(exc), exc, exc.__traceback__)
 			message += '\n\n' + self._get_plugin_traceback(exc)
 		if self._main_window:
 			self._main_window.show_alert(message)

@@ -217,43 +217,63 @@ class ExternalPlugin(Plugin):
 def get_command_class_name(command_name):
 	return ''.join(part.title() for part in command_name.split('_'))
 
-class CommandWrapper:
+class Wrapper:
+	def __init__(self, wrapped, type_name, error_handler):
+		self._wrapped = wrapped
+		self._type_name = type_name
+		self._error_handler = error_handler
+	def unwrap(self):
+		return self._wrapped
+	@property
+	def _class_name(self):
+		return self._wrapped.__class__.__name__
+	def _handle_exceptions(self):
+		message = '%s %r raised error.' % (self._type_name, self._class_name)
+		return HandleExceptions(self._error_handler, message)
+
+class HandleExceptions:
+	def __init__(self, error_handler, message):
+		self._error_handler = error_handler
+		self._message = message
+	def __enter__(self):
+		return self
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		if not exc_val:
+			return
+		if isinstance(exc_val, SystemExit):
+			self._error_handler.handle_system_exit(exc_val.code)
+		else:
+			self._error_handler.report(self._message, exc_val)
+		return True
+
+class CommandWrapper(Wrapper):
 	def __init__(self, command, error_handler, callback):
-		self.command = command
-		self.error_handler = error_handler
-		self.callback = callback
+		super().__init__(command, 'Command', error_handler)
+		self._callback = callback
 	def __call__(self, *args, **kwargs):
 		Thread(
 			target=self._run_in_thread, args=args, kwargs=kwargs, daemon=True
 		).start()
-	def _run_in_thread(self, *args, **kwargs):
-		self.callback.before_command(self.name)
-		try:
-			self.command(*args, **kwargs)
-		except SystemExit as e:
-			self.error_handler.handle_system_exit(e.code)
-		except:
-			message = 'Command %r raised exception.' % self.name
-			self.error_handler.report(message)
-		else:
-			self.callback.after_command(self.name)
-	@property
-	def name(self):
-		return self.command.__class__.__name__
 	def get_aliases(self):
 		try:
-			return self.command.aliases
+			return self._wrapped.aliases
 		except AttributeError:
-			class_name = self.command.__class__.__name__
-			return re.sub(r'([a-z])([A-Z])', r'\1 \2', class_name)\
+			return re.sub(r'([a-z])([A-Z])', r'\1 \2', self._class_name)\
 					   .lower().capitalize(),
 	def is_visible(self):
-		return self.command.is_visible()
+		return self._wrapped.is_visible()
+	def _run_in_thread(self, *args, **kwargs):
+		self._callback.before_command(self._class_name)
+		exc_occurred = True
+		with self._handle_exceptions():
+			self._wrapped(*args, **kwargs)
+			exc_occurred = False
+		if not exc_occurred:
+			self._callback.after_command(self._class_name)
 
-class ListenerWrapper:
+class ListenerWrapper(Wrapper):
 	def __init__(self, listener, error_handler):
-		self._listener = listener
-		self._error_handler = error_handler
+		super().__init__(listener, 'DirectoryPaneListener', error_handler)
 	def on_doubleclicked(self, *args):
 		self._notify_listener('on_doubleclicked', *args)
 	def on_name_edited(self, *args):
@@ -263,29 +283,19 @@ class ListenerWrapper:
 	def on_files_dropped(self, *args):
 		self._notify_listener('on_files_dropped', *args)
 	def on_command(self, command, args):
-		try:
-			return self._listener.on_command(command, args)
-		except:
-			self._report_exception()
+		with self._handle_exceptions():
+			return self._wrapped.on_command(command, args)
 	def _notify_listener(self, *args):
 		Thread(
 			target=self._notify_listener_in_thread, args=args, daemon=True
 		).start()
 	def _notify_listener_in_thread(self, event, *args):
-		listener_method = getattr(self._listener, event)
-		try:
+		listener_method = getattr(self._wrapped, event)
+		with self._handle_exceptions():
 			listener_method(*args)
-		except:
-			self._report_exception()
-	def _report_exception(self):
-		self._error_handler.report(
-			'DirectoryPaneListener %r raised error.' %
-			self._listener.__class__.__name__
-		)
 
-class FileSystemWrapper:
+class FileSystemWrapper(Wrapper):
 	def __init__(self, file_system, error_handler):
-		self._fs = file_system
-		self._error_handler = error_handler
+		super().__init__(file_system, 'FileSystem', error_handler)
 	def __getattr__(self, item):
-		return getattr(self._fs, item)
+		return getattr(self._wrapped, item)

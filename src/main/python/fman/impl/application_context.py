@@ -333,7 +333,8 @@ class ApplicationContext:
 	def session_manager(self):
 		settings = Settings(self._get_local_data_file('Session.json'))
 		return SessionManager(
-			settings, self.mother_fs, self.fman_version, self.is_licensed
+			settings, self.mother_fs, self.plugin_error_handler,
+			self.fman_version, self.is_licensed
 		)
 	@cached_property
 	def theme(self):

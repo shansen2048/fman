@@ -3,10 +3,11 @@ from fman import PLATFORM, ApplicationCommand, DirectoryPaneCommand, \
 from fman.impl.plugins import ExternalPlugin
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
+from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.plugins.plugin import Plugin
 from fman_integrationtest import get_resource
 from fman_integrationtest.impl.plugins import StubErrorHandler, \
-	StubCommandCallback, StubTheme, StubFontDatabase, StubMotherFileSystem
+	StubCommandCallback, StubTheme, StubFontDatabase
 from os.path import join
 from unittest import TestCase
 
@@ -81,15 +82,12 @@ class ExternalPluginTest(TestCase):
 		self.assertEqual(bindings, self._key_bindings.get_sanitized_bindings())
 
 		from simple_plugin import TestFileSystem
-		loaded_file_systems = self._mother_fs.children
-		self.assertEqual(1, len(loaded_file_systems))
-		scheme, fs_wrapper = next(iter(loaded_file_systems.items()))
-		fs_instance = fs_wrapper._fs
-		self.assertEqual(scheme, fs_instance.scheme)
+		fs_wrapper = self._mother_fs._children[TestFileSystem.scheme]
+		fs_instance = fs_wrapper.unwrap()
 		self.assertIsInstance(fs_instance, TestFileSystem)
 
 		from simple_plugin import TestColumn
-		loaded_columns = self._mother_fs.columns
+		loaded_columns = self._mother_fs._columns
 		self.assertEqual(1, len(loaded_columns))
 		col_name, col_instance = next(iter(loaded_columns.items()))
 		self.assertEqual('TestColumn', col_name)
@@ -97,8 +95,8 @@ class ExternalPluginTest(TestCase):
 	def test_unload(self):
 		self.test_load()
 		self._plugin.unload()
-		self.assertEqual({}, self._mother_fs.columns)
-		self.assertEqual({}, self._mother_fs.children)
+		self.assertEqual({}, self._mother_fs._columns)
+		self.assertEqual({}, self._mother_fs._children)
 		self.assertEqual([], self._key_bindings.get_sanitized_bindings())
 		self.assertEqual([], self._plugin._directory_pane_listeners)
 		self.assertEqual({}, self._plugin.get_directory_pane_commands())
@@ -117,7 +115,7 @@ class ExternalPluginTest(TestCase):
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
 		self._key_bindings = KeyBindings()
-		self._mother_fs = StubMotherFileSystem()
+		self._mother_fs = MotherFileSystem(None)
 		self._plugin = ExternalPlugin(
 			self._plugin_dir, self._config, self._theme, self._font_database,
 			self._error_handler, self._command_callback, self._key_bindings,
