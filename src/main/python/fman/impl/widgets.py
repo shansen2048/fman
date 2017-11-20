@@ -31,7 +31,7 @@ class Application(QApplication):
 	def set_style_sheet(self, stylesheet):
 		self.setStyleSheet(stylesheet)
 
-class DirectoryPane(QWidget):
+class DirectoryPaneWidget(QWidget):
 
 	# TODO: Rename to location_changed
 	path_changed = pyqtSignal(QWidget)
@@ -139,7 +139,7 @@ class DirectoryPane(QWidget):
 
 class MainWindow(QMainWindow):
 
-	pane_added = pyqtSignal(DirectoryPane)
+	pane_added = pyqtSignal(DirectoryPaneWidget)
 	shown = pyqtSignal()
 	closed = pyqtSignal()
 	before_quicksearch = pyqtSignal(Quicksearch)
@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
 	def clear_status_message(self):
 		self.show_status_message('Ready.')
 	def add_pane(self):
-		result = DirectoryPane(self._fs, self._splitter)
+		result = DirectoryPaneWidget(self._fs, self._splitter)
 		self._panes.append(result)
 		self._splitter.addWidget(result)
 		self.pane_added.emit(result)
