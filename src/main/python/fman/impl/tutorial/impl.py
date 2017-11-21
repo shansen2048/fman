@@ -231,15 +231,15 @@ class TutorialImpl(Tutorial):
 		self._src_dir = self._get_src_dir(dir_path)
 		self._curr_step_index += 1
 		self._track_current_step()
-		self._pane_widget.set_path(self._src_dir, callback=self._navigate)
+		self._set_location(self._src_dir, callback=self._navigate)
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
-		steps = _get_navigation_steps(self._dst_dir, self._get_path())
+		steps = _get_navigation_steps(self._dst_dir, self._get_location())
 		if not steps:
 			# We have arrived:
 			self._time_taken = time() - self._start_time
-			current_dir = fman.url.basename(self._get_path())
+			current_dir = fman.url.basename(self._get_location())
 			self._format_next_step_paragraph((current_dir, self._time_taken))
 			self._next_step()
 			return
@@ -249,7 +249,7 @@ class TutorialImpl(Tutorial):
 			'', step_paras, {'on': {'path_changed': self._navigate}}
 		)
 		if step[0] == 'open' and step[1] != '..':
-			toggle_url = fman.url.join(self._get_path(), step[1])
+			toggle_url = fman.url.join(self._get_location(), step[1])
 			self._pane_widget.toggle_selection(toggle_url)
 		self._show_current_screen()
 	def _get_step_paras(self, navigation_step):
@@ -294,7 +294,7 @@ class TutorialImpl(Tutorial):
 		self._encouragement_index %= len(self._encouragements)
 		return result
 	def _get_src_dir(self, dst_dir):
-		current = self._get_path()
+		current = self._get_location()
 		if len(_get_navigation_steps(dst_dir, current)) >= 3:
 			return current
 		home = expanduser('~')
@@ -307,7 +307,7 @@ class TutorialImpl(Tutorial):
 		for i, value in enumerate(values):
 			step_paras[i] %= value
 	def _reset(self):
-		self._pane_widget.set_path(self._src_dir)
+		self._set_location(self._src_dir)
 		self._next_step()
 	def _before_goto(self):
 		self._start_time = time()
@@ -321,8 +321,8 @@ class TutorialImpl(Tutorial):
 		self._format_next_step_paragraph((), text)
 		self._next_step()
 	def _after_goto(self):
-		path = self._get_path()
-		if path == self._dst_dir:
+		url = self._get_location()
+		if url == self._dst_dir:
 			time_taken = time() - self._start_time
 			if time_taken < self._time_taken:
 				paras = [
@@ -331,8 +331,7 @@ class TutorialImpl(Tutorial):
 					(time_taken, self._time_taken),
 					"The next time you open *%s* outside of fman, ask "
 					"yourself: Isn't it tedious to click through directory "
-					"trees all the time? GoTo is the answer."
-					% basename(path)
+					"trees all the time? GoTo is the answer." % basename(url)
 				]
 			else:
 				paras = [
@@ -343,12 +342,14 @@ class TutorialImpl(Tutorial):
 			self._steps[self._curr_step_index + 1]._paragraphs = paras
 			self._next_step()
 	def _after_native_fm(self):
-		self._format_next_step_paragraph(basename(self._get_path()))
+		self._format_next_step_paragraph(basename(self._get_location()))
 		self._next_step()
 	def _skip_steps(self, num_steps):
 		return lambda: self._next_step(num_steps + 1)
-	def _get_path(self):
-		return self._pane_widget.get_path()
+	def _get_location(self):
+		return self._pane_widget.get_location()
+	def _set_location(self, url, callback=None):
+		self._pane_widget.set_location(url, callback)
 
 def _get_navigation_steps(target_dir, source_dir):
 	result = []
