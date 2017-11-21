@@ -231,16 +231,17 @@ class TutorialImpl(Tutorial):
 		self._source_directory = self._get_source_directory(dir_path)
 		self._curr_step_index += 1
 		self._track_current_step()
-		self._pane.set_path(self._source_directory, callback=self._navigate)
+		self._pane_widget.set_path(
+			self._source_directory, callback=self._navigate
+		)
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
-		steps = \
-			_get_navigation_steps(self._target_directory, self._pane.get_path())
+		steps = _get_navigation_steps(self._target_directory, self._get_path())
 		if not steps:
 			# We have arrived:
 			self._time_taken = time() - self._start_time
-			current_dir = fman.url.basename(self._pane.get_path())
+			current_dir = fman.url.basename(self._get_path())
 			self._format_next_step_paragraph((current_dir, self._time_taken))
 			self._next_step()
 			return
@@ -250,9 +251,8 @@ class TutorialImpl(Tutorial):
 			'', step_paras, {'on': {'path_changed': self._navigate}}
 		)
 		if step[0] == 'open' and step[1] != '..':
-			self._pane.toggle_selection(
-				fman.url.join(self._pane.get_path(), step[1])
-			)
+			toggle_url = fman.url.join(self._get_path(), step[1])
+			self._pane_widget.toggle_selection(toggle_url)
 		self._show_current_screen()
 	def _get_step_paras(self, navigation_step):
 		result = []
@@ -296,7 +296,7 @@ class TutorialImpl(Tutorial):
 		self._encouragement_index %= len(self._encouragements)
 		return result
 	def _get_source_directory(self, target_dir):
-		current = self._pane.get_path()
+		current = self._get_path()
 		if len(_get_navigation_steps(target_dir, current)) >= 3:
 			return current
 		home = expanduser('~')
@@ -309,7 +309,7 @@ class TutorialImpl(Tutorial):
 		for i, value in enumerate(values):
 			step_paras[i] %= value
 	def _reset(self):
-		self._pane.set_path(self._source_directory)
+		self._pane_widget.set_path(self._source_directory)
 		self._next_step()
 	def _before_goto(self):
 		self._start_time = time()
@@ -323,7 +323,7 @@ class TutorialImpl(Tutorial):
 		self._format_next_step_paragraph((), text)
 		self._next_step()
 	def _after_goto(self):
-		path = self._pane.get_path()
+		path = self._get_path()
 		if path == self._target_directory:
 			time_taken = time() - self._start_time
 			if time_taken < self._time_taken:
@@ -345,10 +345,12 @@ class TutorialImpl(Tutorial):
 			self._steps[self._curr_step_index + 1]._paragraphs = paras
 			self._next_step()
 	def _after_native_fm(self):
-		self._format_next_step_paragraph(basename(self._pane.get_path()))
+		self._format_next_step_paragraph(basename(self._get_path()))
 		self._next_step()
 	def _skip_steps(self, num_steps):
 		return lambda: self._next_step(num_steps + 1)
+	def _get_path(self):
+		return self._pane_widget.get_path()
 
 def _get_navigation_steps(target_dir, source_dir):
 	result = []

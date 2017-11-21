@@ -27,7 +27,7 @@ class Tutorial:
 	def _get_steps(self):
 		raise NotImplementedError()
 	@property
-	def _pane(self):
+	def _pane_widget(self):
 		return self._main_window.get_panes()[0]
 	def start(self):
 		self._curr_step_index = -1
@@ -43,7 +43,9 @@ class Tutorial:
 			return
 		self._curr_step.close()
 		self._command_callback.remove_listener(self._curr_step)
-		self._pane.path_changed.disconnect(self._curr_step.on_path_changed)
+		self._pane_widget.path_changed.disconnect(
+			self._curr_step.on_path_changed
+		)
 		self._curr_step = None
 	def _next_step(self, delta=1):
 		self._curr_step_index += delta
@@ -58,7 +60,7 @@ class Tutorial:
 			self.close()
 		self._curr_step = self._steps[self._curr_step_index]
 		self._command_callback.add_listener(self._curr_step)
-		self._pane.path_changed.connect(self._curr_step.on_path_changed)
+		self._pane_widget.path_changed.connect(self._curr_step.on_path_changed)
 		self._curr_step.show(self._main_window)
 	def _after_quicksearch_shown(self, callback):
 		return AfterQuicksearchShown(self._main_window, callback)
