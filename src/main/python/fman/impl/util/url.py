@@ -7,8 +7,11 @@ def get_existing_pardir(url, is_dir):
 	# N.B.: If `url` is a directory, it is returned, even though it is not a
 	# strict parent directory.
 	for candidate in _iter_parents(url):
-		if is_dir(candidate):
-			return candidate
+		try:
+			if is_dir(candidate):
+				return candidate
+		except FileNotFoundError:
+			return None
 
 def is_pardir(pardir, subdir):
 	# N.B.: Every directory is a "pardir" of itself.

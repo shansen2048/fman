@@ -1228,6 +1228,10 @@ class RemovePlugin(ApplicationCommand):
 
 class ReloadPlugins(ApplicationCommand):
 	def __call__(self):
+		# When a pane is currently displaying a location with a file system that
+		# is "reloaded", its location gets lost. So save the locations and
+		# restore them below:
+		paths_before = [pane.get_path() for pane in (self.window.get_panes())]
 		plugins = _get_plugins()
 		for plugin in reversed(plugins):
 			try:
@@ -1236,6 +1240,8 @@ class ReloadPlugins(ApplicationCommand):
 				pass
 		for plugin in plugins:
 			load_plugin(plugin)
+		for pane, path in zip(self.window.get_panes(), paths_before):
+			pane.set_path(path)
 		num_plugins = len(plugins)
 		plural = 's' if num_plugins > 1 else ''
 		show_status_message(

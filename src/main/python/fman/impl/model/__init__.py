@@ -120,16 +120,18 @@ class FileSystemModel(DragAndDropMixin):
 	location_changed = pyqtSignal(str)
 	location_loaded = pyqtSignal(str)
 
-	def __init__(self, fs):
+	def __init__(self, fs, null_location):
 		super().__init__()
 		self._fs = fs
-		self._location = ''
+		self._null_location = null_location
+		self._location = None # until we call set_location(...) below
 		self._location_loaded = False
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
 		self._columns = ()
 		self._file_watcher = FileWatcher(fs, self._on_file_changed)
 		self._connect_signals()
+		self.set_location(null_location)
 	def _connect_signals(self):
 		"""
 		Consider the example where the user creates a directory. This is done
@@ -381,7 +383,8 @@ class FileSystemModel(DragAndDropMixin):
 	@run_in_main_thread
 	def _on_file_removed(self, url):
 		if is_pardir(url, self._location):
-			self.set_location(get_existing_pardir(url, self._fs.is_dir))
+			existing_pardir = get_existing_pardir(url, self._fs.is_dir)
+			self.set_location(existing_pardir or self._null_location)
 		else:
 			try:
 				rownum = self.find(url).row()

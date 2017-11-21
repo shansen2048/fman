@@ -1,11 +1,11 @@
 from threading import Lock
-from weakref import WeakSet
 from functools import lru_cache
 from getpass import getuser
-from os import listdir
+from os import listdir, strerror
 from os.path import join, basename, expanduser, dirname, realpath, relpath, \
 	pardir, splitdrive
 
+import errno
 import os
 import sys
 
@@ -136,3 +136,9 @@ class _CachedIterator:
 	def __next__(self):
 		self._pointer, result = self._parent.get_next(self._pointer)
 		return result
+
+# Copied from core.util:
+def filenotfounderror(path):
+	# The correct way of instantiating FileNotFoundError in a way that respects
+	# the parent class (OSError)'s arguments:
+	return FileNotFoundError(errno.ENOENT, strerror(errno.ENOENT), path)

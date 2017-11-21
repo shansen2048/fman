@@ -1,4 +1,4 @@
-from fman.impl.util import Event, CachedIterable
+from fman.impl.util import Event, CachedIterable, filenotfounderror
 from fman.url import splitscheme, basename, dirname
 from io import UnsupportedOperation
 from functools import partial
@@ -12,6 +12,9 @@ class MotherFileSystem:
 		self.file_moved = Event()
 		self.file_removed = Event()
 		self._children = {}
+		# Keep track of children being deleted so file_removed listeners can
+		# call remove_file_changed_callback(...):
+		self._children_being_deleted = {}
 		self._icon_provider = icon_provider
 		self._columns = {}
 		self._cache = {}
@@ -19,11 +22,13 @@ class MotherFileSystem:
 	def add_child(self, scheme, instance):
 		self._children[scheme] = instance
 	def remove_child(self, scheme):
-		del self._children[scheme]
+		self._children_being_deleted[scheme] = self._children.pop(scheme)
 		self._cache = {
 			url: value for url, value in self._cache.items()
 			if not splitscheme(url)[0] == scheme
 		}
+		self.file_removed.trigger(scheme)
+		del self._children_being_deleted[scheme]
 	def register_column(self, column_name, column):
 		self._columns[column_name] = column
 	def unregister_column(self, column_name):
@@ -120,7 +125,14 @@ class MotherFileSystem:
 		child, path = self._split(url)
 		child._add_file_changed_callback(path, callback)
 	def remove_file_changed_callback(self, url, callback):
-		child, path = self._split(url)
+		scheme, path = splitscheme(url)
+		try:
+			child = self._children[scheme]
+		except KeyError:
+			try:
+				child = self._children_being_deleted[scheme]
+			except KeyError:
+				raise filenotfounderror(url)
 		child._remove_file_changed_callback(path, callback)
 	def clear_cache(self, url):
 		try:
@@ -147,7 +159,11 @@ class MotherFileSystem:
 		return getattr(child, prop)(path)
 	def _split(self, url):
 		scheme, path = splitscheme(url)
-		return self._children[scheme], path
+		try:
+			child = self._children[scheme]
+		except KeyError:
+			raise filenotfounderror(url)
+		return child, path
 	def _remove(self, url):
 		try:
 			del self._cache[url]

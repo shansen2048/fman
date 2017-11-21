@@ -11,7 +11,7 @@ from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 	GnomeNotAvailable, IconProvider
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
-from fman.impl.plugins.builtin import BuiltinPlugin
+from fman.impl.plugins.builtin import BuiltinPlugin, NullFileSystem
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.config import Config
@@ -142,7 +142,8 @@ class ApplicationContext:
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(
-				self.app, self.help_menu_actions, self.theme, self.mother_fs
+				self.app, self.help_menu_actions, self.theme, self.mother_fs,
+				NullFileSystem.scheme
 			)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
