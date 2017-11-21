@@ -12,8 +12,8 @@ import fman.url
 class TutorialImpl(Tutorial):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self._target_directory = self._source_directory = \
-			self._start_time = self._time_taken = None
+		self._dst_dir = self._src_dir = self._start_time = self._time_taken \
+			= None
 		self._encouragements = [
 			e + '. ' for e in ('Great', 'Cool', 'Well done', 'Nice')
 		]
@@ -227,17 +227,15 @@ class TutorialImpl(Tutorial):
 		# to check whether the user jumped to the right directory, we need to
 		# fix this:
 		dir_path = normpath(dir_path)
-		self._target_directory = dir_path
-		self._source_directory = self._get_source_directory(dir_path)
+		self._dst_dir = dir_path
+		self._src_dir = self._get_src_dir(dir_path)
 		self._curr_step_index += 1
 		self._track_current_step()
-		self._pane_widget.set_path(
-			self._source_directory, callback=self._navigate
-		)
+		self._pane_widget.set_path(self._src_dir, callback=self._navigate)
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
-		steps = _get_navigation_steps(self._target_directory, self._get_path())
+		steps = _get_navigation_steps(self._dst_dir, self._get_path())
 		if not steps:
 			# We have arrived:
 			self._time_taken = time() - self._start_time
@@ -260,7 +258,7 @@ class TutorialImpl(Tutorial):
 			result.append(
 				"fman always shows the contents of two directories. We will "
 				"now navigate to your *%s* folder in the left pane." %
-				basename(self._target_directory)
+				basename(self._dst_dir)
 			)
 		instruction, path = navigation_step
 		encouragement = self._get_encouragement() if self._last_step else ''
@@ -268,7 +266,7 @@ class TutorialImpl(Tutorial):
 			result.append(
 				"First, we need to switch to your *%s* drive. Please press "
 				"*Alt+F1* to see an overview of your drives." %
-				splitdrive(self._target_directory)[0]
+				splitdrive(self._dst_dir)[0]
 			)
 			self._last_step = 'show drives'
 		elif instruction == 'open':
@@ -295,36 +293,36 @@ class TutorialImpl(Tutorial):
 		self._encouragement_index += 1
 		self._encouragement_index %= len(self._encouragements)
 		return result
-	def _get_source_directory(self, target_dir):
+	def _get_src_dir(self, dst_dir):
 		current = self._get_path()
-		if len(_get_navigation_steps(target_dir, current)) >= 3:
+		if len(_get_navigation_steps(dst_dir, current)) >= 3:
 			return current
 		home = expanduser('~')
-		if is_below_dir(target_dir, home):
-			if len(_get_navigation_steps(target_dir, home)) >= 3:
+		if is_below_dir(dst_dir, home):
+			if len(_get_navigation_steps(dst_dir, home)) >= 3:
 				return home
-		return splitdrive(target_dir)[0] or '/'
+		return splitdrive(dst_dir)[0] or '/'
 	def _format_next_step_paragraph(self, *values):
 		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
 		for i, value in enumerate(values):
 			step_paras[i] %= value
 	def _reset(self):
-		self._pane_widget.set_path(self._source_directory)
+		self._pane_widget.set_path(self._src_dir)
 		self._next_step()
 	def _before_goto(self):
 		self._start_time = time()
-		if self._target_directory == expanduser('~'):
+		if self._dst_dir == expanduser('~'):
 			text = "To open your home directory with GoTo, type&nbsp;*~*. " \
 				   "Then, press *Enter*."
 		else:
-			goto_dir = basename(self._target_directory)
+			goto_dir = basename(self._dst_dir)
 			text = "Start typing *%s* into the dialog. fman will suggest " \
 					"your directory. Press *Enter* to open it." % goto_dir
 		self._format_next_step_paragraph((), text)
 		self._next_step()
 	def _after_goto(self):
 		path = self._get_path()
-		if path == self._target_directory:
+		if path == self._dst_dir:
 			time_taken = time() - self._start_time
 			if time_taken < self._time_taken:
 				paras = [
