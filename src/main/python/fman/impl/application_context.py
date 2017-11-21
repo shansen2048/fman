@@ -19,7 +19,7 @@ from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
 from fman.impl.signal_ import SignalWakeupHandler
 from fman.impl.tutorial import TutorialController
-from fman.impl.tutorial.variant_b import TutorialVariantB
+from fman.impl.tutorial.impl import TutorialImpl
 from fman.impl.updater import MacUpdater
 from fman.impl.util import system, cached_property, is_frozen
 from fman.impl.util.qt import connect_once
@@ -231,7 +231,7 @@ class ApplicationContext:
 	@cached_property
 	def tutorial_controller(self):
 		return TutorialController(
-			TutorialVariantB,
+			TutorialImpl,
 			(self.main_window, self.app, self.command_callback, self.metrics)
 		)
 	@cached_property

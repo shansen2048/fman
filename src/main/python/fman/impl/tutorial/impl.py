@@ -9,7 +9,7 @@ from time import time
 
 import fman.url
 
-class TutorialVariantB(Tutorial):
+class TutorialImpl(Tutorial):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._target_directory = self._source_directory = \
