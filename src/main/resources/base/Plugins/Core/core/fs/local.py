@@ -1,4 +1,5 @@
 from core.trash import move_to_trash
+from core.util import filenotfounderror
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
@@ -40,7 +41,7 @@ class LocalFileSystem(FileSystem):
 			raise
 		except OSError as e:
 			if e.errno == ENOENT:
-				raise FileNotFoundError(path) from e
+				raise filenotfounderror(path) from e
 			else:
 				raise
 	def move(self, src_url, dst_url):
@@ -58,7 +59,7 @@ class LocalFileSystem(FileSystem):
 			remove(path)
 	def resolve(self, path):
 		if not path:
-			raise FileNotFoundError(path)
+			raise filenotfounderror(path)
 		# Unlike other functions, Path#resolve can't handle C: instead of C:\
 		path = self._add_backslash_to_drive_if_missing(path)
 		return as_url(Path(path).resolve())
@@ -114,10 +115,10 @@ if PLATFORM == 'Windows':
 				return self.scheme
 			if path in self._get_drives():
 				return as_url(path + '\\')
-			raise FileNotFoundError(path)
+			raise filenotfounderror(path)
 		def iterdir(self, path):
 			if path:
-				raise FileNotFoundError(path)
+				raise filenotfounderror(path)
 			return self._get_drives()
 		def is_dir(self, path):
 			return self.exists(path)

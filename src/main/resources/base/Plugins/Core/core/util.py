@@ -1,5 +1,7 @@
-from os import listdir
+from os import listdir, strerror
 from os.path import join
+
+import errno
 
 def strformat_dict_values(dict_, replacements):
 	result = {}
@@ -17,3 +19,8 @@ def strformat_dict_values(dict_, replacements):
 
 def listdir_absolute(dir_path):
 	return [join(dir_path, file_name) for file_name in listdir(dir_path)]
+
+def filenotfounderror(path):
+	# The correct way of instantiating FileNotFoundError in a way that respects
+	# the parent class (OSError)'s arguments:
+	return FileNotFoundError(errno.ENOENT, strerror(errno.ENOENT), path)

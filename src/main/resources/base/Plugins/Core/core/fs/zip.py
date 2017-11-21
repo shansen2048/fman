@@ -1,6 +1,6 @@
 from collections import namedtuple
+from core.util import filenotfounderror
 from datetime import datetime
-from errno import ENOENT
 from fman import PLATFORM
 from fman.fs import FileSystem
 from fman.url import as_url, splitscheme
@@ -124,13 +124,13 @@ class ZipFileSystem(FileSystem):
 				self._run_7zip(['a', name], cwd=tmp_dir)
 				Path(tmp_dir, name).rename(zip_path)
 		elif not self.exists(str(PurePosixPath(path).parent)):
-			raise FileNotFoundError(ENOENT, path)
+			raise filenotfounderror(path)
 		else:
 			with TemporaryDirectory() as tmp_dir:
 				self._add_to_zip(tmp_dir, zip_path, path_in_zip)
 	def delete(self, path):
 		if not self.exists(path):
-			raise FileNotFoundError(path)
+			raise filenotfounderror(path)
 		zip_path, path_in_zip = self._split(path)
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			self._run_7zip(['d', zip_path, path_in_zip])
@@ -201,7 +201,7 @@ class ZipFileSystem(FileSystem):
 		try:
 			split_point = path.index(suffix) + len(suffix)
 		except ValueError:
-			raise FileNotFoundError('Not a .zip file: %r' % path) from None
+			raise filenotfounderror(self.scheme + path) from None
 		return path[:split_point], path[split_point:].lstrip('/')
 	def _iter_names(self, zip_path, path_in_zip):
 		for file_info in self._iter_infos(zip_path, path_in_zip):
@@ -215,7 +215,8 @@ class ZipFileSystem(FileSystem):
 		try:
 			file_info = self._read_file_info(process.stdout)
 			if not file_info:
-				raise FileNotFoundError(zip_path + '/' + path_in_zip)
+				url = '%s%s/%s' % (self.scheme, zip_path, path_in_zip)
+				raise filenotfounderror(url)
 			while file_info:
 				yield file_info
 				file_info = self._read_file_info(process.stdout)

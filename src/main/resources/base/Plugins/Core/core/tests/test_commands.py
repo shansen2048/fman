@@ -1,5 +1,6 @@
 from core.commands import SuggestLocations, History, Move
 from core.tests import StubUI
+from core.util import filenotfounderror
 from fman import OK, YES, NO, PLATFORM
 from fman.url import join, as_human_readable, as_url, dirname
 from os.path import normpath
@@ -155,7 +156,7 @@ class SuggestLocationsTest(TestCase):
 			try:
 				return sorted(list(self._get_dir(path)))
 			except KeyError as e:
-				raise FileNotFoundError(repr(path)) from e
+				raise filenotfounderror(path) from e
 		def resolve(self, path):
 			is_case_sensitive = PLATFORM == 'Linux'
 			if is_case_sensitive:
