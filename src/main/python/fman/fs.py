@@ -95,7 +95,7 @@ class FileSystem:
 				self.unwatch(path)
 
 class Column:
-	def get_str(cls, url):
+	def get_str(self, url):
 		raise NotImplementedError()
 	def get_sort_value(self, url, is_ascending):
 		"""
