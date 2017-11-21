@@ -1,4 +1,4 @@
-from fman.impl.tutorial.variant_b import _get_navigation_steps
+from fman.impl.tutorial.impl import _get_navigation_steps
 from fman.impl.util.system import is_windows
 from unittest import skipIf, TestCase
 from os.path import dirname, basename
