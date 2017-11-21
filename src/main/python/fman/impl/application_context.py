@@ -193,7 +193,8 @@ class ApplicationContext:
 	def builtin_plugin(self):
 		return BuiltinPlugin(
 			self.tutorial_controller, self.plugin_error_handler,
-			self.command_callback, self.key_bindings, self.mother_fs
+			self.command_callback, self.key_bindings, self.mother_fs,
+			self.window
 		)
 	@cached_property
 	def mother_fs(self):
@@ -236,8 +237,8 @@ class ApplicationContext:
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_error_handler, self.command_callback, self.key_bindings,
-			self.mother_fs, self.config, self.theme, self.font_database,
-			self.builtin_plugin
+			self.mother_fs, self.window, self.config, self.theme,
+			self.font_database, self.builtin_plugin
 		)
 	@cached_property
 	def plugin_error_handler(self):

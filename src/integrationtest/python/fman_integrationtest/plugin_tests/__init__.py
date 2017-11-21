@@ -30,16 +30,16 @@ class PluginTest(TestCase):
 		self._command_callback = StubCommandCallback()
 		key_bindings = KeyBindings()
 		self._mother_fs = MotherFileSystem(None)
+		self._window = Window()
 		theme = StubTheme()
 		font_db = StubFontDatabase()
 		self._plugin_support = PluginSupport(
 			self._error_handler, self._command_callback, key_bindings,
-			self._mother_fs, config, theme, font_db
+			self._mother_fs, self._window, config, theme, font_db
 		)
 		self._plugin_support.load_plugin(self._shipped_plugin)
 		self._plugin_support.load_plugin(self._thirdparty_plugin)
 		self._plugin_support.load_plugin(self._settings_plugin)
-		self._window = Window()
 		left_pane = StubDirectoryPaneWidget(self._mother_fs)
 		self._left_pane = DirectoryPane(self._window, left_pane)
 		right_pane = StubDirectoryPaneWidget(self._mother_fs)

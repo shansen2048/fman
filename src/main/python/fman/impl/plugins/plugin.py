@@ -15,12 +15,13 @@ import sys
 
 class Plugin:
 	def __init__(
-		self, error_handler, command_callback, key_bindings, mother_fs
+		self, error_handler, command_callback, key_bindings, mother_fs, window
 	):
 		self._error_handler = error_handler
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
 		self._mother_fs = mother_fs
+		self._window = window
 		self._application_command_instances = {}
 		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
@@ -46,7 +47,7 @@ class Plugin:
 	def _register_application_command(self, cls, *args):
 		name = _get_command_name(cls)
 		self._key_bindings.register_command(name)
-		instance = self._instantiate_command(cls, *args)
+		instance = self._instantiate_command(cls, self._window, *args)
 		self._application_command_instances[name] = instance
 	def _unregister_application_command(self, cls):
 		name = _get_command_name(cls)

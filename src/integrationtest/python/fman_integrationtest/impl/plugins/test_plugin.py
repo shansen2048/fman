@@ -1,5 +1,5 @@
 from fman import PLATFORM, ApplicationCommand, DirectoryPaneCommand, \
-	DirectoryPane, DirectoryPaneListener
+	DirectoryPane, DirectoryPaneListener, Window
 from fman.impl.plugins import ExternalPlugin
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
@@ -42,7 +42,7 @@ class PluginTest(TestCase):
 		self._key_bindings = KeyBindings()
 		self._plugin = Plugin(
 			self._error_handler, self._command_callback, self._key_bindings,
-			None
+			None, None
 		)
 		self._pane = DirectoryPane(None, None)
 
@@ -119,7 +119,7 @@ class ExternalPluginTest(TestCase):
 		self._plugin = ExternalPlugin(
 			self._plugin_dir, self._config, self._theme, self._font_database,
 			self._error_handler, self._command_callback, self._key_bindings,
-			self._mother_fs
+			self._mother_fs, Window()
 		)
 	def tearDown(self):
 		sys.path = self._sys_path_before
