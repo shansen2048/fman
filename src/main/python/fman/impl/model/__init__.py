@@ -118,7 +118,7 @@ class FileSystemModel(DragAndDropMixin):
 
 	file_renamed = pyqtSignal(str, str)
 	location_changed = pyqtSignal(str)
-	directory_loaded = pyqtSignal(str)
+	location_loaded = pyqtSignal(str)
 
 	def __init__(self, fs):
 		super().__init__()
@@ -150,7 +150,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._fs.file_added.add_callback(self._on_file_added)
 		self._fs.file_moved.add_callback(self._on_file_moved)
 		self._fs.file_removed.add_callback(self._on_file_removed)
-		self.directory_loaded.connect(self._on_directory_loaded)
+		self.location_loaded.connect(self._on_location_loaded)
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			# According to the Qt docs for QAbstractItemModel#rowCount(...):
@@ -321,7 +321,7 @@ class FileSystemModel(DragAndDropMixin):
 			self._on_rows_loaded(batch, location)
 		self._location_loaded = True
 		callback()
-		self.directory_loaded.emit(location)
+		self.location_loaded.emit(location)
 	def _load_row(self, url):
 		return PreloadedRow(
 			url, self._fs.is_dir(url), self._fs.icon(url),
@@ -338,7 +338,7 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_rows_loaded(self, rows, for_location=None):
 		if for_location is None or for_location == self._location:
 			self._insert_rows(rows)
-	def _on_directory_loaded(self, location):
+	def _on_location_loaded(self, location):
 		assert is_in_main_thread()
 		if location == self._location:
 			self._file_watcher.watch(location)

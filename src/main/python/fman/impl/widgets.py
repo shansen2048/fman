@@ -54,7 +54,7 @@ class DirectoryPaneWidget(QWidget):
 		self.setFocusProxy(self._file_view)
 		self._controller = None
 		self._model.location_changed.connect(self._on_location_changed)
-		self._model.directory_loaded.connect(self._on_directory_loaded)
+		self._model.location_loaded.connect(self._on_location_loaded)
 	def set_controller(self, controller):
 		self._controller = controller
 	@run_in_main_thread
@@ -132,7 +132,7 @@ class DirectoryPaneWidget(QWidget):
 		self._controller.on_files_dropped(self, *args)
 	def _on_location_changed(self, url):
 		self._path_view.setText(as_human_readable(url))
-	def _on_directory_loaded(self, url):
+	def _on_location_loaded(self, url):
 		if not self.get_file_under_cursor():
 			self.move_cursor_home()
 		self._file_view.resizeColumnsToContents()
