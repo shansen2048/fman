@@ -14,7 +14,11 @@ QHeaderView::section {
 	padding-bottom: 1ex;
 }
 
-QHeaderView::section::first {
+/*
+ * When there is only one section, Qt sets ::only-one instead of ::first. So
+ * we need to match on both selectors:
+ */
+QHeaderView::section::first, QHeaderView::section::only-one {
 	padding-left: 1em;
 }
 
