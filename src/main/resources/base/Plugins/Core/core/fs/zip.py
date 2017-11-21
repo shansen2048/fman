@@ -28,7 +28,7 @@ class ZipFileSystem(FileSystem):
 		self._fs = fs
 
 	def get_default_columns(self, path):
-		return 'NameColumn', 'SizeColumn', 'LastModifiedColumn'
+		return 'Name', 'Size', 'Modified'
 	def resolve(self, path):
 		if '.zip' in path:
 			# Return zip:// + path:

@@ -20,7 +20,7 @@ class LocalFileSystem(FileSystem):
 		super().__init__()
 		self._watcher = None
 	def get_default_columns(self, path):
-		return 'NameColumn', 'SizeColumn', 'LastModifiedColumn'
+		return 'Name', 'Size', 'Modified'
 	def exists(self, path):
 		return Path(path).exists()
 	def iterdir(self, path):
@@ -108,7 +108,7 @@ if PLATFORM == 'Windows':
 		scheme = 'drives://'
 
 		def get_default_columns(self, path):
-			return 'NameColumn',
+			return 'Name',
 		def resolve(self, path):
 			if not path:
 				# Showing the list of all drives:

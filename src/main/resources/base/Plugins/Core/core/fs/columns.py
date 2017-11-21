@@ -6,10 +6,7 @@ from PyQt5.QtCore import QLocale, QDateTime
 import fman.fs
 import re
 
-class NameColumn(Column):
-
-	name = 'Name'
-
+class Name(Column):
 	def __init__(self, fs=fman.fs):
 		super().__init__()
 		self._fs = fs
@@ -25,10 +22,7 @@ class NameColumn(Column):
 		is_dir = self._fs.is_dir(url)
 		return is_dir ^ is_ascending, basename(url).lower()
 
-class SizeColumn(Column):
-
-	name = 'Size'
-
+class Size(Column):
 	def __init__(self, fs=fman.fs):
 		super().__init__()
 		self._fs = fs
@@ -57,10 +51,7 @@ class SizeColumn(Column):
 	def _get_size(self, url):
 		return self._fs.query(url, 'get_size_bytes')
 
-class LastModifiedColumn(Column):
-
-	name = 'Modified'
-
+class Modified(Column):
 	def __init__(self, fs=fman.fs):
 		super().__init__()
 		self._fs = fs

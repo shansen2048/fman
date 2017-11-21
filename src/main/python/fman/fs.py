@@ -46,7 +46,7 @@ class FileSystem:
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
 	def get_default_columns(self, path):
-		return 'NameColumn',
+		return 'Name',
 	def iterdir(self, path):
 		message = self.__class__.__name__ + ' does not implement iterdir(...)'
 		raise NotImplementedError(message)
@@ -106,6 +106,9 @@ class Column:
 		method receives is_ascending as a parameter.
 		"""
 		raise NotImplementedError()
+	@property
+	def name(self):
+		return self.__class__.__name__
 
 def _get_mother_fs():
 	from fman.impl.application_context import get_application_context
