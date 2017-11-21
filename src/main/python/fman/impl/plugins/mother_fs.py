@@ -29,8 +29,8 @@ class MotherFileSystem:
 	def unregister_column(self, column_name):
 		del self._columns[column_name]
 	def get_columns(self, url):
-		scheme, path = splitscheme(url)
-		child_get_cols = self._children[scheme].get_default_columns
+		child, path = self._split(url)
+		child_get_cols = child.get_default_columns
 		column_names = child_get_cols(path)
 		try:
 			return tuple(self._columns[name] for name in column_names)
@@ -54,32 +54,32 @@ class MotherFileSystem:
 	def icon(self, url):
 		return self._query_cache(url, 'icon', self._icon_provider.get_icon)
 	def touch(self, url):
-		scheme, path = splitscheme(url)
+		child, path = self._split(url)
 		with TriggerFileAdded(self, url):
-			self._children[scheme].touch(path)
+			child.touch(path)
 	def mkdir(self, url):
-		scheme, path = splitscheme(url)
+		child, path = self._split(url)
 		with TriggerFileAdded(self, url):
-			self._children[scheme].mkdir(path)
+			child.mkdir(path)
 	def makedirs(self, url, exist_ok=True):
-		scheme, path = splitscheme(url)
+		child, path = self._split(url)
 		with TriggerFileAdded(self, url):
-			self._children[scheme].makedirs(path, exist_ok=exist_ok)
+			child.makedirs(path, exist_ok=exist_ok)
 	def move(self, src_url, dst_url):
 		"""
 		:param dst_url: must be the final destination url, not just the parent
 		                directory.
 		"""
-		src_scheme, src_path = splitscheme(src_url)
-		dst_scheme, dst_path = splitscheme(dst_url)
+		src_fs, src_path = self._split(src_url)
+		dst_fs, dst_path = self._split(dst_url)
 		try:
-			self._children[src_scheme].move(src_url, dst_url)
+			src_fs.move(src_url, dst_url)
 		except UnsupportedOperation:
-			if src_scheme == dst_scheme:
+			if src_fs == dst_fs:
 				raise
 			else:
 				# Maybe the destination FS can handle the operation:
-				self._children[dst_scheme].move(src_url, dst_url)
+				dst_fs.move(src_url, dst_url)
 		try:
 			self._cache[dst_url] = self._cache.pop(src_url)
 		except KeyError:
@@ -88,42 +88,40 @@ class MotherFileSystem:
 		self._add_to_parent(dst_url)
 		self.file_moved.trigger(src_url, dst_url)
 	def move_to_trash(self, url):
-		scheme, path = splitscheme(url)
-		self._children[scheme].move_to_trash(path)
+		child, path = self._split(url)
+		child.move_to_trash(path)
 		self._remove(url)
 		self.file_removed.trigger(url)
 	def delete(self, url):
-		scheme, path = splitscheme(url)
-		self._children[scheme].delete(path)
+		child, path = self._split(url)
+		child.delete(path)
 		self._remove(url)
 		self.file_removed.trigger(url)
 	def resolve(self, url):
-		scheme, path = splitscheme(url)
-		return self._children[scheme].resolve(path)
+		child, path = self._split(url)
+		return child.resolve(path)
 	def samefile(self, url1, url2):
-		scheme_1, path_1 = splitscheme(self.resolve(url1))
-		scheme_2, path_2 = splitscheme(self.resolve(url2))
-		if scheme_1 == scheme_2:
-			return self._children[scheme_1].samefile(path_1, path_2)
-		return False
+		fs_1, path_1 = self._split(self.resolve(url1))
+		fs_2, path_2 = self._split(self.resolve(url2))
+		return fs_1 == fs_2 and fs_1.samefile(path_1, path_2)
 	def copy(self, src_url, dst_url):
-		src_scheme, src_path = splitscheme(src_url)
-		dst_scheme, dst_path = splitscheme(dst_url)
+		src_fs, src_path = self._split(src_url)
+		dst_fs, dst_path = self._split(dst_url)
 		with TriggerFileAdded(self, dst_url):
 			try:
-				self._children[src_scheme].copy(src_url, dst_url)
+				src_fs.copy(src_url, dst_url)
 			except UnsupportedOperation:
-				if src_scheme == dst_scheme:
+				if src_fs == dst_fs:
 					raise
 				else:
 					# Maybe the destination FS can handle the operation:
-					self._children[dst_scheme].copy(src_url, dst_url)
+					dst_fs.copy(src_url, dst_url)
 	def add_file_changed_callback(self, url, callback):
-		scheme, path = splitscheme(url)
-		self._children[scheme]._add_file_changed_callback(path, callback)
+		child, path = self._split(url)
+		child._add_file_changed_callback(path, callback)
 	def remove_file_changed_callback(self, url, callback):
-		scheme, path = splitscheme(url)
-		self._children[scheme]._remove_file_changed_callback(path, callback)
+		child, path = self._split(url)
+		child._remove_file_changed_callback(path, callback)
 	def clear_cache(self, url):
 		try:
 			del self._cache[url]
@@ -145,9 +143,11 @@ class MotherFileSystem:
 					raise
 			return cache[prop]
 	def _query(self, url, prop):
-		scheme, path = splitscheme(url)
-		child = self._children[scheme]
+		child, path = self._split(url)
 		return getattr(child, prop)(path)
+	def _split(self, url):
+		scheme, path = splitscheme(url)
+		return self._children[scheme], path
 	def _remove(self, url):
 		try:
 			del self._cache[url]
