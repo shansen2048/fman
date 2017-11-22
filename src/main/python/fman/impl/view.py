@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QHeaderView, QToolTip
 
-class PathView(QLineEdit):
+class LocationBar(QLineEdit):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setFocusPolicy(ClickFocus)

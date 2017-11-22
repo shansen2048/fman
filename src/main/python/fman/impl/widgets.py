@@ -4,7 +4,7 @@ from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import run_in_main_thread, \
 	disable_window_animations_mac, Key_Escape, AscendingOrder
 from fman.impl.util.system import is_windows, is_mac
-from fman.impl.view import FileListView, Layout, PathView
+from fman.impl.view import FileListView, Layout, LocationBar
 from fman.url import as_human_readable
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
@@ -38,7 +38,7 @@ class DirectoryPaneWidget(QWidget):
 
 	def __init__(self, fs, null_location, parent):
 		super().__init__(parent)
-		self._path_view = PathView(self)
+		self._location_bar = LocationBar(self)
 		self._model = FileSystemModel(fs, null_location)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
@@ -49,8 +49,8 @@ class DirectoryPaneWidget(QWidget):
 		self._file_view.setModel(self._model_sorted)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
 		self._file_view.key_press_event_filter = self._on_key_pressed
-		self.setLayout(Layout(self._path_view, self._file_view))
-		self._path_view.setFocusProxy(self._file_view)
+		self.setLayout(Layout(self._location_bar, self._file_view))
+		self._location_bar.setFocusProxy(self._file_view)
 		self.setFocusProxy(self._file_view)
 		self._controller = None
 		self._model.location_changed.connect(self._on_location_changed)
@@ -76,8 +76,8 @@ class DirectoryPaneWidget(QWidget):
 	def move_cursor_page_down(self, toggle_selection=False):
 		self._file_view.move_cursor_page_down(toggle_selection)
 	@run_in_main_thread
-	def toggle_selection(self, file_path):
-		self._file_view.toggle_selection(file_path)
+	def toggle_selection(self, file_url):
+		self._file_view.toggle_selection(file_url)
 	@run_in_main_thread
 	def focus(self):
 		self.setFocus()
@@ -99,11 +99,11 @@ class DirectoryPaneWidget(QWidget):
 	def set_location(self, url, callback=None):
 		self._model_sorted.set_location(url, callback)
 	@run_in_main_thread
-	def place_cursor_at(self, file_path):
-		self._file_view.place_cursor_at(file_path)
+	def place_cursor_at(self, file_url):
+		self._file_view.place_cursor_at(file_url)
 	@run_in_main_thread
-	def edit_name(self, file_path):
-		self._file_view.edit_name(file_path)
+	def edit_name(self, file_url):
+		self._file_view.edit_name(file_url)
 	@run_in_main_thread
 	def add_filter(self, filter_):
 		self._model_sorted.add_filter(filter_)
@@ -131,7 +131,7 @@ class DirectoryPaneWidget(QWidget):
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
 	def _on_location_changed(self, url):
-		self._path_view.setText(as_human_readable(url))
+		self._location_bar.setText(as_human_readable(url))
 	def _on_location_loaded(self, url):
 		if not self.get_file_under_cursor():
 			self.move_cursor_home()
