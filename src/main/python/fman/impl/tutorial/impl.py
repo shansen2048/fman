@@ -206,7 +206,7 @@ class TutorialImpl(Tutorial):
 			TutorialStep(
 				'Great Work!',
 				[
-					"This completes the tutorial. Remember:",
+					"You've completed the tutorial. Remember:",
 					"* *%s* lets you go to any _P_ath." % cmd_p,
 					"* *F10* opens %s" % native_fm,
 					"* *%s* opens the Command _P_alette." % cmd_shift_p,
@@ -334,7 +334,7 @@ class TutorialImpl(Tutorial):
 					(time_taken, self._time_taken),
 					"The next time you open *%s* outside of fman, ask "
 					"yourself: Isn't it tedious to click through directory "
-					"trees all the time? GoTo is the answer." % basename(url)
+					"trees all the time? fman is the answer." % basename(url)
 				]
 			else:
 				paras = [
