@@ -101,7 +101,8 @@ class TutorialStep:
 		parent.show_overlay(self._screen)
 	@run_in_main_thread
 	def close(self):
-		self._screen.close()
+		if self._screen:
+			self._screen.close()
 		self._screen = None
 	def before_command(self, name):
 		try:

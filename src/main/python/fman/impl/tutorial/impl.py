@@ -220,11 +220,13 @@ class TutorialImpl(Tutorial):
 		]
 	@run_in_main_thread
 	def _pick_folder(self):
+		self._curr_step.close()
 		dir_path = QFileDialog.getExistingDirectory(
 			self._main_window, 'Pick a folder', expanduser('~'),
 			QFileDialog.ShowDirsOnly
 		)
 		if not dir_path:
+			self._curr_step.show(self._main_window)
 			return
 		# On Windows, QFileDialog.getExistingDirectory(...) returns paths with
 		# forward slashes instead of backslashes. Fix this:
