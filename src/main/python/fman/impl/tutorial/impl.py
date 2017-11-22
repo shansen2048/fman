@@ -1,7 +1,9 @@
 from fman.impl.tutorial import Tutorial, TutorialStep
 from fman.impl.util import is_below_dir
+from fman.impl.util.path import add_backslash_to_drive_if_missing
 from fman.impl.util.qt import run_in_main_thread
 from fman.impl.util.system import is_mac, is_windows
+from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
 	split, normpath
 from PyQt5.QtWidgets import QFileDialog
@@ -12,7 +14,7 @@ import fman.url
 class TutorialImpl(Tutorial):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		self._dst_dir = self._src_dir = self._start_time = self._time_taken \
+		self._dst_url = self._src_url = self._start_time = self._time_taken \
 			= None
 		self._encouragements = [
 			e + '. ' for e in ('Great', 'Cool', 'Well done', 'Nice')
@@ -223,19 +225,17 @@ class TutorialImpl(Tutorial):
 		if not dir_path:
 			return
 		# On Windows, QFileDialog.getExistingDirectory(...) returns paths with
-		# forward slashes instead of backslashes. Because the path is used later
-		# to check whether the user jumped to the right directory, we need to
-		# fix this:
+		# forward slashes instead of backslashes. Fix this:
 		dir_path = normpath(dir_path)
-		self._dst_dir = dir_path
-		self._src_dir = self._get_src_dir(dir_path)
+		self._dst_url = as_url(dir_path)
+		self._src_url = self._get_src_url(dir_path)
 		self._curr_step_index += 1
 		self._track_current_step()
-		self._set_location(self._src_dir, callback=self._navigate)
+		self._set_location(self._src_url, callback=self._navigate)
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
-		steps = _get_navigation_steps(self._dst_dir, self._get_location())
+		steps = _get_navigation_steps(self._dst_url, self._get_location())
 		if not steps:
 			# We have arrived:
 			self._time_taken = time() - self._start_time
@@ -258,7 +258,7 @@ class TutorialImpl(Tutorial):
 			result.append(
 				"fman always shows the contents of two directories. We will "
 				"now navigate to your *%s* folder in the left pane." %
-				basename(self._dst_dir)
+				basename(self._dst_url)
 			)
 		instruction, path = navigation_step
 		encouragement = self._get_encouragement() if self._last_step else ''
@@ -266,7 +266,7 @@ class TutorialImpl(Tutorial):
 			result.append(
 				"First, we need to switch to your *%s* drive. Please press "
 				"*Alt+F1* to see an overview of your drives." %
-				splitdrive(self._dst_dir)[0]
+				splitdrive(as_human_readable(self._dst_url))[0]
 			)
 			self._last_step = 'show drives'
 		elif instruction == 'open':
@@ -293,36 +293,39 @@ class TutorialImpl(Tutorial):
 		self._encouragement_index += 1
 		self._encouragement_index %= len(self._encouragements)
 		return result
-	def _get_src_dir(self, dst_dir):
+	def _get_src_url(self, dst_path):
+		dst_url = as_url(dst_path)
 		current = self._get_location()
-		if len(_get_navigation_steps(dst_dir, current)) >= 3:
+		if len(_get_navigation_steps(dst_url, current)) >= 3:
 			return current
 		home = expanduser('~')
-		if is_below_dir(dst_dir, home):
-			if len(_get_navigation_steps(dst_dir, home)) >= 3:
-				return home
-		return splitdrive(dst_dir)[0] or '/'
+		home_url = as_url(home)
+		if is_below_dir(dst_path, home):
+			if len(_get_navigation_steps(dst_url, home_url)) >= 3:
+				return home_url
+		drive = splitdrive(dst_path)[0] or '/'
+		return as_url(add_backslash_to_drive_if_missing(drive))
 	def _format_next_step_paragraph(self, *values):
 		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
 		for i, value in enumerate(values):
 			step_paras[i] %= value
 	def _reset(self):
-		self._set_location(self._src_dir)
+		self._set_location(self._src_url)
 		self._next_step()
 	def _before_goto(self):
 		self._start_time = time()
-		if self._dst_dir == expanduser('~'):
+		if self._dst_url == as_url(expanduser('~')):
 			text = "To open your home directory with GoTo, type&nbsp;*~*. " \
 				   "Then, press *Enter*."
 		else:
-			goto_dir = basename(self._dst_dir)
+			goto_dir = basename(self._dst_url)
 			text = "Start typing *%s* into the dialog. fman will suggest " \
-					"your directory. Press *Enter* to open it." % goto_dir
+				   "your directory. Press *Enter* to open it." % goto_dir
 		self._format_next_step_paragraph((), text)
 		self._next_step()
 	def _after_goto(self):
 		url = self._get_location()
-		if url == self._dst_dir:
+		if url == self._dst_url:
 			time_taken = time() - self._start_time
 			if time_taken < self._time_taken:
 				paras = [
@@ -351,21 +354,27 @@ class TutorialImpl(Tutorial):
 	def _set_location(self, url, callback=None):
 		self._pane_widget.set_location(url, callback)
 
-def _get_navigation_steps(target_dir, source_dir):
+def _get_navigation_steps(dst_url, src_url):
 	result = []
-	target_dir = realpath(target_dir)
-	target_drive = splitdrive(target_dir)[0]
-	if not source_dir:
-		result.append(('open', target_drive))
-		source_dir = target_drive
-	source_dir = realpath(source_dir)
-	source_drive, source_path = splitdrive(source_dir)
-	if target_drive != source_drive:
+	dst_scheme, dst_path = splitscheme(dst_url)
+	assert dst_scheme == 'file://'
+	src_scheme, src_path = splitscheme(src_url)
+	dst_drive = splitdrive(dst_path)[0]
+	dst_drive_path = (dst_drive + '\\') if is_windows() else '/'
+	if src_scheme == 'drives://':
+		result.append(('open', dst_drive))
+		src_path = dst_drive_path
+	elif src_scheme != 'file://':
+		result.append(('go to', dst_drive_path))
+		src_path = dst_drive_path
+	src_path = realpath(src_path)
+	src_drive = splitdrive(src_path)[0]
+	if dst_drive != src_drive:
 		result.append(('show drives', ''))
-		result.append(('open', target_drive))
-		source_dir = realpath(target_drive)
+		result.append(('open', dst_drive))
+		src_path = realpath(dst_drive)
 	result_samedrive = []
-	rel = relpath(target_dir, source_dir)
+	rel = relpath(dst_path, src_path)
 	while rel and rel != '.':
 		rel, current = split(rel)
 		if current == '..':

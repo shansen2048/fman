@@ -9,7 +9,7 @@ def make_absolute(file_path, cwd):
 	file_path = add_backslash_to_drive_if_missing(file_path)
 	return realpath(file_path)
 
-def add_backslash_to_drive_if_missing(file_path):
+def add_backslash_to_drive_if_missing(file_path): # Copied from Core plugin
 	"""
 	Normalize "C:" -> "C:\". Required for some path functions on Windows.
 	"""
