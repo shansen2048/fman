@@ -105,9 +105,10 @@ class TutorialImpl(Tutorial):
 			TutorialStep(
 				'',
 				[
-					"fman is very minimalistic by design. Should you ever miss "
-					"a particular feature, you can easily fall back to %s. "
-					"Please press *F10* to do this now." % native_fm
+					"fman is still young and under active development. If you "
+					"ever miss a particular feature, you can fall back to "
+					"%s at any time. Please press *F10* to do this now."
+					% native_fm
 				],
 				{
 					'after': {
