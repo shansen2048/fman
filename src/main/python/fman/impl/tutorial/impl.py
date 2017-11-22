@@ -13,6 +13,19 @@ import fman.url
 
 class TutorialImpl(Tutorial):
 	def __init__(self, *args, **kwargs):
+		if is_mac():
+			self._cmd_p = 'Cmd+P'
+			self._native_fm = 'Finder'
+			self._delete_key = 'Cmd+Backspace'
+			self._cmd_shift_p = 'Cmd+Shift+P'
+		else:
+			self._cmd_p = 'Ctrl+P'
+			if is_windows():
+				self._native_fm = 'Explorer'
+			else:
+				self._native_fm = 'your native file manager'
+			self._delete_key = 'Delete'
+			self._cmd_shift_p = 'Ctrl+Shift+P'
 		super().__init__(*args, **kwargs)
 		self._dst_url = self._src_url = self._start_time = self._time_taken \
 			= None
@@ -22,18 +35,6 @@ class TutorialImpl(Tutorial):
 		self._encouragement_index = 0
 		self._last_step = ''
 	def _get_steps(self):
-		cmd_p = 'Cmd+P' if is_mac() else 'Ctrl+P'
-		if is_windows():
-			native_fm = 'Explorer'
-		elif is_mac():
-			native_fm = 'Finder'
-		else:
-			native_fm = 'your native file manager'
-		if is_mac():
-			delete_key = 'Cmd+Backspace'
-		else:
-			delete_key = 'Delete'
-		cmd_shift_p = 'Cmd+Shift+P' if is_mac() else 'Ctrl+Shift+P'
 		return [
 			TutorialStep(
 				'Welcome to fman!',
@@ -70,7 +71,7 @@ class TutorialImpl(Tutorial):
 				[
 					"We will now use a feature that makes fman unique among "
 					"file managers: It's called *GoTo*. Press *%s* to launch "
-					"it!" % cmd_p
+					"it!" % self._cmd_p
 				],
 				{
 					'before': {
@@ -108,7 +109,7 @@ class TutorialImpl(Tutorial):
 					"fman is still young and under active development. If you "
 					"ever miss a particular feature, you can fall back to "
 					"%s at any time. Please press *F10* to do this now."
-					% native_fm
+					% self._native_fm
 				],
 				{
 					'after': {
@@ -119,7 +120,7 @@ class TutorialImpl(Tutorial):
 			TutorialStep(
 				'',
 				[
-					"Well done! fman opened " + native_fm +
+					"Well done! fman opened " + self._native_fm +
 					" in your *%s* folder.",
 					"Because fman always displays two directories, it is "
 					"called a *dual-pane file manager*. Have you used one "
@@ -146,7 +147,7 @@ class TutorialImpl(Tutorial):
 					"Then, select the file you want to copy and press *F5*. "
 					"fman will ask you for confirmation. To delete the file "
 					"afterwards, press *%s*. Once you are done, click the "
-					"button below." % delete_key
+					"button below." % self._delete_key
 				],
 				buttons=[('Continue', self._skip_steps(1))]
 			),
@@ -166,7 +167,7 @@ class TutorialImpl(Tutorial):
 					"shortcuts. But how do you remember them?",
 					"fman's answer to this question is a searchable list of "
 					"features. It's called the *Command Palette*. Please press "
-					"*%s* to launch it." % cmd_shift_p
+					"*%s* to launch it." % self._cmd_shift_p
 				],
 				{
 					'before': {
@@ -196,7 +197,7 @@ class TutorialImpl(Tutorial):
 					"Perfect! The files were selected. Here's a little "
 					"challenge for you: _De_select the files!",
 					"Hint: The shortcut for the Command Palette is *%s*."
-					% cmd_shift_p
+					% self._cmd_shift_p
 				],
 				{
 					'after': {
@@ -208,9 +209,9 @@ class TutorialImpl(Tutorial):
 				'Great Work!',
 				[
 					"You've completed the tutorial. Remember:",
-					"* *%s* lets you go to any _P_ath." % cmd_p,
-					"* *F10* opens %s" % native_fm,
-					"* *%s* opens the Command _P_alette." % cmd_shift_p,
+					"* *%s* lets you go to any _P_ath." % self._cmd_p,
+					"* *F10* opens %s" % self._native_fm,
+					"* *%s* opens the Command _P_alette." % self._cmd_shift_p,
 					"The Command Palette lets you find all other features.",
 					"Have fun with fman! :-)"
 				],
@@ -285,11 +286,16 @@ class TutorialImpl(Tutorial):
 				"Then, press *Enter*."
 			)
 			result.append("* Double-click on it with the mouse.")
-		else:
-			assert instruction == 'go up'
+		elif instruction == 'go up':
 			text = encouragement + "We need to go up a%s directory. Please " \
 								   "press *Backspace* to do this."
 			text %= 'nother' if self._last_step == 'go up' else ''
+			result.append(text)
+		else:
+			assert instruction == 'go to'
+			text = "We need to go to *%s*. Please press *%s* to open " \
+				   "fman's GoTo dialog. There, type *%s* followed by *Enter*."\
+				   % (path, self._cmd_p, path)
 			result.append(text)
 		self._last_step = instruction
 		return result
