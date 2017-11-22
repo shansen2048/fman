@@ -270,7 +270,6 @@ class TutorialImpl(Tutorial):
 				"*Alt+F1* to see an overview of your drives." %
 				splitdrive(as_human_readable(self._dst_url))[0]
 			)
-			self._last_step = 'show drives'
 		elif instruction == 'open':
 			if splitscheme(self._get_location())[0] == 'drives://':
 				folder_type = 'drive'

@@ -322,8 +322,8 @@ class FileSystemModel(DragAndDropMixin):
 		if batch:
 			self._on_rows_loaded(batch, location)
 		self._location_loaded = True
-		callback()
 		self.location_loaded.emit(location)
+		callback()
 	def _load_row(self, url):
 		return PreloadedRow(
 			url, self._fs.is_dir(url), self._fs.icon(url),

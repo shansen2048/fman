@@ -43,9 +43,7 @@ class Tutorial:
 			return
 		self._curr_step.close()
 		self._command_callback.remove_listener(self._curr_step)
-		self._pane_widget.path_changed.disconnect(
-			self._curr_step.on_path_changed
-		)
+		self._disconnect_path_changed()
 		self._curr_step = None
 	def _next_step(self, delta=1):
 		self._curr_step_index += delta
@@ -60,8 +58,16 @@ class Tutorial:
 			self.close()
 		self._curr_step = self._steps[self._curr_step_index]
 		self._command_callback.add_listener(self._curr_step)
-		self._pane_widget.path_changed.connect(self._curr_step.on_path_changed)
+		self._connect_path_changed()
 		self._curr_step.show(self._main_window)
+	@run_in_main_thread # <- Unclear why, but method has no effect without this.
+	def _connect_path_changed(self):
+		self._pane_widget.path_changed.connect(self._curr_step.on_path_changed)
+	@run_in_main_thread # We connected in main thread, so also disconnect there.
+	def _disconnect_path_changed(self):
+		self._pane_widget.path_changed.disconnect(
+			self._curr_step.on_path_changed
+		)
 	def _after_quicksearch_shown(self, callback):
 		return AfterQuicksearchShown(self._main_window, callback)
 
