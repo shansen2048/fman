@@ -270,10 +270,14 @@ class TutorialImpl(Tutorial):
 			)
 			self._last_step = 'show drives'
 		elif instruction == 'open':
+			if splitscheme(self._get_location())[0] == 'drives://':
+				folder_type = 'drive'
+			else:
+				folder_type = 'folder'
 			result.append(
 				encouragement +
-				"Please%s open your *%s* folder, in one of the following "
-				"ways:" % (' now' if self._last_step else '', path)
+				"Please%s open your *%s* %s, in one of the following "
+				"ways:" % (' now' if self._last_step else '', path, folder_type)
 			)
 			result.append(
 				"* Type its name or use *Arrow Up/Down* to select it. "
