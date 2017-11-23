@@ -1343,10 +1343,8 @@ class Pack(DirectoryPaneCommand):
 			dest_name = basename(self.pane.get_path()) + '.zip'
 		dest_dir = _get_opposite_pane(self.pane).get_path()
 		dest_url = join(dest_dir, dest_name)
-		dest, ok = show_prompt(
-			'Pack %s to (.zip, .7z, ...):' % descr,
-			as_human_readable(dest_url)
-		)
+		dest, ok = \
+			show_prompt('Pack %s to .zip:' % descr, as_human_readable(dest_url))
 		if dest and ok:
 			dest = _from_human_readable(dest, dest_dir, self.pane.get_path())
 			scheme = _get_handler_for_archive(basename(dest))
