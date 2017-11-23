@@ -1,4 +1,4 @@
-from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT
+from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
 from fman.url import basename, join, dirname, splitscheme, relpath
 from os.path import pardir
 
@@ -27,11 +27,12 @@ class FileTreeOperation:
 	def _perform_on_file(self, src, dest):
 		raise NotImplementedError()
 	def __call__(self):
-		for src in self._files:
-			if not self._call_on_file(src):
+		for i, src in enumerate(self._files):
+			is_last = i == len(self._files) - 1
+			if not self._call_on_file(src, is_last):
 				break
 		self._ui.clear_status_message()
-	def _call_on_file(self, src):
+	def _call_on_file(self, src, is_last):
 		self._report_processing_of_file(src)
 		dest = self._get_dest_url(src)
 		if dest == src or dest.startswith(src + '/'):
@@ -49,7 +50,7 @@ class FileTreeOperation:
 								if not self.perform_on_file(file_url, dst):
 									return False
 							except (OSError, IOError):
-								return self._handle_exception(file_url)
+								return self._handle_exception(file_url, is_last)
 						self.postprocess_directory(src)
 				else:
 					self._perform_on_dir_dest_doesnt_exist(src, dest)
@@ -57,7 +58,7 @@ class FileTreeOperation:
 				if not self.perform_on_file(src, dest):
 					return False
 		except (OSError, IOError):
-			return self._handle_exception(src)
+			return self._handle_exception(src, is_last)
 		return True
 	def _walk(self, url):
 		dirs = []
@@ -75,12 +76,20 @@ class FileTreeOperation:
 		yield from nondirs
 		for dir_ in dirs:
 			yield from self._walk(join(url, dir_))
-	def _handle_exception(self, file_path):
-		choice = self._ui.show_alert(
-			'Could not %s %s. Do you want to continue?'
-			% (self._descr_verb, file_path), YES | YES_TO_ALL | ABORT, YES
-		)
-		return choice & YES or choice & YES_TO_ALL
+	def _handle_exception(self, file_url, is_last):
+		message = 'Could not %s %s.' % (self._descr_verb, file_url)
+		if is_last:
+			buttons = OK
+			default_button = OK
+		else:
+			buttons = YES | YES_TO_ALL | ABORT
+			default_button = YES
+			message += ' Do you want to continue?'
+		choice = self._ui.show_alert(message, buttons, default_button)
+		if is_last:
+			return choice & OK
+		else:
+			return choice & YES or choice & YES_TO_ALL
 	def _report_processing_of_file(self, file_):
 		verb = self._descr_verb.capitalize()
 		verbing = (verb[:-1] if verb.endswith('e') else verb) + 'ing'

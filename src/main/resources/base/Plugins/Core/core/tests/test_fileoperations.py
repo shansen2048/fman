@@ -203,6 +203,12 @@ class FileTreeOperationAT:
 		self._expect_files({'bar.txt'} if do_continue else set())
 	def test_error_abort(self):
 		self.test_error_continue(do_continue=False)
+	def test_error_only_one_file(self):
+		nonexistent_file = join(self.src, 'foo.txt')
+		message = \
+			'Could not %s %s.' % (self.operation_descr_verb, nonexistent_file)
+		self._expect_alert((message, OK, OK), answer=OK)
+		self._perform_on(nonexistent_file)
 	def test_relative_path_parent_dir(self):
 		src_file = join(self.src, 'test.txt')
 		self._touch(src_file, '1234')
@@ -307,8 +313,7 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 				 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES), answer=YES
 			)
 			self._expect_alert(
-				('Could not copy %s. Do you want to continue?' % src_file,
-				 YES | YES_TO_ALL | ABORT, YES), answer=YES
+				('Could not copy %s.' % src_file, OK, OK), answer=OK
 			)
 			self._perform_on(dir_)
 		finally:
