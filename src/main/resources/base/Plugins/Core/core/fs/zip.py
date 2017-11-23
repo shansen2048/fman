@@ -85,6 +85,13 @@ class ZipFileSystem(FileSystem):
 		elif src_scheme == 'file://' and dst_scheme == self.scheme:
 			zip_path, path_in_zip = self._split(dst_path)
 			self._add_to_zip(src_path, zip_path, path_in_zip)
+		elif src_scheme == dst_scheme:
+			# Guaranteed by fman's file system implementation:
+			assert src_scheme == self.scheme
+			with TemporaryDirectory() as tmp_dir:
+				tmp_dst = join(as_url(tmp_dir), 'tmp')
+				self.copy(src_url, tmp_dst)
+				self.copy(tmp_dst, dst_url)
 		else:
 			raise UnsupportedOperation()
 	def move(self, src_url, dst_url):

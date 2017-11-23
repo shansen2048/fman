@@ -215,10 +215,14 @@ class ZipFileSystemTest(TestCase):
 			self._url('ZipFileTest/Directory/destination.txt')
 		)
 		self.assertEqual(expected_contents, self._get_zip_contents())
-	def test_move_file_between_archives(self):
+	def test_move_file_between_archives(self, operation=None, get_contents=None):
+		if operation is None:
+			operation = self._fs.move
+		if get_contents is None:
+			get_contents = self._pop_from_dir_dict
 		src_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
 		expected_contents = self._get_zip_contents()
-		src_contents = self._pop_from_dir_dict(expected_contents, src_path)
+		src_contents = get_contents(expected_contents, src_path)
 		with TemporaryDirectory() as dst_dir:
 			dst_zip = os.path.join(dst_dir, 'dest.zip')
 			# Give the Zip file some contents:
@@ -228,14 +232,17 @@ class ZipFileSystemTest(TestCase):
 				f.write(dummy_contents)
 			with ZipFile(dst_zip, 'w') as zip_file:
 				zip_file.write(dummy_txt, 'dummy.txt')
-			self._fs.move(
-				self._url(src_path), join(as_url(dst_zip, 'zip://'), 'dest.txt')
-			)
+			dst_url = join(as_url(dst_zip, 'zip://'), 'dest.txt')
+			operation(self._url(src_path), dst_url)
 			self.assertEqual(expected_contents, self._get_zip_contents())
 			self.assertEqual(
 				{'dummy.txt': dummy_contents, 'dest.txt': src_contents},
 				self._get_zip_contents(dst_zip)
 			)
+	def test_copy_file_between_archives(self):
+		self.test_move_file_between_archives(
+			self._fs.copy, self._get_from_dir_dict
+		)
 	def test_get_size_bytes_file(self):
 		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
 		file_contents = self._get_zip_contents(path_in_zip=file_path)
