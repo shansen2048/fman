@@ -229,15 +229,19 @@ class OpenWithEditor(_CorePaneCommand):
 		'Windows': 'Applications (*.exe)',
 		'Linux': 'Applications (*)'
 	}
-	def __call__(self):
-		self._open_with_editor(self.pane.get_file_under_cursor())
-	def _open_with_editor(self, file_url):
-		if not file_url:
+	def __call__(self, url=None):
+		if url is None:
+			url = self.pane.get_file_under_cursor()
+		if not url:
 			show_alert('No file is selected!')
 			return
-		scheme, path = splitscheme(file_url)
+		scheme, path = splitscheme(url)
 		if scheme != 'file://':
-			show_alert('Currently, only local files can be edited.')
+			show_alert(
+				'Editing files from %s is not supported. If you are a plugin '
+				'developer, you can implement this with '
+				'DirectoryPaneListener#on_command(...).' % scheme
+			)
 			return
 		editor = self._get_editor()
 		if editor:
@@ -285,7 +289,7 @@ class CreateAndEditFile(OpenWithEditor):
 
 	aliases = ('New file', 'Create file', 'Create and edit file')
 
-	def __call__(self):
+	def __call__(self, url=None):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor and not is_dir(file_under_cursor):
 			default_name = basename(file_under_cursor)
@@ -298,7 +302,7 @@ class CreateAndEditFile(OpenWithEditor):
 			if not exists(file_to_edit):
 				touch(file_to_edit)
 			self.pane.place_cursor_at(file_to_edit)
-			self._open_with_editor(file_to_edit)
+			super().__call__(file_to_edit)
 
 class _TreeCommand(_CorePaneCommand):
 	def __call__(self, files=None, dest_dir=None):

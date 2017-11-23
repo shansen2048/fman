@@ -79,11 +79,16 @@ class FileSystem:
 		Should raise FileExistsError if `path` already exists. If `path` is in
 		a directory that does not yet exist, should raise a FileNotFoundError.
 		"""
-		raise UnsupportedOperation()
+		raise self._operation_not_supported()
 	def delete(self, path):
-		raise UnsupportedOperation()
+		raise self._operation_not_supported()
 	def move_to_trash(self, path):
-		raise UnsupportedOperation()
+		raise self._operation_not_supported()
+	def touch(self, path):
+		raise self._operation_not_supported()
+	def _operation_not_supported(self):
+		message = self.__class__.__name__ + ' does not implement this function.'
+		return UnsupportedOperation(message)
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:
