@@ -202,9 +202,9 @@ class OpenFile(DirectoryPaneCommand):
 		scheme, path = splitscheme(url)
 		if scheme != 'file://':
 			show_alert(
-				'Opening files from %s is not supported. Plugin developers can '
-				'use DirectoryPaneListener#on_command(...) to implement this.'
-				% scheme
+				'Opening files from %s is not supported. If you are a plugin '
+				'developer, you can implement this with '
+				'DirectoryPaneListener#on_command(...).' % scheme
 			)
 			return
 		if PLATFORM == 'Linux':
