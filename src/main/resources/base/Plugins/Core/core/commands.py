@@ -199,6 +199,14 @@ class OpenDirectory(DirectoryPaneCommand):
 
 class OpenFile(DirectoryPaneCommand):
 	def __call__(self, url):
+		scheme, path = splitscheme(url)
+		if scheme != 'file://':
+			show_alert(
+				'Opening files from %s is not supported. Plugin developers can '
+				'use DirectoryPaneListener#on_command(...) to implement this.'
+				% scheme
+			)
+			return
 		if PLATFORM == 'Linux':
 			scheme, path = splitscheme(url)
 			if scheme == 'file://':
