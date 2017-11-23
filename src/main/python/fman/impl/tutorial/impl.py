@@ -262,7 +262,7 @@ class TutorialImpl(Tutorial):
 			result.append(
 				"fman always shows the contents of two directories. We will "
 				"now navigate to your *%s* folder in the left pane." %
-				basename(self._dst_url)
+				fman.url.basename(self._dst_url)
 			)
 		instruction, path = navigation_step
 		encouragement = self._get_encouragement() if self._last_step else ''
@@ -316,7 +316,13 @@ class TutorialImpl(Tutorial):
 			if len(_get_navigation_steps(dst_url, home_url)) >= 3:
 				return home_url
 		drive = splitdrive(dst_path)[0] or '/'
-		return as_url(add_backslash_to_drive_if_missing(drive))
+		drive_url = as_url(add_backslash_to_drive_if_missing(drive))
+		if _get_navigation_steps(drive_url, drive_url):
+			return drive_url
+		if _get_navigation_steps(drive_url, home_url):
+			return home_url
+		home_drive = splitdrive(home)[0] or '/'
+		return as_url(add_backslash_to_drive_if_missing(home_drive))
 	def _format_next_step_paragraph(self, *values):
 		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
 		for i, value in enumerate(values):
@@ -330,7 +336,7 @@ class TutorialImpl(Tutorial):
 			text = "To open your home directory with GoTo, type&nbsp;*~*. " \
 				   "Then, press *Enter*."
 		else:
-			goto_dir = basename(self._dst_url)
+			goto_dir = fman.url.basename(self._dst_url)
 			text = "Start typing *%s* into the dialog. fman will suggest " \
 				   "your directory. Press *Enter* to open it." % goto_dir
 		self._format_next_step_paragraph((), text)
@@ -346,7 +352,7 @@ class TutorialImpl(Tutorial):
 					(time_taken, self._time_taken),
 					"The next time you open *%s* outside of fman, ask "
 					"yourself: Isn't it tedious to click through directory "
-					"trees all the time? fman is the answer." % basename(url)
+					"trees all the time? fman is the answer." % fman.url.basename(url)
 				]
 			else:
 				paras = [
