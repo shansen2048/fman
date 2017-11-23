@@ -195,9 +195,11 @@ class FileTreeOperationAT:
 		existent_file = join(self.src, 'bar.txt')
 		self._touch(existent_file)
 		self._expect_alert(
-			('Could not %s %s. Do you want to continue?' %
+			('Could not %s %s (no such file or directory). '
+			 'Do you want to continue?' %
 			 (self.operation_descr_verb, as_human_readable(nonexistent_file)),
-			 YES | YES_TO_ALL | ABORT, YES), answer=YES if do_continue else ABORT
+			 YES | YES_TO_ALL | ABORT, YES),
+			answer=YES if do_continue else ABORT
 		)
 		self._perform_on(nonexistent_file, existent_file)
 		self._expect_files({'bar.txt'} if do_continue else set())
@@ -206,7 +208,8 @@ class FileTreeOperationAT:
 	def test_error_only_one_file(self):
 		nonexistent_file = join(self.src, 'foo.txt')
 		file_path = as_human_readable(nonexistent_file)
-		message = 'Could not %s %s.' % (self.operation_descr_verb, file_path)
+		message = 'Could not %s %s (no such file or directory).' \
+				  % (self.operation_descr_verb, file_path)
 		self._expect_alert((message, OK, OK), answer=OK)
 		self._perform_on(nonexistent_file)
 	def test_relative_path_parent_dir(self):
@@ -313,7 +316,8 @@ class CopyFilesTest(FileTreeOperationAT, TestCase):
 				 YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES), answer=YES
 			)
 			self._expect_alert(
-				('Could not copy %s.' % as_human_readable(src_file), OK, OK),
+				('Could not copy %s (permission denied).'
+				 % as_human_readable(src_file), OK, OK),
 				answer=OK
 			)
 			self._perform_on(dir_)

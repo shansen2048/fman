@@ -50,16 +50,17 @@ class FileTreeOperation:
 							try:
 								if not self.perform_on_file(file_url, dst):
 									return False
-							except (OSError, IOError):
-								return self._handle_exception(file_url, is_last)
+							except (OSError, IOError) as e:
+								return \
+									self._handle_exception(file_url, is_last, e)
 						self.postprocess_directory(src)
 				else:
 					self._perform_on_dir_dest_doesnt_exist(src, dest)
 			else:
 				if not self.perform_on_file(src, dest):
 					return False
-		except (OSError, IOError):
-			return self._handle_exception(src, is_last)
+		except (OSError, IOError) as e:
+			return self._handle_exception(src, is_last, e)
 		return True
 	def _walk(self, url):
 		dirs = []
@@ -77,9 +78,13 @@ class FileTreeOperation:
 		yield from nondirs
 		for dir_ in dirs:
 			yield from self._walk(join(url, dir_))
-	def _handle_exception(self, file_url, is_last):
-		message = 'Could not %s %s.' % \
-				  (self._descr_verb, as_human_readable(file_url))
+	def _handle_exception(self, file_url, is_last, exc):
+		if exc.strerror:
+			cause = exc.strerror[0].lower() + exc.strerror[1:]
+		else:
+			cause = exc.__class__.__name__
+		message = 'Could not %s %s (%s).' % \
+				  (self._descr_verb, as_human_readable(file_url), cause)
 		if is_last:
 			buttons = OK
 			default_button = OK
