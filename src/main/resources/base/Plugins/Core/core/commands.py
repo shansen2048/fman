@@ -300,7 +300,14 @@ class CreateAndEditFile(OpenWithEditor):
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
 			if not exists(file_to_edit):
-				touch(file_to_edit)
+				try:
+					touch(file_to_edit)
+				except PermissionError:
+					show_alert(
+						"You do not have enough permissions to create %s."
+						% as_human_readable(file_to_edit)
+					)
+					return
 			self.pane.place_cursor_at(file_to_edit)
 			super().__call__(file_to_edit)
 
