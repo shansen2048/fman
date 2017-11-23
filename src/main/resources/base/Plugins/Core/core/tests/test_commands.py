@@ -1,4 +1,4 @@
-from core.commands import SuggestLocations, History, Move
+from core.commands import SuggestLocations, History, Move, _from_human_readable
 from core.tests import StubUI
 from core.util import filenotfounderror
 from fman import OK, YES, NO, PLATFORM
@@ -117,6 +117,15 @@ class ConfirmTreeOperationTest(TestCase):
 			self._a_txt: {'is_dir': False},
 			self._b_txt: {'is_dir': False},
 		})
+
+class FromHumanReadableTest(TestCase):
+	def test_no_src_dir(self):
+		path = __file__
+		dir_url = as_url(os.path.dirname(path))
+		self.assertEqual(
+			as_url(path),
+			_from_human_readable(path, dir_url, None)
+		)
 
 class SuggestLocationsTest(TestCase):
 

@@ -227,6 +227,12 @@ class FileTreeOperationAT:
 		self._perform_on(src_file, dest_dir='subdir')
 		self._expect_files({'test.txt'}, subdir)
 		self._assert_file_contents_equal(join(subdir, 'test.txt'), '1234')
+	def test_drag_and_drop(self):
+		src_file = join(self.src, 'test.txt')
+		self._touch(src_file, '1234')
+		self._perform_on(src_file, src_dir=None)
+		self._expect_files({'test.txt'})
+		self._assert_file_contents_equal(join(self.dest, 'test.txt'), '1234')
 	def setUp(self):
 		super().setUp()
 		self._fs = StubFS()
@@ -245,12 +251,12 @@ class FileTreeOperationAT:
 	def tearDown(self):
 		self._tmp_dir.cleanup()
 		super().tearDown()
-	def _perform_on(self, *files, dest_dir=None, dest_name=None):
+	def _perform_on(self, *files, dest_dir=None, dest_name=None, src_dir=''):
 		if dest_dir is None:
 			dest_dir = self.dest
-		self.operation(
-			self.ui, files, dest_dir, self.src, dest_name, self._fs
-		)()
+		if src_dir == '':
+			src_dir = self.src
+		self.operation(self.ui, files, dest_dir, src_dir, dest_name, self._fs)()
 		self.ui.verify_expected_dialogs_were_shown()
 	def _assert_file_contents_equal(self, url, expected_contents):
 		with self._open(url, 'r') as f:
@@ -384,3 +390,6 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 		)
 		self._assert_file_contents_equal(src_file, 'src contents')
 		self._assert_file_contents_equal(dest_file, 'dest contents')
+	def test_drag_and_drop(self):
+		super().test_drag_and_drop()
+		self.assertNotIn('test.txt', self._fs.iterdir(self.src))

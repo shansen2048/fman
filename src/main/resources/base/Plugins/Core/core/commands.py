@@ -317,7 +317,8 @@ class _TreeCommand(_CorePaneCommand):
 			files = self.get_chosen_files()
 			src_dir = self.pane.get_path()
 		else:
-			src_dir=None
+			# This for instance happens in Drag and Drop operations.
+			src_dir = None
 		if dest_dir is None:
 			dest_dir = _get_opposite_pane(self.pane).get_path()
 		proceed = self._confirm_tree_operation(files, dest_dir, src_dir)
@@ -378,10 +379,14 @@ def _from_human_readable(path_or_url, dest_dir, src_dir):
 	try:
 		splitscheme(path_or_url)
 	except ValueError as no_scheme:
-		# Treat dest as relative to src_dir:
-		src_scheme, src_path = splitscheme(src_dir)
-		dest_scheme = splitscheme(dest_dir)[0]
-		path_or_url = dest_scheme + PurePath(src_path, path_or_url).as_posix()
+		dest_scheme, dest_dir_path = splitscheme(dest_dir)
+		if src_dir:
+			# Treat dest as relative to src_dir:
+			src_scheme, src_path = splitscheme(src_dir)
+			dest_path = PurePath(src_path, path_or_url).as_posix()
+		else:
+			dest_path = PurePath(dest_dir_path, path_or_url).as_posix()
+		path_or_url = dest_scheme + dest_path
 	return path_or_url
 
 class Copy(_TreeCommand):
