@@ -1,5 +1,6 @@
 from fman.impl.util.path import parent
 from fman.impl.util.url import resolve
+from io import UnsupportedOperation
 from threading import Lock
 
 def exists(url):
@@ -78,7 +79,11 @@ class FileSystem:
 		Should raise FileExistsError if `path` already exists. If `path` is in
 		a directory that does not yet exist, should raise a FileNotFoundError.
 		"""
-		raise NotImplementedError()
+		raise UnsupportedOperation()
+	def delete(self, path):
+		raise UnsupportedOperation()
+	def move_to_trash(self, path):
+		self.delete(path)
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:

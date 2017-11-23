@@ -47,8 +47,8 @@ class LocalFileSystem(FileSystem):
 	def move(self, src_url, dst_url):
 		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
 		move(src_path, dst_path)
-	def move_to_trash(self, file_path):
-		move_to_trash(file_path)
+	def move_to_trash(self, path):
+		move_to_trash(path)
 	def delete(self, path):
 		if self.is_dir(path):
 			def handle_error(func, path, exc_info):
