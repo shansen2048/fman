@@ -83,7 +83,7 @@ class FileSystem:
 	def delete(self, path):
 		raise UnsupportedOperation()
 	def move_to_trash(self, path):
-		self.delete(path)
+		raise UnsupportedOperation()
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:

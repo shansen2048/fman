@@ -11,7 +11,7 @@ from fman.url import splitscheme, as_url, join, basename, split, \
 from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
 	samefile, copy
 from getpass import getuser
-from io import BytesIO
+from io import BytesIO, UnsupportedOperation
 from itertools import chain, islice
 from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
 	islink
@@ -113,7 +113,10 @@ class MoveToTrash(_CorePaneCommand):
 		)
 		if choice & YES:
 			for url in to_delete:
-				move_to_trash(url)
+				try:
+					move_to_trash(url)
+				except UnsupportedOperation:
+					delete(url)
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self):
