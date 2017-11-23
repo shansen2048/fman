@@ -208,22 +208,15 @@ class OpenFile(DirectoryPaneCommand):
 			)
 			return
 		if PLATFORM == 'Linux':
-			scheme, path = splitscheme(url)
-			if scheme == 'file://':
-				use_qt = False
-				try:
-					Popen(
-						[path], stdin=DEVNULL, stdout=DEVNULL,
-						stderr=DEVNULL
-					)
-				except (OSError, ValueError):
-					use_qt = True
-			else:
+			use_qt = False
+			try:
+				Popen([path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
+			except (OSError, ValueError):
 				use_qt = True
 		else:
 			use_qt = True
 		if use_qt:
-			QDesktopServices.openUrl(QUrl(url))
+			QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 	def is_visible(self):
 		return False
 
