@@ -256,16 +256,28 @@ class FileSystemModel(DragAndDropMixin):
 			return
 		self._fs.clear_cache(location)
 		rows = []
-		for file_name in self._fs.iterdir(location):
-			file_url = join(location, file_name)
-			self._fs.clear_cache(file_url)
+		file_names = iter(self._fs.iterdir(location))
+		while self._location == location: # Abort reload if location changed
 			try:
-				rows.append(self._load_row(file_url))
+				file_name = next(file_names)
+			except StopIteration:
+				break
 			except FileNotFoundError:
-				pass
-			# Abort reload if path changed:
-			if location != self._location:
-				return
+				# If the reason for the error was that `location` no longer
+				# exists, we could call _on_file_removed(location) here. But we
+				# don't know for certain that that's the case. Simply abort to
+				# prevent an infinite loop:
+				break
+			else:
+				file_url = join(location, file_name)
+				self._fs.clear_cache(file_url)
+				try:
+					rows.append(self._load_row(file_url))
+				except FileNotFoundError:
+					pass
+		else:
+			assert self._location != location
+			return
 		self._on_reloaded(location, rows)
 	@run_in_main_thread
 	def _on_reloaded(self, location, rows):
@@ -306,19 +318,31 @@ class FileSystemModel(DragAndDropMixin):
 			return
 		batch = []
 		last_update = time()
-		for file_name in self._fs.iterdir(location):
+		file_names = iter(self._fs.iterdir(location))
+		while self._location == location: # Abort if location changed
 			try:
-				row = self._load_row(join(location, file_name))
+				file_name = next(file_names)
+			except StopIteration:
+				break
 			except FileNotFoundError:
-				continue
-			if location != self._location:
-				# Location changed. No reason to keep loading rows.
-				return
-			batch.append(row)
-			if time() > last_update + update_interval_secs:
-				self._on_rows_loaded(batch, location)
-				batch = []
-				last_update = time()
+				# If the reason for the error was that `location` no longer
+				# exists, we could call _on_file_removed(location) here. But we
+				# don't know for certain that that's the case. Simply abort to
+				# prevent an infinite loop:
+				break
+			else:
+				try:
+					row = self._load_row(join(location, file_name))
+				except FileNotFoundError:
+					continue
+				batch.append(row)
+				if time() > last_update + update_interval_secs:
+					self._on_rows_loaded(batch, location)
+					batch = []
+					last_update = time()
+		else:
+			assert self._location != location
+			return
 		if batch:
 			self._on_rows_loaded(batch, location)
 		self._location_loaded = True
