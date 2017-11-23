@@ -129,6 +129,23 @@ class FileTreeOperationAT:
 		# Should still have copied c:
 		self._expect_files({'a', 'b', 'c', 'dir'})
 		return c
+	def test_move_dir_to_self(self):
+		dir_ = join(self.src, 'dir')
+		self._makedirs(dir_)
+		self._expect_alert(
+			('You cannot %s a file to itself.' % self.operation_descr_verb,),
+			answer=OK
+		)
+		self._perform_on(dir_, dest_dir=self.src)
+	def test_move_to_own_subdir(self):
+		dir_ = join(self.src, 'dir')
+		subdir = join(dir_, 'subdir')
+		self._makedirs(subdir)
+		self._expect_alert(
+			('You cannot %s a file to itself.' % self.operation_descr_verb,),
+			answer=OK
+		)
+		self._perform_on(dir_, dest_dir=subdir)
 	def test_external_file(self):
 		external_file = join(self.external_dir, 'test.txt')
 		self._touch(external_file)

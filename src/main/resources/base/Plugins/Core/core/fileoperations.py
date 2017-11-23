@@ -34,6 +34,9 @@ class FileTreeOperation:
 	def _call_on_file(self, src):
 		self._report_processing_of_file(src)
 		dest = self._get_dest_url(src)
+		if dest == src or dest.startswith(src + '/'):
+			self._show_self_warning()
+			return True
 		try:
 			if self._fs.is_dir(src):
 				if self._fs.exists(dest):
@@ -86,11 +89,7 @@ class FileTreeOperation:
 		self._report_processing_of_file(src)
 		if self._fs.exists(dest):
 			if self._fs.samefile(src, dest):
-				if not self._cannot_move_to_self_shown:
-					self._ui.show_alert(
-						"You cannot %s a file to itself." % self._descr_verb
-					)
-					self._cannot_move_to_self_shown = True
+				self._show_self_warning()
 				return True
 			if self._override_all is None:
 				choice = self._ui.show_alert(
@@ -110,6 +109,12 @@ class FileTreeOperation:
 		self._fs.makedirs(dirname(dest), exist_ok=True)
 		self._perform_on_file(src, dest)
 		return True
+	def _show_self_warning(self):
+		if not self._cannot_move_to_self_shown:
+			self._ui.show_alert(
+				"You cannot %s a file to itself." % self._descr_verb
+			)
+			self._cannot_move_to_self_shown = True
 	def postprocess_directory(self, src_dir_path):
 		pass
 	def _get_dest_url(self, src_file):
