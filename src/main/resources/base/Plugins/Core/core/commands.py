@@ -518,20 +518,10 @@ class Cut(_CorePaneCommand):
 			)
 			return
 		files = self.get_chosen_files()
-		if not files:
+		if files:
+			clipboard.cut_files(files)
+		else:
 			show_alert('No file is selected!')
-			return
-		local_filepaths = _get_local_filepaths(files)
-		if local_filepaths:
-			clipboard.cut_files(local_filepaths)
-
-def _get_local_filepaths(urls):
-	result = []
-	for url in urls:
-		scheme, path = splitscheme(url)
-		if scheme == 'file://':
-			result.append(path)
-	return result
 
 class Paste(_CorePaneCommand):
 	def __call__(self):
@@ -1348,6 +1338,14 @@ if PLATFORM == 'Mac':
 				stdout=DEVNULL, stderr=DEVNULL
 			)
 			process.communicate(script.encode('ascii'))
+
+def _get_local_filepaths(urls):
+	result = []
+	for url in urls:
+		scheme, path = splitscheme(url)
+		if scheme == 'file://':
+			result.append(path)
+	return result
 
 class Pack(DirectoryPaneCommand):
 	def __call__(self):
