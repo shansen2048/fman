@@ -307,19 +307,20 @@ class TutorialImpl(Tutorial):
 		return result
 	def _get_src_url(self, dst_path):
 		dst_url = as_url(dst_path)
+		count_steps_from = lambda url: len(_get_navigation_steps(dst_url, url))
 		current = self._get_location()
-		if len(_get_navigation_steps(dst_url, current)) >= 3:
+		if count_steps_from(current) >= 3:
 			return current
 		home = expanduser('~')
 		home_url = as_url(home)
 		if is_below_dir(dst_path, home):
-			if len(_get_navigation_steps(dst_url, home_url)) >= 3:
+			if count_steps_from(home_url) >= 3:
 				return home_url
 		drive = splitdrive(dst_path)[0] or '/'
 		drive_url = as_url(add_backslash_to_drive_if_missing(drive))
-		if _get_navigation_steps(drive_url, drive_url):
+		if count_steps_from(drive_url) > 0:
 			return drive_url
-		if _get_navigation_steps(drive_url, home_url):
+		if count_steps_from(home_url) > 0:
 			return home_url
 		home_drive = splitdrive(home)[0] or '/'
 		return as_url(add_backslash_to_drive_if_missing(home_drive))
