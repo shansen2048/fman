@@ -1,5 +1,6 @@
 from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
-from fman.url import basename, join, dirname, splitscheme, relpath
+from fman.url import basename, join, dirname, splitscheme, relpath, \
+	as_human_readable
 from os.path import pardir
 
 import fman.fs
@@ -77,7 +78,8 @@ class FileTreeOperation:
 		for dir_ in dirs:
 			yield from self._walk(join(url, dir_))
 	def _handle_exception(self, file_url, is_last):
-		message = 'Could not %s %s.' % (self._descr_verb, file_url)
+		message = 'Could not %s %s.' % \
+				  (self._descr_verb, as_human_readable(file_url))
 		if is_last:
 			buttons = OK
 			default_button = OK
