@@ -1371,7 +1371,16 @@ class Pack(DirectoryPaneCommand):
 				show_alert('Sorry, but this archive format is not supported.')
 				return
 			dest_rewritten = scheme + splitscheme(dest)[1]
-			mkdir(dest_rewritten)
+			try:
+				# Create empty archive:
+				mkdir(dest_rewritten)
+			except FileExistsError:
+				answer = show_alert(
+					'%s already exists. Do you want to add/update the selected '
+					'files?' % basename(dest_rewritten), YES | NO, YES
+				)
+				if not answer & YES:
+					return
 			for file_url in files:
 				file_name = basename(file_url)
 				with StatusMessage('Packing %s...' % file_name):
