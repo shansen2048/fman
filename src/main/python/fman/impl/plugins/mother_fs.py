@@ -192,7 +192,7 @@ class TriggerFileAdded:
 		self._url = url
 		self._file_existed = None
 	def __enter__(self):
-		self._file_existed = self._url in self._fs._cache
+		self._file_existed = self._fs.exists(self._url)
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		if not exc_val:
 			self._fs._add_to_parent(self._url)

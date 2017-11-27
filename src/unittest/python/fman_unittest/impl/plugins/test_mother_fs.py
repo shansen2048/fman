@@ -101,6 +101,17 @@ class MotherFileSystemTest(TestCase):
 		self.assertFalse(
 			mother_fs.is_dir('stub://a'), 'Should have cleared cache'
 		)
+	def test_mkdir_triggers_file_added(self):
+		mother_fs = self._create_mother_fs(StubFileSystem({}))
+		url = 'stub://test'
+		# MotherFileSystem should not put `url` in cache as a result of this:
+		mother_fs.is_dir(url)
+		files_added = []
+		def on_file_added(url_):
+			files_added.append(url_)
+		mother_fs.file_added.add_callback(on_file_added)
+		mother_fs.mkdir(url)
+		self.assertEqual([url], files_added)
 	def _create_mother_fs(self, fs):
 		result = MotherFileSystem(None)
 		result.add_child(fs.scheme, fs)
