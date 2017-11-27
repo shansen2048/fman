@@ -285,6 +285,8 @@ class FileSystemModel(DragAndDropMixin):
 		if location != self._location:
 			return
 		diff = ComputeDiff(self._rows, rows)()
+		if is_debug():
+			rows_before = list(self._rows)
 		for entry in diff:
 			if entry.type == 'change':
 				self._update_rows(entry.rows, entry.insert_start)
@@ -302,7 +304,13 @@ class FileSystemModel(DragAndDropMixin):
 			else:
 				raise NotImplementedError(entry.type)
 		if is_debug():
-			assert rows == self._rows, '%r != %r. %r' % (rows, self._rows, diff)
+			assert self._rows == rows, \
+				'Applying diff did not yield expected result.\n\n' \
+				'Old rows:\n%r\n\n' \
+				'New rows:\n%r\n\n' \
+				'Diff:\n%r\n\n' \
+				'Result of applying diff to old rows:\n%r' % \
+				(rows_before, rows, diff, self._rows)
 	def get_sort_value(self, row, column, is_ascending):
 		col = self._rows[row].columns[column]
 		return col.sort_value_asc if is_ascending else col.sort_value_desc
