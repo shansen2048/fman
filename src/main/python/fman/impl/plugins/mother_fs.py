@@ -85,11 +85,7 @@ class MotherFileSystem:
 			else:
 				# Maybe the destination FS can handle the operation:
 				dst_fs.move(src_url, dst_url)
-		try:
-			self._cache[dst_url] = self._cache.pop(src_url)
-		except KeyError:
-			pass
-		self._remove_from_parent(src_url)
+		self._remove(src_url)
 		self._add_to_parent(dst_url)
 		self.file_moved.trigger(src_url, dst_url)
 	def move_to_trash(self, url):
@@ -165,12 +161,10 @@ class MotherFileSystem:
 			raise filenotfounderror(url)
 		return child, path
 	def _remove(self, url):
-		try:
-			del self._cache[url]
-		except KeyError:
-			pass
-		self._remove_from_parent(url)
-	def _remove_from_parent(self, url):
+		self._cache = {
+			other_url: value for other_url, value in self._cache.items()
+			if other_url != url and not other_url.startswith(url + '/')
+		}
 		parent = dirname(url)
 		try:
 			parent_files = self._cache[parent]['iterdir']

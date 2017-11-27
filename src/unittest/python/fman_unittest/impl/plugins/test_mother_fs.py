@@ -25,6 +25,19 @@ class MotherFileSystemTest(TestCase):
 		self.assertEqual(['b'], list(mother_fs.iterdir('stub://a')))
 		mother_fs.delete('stub://a/b')
 		self.assertEqual([], list(mother_fs.iterdir('stub://a')))
+		self.assertFalse(mother_fs.exists('stub://a/b'))
+	def test_delete_removes_children(self):
+		fs = StubFileSystem({
+			'a': {
+				'is_dir': True, 'files': ['b']
+			},
+			'a/b': {}
+		})
+		mother_fs = self._create_mother_fs(fs)
+		# Put in cache:
+		mother_fs.is_dir('stub://a/b')
+		mother_fs.delete('stub://a')
+		self.assertFalse(mother_fs.exists('stub://a/b'))
 	def test_move_updates_pardir(self):
 		fs = StubFileSystem({
 			'a': { 'is_dir': True , 'files': ['b']},

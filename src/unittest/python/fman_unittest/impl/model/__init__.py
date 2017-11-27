@@ -33,4 +33,7 @@ class StubFileSystem(FileSystem):
 			raise UnsupportedOperation()
 		self._items[dst_path] = self._items.pop(src_path)
 	def delete(self, path):
-		del self._items[path]
+		self._items = {
+			other_path: value for other_path, value in self._items.items()
+			if other_path != path and not other_path.startswith(path)
+		}
