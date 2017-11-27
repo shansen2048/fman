@@ -10,26 +10,32 @@ class ComputeDiffTest(TestCase):
 		self._check_diff(rows, rows, [])
 	def test_add_into_empty(self):
 		rows = [self._a, self._b]
-		self._check_diff([], rows, [(0, 0, 0, rows)])
+		self._check_diff([], rows, [(-1, -1, 0, rows)])
 	def test_insert_before(self):
 		base = [self._c]
 		extra = [self._a, self._b]
-		self._check_diff(base, extra + base, [(0, 0, 0, extra)])
+		self._check_diff(base, extra + base, [(-1, -1, 0, extra)])
 	def test_insert_after(self):
 		base = [self._a]
 		extra = [self._b, self._c]
-		self._check_diff(base, base + extra, [(0, 0, 1, extra)])
+		self._check_diff(base, base + extra, [(-1, -1, 1, extra)])
 	def test_insert_between(self):
 		self._check_diff(
 			[self._a, self._c],
 			[self._a, self._b, self._c],
-			[(0, 0, 1, [self._b])]
+			[(-1, -1, 1, [self._b])]
+		)
+	def test_update_single_row(self):
+		self._check_diff(
+			[self._a],
+			[self._b],
+			[(0, 1, 0, [self._b])]
 		)
 	def test_reorder_rows(self):
 		self._check_diff(
 			[self._a, self._b],
 			[self._b, self._a],
-			[(1, 2, 0, [self._b])]
+			[(1, 2, 0, [])]
 		)
 	def test_powerset_combinations(self, max_num_rows=5):
 		for old in _powerset(range(max_num_rows)):
@@ -37,7 +43,7 @@ class ComputeDiffTest(TestCase):
 				pathify = lambda s: [(str(i), i) for i in s]
 				self._check_diff(pathify(old), pathify(new))
 	def test_clear(self):
-		self._check_diff([self._a, self._b], [], [(0, 2, 0, [])])
+		self._check_diff([self._a, self._b], [], [(0, 2, -1, [])])
 	def setUp(self):
 		super().setUp()
 		self._a = ('a', 1)
@@ -55,10 +61,19 @@ class ComputeDiffTest(TestCase):
 			self.assertEqual(expected_diff, diff)
 	def _apply_diff(self, diff, old):
 		result = list(old)
+		def insert(rows, start):
+			for i, row in enumerate(rows):
+				result.insert(start + i, row)
+		def move(start, end, insert_pt):
+			rows = result[start:end]
+			remove(start, end)
+			insert(rows, insert_pt)
+		def update(rows, index):
+			result[index : index+len(rows)] = rows
+		def remove(start, end):
+			del result[start:end]
 		for entry in diff:
-			result = result[:entry.cut_start] + result[entry.cut_end:]
-			result = result[:entry.insert_start] + entry.rows + \
-					 result[entry.insert_start:]
+			entry.apply(insert, move, update, remove)
 		return result
 
 def _powerset(iterable):

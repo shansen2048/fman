@@ -288,21 +288,10 @@ class FileSystemModel(DragAndDropMixin):
 		if is_debug():
 			rows_before = list(self._rows)
 		for entry in diff:
-			if entry.type == 'change':
-				self._update_rows(entry.rows, entry.insert_start)
-			elif entry.type == 'remove':
-				self._remove_rows(entry.cut_start, entry.cut_end)
-			elif entry.type == 'insert':
-				self._insert_rows(entry.rows, entry.insert_start)
-			elif entry.type == 'move':
-				self._move_rows(
-					entry.cut_start, entry.insert_start, len(entry.rows)
-				)
-			elif entry.type == 'other':
-				self._remove_rows(entry.cut_start, entry.cut_end)
-				self._insert_rows(entry.rows, entry.insert_start)
-			else:
-				raise NotImplementedError(entry.type)
+			entry.apply(
+				self._insert_rows, self._move_rows, self._update_rows,
+				self._remove_rows
+			)
 		if is_debug():
 			assert self._rows == rows, \
 				'Applying diff did not yield expected result.\n\n' \
@@ -487,24 +476,23 @@ class FileSystemModel(DragAndDropMixin):
 		self.beginRemoveRows(QModelIndex(), start, end - 1)
 		del self._rows[start:end]
 		self.endRemoveRows()
-	def _move_rows(self, cut_start, insert_start, num_rows):
-		destination_row = \
-			self._get_move_destination(cut_start, insert_start, num_rows)
+	def _move_rows(self, cut_start, cut_end, insert_start):
+		dst_row = self._get_move_destination(cut_start, cut_end, insert_start)
 		assert self.beginMoveRows(
-			QModelIndex(), cut_start, cut_start + num_rows - 1,
-			QModelIndex(), destination_row
+			QModelIndex(), cut_start, cut_end - 1, QModelIndex(), dst_row
 		)
-		rows = self._rows[cut_start:cut_start + num_rows]
-		self._rows = self._rows[:cut_start] + self._rows[cut_start + num_rows:]
+		rows = self._rows[cut_start:cut_end]
+		self._rows = self._rows[:cut_start] + self._rows[cut_end:]
 		self._rows = \
 			self._rows[:insert_start] + rows + self._rows[insert_start:]
 		self.endMoveRows()
 	@classmethod
-	def _get_move_destination(cls, cut_start, insert_start, num_rows):
+	def _get_move_destination(cls, cut_start, cut_end, insert_start):
 		if cut_start == insert_start:
 			raise ValueError(
-				'Not a move operation (%d, %d)' % (cut_start, num_rows)
+				'Not a move operation (%d, %d)' % (cut_start, cut_end)
 			)
+		num_rows = cut_end - cut_start
 		return insert_start + (num_rows if cut_start < insert_start else 0)
 	def _execute_async(self, fn, *args, **kwargs):
 		future = self._executor.submit(fn, *args, **kwargs)

@@ -21,15 +21,15 @@ class ComputeDiff:
 		assert self._old_rows == self._new_rows
 		return self._join_adjacent()
 	def _remove_row(self, i):
-		self._result.append(DiffEntry(i, i + 1, 0, []))
+		self._result.append(DiffEntry(i, i + 1, -1, []))
 		self._old_rows.pop(i)
 	def _insert_row(self, i, row):
-		self._result.append(DiffEntry(0, 0, i, [row]))
+		self._result.append(DiffEntry(-1, -1, i, [row]))
 		self._old_rows.insert(i, row)
 	def _move_row(self, src, dest):
 		row = self._old_rows.pop(src)
 		self._old_rows.insert(dest, row)
-		self._result.append(DiffEntry(src, src + 1, dest, [row]))
+		self._result.append(DiffEntry(src, src + 1, dest, []))
 	def _join_adjacent(self):
 		if not self._result:
 			return []
@@ -44,34 +44,43 @@ class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 	_FIELDS = ('cut_start', 'cut_end', 'insert_start', 'rows')
 
 	def extend_by(self, other):
-		if not self.rows and other.cut_start == self.cut_end:
-			self.cut_end = other.cut_end
-			self.rows = other.rows
-			return True
+		if not self.rows:
+			if other.cut_start == self.cut_end:
+				self.cut_end = other.cut_end
+				self.rows = other.rows
+				return True
+			elif len(other.rows) == self.cut_end - self.cut_start and \
+					other.insert_start == self.cut_start:
+				# Cut followed by insert
+				self.insert_start = other.insert_start
+				self.rows = other.rows
+				return True
 		if not other.rows and other.cut_end == self.cut_start:
 			self.cut_start = other.cut_start
 			return True
-		if not other.does_cut and other.insert_start == self.insert_end:
+		if not self._does_cut and not other._does_cut and \
+				other.insert_start == self._insert_end:
 			self.rows += other.rows
 			return True
 		return False
-	@property
-	def type(self):
-		if not self.does_cut:
-			assert self.rows
-			return 'insert'
-		if self.rows:
-			if self.cut_end - self.cut_start == len(self.rows):
-				if self.cut_start == self.insert_start:
-					return 'change'
+	def apply(self, insert, move, update, remove):
+		if self._does_cut:
+			if self.rows:
+				assert len(self.rows) == self.cut_end - self.cut_start
+				assert self.cut_start == self.insert_start
+				update(self.rows, self.cut_start)
+			else:
+				if self.insert_start != -1:
+					move(self.cut_start, self.cut_end, self.insert_start)
 				else:
-					return 'move'
-			return 'other'
+					remove(self.cut_start, self.cut_end)
 		else:
-			return 'remove'
+			assert self.rows
+			assert self.insert_start != -1
+			insert(self.rows, self.insert_start)
 	@property
-	def does_cut(self):
+	def _does_cut(self):
 		return self.cut_end > self.cut_start
 	@property
-	def insert_end(self):
+	def _insert_end(self):
 		return self.insert_start + len(self.rows)
