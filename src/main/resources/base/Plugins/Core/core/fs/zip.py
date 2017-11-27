@@ -231,10 +231,18 @@ class ZipFileSystem(FileSystem):
 			self._close_7zip(process, terminate=True)
 	def _raise_filenotfounderror_if_not_exists(self, zip_path):
 		os.stat(zip_path)
-	def _start_7zip(self, args, **kwargs):
+	def _start_7zip(self, args, cwd=None):
+		extra_kwargs = {}
+		if PLATFORM == 'Windows':
+			from subprocess import STARTF_USESHOWWINDOW, SW_HIDE, STARTUPINFO
+			si = STARTUPINFO()
+			si.dwFlags = STARTF_USESHOWWINDOW
+			si.wShowWindow = SW_HIDE
+			extra_kwargs['startupinfo'] = si
 		return Popen(
 			[self._7ZIP] + args,
-			stdout=PIPE, stderr=DEVNULL, universal_newlines=True, **kwargs
+			stdout=PIPE, stderr=DEVNULL, cwd=cwd, universal_newlines=True,
+			**extra_kwargs
 		)
 	def _close_7zip(self, process, terminate=False):
 		try:
@@ -247,8 +255,8 @@ class ZipFileSystem(FileSystem):
 					raise CalledProcessError(exit_code, process.args)
 		finally:
 			process.stdout.close()
-	def _run_7zip(self, args, **kwargs):
-		process = self._start_7zip(args, **kwargs)
+	def _run_7zip(self, args, cwd=None):
+		process = self._start_7zip(args, cwd=cwd)
 		self._close_7zip(process)
 	def _read_file_info(self, stdout):
 		path = size = mtime = None
