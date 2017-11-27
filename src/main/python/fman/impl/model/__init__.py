@@ -302,7 +302,7 @@ class FileSystemModel(DragAndDropMixin):
 			else:
 				raise NotImplementedError(entry.type)
 		if is_debug():
-			assert rows == self._rows, '%r != %r' % (rows, self._rows)
+			assert rows == self._rows, '%r != %r. %r' % (rows, self._rows, diff)
 	def get_sort_value(self, row, column, is_ascending):
 		col = self._rows[row].columns[column]
 		return col.sort_value_asc if is_ascending else col.sort_value_desc
