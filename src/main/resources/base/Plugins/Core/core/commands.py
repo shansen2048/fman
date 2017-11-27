@@ -596,7 +596,8 @@ class _OpenInPaneCommand(_CorePaneCommand):
 		this_pane = panes.index(self.pane)
 		source_pane = panes[self.get_source_pane(this_pane, num_panes)]
 		if source_pane is self.pane:
-			to_open = source_pane.get_file_under_cursor()
+			to_open = source_pane.get_file_under_cursor() or \
+					  source_pane.get_path()
 		else:
 			# This for instance happens when the right pane is active and the
 			# user asks to "open in the right pane". The source pane in this
