@@ -1,3 +1,4 @@
+from fman.impl.util import filenotfounderror
 from fman.url import splitscheme
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
@@ -48,7 +49,7 @@ class GnomeFileIconProvider(QFileIconProvider):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		try:
-			self.Gtk, self.Gio = self._init_pgi()
+			self.Gtk, self.Gio, self.GLib = self._init_pgi()
 		except (ImportError, ValueError) as e:
 			raise GnomeNotAvailable() from e
 		else:
@@ -64,29 +65,30 @@ class GnomeFileIconProvider(QFileIconProvider):
 		import gi
 		gi.require_version('Gtk', '3.0')
 		try:
-			from gi.repository import Gtk, Gio
+			from gi.repository import Gtk, Gio, GLib
 		except AttributeError as e:
 			if e.args == (
 				"'GLib' module has not attribute 'uri_list_extract_uris'",
 			):
 				# This happens when we run fman from source.
 				sys.modules['pgi.overrides.GObject'] = None
-				from gi.repository import Gtk, Gio
+				from gi.repository import Gtk, Gio, GLib
 		# This is required when we use pgi in a PyInstaller-frozen app. See:
 		# https://github.com/lazka/pgi/issues/38
 		Gtk.init(sys.argv)
-		return Gtk, Gio
+		return Gtk, Gio, GLib
 	def icon(self, arg):
 		result = None
 		if isinstance(arg, QFileInfo):
 			result = self._icon(arg.absoluteFilePath())
 		return result or super().icon(arg)
 	def _icon(self, file_path):
-		gio_file = self.Gio.file_new_for_path(file_path)
 		try:
-			file_info = gio_file.query_info(
-				'standard::icon', self._NOFOLLOW_SYMLINKS, None
+			file_info = self._query_gio_info(
+				file_path, 'standard::icon', self._NOFOLLOW_SYMLINKS, None
 			)
+		except FileNotFoundError:
+			raise
 		except Exception:
 			_LOG.exception("Could not obtain icon for %s", file_path)
 		else:
@@ -96,6 +98,15 @@ class GnomeFileIconProvider(QFileIconProvider):
 					icon_names = icon.get_names()
 					if icon_names:
 						return self._load_gtk_icon(icon_names[0])
+	def _query_gio_info(self, file_path, *args):
+		gio_file = self.Gio.file_new_for_path(file_path)
+		try:
+			return gio_file.query_info(*args)
+		except self.GLib.GError as e:
+			if e.message and e.message.endswith('No such file or directory'):
+				raise filenotfounderror(file_path)
+			else:
+				raise
 	@lru_cache()
 	def _load_gtk_icon(self, name, size=32):
 		theme = self.Gtk.IconTheme.get_default()
