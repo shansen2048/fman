@@ -461,15 +461,15 @@ class CreateDirectory(_CorePaneCommand):
 	def __call__(self):
 		name, ok = show_prompt("New folder (directory)")
 		if ok and name:
-			dir_path = join(self.pane.get_path(), name)
+			dir_url = join(self.pane.get_path(), name)
 			try:
-				mkdir(dir_path)
+				mkdir(dir_url)
 			except FileExistsError:
-				if is_dir(dir_path):
+				if is_dir(dir_url):
 					show_alert("This directory already exists!")
 				else:
 					show_alert("A file with this name already exists!")
-			self.pane.place_cursor_at(dir_path)
+			self.pane.place_cursor_at(dir_url)
 
 class OpenTerminal(_CorePaneCommand):
 
