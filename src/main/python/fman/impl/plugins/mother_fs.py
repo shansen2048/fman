@@ -55,7 +55,7 @@ class MotherFileSystem:
 	def query(self, url, fs_method_name):
 		return self._query_cache(url, fs_method_name)
 	def is_dir(self, url):
-		return self._query_cache(url, 'is_dir')
+		return self._query_cache(url, 'is_dir', cache_true_only=True)
 	def icon(self, url):
 		return self._query_cache(url, 'icon', self._icon_provider.get_icon)
 	def touch(self, url):
@@ -135,21 +135,25 @@ class MotherFileSystem:
 			del self._cache[url]
 		except KeyError:
 			pass
-	def _query_cache(self, url, prop, get_default=None):
+	def _query_cache(self, url, prop, get_default=None, cache_true_only=False):
 		if get_default is None:
 			get_default = partial(self._query, prop=prop)
 		# We exploit the fact that setdefault is an atomic operation to avoid
 		# having to lock the entire url in addition to (url, item).
 		cache = self._cache.setdefault(url, {})
 		with self._lock(url, prop):
-			if prop not in cache:
+			try:
+				return cache[prop]
+			except KeyError:
 				try:
-					cache[prop] = get_default(url)
-				except:
+					value = get_default(url)
+				except Exception as e:
 					if not cache:
 						del self._cache[url]
-					raise
-			return cache[prop]
+					raise e from None
+				if not cache_true_only or value:
+					cache[prop] = value
+				return value
 	def _query(self, url, prop):
 		child, path = self._split(url)
 		return getattr(child, prop)(path)

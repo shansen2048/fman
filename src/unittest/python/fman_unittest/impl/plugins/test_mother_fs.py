@@ -88,8 +88,11 @@ class MotherFileSystemTest(TestCase):
 	def test_is_dir_exists_false(self):
 		fs = StubFileSystem({})
 		mother_fs = self._create_mother_fs(fs)
-		self.assertFalse(mother_fs.is_dir('stub://non-existent'))
-		self.assertFalse(mother_fs.exists('stub://non-existent'))
+		url = 'stub://non-existent'
+		self.assertFalse(mother_fs.is_dir(url))
+		self.assertFalse(mother_fs.exists(url))
+		mother_fs.mkdir(url)
+		self.assertTrue(mother_fs.is_dir(url))
 	def test_remove_child(self):
 		fs = StubFileSystem({
 			'a': {'is_dir': True}
