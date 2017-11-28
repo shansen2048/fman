@@ -63,7 +63,10 @@ class Modified(Column):
 		if mtime is None:
 			return ''
 		mtime_qt = QDateTime.fromMSecsSinceEpoch(int(mtime.timestamp() * 1000))
-		return mtime_qt.toString(QLocale().dateTimeFormat(QLocale.ShortFormat))
+		time_format = QLocale().dateTimeFormat(QLocale.ShortFormat)
+		# Always show two-digit years, not four digits:
+		time_format = time_format.replace('yyyy', 'yy')
+		return mtime_qt.toString(time_format)
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.is_dir(url)
 		return is_dir ^ is_ascending, self._get_mtime(url)
