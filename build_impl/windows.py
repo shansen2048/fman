@@ -23,7 +23,9 @@ def exe():
 		# Required by send2trash, which is used in the Core plugin:
 		'--hidden-import', 'ctypes.wintypes',
 		# Required by the Core plugin:
-		'--hidden-import', 'adodbapi'
+		'--hidden-import', 'adodbapi',
+		# Required by the Core plugin:
+		'--hidden-import', 'test.support'
 	])
 	# PyInstaller somehow corrupts python35.dll - see:
 	# https://github.com/pyinstaller/pyinstaller/issues/2526
