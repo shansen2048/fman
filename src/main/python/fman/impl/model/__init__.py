@@ -7,7 +7,7 @@ from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
 	run_in_main_thread, is_in_main_thread, ToolTipRole
 from fman.impl.util.url import get_existing_pardir, is_pardir
-from fman.url import dirname, join
+from fman.url import dirname, join, as_url
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
 	QMimeData, QAbstractTableModel, QModelIndex, Qt
 from time import time
@@ -50,7 +50,7 @@ class DragAndDropMixin(QAbstractTableModel):
 			return True
 		if not data.hasUrls():
 			return False
-		urls = [url.toString() for url in data.urls()]
+		urls = [as_url(url.toLocalFile()) for url in data.urls()]
 		dest = self._get_drop_dest(parent)
 		if action in (MoveAction, CopyAction):
 			self.files_dropped.emit(urls, dest, action == CopyAction)
