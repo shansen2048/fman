@@ -7,7 +7,7 @@ from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
 	run_in_main_thread, is_in_main_thread, ToolTipRole
 from fman.impl.util.url import get_existing_pardir, is_pardir
-from fman.url import dirname, join, as_url
+from fman.url import dirname, join, as_url, splitscheme, as_human_readable
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
 	QMimeData, QAbstractTableModel, QModelIndex, Qt
 from time import time
@@ -36,7 +36,18 @@ class DragAndDropMixin(QAbstractTableModel):
 		return ['text/uri-list']
 	def mimeData(self, indexes):
 		result = QMimeData()
-		result.setUrls([QUrl(self.url(index)) for index in indexes])
+		urls = []
+		for index in indexes:
+			url = self.url(index)
+			scheme, path = splitscheme(url)
+			if scheme == 'file://':
+				# Qt's file:// URLs are slightly different from ours. In
+				# particular, on Windows, we use file://C:/foo where Qt uses
+				# file:///C:/foo (three slashes).
+				urls.append(QUrl.fromLocalFile(as_human_readable(url)))
+			else:
+				urls.append(QUrl(url))
+		result.setUrls(urls)
 		# The Qt documentation (http://doc.qt.io/qt-5/dnd.html) states that the
 		# QMimeData should not be deleted, because the target of the drag and
 		# drop operation takes ownership of it. We must therefore tell SIP not
