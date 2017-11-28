@@ -791,11 +791,14 @@ class GoToListener(DirectoryPaneListener):
 			# not a user-initiated path change, we don't want to count it:
 			self.is_first_path_change = False
 			return
-		scheme, path = splitscheme(self.pane.get_path())
+		url = self.pane.get_path()
+		scheme, path = splitscheme(url)
 		if scheme != 'file://':
 			return
 		visited_paths = \
 			load_json('Visited Paths.json', default={}, save_on_quit=True)
+		# Ensure we're using backslashes \ on Windows:
+		path = as_human_readable(url)
 		visited_paths[path] = visited_paths.get(path, 0) + 1
 
 def unexpand_user(path, expanduser_=expanduser):
