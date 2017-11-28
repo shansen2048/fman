@@ -44,13 +44,22 @@ class ComputeDiffTest(TestCase):
 				self._check_diff(pathify(old), pathify(new))
 	def test_clear(self):
 		self._check_diff([self._a, self._b], [], [(0, 2, -1, [])])
+	def test_move_and_change(self):
+		self._check_diff(
+			[('a', 1), ('b', 2)],
+			[('b', 0), ('a', 1)],
+			[(1, 2, 0, []), (0, 1, 0, [('b', 0)])],
+			key_fn=lambda tpl: tpl[0]
+		)
 	def setUp(self):
 		super().setUp()
 		self._a = ('a', 1)
 		self._b = ('b', 2)
 		self._c = ('c', 3)
-	def _check_diff(self, old, new, expected_diff_tpls=None):
-		diff = ComputeDiff(old, new)()
+	def _check_diff(
+		self, old, new, expected_diff_tpls=None, key_fn=lambda x: x
+	):
+		diff = ComputeDiff(old, new, key_fn=key_fn)()
 		old_patched = self._apply_diff(diff, old)
 		self.assertEqual(
 			new, old_patched,

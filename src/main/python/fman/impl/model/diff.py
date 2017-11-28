@@ -4,32 +4,47 @@ class ComputeDiff:
 	"""
 	N.B.: This implementation requires that there be no duplicate rows!
 	"""
-	def __init__(self, old_rows, new_rows):
+	def __init__(self, old_rows, new_rows, key_fn=lambda x: x):
 		self._old_rows = list(old_rows)
 		self._new_rows = new_rows
+		self._key_fn = key_fn
+		self._old_keys = list(map(key_fn, old_rows))
+		self._new_keys = list(map(key_fn, new_rows))
 		self._result = []
 	def __call__(self):
-		for i in range(len(self._old_rows)-1, -1, -1):
-			if self._old_rows[i] not in self._new_rows:
+		for i in range(len(self._old_keys) - 1, -1, -1):
+			if self._old_keys[i] not in self._new_keys:
 				self._remove_row(i)
-		for i, new_row in enumerate(self._new_rows):
-			if new_row not in self._old_rows:
-				self._insert_row(i, new_row)
-		for i, new_row in enumerate(self._new_rows):
-			if new_row != self._old_rows[i]:
-				self._move_row(self._old_rows.index(new_row, i), i)
-		assert self._old_rows == self._new_rows
+		for i, new_key in enumerate(self._new_keys):
+			if new_key not in self._old_keys:
+				self._insert_row(i, self._new_rows[i])
+		for i, new_key in enumerate(self._new_keys):
+			if new_key != self._old_keys[i]:
+				old_row_index = self._old_keys.index(new_key, i)
+				if old_row_index != i:
+					self._move_row(old_row_index, i)
+				old_row = self._old_rows[i]
+				new_row = self._new_rows[i]
+				if old_row != new_row:
+					self._update_row(i, new_row)
+		assert self._old_keys == self._new_keys
 		return self._join_adjacent()
 	def _remove_row(self, i):
 		self._result.append(DiffEntry(i, i + 1, -1, []))
 		self._old_rows.pop(i)
+		self._old_keys.pop(i)
 	def _insert_row(self, i, row):
 		self._result.append(DiffEntry(-1, -1, i, [row]))
 		self._old_rows.insert(i, row)
+		self._old_keys.insert(i, self._key_fn(row))
 	def _move_row(self, src, dest):
-		row = self._old_rows.pop(src)
-		self._old_rows.insert(dest, row)
 		self._result.append(DiffEntry(src, src + 1, dest, []))
+		self._old_rows.insert(dest, self._old_rows.pop(src))
+		self._old_keys.insert(dest, self._old_keys.pop(src))
+	def _update_row(self, i, row):
+		self._result.append(DiffEntry(i, i + 1, i, [row]))
+		self._old_rows[i] = row
+		assert self._key_fn(row) == self._old_keys[i]
 	def _join_adjacent(self):
 		if not self._result:
 			return []

@@ -68,34 +68,13 @@ class PreloadedRow(
 	compare equal even if they are equal. This is a problem particularly on
 	Windows. For when we reload a directory, QFileIconProvider returns "new"
 	icon values so our implementation must assume that all files in the
-	directory have changed, when most likely they haven't. Besides a performance
-	penalty, this also leads to bugs: Consider the example where the user
-	creates a file. The file system implementation appends it to the list
-	of existing files in the current directory:
-	 b.txt
-	 a.txt <- new
-	The cursor is placed at the new file, which is the row with index "1". This
-	happens synchronously, as the file is created. But then, we are notified of
-	the external file system change and reload the directory. This gives us:
-	 a.txt
-	 b.txt
-	If these new rows compared equal to the previous ones, then the file system
-	model could figure out that the rows were merely moved - and move the cursor
-	with them. But they usually don't - because the icon "changes" with every
-	reload - so that the current model implementation merely sees that all rows
-	have changed and updates them without moving the cursor. This leaves the
-	cursor at b.txt (=row with index "1"), which is wrong.
+	directory have changed (when most likely they haven't).
 
 	An earlier implementation used QIcon#cacheKey() in an attempt to solve the
 	above problem. In theory, #cacheKey() is precisely meant to help with this.
 	But in reality, especially on Windows, the problem remains (loading the icon
 	of a file with QFileIconProvider twice gives two QIcon instances that look
 	the same but have different cacheKey's).
-
-	A better implementation will be to rewrite the file system model to take the
-	.url property into account to determine when rows have moved. (At the time
-	of this writing, the implementation uses == equality as the sole criterion.)
-	It is not unlikely that this will have to be implemented in the future.
 	"""
 
 	def _get_attrs_for_eq(self):
@@ -284,7 +263,7 @@ class FileSystemModel(DragAndDropMixin):
 		# Abort reload if path changed:
 		if location != self._location:
 			return
-		diff = ComputeDiff(self._rows, rows)()
+		diff = ComputeDiff(self._rows, rows, key_fn=lambda row: row.url)()
 		if is_debug():
 			rows_before = list(self._rows)
 		for entry in diff:
