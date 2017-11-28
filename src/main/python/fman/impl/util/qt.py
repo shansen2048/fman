@@ -92,16 +92,29 @@ class FilterEventOnce(QObject):
 		return False
 
 def as_qurl(url):
+	# fman URLs are very non-standard, in particular because they are free to
+	# have only two slashes after the scheme (file:// vs file:///). This
+	# function (and its inverse, from_qurl below) convert fman to Qt URLs (and
+	# vice versa).
 	scheme, path = splitscheme(url)
 	if scheme == 'file://':
-		# Qt's file:// URLs are slightly different from ours. In
-		# particular, on Windows, we use file://C:/foo where Qt uses
-		# file:///C:/foo (three slashes).
-		return QUrl.fromLocalFile(as_human_readable(url))
-	return QUrl(url)
+		path = as_human_readable(url)
+	result = QUrl.fromLocalFile(path)
+	result.setScheme(scheme[:-len('://')])
+	return result
 
 def from_qurl(qurl):
-	return as_url(qurl.toLocalFile())
+	"""
+	Inverse of as_qurl(...) above.
+	"""
+	if qurl.isLocalFile():
+		return as_url(qurl.toLocalFile())
+	result = qurl.toString()
+	scheme, path = result.split(':', 1)
+	if not path.startswith('//'):
+		assert path.startswith('/')
+		path = '/' + path
+	return ':'.join([scheme, path])
 
 AscendingOrder = Qt.AscendingOrder
 WA_MacShowFocusRect = Qt.WA_MacShowFocusRect
