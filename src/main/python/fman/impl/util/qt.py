@@ -1,3 +1,4 @@
+from fman.impl.util.system import is_windows
 from fman.url import splitscheme, as_human_readable, as_url
 from functools import wraps
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QEvent, QUrl
@@ -113,7 +114,7 @@ def from_qurl(qurl):
 	scheme, path = result.split(':', 1)
 	if not path.startswith('//'):
 		assert path.startswith('/')
-		path = '/' + path
+		path = ('/' if is_windows() else '//') + path
 	return ':'.join([scheme, path])
 
 AscendingOrder = Qt.AscendingOrder
