@@ -1,8 +1,8 @@
 from fman.impl.util.system import is_linux, is_windows, is_gnome_based, \
 	is_kde_based
-from fman.impl.util.qt import run_in_main_thread
+from fman.impl.util.qt import run_in_main_thread, as_qurl, from_qurl
 from os.path import basename
-from PyQt5.QtCore import QMimeData, QUrl
+from PyQt5.QtCore import QMimeData
 from PyQt5.QtWidgets import QApplication
 
 import struct
@@ -49,7 +49,7 @@ def cut_files(file_urls):
 
 @run_in_main_thread
 def get_files():
-	return [url.toString() for url in _clipboard().mimeData().urls()]
+	return [from_qurl(qurl) for qurl in _clipboard().mimeData().urls()]
 
 @run_in_main_thread
 def files_were_cut():
@@ -66,7 +66,7 @@ def _clipboard():
 	return QApplication.instance().clipboard()
 
 def _place_on_clipboard(file_urls, extra_data):
-	urls = [QUrl(file_) for file_ in file_urls]
+	urls = [as_qurl(url) for url in file_urls]
 	new_clipboard_data = QMimeData()
 	new_clipboard_data.setUrls(urls)
 	new_clipboard_data.setText('\n'.join(map(basename, file_urls)))

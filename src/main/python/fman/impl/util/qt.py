@@ -1,5 +1,6 @@
+from fman.url import splitscheme, as_human_readable, as_url
 from functools import wraps
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QEvent
+from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QEvent, QUrl
 from PyQt5.QtWidgets import QApplication
 
 def connect_once(signal, slot):
@@ -64,6 +65,43 @@ class Receiver(QObject):
 		self.callback = callback
 	def slot(self):
 		self.callback()
+
+def disable_window_animations_mac(window):
+	# We need to access `.winId()` below. This method has an unwanted (and not
+	# very well-documented) side effect: Calling it before the window is shown
+	# makes Qt turn the window into a "native window". This incurs performance
+	# penalties and leads to subtle changes in behaviour. We therefore wait for
+	# the Show event:
+	def eventFilter(target, event):
+		from objc import objc_object
+		view = objc_object(c_void_p=int(target.winId()))
+		NSWindowAnimationBehaviorNone = 2
+		view.window().setAnimationBehavior_(NSWindowAnimationBehaviorNone)
+	FilterEventOnce(window, QEvent.Show, eventFilter)
+
+class FilterEventOnce(QObject):
+	def __init__(self, parent, event_type, callback):
+		super().__init__(parent)
+		self._event_type = event_type
+		self._callback = callback
+		parent.installEventFilter(self)
+	def eventFilter(self, target, event):
+		if event.type() == self._event_type:
+			self.parent().removeEventFilter(self)
+			self._callback(target, event)
+		return False
+
+def as_qurl(url):
+	scheme, path = splitscheme(url)
+	if scheme == 'file://':
+		# Qt's file:// URLs are slightly different from ours. In
+		# particular, on Windows, we use file://C:/foo where Qt uses
+		# file:///C:/foo (three slashes).
+		return QUrl.fromLocalFile(as_human_readable(url))
+	return QUrl(url)
+
+def from_qurl(qurl):
+	return as_url(qurl.toLocalFile())
 
 AscendingOrder = Qt.AscendingOrder
 WA_MacShowFocusRect = Qt.WA_MacShowFocusRect
@@ -131,28 +169,3 @@ CopyAction = Qt.CopyAction
 MoveAction = Qt.MoveAction
 IgnoreAction = Qt.IgnoreAction
 NoButton = Qt.NoButton
-
-def disable_window_animations_mac(window):
-	# We need to access `.winId()` below. This method has an unwanted (and not
-	# very well-documented) side effect: Calling it before the window is shown
-	# makes Qt turn the window into a "native window". This incurs performance
-	# penalties and leads to subtle changes in behaviour. We therefore wait for
-	# the Show event:
-	def eventFilter(target, event):
-		from objc import objc_object
-		view = objc_object(c_void_p=int(target.winId()))
-		NSWindowAnimationBehaviorNone = 2
-		view.window().setAnimationBehavior_(NSWindowAnimationBehaviorNone)
-	FilterEventOnce(window, QEvent.Show, eventFilter)
-
-class FilterEventOnce(QObject):
-	def __init__(self, parent, event_type, callback):
-		super().__init__(parent)
-		self._event_type = event_type
-		self._callback = callback
-		parent.installEventFilter(self)
-	def eventFilter(self, target, event):
-		if event.type() == self._event_type:
-			self.parent().removeEventFilter(self)
-			self._callback(target, event)
-		return False

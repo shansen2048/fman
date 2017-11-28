@@ -5,10 +5,10 @@ from fman.impl.util import is_debug
 from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
-	run_in_main_thread, is_in_main_thread, ToolTipRole
+	run_in_main_thread, is_in_main_thread, ToolTipRole, as_qurl, from_qurl
 from fman.impl.util.url import get_existing_pardir, is_pardir
-from fman.url import dirname, join, as_url, splitscheme, as_human_readable
-from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, QUrl, \
+from fman.url import dirname, join
+from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, \
 	QMimeData, QAbstractTableModel, QModelIndex, Qt
 from time import time
 
@@ -36,18 +36,7 @@ class DragAndDropMixin(QAbstractTableModel):
 		return ['text/uri-list']
 	def mimeData(self, indexes):
 		result = QMimeData()
-		urls = []
-		for index in indexes:
-			url = self.url(index)
-			scheme, path = splitscheme(url)
-			if scheme == 'file://':
-				# Qt's file:// URLs are slightly different from ours. In
-				# particular, on Windows, we use file://C:/foo where Qt uses
-				# file:///C:/foo (three slashes).
-				urls.append(QUrl.fromLocalFile(as_human_readable(url)))
-			else:
-				urls.append(QUrl(url))
-		result.setUrls(urls)
+		result.setUrls([as_qurl(self.url(index)) for index in indexes])
 		# The Qt documentation (http://doc.qt.io/qt-5/dnd.html) states that the
 		# QMimeData should not be deleted, because the target of the drag and
 		# drop operation takes ownership of it. We must therefore tell SIP not
@@ -61,7 +50,7 @@ class DragAndDropMixin(QAbstractTableModel):
 			return True
 		if not data.hasUrls():
 			return False
-		urls = [as_url(url.toLocalFile()) for url in data.urls()]
+		urls = [from_qurl(qurl) for qurl in data.urls()]
 		dest = self._get_drop_dest(parent)
 		if action in (MoveAction, CopyAction):
 			self.files_dropped.emit(urls, dest, action == CopyAction)
