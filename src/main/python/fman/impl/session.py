@@ -65,7 +65,7 @@ class SessionManager:
 		if previous_version and parse_version(previous_version) < (0, 7, 0):
 			def on_main_window_shown():
 				main_window.show_alert(
-					'Hi! Sorry to bother. fman was updated to version %s. This '
+					'Sorry to bother. fman was updated to version %s. This '
 					'adds support for Zip archives (yay!). But it also breaks '
 					'some plugins. If you use plugins, you may have to '
 					'update or remove them. For more information, please see '
