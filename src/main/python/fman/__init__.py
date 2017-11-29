@@ -214,8 +214,11 @@ def get_application_command_aliases(command_name):
 def load_plugin(plugin_dir):
 	return _get_plugin_support().load_plugin(plugin_dir)
 
-def unload_plugin(plugin_dir):
-	_get_plugin_support().unload_plugin(plugin_dir)
+def unload_plugin(plugin_path):
+	"""
+	Raises ValueError if the plugin was not loaded.
+	"""
+	_get_plugin_support().unload_plugin(plugin_path)
 
 def _get_plugin_support():
 	return _get_app_ctxt().plugin_support

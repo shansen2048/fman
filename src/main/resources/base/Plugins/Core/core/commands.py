@@ -1227,7 +1227,10 @@ class RemovePlugin(ApplicationCommand):
 			if result:
 				plugin_dir = result[1]
 				if plugin_dir:
-					unload_plugin(plugin_dir)
+					try:
+						unload_plugin(plugin_dir)
+					except ValueError as plugin_was_not_loaded:
+						pass
 					rmtree(plugin_dir)
 					show_alert(
 						'Plugin %r was successfully removed.'
@@ -1250,7 +1253,7 @@ class ReloadPlugins(ApplicationCommand):
 		for plugin in reversed(plugins):
 			try:
 				unload_plugin(plugin)
-			except KeyError as plugin_had_not_been_loaded:
+			except ValueError as plugin_had_not_been_loaded:
 				pass
 		for plugin in plugins:
 			load_plugin(plugin)

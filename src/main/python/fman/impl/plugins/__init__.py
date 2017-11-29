@@ -33,8 +33,13 @@ class PluginSupport:
 			for pane in self._panes:
 				plugin.on_pane_added(pane)
 		return success
-	def unload_plugin(self, plugin_dir):
-		self._external_plugins.pop(plugin_dir).unload()
+	def unload_plugin(self, plugin_path):
+		try:
+			plugin = self._external_plugins.pop(plugin_path)
+		except KeyError:
+			message = 'Plugin %r is not loaded.' % plugin_path
+			raise ValueError(message) from None
+		plugin.unload()
 	def load_json(self, name, default=None, save_on_quit=False):
 		return self._config.load_json(name, default, save_on_quit)
 	def save_json(self, name, value=None):
