@@ -427,30 +427,21 @@ class RenameListener(DirectoryPaneListener):
 			)
 			return
 		new_url = join(dirname(file_url), new_name)
-		do_rename = True
-		do_replace = False
 		if exists(new_url):
 			# Don't show dialog when "Foo" was simply renamed to "foo":
 			if not samefile(new_url, file_url):
-				response = show_alert(
-					new_name + ' already exists. Do you want to overwrite it?',
-					buttons=YES|NO, default_button=NO
-				)
-				do_rename = response & YES
-				do_replace = True
-		if do_rename:
-			if do_replace:
-				delete(new_url)
-			try:
-				move(file_url, new_url)
-			except OSError as e:
-				if isinstance(e, PermissionError):
-					message = 'Access was denied trying to rename %s to %s.'
-				else:
-					message = 'Could not rename %s to %s.'
-				show_alert(message % (old_name, new_name))
+				show_alert(new_name + ' already exists!')
+				return
+		try:
+			move(file_url, new_url)
+		except OSError as e:
+			if isinstance(e, PermissionError):
+				message = 'Access was denied trying to rename %s to %s.'
 			else:
-				self.pane.place_cursor_at(new_url)
+				message = 'Could not rename %s to %s.'
+			show_alert(message % (old_name, new_name))
+		else:
+			self.pane.place_cursor_at(new_url)
 
 class CreateDirectory(_CorePaneCommand):
 
