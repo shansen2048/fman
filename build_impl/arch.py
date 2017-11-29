@@ -12,7 +12,7 @@ from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError
 import hashlib
 import subprocess
 
-_ARCH_DEPENDENCIES = ('qt5-base',)
+_ARCH_DEPENDENCIES = ('qt5-base', 'p7zip')
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 _PKG_FILE = path('target/fman.pkg.tar.xz')
 

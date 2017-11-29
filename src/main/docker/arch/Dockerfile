@@ -7,7 +7,7 @@ RUN gpgconf --kill gpg-agent
 
 ADD .bashrc /root/.bashrc
 
-RUN pacman -S --noconfirm python-pyqt5
+RUN pacman -S --noconfirm python-pyqt5 p7zip
 
 RUN pacman -S --noconfirm ruby && \
     source ~/.bashrc && \

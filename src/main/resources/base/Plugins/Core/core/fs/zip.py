@@ -1,4 +1,5 @@
 from collections import namedtuple
+from core.os_ import is_arch
 from core.util import filenotfounderror
 from datetime import datetime
 from fman import PLATFORM
@@ -13,13 +14,18 @@ from tempfile import TemporaryDirectory
 import fman.fs
 import os
 
-_BIN_DIR = join(dirname(dirname(dirname(__file__))), 'bin', PLATFORM.lower())
+if is_arch():
+	bin_dir = '/usr/bin'
+else:
+	bin_dir = join(dirname(dirname(dirname(__file__))), 'bin', PLATFORM.lower())
+
+_7ZIP_BINARY = join(bin_dir, '7za' + ('.exe' if PLATFORM == 'Windows' else ''))
+
+del bin_dir
 
 class ZipFileSystem(FileSystem):
 
 	scheme = 'zip://'
-
-	_7ZIP = join(_BIN_DIR, '7za' + ('.exe' if PLATFORM == 'Windows' else ''))
 
 	_7ZIP_WARNING = 1
 
@@ -240,7 +246,7 @@ class ZipFileSystem(FileSystem):
 			si.wShowWindow = SW_HIDE
 			extra_kwargs['startupinfo'] = si
 		return Popen(
-			[self._7ZIP] + args,
+			[_7ZIP_BINARY] + args,
 			stdout=PIPE, stderr=DEVNULL, cwd=cwd, universal_newlines=True,
 			**extra_kwargs
 		)

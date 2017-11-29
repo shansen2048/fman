@@ -52,6 +52,13 @@ def is_kde_based():
 	gdmsession = os.environ.get('GDMSESSION', '').lower()
 	return gdmsession.startswith('kde')
 
+def is_arch():
+	try:
+		with open('/etc/issue', 'r') as f:
+			return f.read().startswith('Arch Linux ')
+	except FileNotFoundError:
+		return False
+
 def open_native_file_manager(dir_path):
 	gnome_default = {'args': ['nautilus', '{curr_dir}']}
 	kde_default = {'args': ['dolphin', '{curr_dir}']}
