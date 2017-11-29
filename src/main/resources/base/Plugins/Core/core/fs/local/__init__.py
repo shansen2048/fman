@@ -12,6 +12,11 @@ from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import copytree, move, copyfile, copystat
 
+if PLATFORM == 'Windows':
+	from core.fs.local.rmtree_windows import rmtree
+else:
+	from shutil import rmtree
+
 class LocalFileSystem(FileSystem):
 
 	scheme = 'file://'
@@ -55,43 +60,10 @@ class LocalFileSystem(FileSystem):
 		else:
 			remove(path)
 	def _delete_directory(self, path):
-		if PLATFORM == 'Windows':
-			"""
-			We use test.support.rmtree instead of shutil.rmtree on Windows
-			because it is more robust. In particular, the latter fails when we
-			have a QFileSystemWatcher watching a subdirectory of the directory
-			we are trying to delete:
-
-				from os import mkdir
-				mkdir('tmp')
-				mkdir(r'tmp\sub')
-				from PyQt5.QtCore import QFileSystemWatcher
-				watcher = QFileSystemWatcher()
-				assert watcher.addPath(r'tmp\sub')
-				from shutil import rmtree
-				# Fails with OSError "The directory is not empty: 'tmp'":
-				rmtree('tmp')
-
-			test.support.rmtree is able to handle the above case. Its drawback
-			is that prints errors to stdout instead of raising exceptions. A
-			future implementation may copy and adapt Python's implementation of
-			test.support.rmtree to have the same robustness but better error
-			handling.
-			"""
-			from test.support import rmtree
-			rmtree(path)
-		else:
-			"""
-			As explained above, test.support.rmtree swallows exceptions. We use
-			it on Windows for its robustness. But on other platforms,
-			shutil.rmtree works well and doesn't have the drawback of swallowing
-			exceptions:
-			"""
-			from shutil import rmtree
-			def handle_error(func, path, exc_info):
-				if not isinstance(exc_info[1], FileNotFoundError):
-					raise
-			rmtree(path, onerror=handle_error)
+		def handle_error(func, path, exc_info):
+			if not isinstance(exc_info[1], FileNotFoundError):
+				raise
+		rmtree(path, onerror=handle_error)
 	def resolve(self, path):
 		if not path:
 			raise filenotfounderror(path)
