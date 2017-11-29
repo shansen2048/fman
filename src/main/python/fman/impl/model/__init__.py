@@ -189,13 +189,6 @@ class FileSystemModel(DragAndDropMixin):
 		if not self._index_is_valid(index):
 			raise ValueError("Invalid index")
 		return self._rows[index.row()].url
-	def index(self, *args):
-		if len(args) == 2:
-			rownum, column = args
-			parent = QModelIndex()
-		else:
-			rownum, column, parent = args
-		return super().index(rownum, column, parent)
 	def find(self, url):
 		if url == self._location:
 			return QModelIndex()
