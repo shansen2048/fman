@@ -157,7 +157,7 @@ class DirectoryPaneListener:
 		pass
 	def on_files_dropped(self, file_urls, dest_dir, is_copy_not_move):
 		pass
-	def on_command(self, command, args):
+	def on_command(self, command_name, args):
 		pass
 
 def load_json(name, default=None, save_on_quit=False):
@@ -211,8 +211,8 @@ def run_application_command(name, args=None):
 def get_application_command_aliases(command_name):
 	return _get_plugin_support().get_application_command_aliases(command_name)
 
-def load_plugin(plugin_dir):
-	return _get_plugin_support().load_plugin(plugin_dir)
+def load_plugin(plugin_path):
+	return _get_plugin_support().load_plugin(plugin_path)
 
 def unload_plugin(plugin_path):
 	"""
