@@ -262,7 +262,10 @@ class MainWindow(QMainWindow):
 		return self._panes
 	def showEvent(self, *args):
 		super().showEvent(*args)
-		QTimer(self).singleShot(0, self.shown.emit)
+		# singleShot after 50 ms (not 0) ensures that the window is already
+		# fully visible. Any alerts we show in response to .shown are then
+		# placed correctly over the center of the window.
+		QTimer(self).singleShot(50, self.shown.emit)
 	def closeEvent(self, _):
 		self.closed.emit()
 	@run_in_main_thread
