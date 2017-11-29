@@ -23,10 +23,10 @@ class ComputeDiff:
 				old_row_index = self._old_keys.index(new_key, i)
 				if old_row_index != i:
 					self._move_row(old_row_index, i)
-				old_row = self._old_rows[i]
-				new_row = self._new_rows[i]
-				if old_row != new_row:
-					self._update_row(i, new_row)
+			old_row = self._old_rows[i]
+			new_row = self._new_rows[i]
+			if old_row != new_row:
+				self._update_row(i, new_row)
 		assert self._old_keys == self._new_keys
 		return self._join_adjacent()
 	def _remove_row(self, i):
