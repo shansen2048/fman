@@ -12,5 +12,6 @@
 	{ "keys": ["Ctrl+Shift+P"], "command": "command_palette" },
 	{ "keys": ["Alt+Left"], "command": "go_back" },
 	{ "keys": ["Alt+Right"], "command": "go_forward" },
-	{ "keys": ["Alt+F5"], "command": "pack" }
+	{ "keys": ["Alt+F5"], "command": "pack" },
+	{ "keys": ["Ctrl+R"], "command": "reload"}
 ]

@@ -218,11 +218,13 @@ class FileSystemModel(DragAndDropMixin):
 			self.file_renamed.emit(self.url(index), value)
 			return True
 		return super().setData(index, value, role)
-	def reload(self, location):
+	def reload(self, location=None):
 		assert not is_in_main_thread()
 		if not self._location_loaded:
 			# Don't allow reload when initial load is still in progress.
 			return
+		if location is None:
+			location = self._location
 		# Abort reload if path changed:
 		if location != self._location:
 			return
@@ -520,6 +522,8 @@ class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
 		self.filters = []
 	def set_location(self, url, callback=None):
 		self.sourceModel().set_location(url, callback)
+	def reload(self):
+		self.sourceModel().reload()
 	def lessThan(self, left, right):
 		source = self.sourceModel()
 		column = self.sortColumn()

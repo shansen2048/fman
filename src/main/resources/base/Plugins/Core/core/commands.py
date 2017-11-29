@@ -1406,3 +1406,10 @@ class ArchiveOpenListener(DirectoryPaneListener):
 					new_args = dict(args)
 					new_args['url'] = new_scheme + path
 					return 'open_directory', new_args
+
+class Reload(DirectoryPaneCommand):
+
+	aliases = ('Reload', 'Refresh')
+
+	def __call__(self):
+		self.pane.reload()
