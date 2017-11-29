@@ -1,5 +1,5 @@
 from core.util import strformat_dict_values
-from fman import load_json, show_alert, show_status_message, PLATFORM, save_json
+from fman import load_json, show_alert, show_status_message, PLATFORM
 from subprocess import Popen, check_output
 
 import os
