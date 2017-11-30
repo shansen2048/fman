@@ -159,9 +159,7 @@ class ApplicationContext:
 			self.app.set_main_window(self._main_window)
 		return self._main_window
 	def _get_main_window_title(self):
-		if self.is_licensed:
-			return 'fman'
-		return 'fman – NOT REGISTERED'
+		return 'fman' if self.is_licensed else 'fman – NOT REGISTERED'
 	@cached_property
 	def help_menu_actions(self):
 		if system.is_mac():
