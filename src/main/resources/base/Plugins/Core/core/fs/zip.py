@@ -204,7 +204,12 @@ class ZipFileSystem(FileSystem):
 			dest = Path(tmp_dir, *path_in_zip.split('/'))
 			dest.parent.mkdir(parents=True, exist_ok=True)
 			src = Path(src_path)
-			dest.symlink_to(src, src.is_dir())
+			try:
+				dest.symlink_to(src, src.is_dir())
+			except OSError:
+				# This for instance happens on non-NTFS drives on Windows.
+				# We need to incur the cost of physically copying the file:
+				self._fs.copy(as_url(src), as_url(dest))
 			args = ['a', zip_path, path_in_zip]
 			if PLATFORM != 'Windows':
 				args.insert(1, '-l')
