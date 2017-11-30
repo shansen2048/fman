@@ -645,7 +645,7 @@ def _get_volumes_url():
 			contents = os.listdir('/media')
 			user_name = _get_user()
 			if contents == [user_name]:
-				return as_url(join('/media', user_name))
+				return as_url(os.path.join('/media', user_name))
 			else:
 				return 'file:///media'
 		else:
@@ -703,7 +703,7 @@ class GoTo(_CorePaneCommand):
 		elif PLATFORM == 'Mac':
 			result.append('/Volumes')
 		elif PLATFORM == 'Linux':
-			media_user = join('/media', _get_user())
+			media_user = os.path.join('/media', _get_user())
 			if os.path.exists(media_user):
 				result.append(media_user)
 			elif os.path.exists('/media'):
@@ -742,7 +742,7 @@ class GoTo(_CorePaneCommand):
 			for file_name in parent_contents:
 				if file_name.startswith('.'):
 					continue
-				file_path = join(parent, file_name)
+				file_path = os.path.join(parent, file_name)
 				try:
 					if not os.path.isdir(file_path) or islink(file_path):
 						continue
