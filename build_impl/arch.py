@@ -39,17 +39,21 @@ def pkg():
 	# Avoid pacman warning "directory permissions differ" when installing:
 	run(['chmod', 'g-w', '-R', path('target/arch-pkg')])
 	version = OPTIONS['version']
-	run([
+	args = [
 		'fpm', '-s', 'dir', '-t', 'pacman', '-n', 'fman',
 		'-v', version,
 		'--description', FMAN_DESCRIPTION,
 		'-m', '%s <%s>' % (FMAN_AUTHOR, FMAN_AUTHOR_EMAIL),
 		'--vendor', FMAN_AUTHOR,
 		'--url', 'https://fman.io',
-		'-d', 'qt5-base',
+	]
+	for dep in _ARCH_DEPENDENCIES:
+		args.extend(['-d', dep])
+	args.extend([
 		'-p', _PKG_FILE,
 		'-f', '-C', path('target/arch-pkg')
 	])
+	run(args)
 
 def sign_pkg():
 	gpg_pw = OPTIONS['gpg_pass']
