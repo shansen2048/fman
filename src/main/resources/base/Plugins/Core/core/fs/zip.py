@@ -131,16 +131,24 @@ class ZipFileSystem(FileSystem):
 			raise FileExistsError(path)
 		zip_path, path_in_zip = self._split(path)
 		if not path_in_zip:
-			# Run 7-Zip in an empty directory to create an empty archive:
-			with TemporaryDirectory() as tmp_dir:
-				name = PurePosixPath(zip_path).name
-				self._run_7zip(['a', name], cwd=tmp_dir)
-				Path(tmp_dir, name).rename(zip_path)
+			self._create_empty_archive(zip_path)
 		elif not self.exists(str(PurePosixPath(path).parent)):
 			raise filenotfounderror(path)
 		else:
 			with TemporaryDirectory() as tmp_dir:
 				self._add_to_zip(tmp_dir, zip_path, path_in_zip)
+	def _create_empty_archive(self, zip_path):
+		# Run 7-Zip in an empty temporary directory. Create this directory next
+		# to the Zip file to ensure Path.rename(...) works because it's on the
+		# same file system.
+		with self._create_temp_dir_next_to(zip_path) as tmp_dir:
+			name = PurePosixPath(zip_path).name
+			self._run_7zip(['a', name], cwd=tmp_dir)
+			Path(tmp_dir, name).rename(zip_path)
+	def _create_temp_dir_next_to(self, path):
+		return TemporaryDirectory(
+			dir=str(PurePosixPath(path).parent), prefix='', suffix='.tmp'
+		)
 	def delete(self, path):
 		if not self.exists(path):
 			raise filenotfounderror(path)
@@ -181,7 +189,9 @@ class ZipFileSystem(FileSystem):
 							self.makedirs(parent_fullpath)
 		return CM()
 	def _extract(self, zip_path, path_in_zip, dst_path):
-		tmp_dir = TemporaryDirectory()
+		# Create temp dir next to dst_path to ensure Path.rename(...) works
+		# because it's on the same file system.
+		tmp_dir = self._create_temp_dir_next_to(dst_path)
 		try:
 			args = ['x', zip_path, '-o' + tmp_dir.name]
 			if path_in_zip:
