@@ -97,44 +97,46 @@ class MoveToTrash(_CorePaneCommand):
 
 	aliases = ('Delete', 'Move to trash', 'Move to recycle bin')
 
-	def __call__(self):
-		to_delete = self.get_chosen_files()
-		if not to_delete:
+	def __call__(self, urls=None):
+		if urls is None:
+			urls = self.get_chosen_files()
+		if not urls:
 			show_alert('No file is selected!')
 			return
-		if len(to_delete) > 1:
-			description = 'these %d items' % len(to_delete)
+		if len(urls) > 1:
+			description = 'these %d items' % len(urls)
 		else:
-			description = as_human_readable(to_delete[0])
+			description = as_human_readable(urls[0])
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
 		choice = show_alert(
 			"Do you really want to move %s to the %s?" % (description, trash),
 			YES | NO, YES
 		)
 		if choice & YES:
-			for url in to_delete:
+			for url in urls:
 				try:
 					move_to_trash(url)
 				except UnsupportedOperation:
 					delete(url)
 
 class DeletePermanently(DirectoryPaneCommand):
-	def __call__(self):
-		to_delete = self.get_chosen_files()
-		if not to_delete:
+	def __call__(self, urls=None):
+		if urls is None:
+			urls = self.get_chosen_files()
+		if not urls:
 			show_alert('No file is selected!')
 			return
-		if len(to_delete) > 1:
-			description = 'these %d items' % len(to_delete)
+		if len(urls) > 1:
+			description = 'these %d items' % len(urls)
 		else:
-			description = as_human_readable(to_delete[0])
+			description = as_human_readable(urls[0])
 		choice = show_alert(
 			"Do you really want to PERMANENTLY delete %s? This action cannot "
 			"be undone!" % description,
 			YES | NO, YES
 		)
 		if choice & YES:
-			for file_path in to_delete:
+			for file_path in urls:
 				delete(file_path)
 
 class GoUp(_CorePaneCommand):
