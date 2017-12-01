@@ -59,40 +59,60 @@ class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 	_FIELDS = ('cut_start', 'cut_end', 'insert_start', 'rows')
 
 	def extend_by(self, other):
-		if not self.rows:
+		type_ = self._type
+		other_type = other._type
+		if type_ == other_type == 'insert':
+			if other.insert_start == self.insert_start + len(self.rows):
+				self.rows += other.rows
+				return True
+		elif type_ == other_type == 'move':
+			if self.cut_start == other.cut_end:
+				self.cut_start = other.cut_start
+				self.insert_start = other.insert_start
+				return True
+		elif type_ == other_type == 'update':
 			if other.cut_start == self.cut_end:
 				self.cut_end = other.cut_end
+				self.rows += other.rows
+				return True
+		elif type_ == other_type == 'remove':
+			if other.cut_end == self.cut_start:
+				self.cut_start = other.cut_start
+				return True
+		elif type_ == 'remove' and other_type == 'insert':
+			if self.cut_start == other.insert_start and \
+					self.cut_end == other._insert_end:
+				self.insert_start = self.cut_start
 				self.rows = other.rows
 				return True
-			elif len(other.rows) == self.cut_end - self.cut_start and \
-					other.insert_start == self.cut_start:
-				# Cut followed by insert
-				self.insert_start = other.insert_start
-				self.rows = other.rows
-				return True
-		if not other.rows and other.cut_end == self.cut_start:
-			self.cut_start = other.cut_start
-			return True
-		if not self._does_cut and not other._does_cut and \
-				other.insert_start == self._insert_end:
-			self.rows += other.rows
-			return True
 		return False
 	def apply(self, insert, move, update, remove):
+		if self._type == 'insert':
+			insert(self.rows, self.insert_start)
+		elif self._type == 'move':
+			move(self.cut_start, self.cut_end, self.insert_start)
+		elif self._type == 'update':
+			update(self.rows, self.cut_start)
+		elif self._type == 'remove':
+			remove(self.cut_start, self.cut_end)
+		else:
+			raise AssertionError('Unexpected type %r' % self._type)
+	@property
+	def _type(self):
 		if self._does_cut:
 			if self.rows:
 				assert len(self.rows) == self.cut_end - self.cut_start
 				assert self.cut_start == self.insert_start
-				update(self.rows, self.cut_start)
+				return 'update'
 			else:
 				if self.insert_start != -1:
-					move(self.cut_start, self.cut_end, self.insert_start)
+					return 'move'
 				else:
-					remove(self.cut_start, self.cut_end)
+					return 'remove'
 		else:
 			assert self.rows
 			assert self.insert_start != -1
-			insert(self.rows, self.insert_start)
+			return 'insert'
 	@property
 	def _does_cut(self):
 		return self.cut_end > self.cut_start

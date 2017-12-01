@@ -88,6 +88,25 @@ class ComputeDiffTest(TestCase):
 			entry.apply(insert, move, update, remove)
 		return result
 
+class DiffEntryExtendByTest(TestCase):
+	def test_insert(self):
+		self._check(
+			(-1, -1, 0, [1, 2]), (-1, -1, 2, [3]), (-1, -1, 0, [1, 2, 3])
+		)
+	def test_move(self):
+		self._check((1, 2, 11, []), (0, 1, 10, []), (0, 2, 10, []))
+	def test_update(self):
+		self._check((0, 2, 0, [1, 2]), (2, 3, 2, [3]), (0, 3, 0, [1, 2, 3]))
+	def test_remove(self):
+		self._check((1, 2, -1, []), (0, 1, -1, []), (0, 2, -1, []))
+	def test_remove_followed_by_insert(self):
+		self._check((0, 1, -1, []), (-1, -1, 0, [1]), (0, 1, 0, [1]))
+	def _check(self, first, second, expected):
+		first_entry = DiffEntry(*first)
+		second_entry = DiffEntry(*second)
+		self.assertEqual(True, first_entry.extend_by(second_entry))
+		self.assertEqual(DiffEntry(*expected), first_entry)
+
 def _powerset(iterable):
 	s = list(iterable)
 	return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
