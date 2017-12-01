@@ -401,10 +401,23 @@ class Move(_TreeCommand):
 
 class DragAndDropListener(DirectoryPaneListener):
 	def on_files_dropped(self, file_urls, dest_dir, is_copy_not_move):
-		command = 'copy' if is_copy_not_move else 'move'
+		command = self._get_command(file_urls, dest_dir, is_copy_not_move)
 		self.pane.run_command(
 			command, {'files': file_urls, 'dest_dir': dest_dir}
 		)
+	def _get_command(self, file_urls, dest_dir, is_copy_not_move):
+		schemes = set(splitscheme(url)[0] for url in file_urls)
+		src_scheme = next(iter(schemes)) if len(schemes) == 1 else ''
+		dest_scheme = splitscheme(dest_dir)
+		if src_scheme != dest_scheme:
+			# The default value for `is_copy_not_move` is False. But consider
+			# the case where the user drags a file from a Zip archive to the
+			# local file system. In this case, `is_copy_not_move` might indicate
+			# "move" simply because it's the default. But most likely, the user
+			# simply wants to extract the file and not also remove it from the
+			# Zip file. Respect this:
+			is_copy_not_move = True
+		return 'copy' if is_copy_not_move else 'move'
 
 class Rename(_CorePaneCommand):
 	def __call__(self):
