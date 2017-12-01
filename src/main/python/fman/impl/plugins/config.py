@@ -38,7 +38,7 @@ class Config:
 		# atomic operation replace(...) to move to the destination:
 		tmp_file = dest + '.tmp%d' % getpid()
 		try:
-			write_differential_json(value, locations[:-1] + [tmp_file])
+			write_differential_json(value, locations[:-1], tmp_file)
 			replace(tmp_file, dest)
 		finally:
 			try:
@@ -106,9 +106,8 @@ def load_json(paths):
 			result = next_value + result
 	return result
 
-def write_differential_json(obj, paths):
-	dest_path = paths[-1]
-	old_obj = load_json(paths)
+def write_differential_json(obj, paths, dest_path):
+	old_obj = load_json(paths + [dest_path])
 	if obj == old_obj:
 		return
 	if old_obj is None:
@@ -121,13 +120,13 @@ def write_differential_json(obj, paths):
 			)
 		if isinstance(obj, dict):
 			deleted = set(key for key in old_obj if key not in obj)
-			not_deletable = set(load_json(paths[:-1]) or {})
+			not_deletable = set(load_json(paths) or {})
 			wrongly_deleted = deleted.intersection(not_deletable)
 			if wrongly_deleted:
 				raise ValueError(
 					'Deleting keys %r is not supported.' % wrongly_deleted
 				)
-			base = load_json(paths[:-1]) or {}
+			base = load_json(paths) or {}
 			difference = {
 				key: value for key, value in obj.items()
 				if key not in base or base[key] != value
