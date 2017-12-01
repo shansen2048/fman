@@ -50,7 +50,7 @@ class NonexistentShortcutHandler:
 				'Go to parent directory',
 				'Go to the parent directory ("%s")' % dir_name
 			))
-		file_under_cursor = pane.get_file_under_cursor()
+		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
 		if is_right_pane and is_dir(file_under_cursor):
 			options.append((
 				'Open in left pane',
@@ -104,7 +104,7 @@ class NonexistentShortcutHandler:
 				'What do you want to do?' % highlight('Arrow-Right')
 		options = []
 		is_left_pane = pane.window.get_panes().index(pane) == 0
-		file_under_cursor = pane.get_file_under_cursor()
+		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
 		if is_dir(file_under_cursor):
 			dir_name = basename(file_under_cursor)
 			options.append((
