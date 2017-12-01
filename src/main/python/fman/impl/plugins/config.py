@@ -1,4 +1,4 @@
-from os import makedirs
+from os import makedirs, getpid, unlink, replace
 from os.path import dirname, splitext, join
 
 import json
@@ -30,7 +30,21 @@ class Config:
 	def save_json(self, json_name, value=None):
 		if value is None:
 			value = self._cache[json_name]
-		write_differential_json(value, self.locate(json_name))
+		locations = self.locate(json_name)
+		dest = locations[-1]
+		# Some users complained about corrupted Visited Paths.json files.
+		# Looking at the files, it appears that they were concurrently
+		# overwritten. To avoid this, write to a temp file first, then use
+		# atomic operation replace(...) to move to the destination:
+		tmp_file = dest + '.tmp%d' % getpid()
+		try:
+			write_differential_json(value, locations[:-1] + [tmp_file])
+			replace(tmp_file, dest)
+		finally:
+			try:
+				unlink(tmp_file)
+			except FileNotFoundError:
+				pass
 		self._cache[json_name] = value
 	def locate(self, file_name, in_dir=None):
 		base, ext = splitext(file_name)
