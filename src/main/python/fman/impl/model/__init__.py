@@ -27,7 +27,7 @@ class DragAndDropMixin(QAbstractTableModel):
 		if not data.hasUrls():
 			return False
 		dest_dir = self._get_drop_dest(parent)
-		is_in_dest_dir = lambda url: dirname(url.toString()) == dest_dir
+		is_in_dest_dir = lambda url: dirname(from_qurl(url)) == dest_dir
 		return not all(map(is_in_dest_dir, data.urls()))
 	def mimeTypes(self):
 		"""
