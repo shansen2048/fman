@@ -309,8 +309,29 @@ class FileListView(
 		if curr_widths is None:
 			curr_widths = self._get_column_widths()
 		min_widths = self._get_min_col_widths()
-		ideal = _get_ideal_column_widths(curr_widths, min_widths, self.width())
-		self._apply_column_widths(ideal)
+		width = self._get_width_excl_scrollbar()
+		ideal_widths = _get_ideal_column_widths(curr_widths, min_widths, width)
+		self._apply_column_widths(ideal_widths)
+	def _get_width_excl_scrollbar(self):
+		return self.width() - self._get_vertical_scrollbar_width()
+	def _get_vertical_scrollbar_width(self):
+		scrollbar = self.verticalScrollBar()
+		if scrollbar.isVisible():
+			return scrollbar.width()
+		# This assumes that all rows have the same height:
+		required_height = self.horizontalHeader().height() + \
+						  self.rowHeight(0) * self.model().rowCount()
+		will_scrollbar_be_visible = required_height > self.height()
+		if will_scrollbar_be_visible:
+			# This for instance happens when fman is just starting up. In this
+			# case, scrollbar.isVisible() is False even though it is visible on
+			# the screen. One theory that could explain this is that in the
+			# initial paint event, Qt gives us the entire viewport to paint on.
+			# It then realizes that we used more than the available height and
+			# draws the vertical scrollbar on top of the viewport - without
+			# setting isVisible() to True. But this is just a theory.
+			return scrollbar.sizeHint().width()
+		return 0
 	def _get_column_widths(self):
 		return [self.columnWidth(i) for i in range(self._num_columns)]
 	def _get_min_col_widths(self):
@@ -321,8 +342,8 @@ class FileListView(
 	@property
 	def _num_columns(self):
 		return self.horizontalHeader().count()
-	def _on_col_resized(self, col, old_size, new_size):
-		if old_size == new_size:
+	def _on_col_resized(self, col, old_size, size):
+		if old_size == size:
 			return
 		# Prevent infinite recursion:
 		if not self._handle_col_resize:
@@ -332,8 +353,8 @@ class FileListView(
 			widths = self._get_column_widths()
 			widths[col] = old_size
 			min_widths = self._get_min_col_widths()
-			new_widths = \
-				_resize_column(col, new_size, widths, min_widths, self.width())
+			width = self._get_width_excl_scrollbar()
+			new_widths = _resize_column(col, size, widths, min_widths, width)
 			self._apply_column_widths(new_widths)
 		finally:
 			self._handle_col_resize = True
