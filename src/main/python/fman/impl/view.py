@@ -297,13 +297,20 @@ class FileListView(
 		self._old_col_widths = self._get_column_widths()
 	def resizeColumnsToContents(self):
 		self._resize_cols_to_contents()
+	def setModel(self, model):
+		old_model = self.model()
+		if old_model:
+			old_model.modelReset.disconnect(self._on_model_reset)
+		super().setModel(model)
+		model.modelReset.connect(self._on_model_reset)
+	def _on_model_reset(self):
+		self._old_col_widths = None
 	def _resize_cols_to_contents(self, curr_widths=None):
 		if curr_widths is None:
 			curr_widths = self._get_column_widths()
 		min_widths = self._get_min_col_widths()
-		self._apply_column_widths(
-			_get_ideal_column_widths(curr_widths, min_widths, self.width())
-		)
+		ideal = _get_ideal_column_widths(curr_widths, min_widths, self.width())
+		self._apply_column_widths(ideal)
 	def _get_column_widths(self):
 		return [self.columnWidth(i) for i in range(self._num_columns)]
 	def _get_min_col_widths(self):
@@ -315,16 +322,18 @@ class FileListView(
 	def _num_columns(self):
 		return self.horizontalHeader().count()
 	def _on_col_resized(self, col, old_size, new_size):
+		if old_size == new_size:
+			return
+		# Prevent infinite recursion:
 		if not self._handle_col_resize:
-			# Prevent infinite recursion:
 			return
 		self._handle_col_resize = False
 		try:
 			widths = self._get_column_widths()
 			widths[col] = old_size
-			new_widths = _resize_column(
-				col, new_size, widths, self._get_min_col_widths(), self.width()
-			)
+			min_widths = self._get_min_col_widths()
+			new_widths = \
+				_resize_column(col, new_size, widths, min_widths, self.width())
 			self._apply_column_widths(new_widths)
 		finally:
 			self._handle_col_resize = True
@@ -345,6 +354,10 @@ class FileListView(
 		return model.sourceModel().url(model.mapToSource(index))
 
 def _get_ideal_column_widths(widths, min_widths, available_width):
+	if len(widths) != len(min_widths):
+		raise ValueError('len(%r) != len(%r)!' % (widths, min_widths))
+	if not widths:
+		return []
 	result = list(widths)
 	width = sum(widths)
 	min_width = sum(min_widths)

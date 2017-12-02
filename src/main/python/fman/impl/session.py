@@ -16,7 +16,6 @@ _LOG = logging.getLogger(__name__)
 class SessionManager:
 
 	DEFAULT_NUM_PANES = 2
-	DEFAULT_COLUMN_WIDTHS = [200, 75]
 	_MAIN_WINDOW_VERSION = 1
 
 	def __init__(self, settings, fs, error_handler, fman_version, is_licensed):
@@ -104,8 +103,17 @@ class SessionManager:
 			except Exception as exc:
 				msg = 'Could not load folder %s' % as_human_readable(url)
 				errors.append((msg, exc, pane))
-			col_widths = pane_info.get('col_widths', self.DEFAULT_COLUMN_WIDTHS)
-			pane.set_column_widths(col_widths)
+			try:
+				col_widths = pane_info['col_widths']
+			except KeyError:
+				pass
+			else:
+				try:
+					pane.set_column_widths(col_widths)
+				except ValueError:
+					# This for instance happens when the old and new numbers of
+					# columns don't match (eg. 2 columns before, 3 now).
+					pass
 		for msg, exc, pane in errors:
 			self._error_handler.report(msg, exc)
 			pane.set_location(as_url(home_dir))

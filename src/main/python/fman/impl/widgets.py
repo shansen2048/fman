@@ -120,6 +120,12 @@ class DirectoryPaneWidget(QWidget):
 		return [self._file_view.columnWidth(i) for i in (0, 1)]
 	@run_in_main_thread
 	def set_column_widths(self, column_widths):
+		num_columns = self._model_sorted.columnCount()
+		if len(column_widths) != num_columns:
+			raise ValueError(
+				'Wrong number of columns: len(%r) != %d'
+				% (column_widths, num_columns)
+			)
 		for i, width in enumerate(column_widths):
 			self._file_view.setColumnWidth(i, width)
 	def _on_doubleclicked(self, index):
