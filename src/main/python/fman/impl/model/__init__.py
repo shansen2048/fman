@@ -234,13 +234,7 @@ class FileSystemModel(DragAndDropMixin):
 		while self._location == location: # Abort reload if location changed
 			try:
 				file_name = next(file_names)
-			except StopIteration:
-				break
-			except FileNotFoundError:
-				# If the reason for the error was that `location` no longer
-				# exists, we could call _on_file_removed(location) here. But we
-				# don't know for certain that that's the case. Simply abort to
-				# prevent an infinite loop:
+			except (StopIteration, OSError):
 				break
 			else:
 				file_url = join(location, file_name)
@@ -293,13 +287,7 @@ class FileSystemModel(DragAndDropMixin):
 		while self._location == location: # Abort if location changed
 			try:
 				file_name = next(file_names)
-			except StopIteration:
-				break
-			except FileNotFoundError:
-				# If the reason for the error was that `location` no longer
-				# exists, we could call _on_file_removed(location) here. But we
-				# don't know for certain that that's the case. Simply abort to
-				# prevent an infinite loop:
+			except (StopIteration, OSError):
 				break
 			else:
 				try:
@@ -319,14 +307,19 @@ class FileSystemModel(DragAndDropMixin):
 		self._location_loaded = True
 		self.location_loaded.emit(location)
 		callback()
-	def _load_row(self, url):
+	def _load_row(self, url, ignore=(PermissionError,)):
+		def get(getter, default=None):
+			try:
+				return getter(url)
+			except ignore:
+				return default
 		return PreloadedRow(
-			url, self._fs.is_dir(url), self._fs.icon(url),
+			url, get(self._fs.is_dir, False), get(self._fs.icon),
 			[
 				PreloadedColumn(
-					QVariant(column.get_str(url)),
-					column.get_sort_value(url, True),
-					column.get_sort_value(url, False)
+					QVariant(get(column.get_str)),
+					get(lambda u: column.get_sort_value(u, True), 0),
+					get(lambda u: column.get_sort_value(u, False), 0)
 				)
 				for column in self._columns
 			]
