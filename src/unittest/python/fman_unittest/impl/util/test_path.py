@@ -1,5 +1,5 @@
 from fman.impl.util import system
-from fman.impl.util.path import make_absolute
+from fman.impl.util.path import make_absolute, resolve
 from os.path import join, expanduser
 from unittest import TestCase, skipUnless
 
@@ -26,3 +26,16 @@ class MakeAbsoluteTest(TestCase):
 		return join(self._get_root_dir(), *path.split('/'))
 	def _get_root_dir(self):
 		return 'C:\\' if system.is_windows() else '/'
+
+class ResolveTest(TestCase):
+	def test_fine(self):
+		path = '/home/a/b'
+		self.assertEqual(path, resolve(path))
+	def test_trailing_dot(self):
+		self.assertEqual('a', resolve('a/.'))
+	def test_single_dot_between(self):
+		self.assertEqual('a/b', resolve('a/./b'))
+	def test_trailing_double_dot(self):
+		self.assertEqual('', resolve('a/..'))
+	def test_single_dot_only(self):
+		self.assertEqual('', resolve('.'))

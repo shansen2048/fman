@@ -1,5 +1,4 @@
-from fman.impl.util.path import parent
-from fman.impl.util.url import resolve
+from fman.impl.util.path import parent, resolve
 from io import UnsupportedOperation
 from threading import Lock
 
@@ -54,7 +53,7 @@ class FileSystem:
 	def is_dir(self, path):
 		return True
 	def resolve(self, path):
-		return resolve(self.scheme + path)
+		return self.scheme + resolve(path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):

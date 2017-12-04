@@ -2,6 +2,8 @@ from fman.impl.util.system import is_windows
 from os.path import splitdrive, normpath, expanduser, realpath
 from pathlib import PurePosixPath
 
+import re
+
 def make_absolute(file_path, cwd):
 	if normpath(file_path) == '.':
 		return cwd
@@ -25,3 +27,12 @@ def parent(path):
 		return ''
 	result = str(PurePosixPath(path).parent) if path else ''
 	return '' if result == '.' else result
+
+def resolve(path_):
+	# Resolve a/./b and a//b:
+	path_ = str(PurePosixPath(path_))
+	if path_ == '.':
+		path_ = ''
+	# Resolve a/../b
+	path_ = re.subn(r'(^|/)([^/]+)/\.\.(?:$|/)', r'\1', path_)[0]
+	return path_
