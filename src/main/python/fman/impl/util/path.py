@@ -35,4 +35,4 @@ def resolve(path_):
 		path_ = ''
 	# Resolve a/../b
 	path_ = re.subn(r'(^|/)([^/]+)/\.\.(?:$|/)', r'\1', path_)[0]
-	return path_
+	return path_.rstrip('/')

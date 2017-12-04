@@ -39,3 +39,5 @@ class ResolveTest(TestCase):
 		self.assertEqual('', resolve('a/..'))
 	def test_single_dot_only(self):
 		self.assertEqual('', resolve('.'))
+	def test_pardir_of_subdir(self):
+		self.assertEqual('a', resolve('a/b/..'))
