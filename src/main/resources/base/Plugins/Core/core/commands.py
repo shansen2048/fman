@@ -6,12 +6,12 @@ from core.util import strformat_dict_values, listdir_absolute
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
+from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
+	samefile, copy, iterdir
 from fman.url import splitscheme, as_url, join, basename, split, \
 	as_human_readable, dirname
-from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
-	samefile, copy
 from getpass import getuser
-from io import BytesIO, UnsupportedOperation
+from io import UnsupportedOperation
 from itertools import chain, islice
 from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
 	islink
@@ -21,7 +21,6 @@ from PyQt5.QtGui import QDesktopServices
 from shutil import rmtree
 from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
-from zipfile import ZipFile
 
 import fman
 import fman.fs
@@ -1186,13 +1185,19 @@ class InstallPlugin(ApplicationCommand):
 				)
 	def _install_plugin(self, name, zipball_contents):
 		dest_dir = os.path.join(_THIRDPARTY_PLUGINS_DIR, name)
-		if os.path.exists(dest_dir):
+		dest_dir_url = as_url(dest_dir)
+		if exists(dest_dir_url):
 			raise ValueError('Plugin %s seems to already be installed.' % name)
-		with ZipFile(BytesIO(zipball_contents), 'r') as zipfile:
-			with TemporaryDirectory() as temp_dir:
-				zipfile.extractall(temp_dir)
-				dir_in_zip, = os.listdir(temp_dir)
-				shutil.move(os.path.join(temp_dir, dir_in_zip), dest_dir)
+		# We purposely don't use Python's ZipFile here because it does not
+		# preserve the executable bit of extracted files. This would present a
+		# problem for plugins shipping with their own binaries.
+		with TemporaryDirectory() as tmp_dir:
+			zip_path = os.path.join(tmp_dir, 'plugin.zip')
+			with open(zip_path, 'wb') as f:
+				f.write(zipball_contents)
+			zip_url = as_url(zip_path, 'zip://')
+			dir_in_zip, = iterdir(zip_url)
+			copy(join(zip_url, dir_in_zip), dest_dir_url)
 		return dest_dir
 	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
 		plugin_json = os.path.join(plugin_dir, 'Plugin.json')
