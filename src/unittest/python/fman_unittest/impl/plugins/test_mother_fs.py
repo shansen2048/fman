@@ -115,6 +115,21 @@ class MotherFileSystemTest(TestCase):
 		mother_fs.file_added.add_callback(on_file_added)
 		mother_fs.mkdir(url)
 		self.assertEqual([url], files_added)
+	def test_relative_paths(self):
+		mother_fs = self._create_mother_fs(StubFileSystem({
+			'a': {'is_dir': True},
+			'a/b': {'is_dir': True}
+		}))
+		self.assertTrue(mother_fs.is_dir('stub://a/b/..'))
+		mother_fs.move('stub://a', 'stub://b')
+		self.assertFalse(mother_fs.is_dir('stub://a/b/..'))
+		mother_fs.touch('stub://a/../c')
+		self.assertTrue(mother_fs.exists('stub://c'))
+		mother_fs.mkdir('stub://a/../dir')
+		self.assertTrue(mother_fs.is_dir('stub://a/../dir'))
+		self.assertTrue(mother_fs.is_dir('stub://dir'))
+		mother_fs.move('stub://a/b', 'stub://a/../b')
+		self.assertTrue(mother_fs.exists('stub://b'))
 	def _create_mother_fs(self, fs):
 		result = MotherFileSystem(None)
 		result.add_child(fs.scheme, fs)
