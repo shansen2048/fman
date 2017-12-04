@@ -1,4 +1,4 @@
 -r base.txt
 osxtrash==1.6
 pyobjc-core==3.2.1
-git+git://github.com/mherrmann/pyinstaller.git@6b25d22
+git+git://github.com/mherrmann/pyinstaller.git@8704da1
