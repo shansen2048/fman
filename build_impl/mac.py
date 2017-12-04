@@ -176,6 +176,9 @@ def _shasum(path_):
 def _download_from_server(file_path, dest_dir):
 	print('Downloading %s.' % file_path)
 	if OPTIONS['release']:
+		# If the file permissions are too open, macOS reports an error and
+		# aborts:
+		run(['chmod', '600', OPTIONS['ssh_key']])
 		run([
 			'scp', '-i', OPTIONS['ssh_key'],
 			OPTIONS['server_user'] + ':' + file_path, dest_dir
