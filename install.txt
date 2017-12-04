@@ -114,6 +114,10 @@ If the above fails, build https://www.libarchive.org/ from source and place its 
 
 To be able to upload fman to the Arch User Repository during release, add ~/.ssh/id_rsa.pub to your account there.
 
+Mac extra
+=========
+Import conf/mac/Developer Certificate.cer and .../Private key.p12 into KeyChain
+
 fmanSetup.exe (Google Omaha installer)
 ======================================
 1)
