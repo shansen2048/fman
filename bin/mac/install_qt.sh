@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Requirements:
-#  * pyzip (install with brew)
+#  * p7zip (install with brew)
 #  * Xcode
 
 set -e
