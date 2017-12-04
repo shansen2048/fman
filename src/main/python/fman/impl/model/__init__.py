@@ -307,6 +307,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._location_loaded = True
 		self.location_loaded.emit(location)
 		callback()
+		self._execute_async(self.reload, location)
 	def _load_row(self, url, ignore=(PermissionError,)):
 		def get(getter, default=None):
 			try:
