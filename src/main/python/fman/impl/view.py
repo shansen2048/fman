@@ -17,17 +17,27 @@ class LocationBar(QLineEdit):
 
 class NiceCursorAndSelectionAPIMixin(QTableView):
 	def move_cursor_down(self, toggle_selection=False):
-		self._move_cursor(self.MoveDown, toggle_selection)
+		if toggle_selection:
+			self._toggle_current_index()
+		self._move_cursor(self.MoveDown)
 	def move_cursor_up(self, toggle_selection=False):
-		self._move_cursor(self.MoveUp, toggle_selection)
+		if toggle_selection:
+			self._toggle_current_index()
+		self._move_cursor(self.MoveUp)
 	def move_cursor_page_up(self, toggle_selection=False):
 		self._move_cursor(self.MovePageUp, toggle_selection)
+		self.move_cursor_up()
 	def move_cursor_page_down(self, toggle_selection=False):
 		self._move_cursor(self.MovePageDown, toggle_selection)
+		self.move_cursor_down()
 	def move_cursor_home(self, toggle_selection=False):
 		self._move_cursor(self.MoveHome, toggle_selection)
 	def move_cursor_end(self, toggle_selection=False):
 		self._move_cursor(self.MoveEnd, toggle_selection)
+	def _toggle_current_index(self):
+		index = self.currentIndex()
+		if index.isValid():
+			self.selectionModel().select(index, QISM.Toggle | QISM.Rows)
 	def _move_cursor(self, cursor_action, toggle_selection=False):
 		modifiers = self._get_modifiers(cursor_action)
 		new_current = self.moveCursor(cursor_action, modifiers)

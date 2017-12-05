@@ -52,47 +52,37 @@ class Help(ApplicationCommand):
 	def __call__(self):
 		QDesktopServices.openUrl(QUrl('https://fman.io/docs/key-bindings?s=f'))
 
-class _CorePaneCommand(DirectoryPaneCommand):
-	def toggle_selection(self):
+class MoveCursorDown(DirectoryPaneCommand):
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_down(toggle_selection)
+
+class MoveCursorUp(DirectoryPaneCommand):
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_up(toggle_selection)
+
+class MoveCursorHome(DirectoryPaneCommand):
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_home(toggle_selection)
+
+class MoveCursorEnd(DirectoryPaneCommand):
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_end(toggle_selection)
+
+class MoveCursorPageUp(DirectoryPaneCommand):
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_page_up(toggle_selection)
+
+class MoveCursorPageDown(DirectoryPaneCommand):
+	def __call__(self, toggle_selection=False):
+		self.pane.move_cursor_page_down(toggle_selection)
+
+class ToggleSelection(DirectoryPaneCommand):
+	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
 			self.pane.toggle_selection(file_under_cursor)
 
-class MoveCursorDown(_CorePaneCommand):
-	def __call__(self, toggle_selection=False):
-		if toggle_selection:
-			self.toggle_selection()
-		self.pane.move_cursor_down()
-
-class MoveCursorUp(_CorePaneCommand):
-	def __call__(self, toggle_selection=False):
-		if toggle_selection:
-			self.toggle_selection()
-		self.pane.move_cursor_up()
-
-class MoveCursorHome(_CorePaneCommand):
-	def __call__(self, toggle_selection=False):
-		self.pane.move_cursor_home(toggle_selection)
-
-class MoveCursorEnd(_CorePaneCommand):
-	def __call__(self, toggle_selection=False):
-		self.pane.move_cursor_end(toggle_selection)
-
-class MoveCursorPageUp(_CorePaneCommand):
-	def __call__(self, toggle_selection=False):
-		self.pane.move_cursor_page_up(toggle_selection)
-		self.pane.move_cursor_up()
-
-class MoveCursorPageDown(_CorePaneCommand):
-	def __call__(self, toggle_selection=False):
-		self.pane.move_cursor_page_down(toggle_selection)
-		self.pane.move_cursor_down()
-
-class ToggleSelection(_CorePaneCommand):
-	def __call__(self):
-		self.toggle_selection()
-
-class MoveToTrash(_CorePaneCommand):
+class MoveToTrash(DirectoryPaneCommand):
 
 	aliases = ('Delete', 'Move to trash', 'Move to recycle bin')
 
@@ -138,7 +128,7 @@ class DeletePermanently(DirectoryPaneCommand):
 			for file_path in urls:
 				delete(file_path)
 
-class GoUp(_CorePaneCommand):
+class GoUp(DirectoryPaneCommand):
 
 	aliases = ('Go up', 'Go to parent directory')
 
@@ -168,7 +158,7 @@ class GoUp(_CorePaneCommand):
 			# file:/// on Unix.
 			pass
 
-class Open(_CorePaneCommand):
+class Open(DirectoryPaneCommand):
 	def __call__(self, url=None):
 		if url is None:
 			url = self.pane.get_file_under_cursor()
@@ -221,7 +211,7 @@ class OpenFile(DirectoryPaneCommand):
 	def is_visible(self):
 		return False
 
-class OpenWithEditor(_CorePaneCommand):
+class OpenWithEditor(DirectoryPaneCommand):
 
 	aliases = ('Edit',)
 
@@ -312,7 +302,7 @@ class CreateAndEditFile(OpenWithEditor):
 			self.pane.place_cursor_at(file_to_edit)
 			super().__call__(file_to_edit)
 
-class _TreeCommand(_CorePaneCommand):
+class _TreeCommand(DirectoryPaneCommand):
 	def __call__(self, files=None, dest_dir=None):
 		if files is None:
 			files = self.get_chosen_files()
@@ -423,7 +413,7 @@ class DragAndDropListener(DirectoryPaneListener):
 			is_copy_not_move = True
 		return 'copy' if is_copy_not_move else 'move'
 
-class Rename(_CorePaneCommand):
+class Rename(DirectoryPaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
@@ -462,7 +452,7 @@ class RenameListener(DirectoryPaneListener):
 		else:
 			self.pane.place_cursor_at(new_url)
 
-class CreateDirectory(_CorePaneCommand):
+class CreateDirectory(DirectoryPaneCommand):
 
 	aliases = (
 		'New folder', 'Create folder', 'New directory', 'Create directory'
@@ -481,7 +471,7 @@ class CreateDirectory(_CorePaneCommand):
 					show_alert("A file with this name already exists!")
 			self.pane.place_cursor_at(dir_url)
 
-class OpenTerminal(_CorePaneCommand):
+class OpenTerminal(DirectoryPaneCommand):
 
 	aliases = (
 		'Terminal', 'Shell', 'Open terminal', 'Open shell'
@@ -496,11 +486,11 @@ class OpenTerminal(_CorePaneCommand):
 			return
 		open_terminal_in_directory(path)
 
-class OpenNativeFileManager(_CorePaneCommand):
+class OpenNativeFileManager(DirectoryPaneCommand):
 	def __call__(self):
 		open_native_file_manager(self.pane.get_path())
 
-class CopyPathsToClipboard(_CorePaneCommand):
+class CopyPathsToClipboard(DirectoryPaneCommand):
 	def __call__(self):
 		chosen_files = self.get_chosen_files()
 		if not chosen_files:
@@ -511,7 +501,7 @@ class CopyPathsToClipboard(_CorePaneCommand):
 		clipboard.clear()
 		clipboard.set_text(files)
 
-class CopyToClipboard(_CorePaneCommand):
+class CopyToClipboard(DirectoryPaneCommand):
 	def __call__(self):
 		files = self.get_chosen_files()
 		if files:
@@ -519,7 +509,7 @@ class CopyToClipboard(_CorePaneCommand):
 		else:
 			show_alert('No file is selected!')
 
-class Cut(_CorePaneCommand):
+class Cut(DirectoryPaneCommand):
 	def __call__(self):
 		if PLATFORM == 'Mac':
 			show_alert(
@@ -533,7 +523,7 @@ class Cut(_CorePaneCommand):
 		else:
 			show_alert('No file is selected!')
 
-class Paste(_CorePaneCommand):
+class Paste(DirectoryPaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
 		if not files:
@@ -544,7 +534,7 @@ class Paste(_CorePaneCommand):
 			dest = self.pane.get_path()
 			self.pane.run_command('copy', {'files': files, 'dest_dir': dest})
 
-class PasteCut(_CorePaneCommand):
+class PasteCut(DirectoryPaneCommand):
 	def __call__(self):
 		files = clipboard.get_files()
 		if not any(map(exists, files)):
@@ -556,15 +546,15 @@ class PasteCut(_CorePaneCommand):
 			'dest_dir': dest_dir
 		})
 
-class SelectAll(_CorePaneCommand):
+class SelectAll(DirectoryPaneCommand):
 	def __call__(self):
 		self.pane.select_all()
 
-class Deselect(_CorePaneCommand):
+class Deselect(DirectoryPaneCommand):
 	def __call__(self):
 		self.pane.clear_selection()
 
-class ToggleHiddenFiles(_CorePaneCommand):
+class ToggleHiddenFiles(DirectoryPaneCommand):
 
 	aliases = ('Toggle hidden files', 'Show / hide hidden files')
 
@@ -597,7 +587,7 @@ class ToggleHiddenFiles(_CorePaneCommand):
 def _is_hidden(file_path):
 	return QFileInfo(file_path).isHidden()
 
-class _OpenInPaneCommand(_CorePaneCommand):
+class _OpenInPaneCommand(DirectoryPaneCommand):
 	def __call__(self):
 		panes = self.pane.window.get_panes()
 		num_panes = len(panes)
@@ -640,7 +630,7 @@ class OpenInLeftPane(_OpenInPaneCommand):
 	def get_destination_pane(self, this_pane, num_panes):
 		return max(this_pane - 1, 0)
 
-class ShowVolumes(_CorePaneCommand):
+class ShowVolumes(DirectoryPaneCommand):
 
 	aliases = ('Show volumes', 'Show drives')
 
@@ -678,7 +668,7 @@ def _get_user():
 	except:
 		return os.path.basename(expanduser('~'))
 
-class GoTo(_CorePaneCommand):
+class GoTo(DirectoryPaneCommand):
 	def __call__(self):
 		# TODO: Rename to Visited Locations.json?
 		visited_paths = load_json('Visited Paths.json', default={})
@@ -979,7 +969,7 @@ class SuggestLocations:
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 
-class CommandPalette(_CorePaneCommand):
+class CommandPalette(DirectoryPaneCommand):
 
 	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
 
