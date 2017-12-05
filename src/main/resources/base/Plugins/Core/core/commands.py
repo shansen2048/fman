@@ -8,8 +8,8 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 from fman import *
 from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
 	samefile, copy, iterdir
-from fman.url import splitscheme, as_url, join, basename, split, \
-	as_human_readable, dirname
+from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
+	dirname
 from getpass import getuser
 from io import UnsupportedOperation
 from itertools import chain, islice
@@ -353,7 +353,7 @@ class _TreeCommand(_CorePaneCommand):
 					return dest, None
 				else:
 					if len(files) == 1:
-						return split(dest)
+						return _split(dest)
 					else:
 						ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
@@ -361,7 +361,7 @@ class _TreeCommand(_CorePaneCommand):
 						)
 			else:
 				if len(files) == 1:
-					return split(dest)
+					return _split(dest)
 				else:
 					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
@@ -389,6 +389,11 @@ def _from_human_readable(path_or_url, dest_dir, src_dir):
 			dest_path = PurePath(dest_dir_path, path_or_url).as_posix()
 		path_or_url = dest_scheme + dest_path
 	return path_or_url
+
+def _split(url):
+	scheme, path = splitscheme(url)
+	head, tail = os.path.split(path)
+	return scheme + head, tail
 
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):

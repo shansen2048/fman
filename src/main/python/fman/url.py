@@ -2,7 +2,6 @@ from fman.impl.util.path import parent
 from pathlib import PurePath, PurePosixPath
 from urllib.request import url2pathname
 
-import os.path
 import posixpath
 
 def splitscheme(url):
@@ -34,11 +33,6 @@ def dirname(url):
 def basename(url):
 	path = splitscheme(url)[1]
 	return PurePosixPath(path).name if path else ''
-
-def split(url):
-	scheme, path = splitscheme(url)
-	head, tail = os.path.split(path)
-	return scheme + head, tail
 
 def join(url, *paths):
 	scheme, path = splitscheme(url)
