@@ -305,8 +305,13 @@ class FileSystemModel(DragAndDropMixin):
 		if batch:
 			self._on_rows_loaded(batch, location)
 		self._location_loaded = True
-		self.location_loaded.emit(location)
+		# Invoke the callback before emitting location_loaded. The reason is
+		# that the default location_loaded handler places the cursor - it is has
+		# not been placed yet. If the callback does place it, ugly "flickering"
+		# effects happen because first the callback and then location_loaded
+		# change the cursor position.
 		callback()
+		self.location_loaded.emit(location)
 		self._execute_async(self.reload, location)
 	def _load_row(self, url, ignore=(PermissionError,)):
 		def get(getter, default=None):
