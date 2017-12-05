@@ -282,7 +282,8 @@ class FileListView(
 		return [self._get_url(index) for index in indexes]
 	def get_file_under_cursor(self):
 		index = self.currentIndex()
-		return self._get_url(index) if index.isValid() else ''
+		if index.isValid():
+			return self._get_url(index)
 	def place_cursor_at(self, file_url):
 		self.setCurrentIndex(self._get_index(file_url))
 	def toggle_selection(self, file_url):
