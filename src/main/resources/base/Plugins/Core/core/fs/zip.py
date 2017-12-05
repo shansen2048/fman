@@ -263,6 +263,11 @@ class ZipFileSystem(FileSystem):
 		return Popen(
 			[_7ZIP_BINARY] + args,
 			stdout=PIPE, stderr=DEVNULL, cwd=cwd, universal_newlines=True,
+			# Prevent any environment variable from interfering. In particular,
+			# some users on macOS got error:
+			#     [...]/Plugins/Core/bin/mac/7za: line 2: /usr/local/Cellar/
+			#     p7zip/16.02/lib/p7zip/7za: No such file or directory
+			env={},
 			**extra_kwargs
 		)
 	def _close_7zip(self, process, terminate=False):
