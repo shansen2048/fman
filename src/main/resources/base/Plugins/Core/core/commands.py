@@ -1157,10 +1157,10 @@ class InstallPlugin(ApplicationCommand):
 				except LookupError as no_release_yet:
 					ref = repo.get_latest_commit()
 				zipball_contents = repo.download_zipball(ref)
-			dest_dir = self._install_plugin(repo.name, zipball_contents)
+			plugin_dir = self._install_plugin(repo.name, zipball_contents)
 			# Save some data in case we want to update the plugin later:
-			self._record_plugin_installation(dest_dir, repo.url, ref)
-			success = load_plugin(dest_dir)
+			self._record_plugin_installation(plugin_dir, repo.url, ref)
+			success = self._load_installed_plugin(plugin_dir)
 			if success:
 				show_alert('Plugin %r was successfully installed.' % repo.name)
 	def _get_matching_repos(self, query):
@@ -1195,6 +1195,23 @@ class InstallPlugin(ApplicationCommand):
 			dir_in_zip, = iterdir(zip_url)
 			copy(join(zip_url, dir_in_zip), dest_dir_url)
 		return dest_dir
+	def _load_installed_plugin(self, plugin_dir):
+		# Unload plugins later than the given plugin in the load order, load
+		# the plugin, then load the unloaded plugins again. This inserts the
+		# given plugin in the correct place in the load order.
+		plugins = _get_plugins()
+		plugin_index = plugins.index(plugin_dir)
+		to_unload = plugins[plugin_index + 1:]
+		with PreservePanePaths(self.window):
+			for plugin in reversed(to_unload):
+				try:
+					unload_plugin(plugin)
+				except ValueError as was_not_loaded:
+					pass
+			result = load_plugin(plugin_dir)
+			for plugin in to_unload:
+				load_plugin(plugin)
+		return result
 	def _record_plugin_installation(self, plugin_dir, repo_url, ref):
 		plugin_json = os.path.join(plugin_dir, 'Plugin.json')
 		if os.path.exists(plugin_json):
@@ -1252,25 +1269,35 @@ class RemovePlugin(ApplicationCommand):
 
 class ReloadPlugins(ApplicationCommand):
 	def __call__(self):
-		# When a pane is currently displaying a location with a file system that
-		# is "reloaded", its location gets lost. So save the locations and
-		# restore them below:
-		paths_before = [pane.get_path() for pane in (self.window.get_panes())]
 		plugins = _get_plugins()
-		for plugin in reversed(plugins):
-			try:
-				unload_plugin(plugin)
-			except ValueError as plugin_had_not_been_loaded:
-				pass
-		for plugin in plugins:
-			load_plugin(plugin)
-		for pane, path in zip(self.window.get_panes(), paths_before):
-			pane.set_path(path)
+		with PreservePanePaths(self.window):
+			for plugin in reversed(plugins):
+				try:
+					unload_plugin(plugin)
+				except ValueError as plugin_had_not_been_loaded:
+					pass
+			for plugin in plugins:
+				load_plugin(plugin)
 		num_plugins = len(plugins)
 		plural = 's' if num_plugins > 1 else ''
 		show_status_message(
 			'Reloaded %d plugin%s.' % (num_plugins, plural), timeout_secs=2
 		)
+
+class PreservePanePaths:
+	# When a pane is currently displaying a location with a file system that
+	# is "reloaded", its location gets lost. So save the locations and
+	# restore them later.
+	def __init__(self, window):
+		self._window = window
+		self._paths_before = []
+	def __enter__(self):
+		self._paths_before = \
+			[pane.get_path() for pane in (self._window.get_panes())]
+		return self
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		for pane, path in zip(self._window.get_panes(), self._paths_before):
+			pane.set_path(path)
 
 def _get_plugins():
 	return _get_thirdparty_plugins() + _get_user_plugins()
