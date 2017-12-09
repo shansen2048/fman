@@ -1437,8 +1437,8 @@ def _get_handler_for_archive(file_name):
 			return scheme
 
 class ArchiveOpenListener(DirectoryPaneListener):
-	def on_command(self, command, args):
-		if command in ('open_file', 'open_directory'):
+	def on_command(self, command_name, args):
+		if command_name in ('open_file', 'open_directory'):
 			try:
 				scheme, path = splitscheme(args['url'])
 			except (KeyError, ValueError):
