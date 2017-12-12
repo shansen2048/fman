@@ -31,20 +31,7 @@ class Config:
 		if value is None:
 			value = self._cache[json_name]
 		locations = self.locate(json_name)
-		dest = locations[-1]
-		# Some users complained about corrupted Visited Paths.json files.
-		# Looking at the files, it appears that they were concurrently
-		# overwritten. To avoid this, write to a temp file first, then use
-		# atomic operation replace(...) to move to the destination:
-		tmp_file = dest + '.tmp%d' % getpid()
-		try:
-			write_differential_json(value, locations[:-1], tmp_file)
-			replace(tmp_file, dest)
-		finally:
-			try:
-				unlink(tmp_file)
-			except FileNotFoundError:
-				pass
+		write_differential_json(value, locations[:-1], locations[-1])
 		self._cache[json_name] = value
 	def locate(self, file_name, in_dir=None):
 		base, ext = splitext(file_name)
@@ -109,9 +96,21 @@ def load_json(paths):
 def write_differential_json(obj, paths, dest_path):
 	difference = get_differential_json(obj, paths, dest_path)
 	if difference is not None:
-		makedirs(dirname(dest_path), exist_ok=True)
-		with open(dest_path, 'w') as f:
-			json.dump(difference, f)
+		# Some users complained about corrupted Visited Paths.json files.
+		# Looking at the files, it appears that they were concurrently
+		# overwritten. To avoid this, write to a temp file first, then use
+		# atomic operation replace(...) to move to the destination:
+		tmp_file = dest_path + '.tmp%d' % getpid()
+		makedirs(dirname(tmp_file), exist_ok=True)
+		try:
+			with open(tmp_file, 'w') as f:
+				json.dump(difference, f)
+			replace(tmp_file, dest_path)
+		finally:
+			try:
+				unlink(tmp_file)
+			except FileNotFoundError:
+				pass
 
 def get_differential_json(obj, paths, final_path):
 	old_obj = load_json(paths + [final_path])
