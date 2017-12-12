@@ -291,10 +291,15 @@ class FileListView(
 		self.selectionModel().select(
 			self._get_index(file_url), QISM.Toggle | QISM.Rows
 		)
-	def edit_name(self, file_url, cursor_pos=0, selection_len=None):
+	def edit_name(self, file_url, selection_start=0, selection_end=-1):
 		def on_editor_shown(editor):
-			if selection_len is not None:
+			cursor_pos = selection_start
+			if selection_start == selection_end:
 				editor.setCursorPosition(cursor_pos)
+			else:
+				text_len = len(editor.text())
+				selection_len = (selection_end % text_len) - \
+								(selection_start % text_len) + 1
 				editor.setSelection(cursor_pos, selection_len)
 		connect_once(self._delegate.editor_shown, on_editor_shown)
 		self.edit(self._get_index(file_url))
