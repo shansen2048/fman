@@ -27,8 +27,10 @@ class ConfirmTreeOperationTest(TestCase):
 		self._check([], None)
 	def test_one_file(self):
 		dest_path = as_human_readable(join(self._dest, 'a.txt'))
+		sel_start = dest_path.rindex(os.sep) + 1
 		self._expect_prompt(
-			('Move "a.txt" to', dest_path, 6, 7), (dest_path, True)
+			('Move "a.txt" to', dest_path, sel_start, sel_start + 1),
+			(dest_path, True)
 		)
 		self._check([self._a_txt], (self._dest, 'a.txt'))
 	def test_one_dir(self):
@@ -45,14 +47,20 @@ class ConfirmTreeOperationTest(TestCase):
 		self._check([self._a_txt, self._b_txt], (self._dest, None))
 	def test_into_subfolder(self):
 		dest_path = as_human_readable(join(self._dest, 'a.txt'))
-		self._expect_prompt(('Move "a.txt" to', dest_path, 6, 7), ('a', True))
+		sel_start = dest_path.rindex(os.sep) + 1
+		self._expect_prompt(
+			('Move "a.txt" to', dest_path, sel_start, sel_start + 1),
+			('a', True)
+		)
 		self._check([self._a_txt], (self._a, None))
 	def test_overwrite_single_file(self):
 		dest_url = join(self._dest, 'a.txt')
 		self._fs._files[dest_url] = {'is_dir': False}
 		dest_path = as_human_readable(dest_url)
+		sel_start = dest_path.rindex(os.sep) + 1
 		self._expect_prompt(
-			('Move "a.txt" to', dest_path, 6, 7), (dest_path, True)
+			('Move "a.txt" to', dest_path, sel_start, sel_start + 1),
+			(dest_path, True)
 		)
 		self._check([self._a_txt], (self._dest, 'a.txt'))
 	def test_multiple_files_over_one(self):
@@ -69,8 +77,9 @@ class ConfirmTreeOperationTest(TestCase):
 		self._check([self._a_txt, self._b_txt], None)
 	def test_renamed_destination(self):
 		dest_path = as_human_readable(join(self._dest, 'a.txt'))
+		sel_start = dest_path.rindex(os.sep) + 1
 		self._expect_prompt(
-			('Move "a.txt" to', dest_path, 6, 7),
+			('Move "a.txt" to', dest_path, sel_start, sel_start + 1),
 			(as_human_readable(join(self._dest, 'z.txt')), True)
 		)
 		self._check([self._a_txt], (self._dest, 'z.txt'))
@@ -89,15 +98,18 @@ class ConfirmTreeOperationTest(TestCase):
 		self._check([self._a_txt, self._b_txt], (dest_url, None))
 	def test_file_system_root(self):
 		dest_path = as_human_readable(join(self._root, 'a.txt'))
+		sel_start = dest_path.rindex(os.sep) + 1
 		self._expect_prompt(
-			('Move "a.txt" to', dest_path, 1, 2),
+			('Move "a.txt" to', dest_path, sel_start, sel_start + 1),
 			(dest_path, True)
 		)
 		self._check([self._a_txt], (self._root, 'a.txt'), dest_dir=self._root)
 	def test_different_scheme(self):
 		dest_path = as_human_readable(join(self._dest, 'a.txt'))
+		sel_start = dest_path.rindex(os.sep) + 1
 		self._expect_prompt(
-			('Move "a.txt" to', dest_path, 6, 7), (dest_path, True)
+			('Move "a.txt" to', dest_path, sel_start, sel_start + 1),
+			(dest_path, True)
 		)
 		src_url = 'zip:///dest.zip/a.txt'
 		src_dir = dirname(src_url)
@@ -136,17 +148,23 @@ class ConfirmTreeOperationTest(TestCase):
 class GetDestSuggestionTest(TestCase):
 	def test_file(self):
 		file_path = os.path.join(self._root, 'file.txt')
+		selection_start = file_path.rindex(os.sep) + 1
+		selection_end = selection_start + len('file')
 		self.assertEqual(
-			(file_path, 1, 5), get_dest_suggestion(as_url(file_path))
+			(file_path, selection_start, selection_end),
+			get_dest_suggestion(as_url(file_path))
 		)
 	def test_dir(self):
 		dir_path = os.path.join(self._root, 'dir')
+		selection_start = dir_path.rindex(os.sep) + 1
+		selection_end = None
 		self.assertEqual(
-			(dir_path, 1, None), get_dest_suggestion(as_url(dir_path))
+			(dir_path, selection_start, selection_end),
+			get_dest_suggestion(as_url(dir_path))
 		)
 	def setUp(self):
 		super().setUp()
-		self._root = 'C:' if PLATFORM == 'Windows' else '/'
+		self._root = 'C:\\' if PLATFORM == 'Windows' else '/'
 
 class FromHumanReadableTest(TestCase):
 	def test_no_src_dir(self):
