@@ -221,12 +221,11 @@ class MainWindow(QMainWindow):
 			self, str(caption), str(dir_path), str(filter_text)
 		)[0]
 	@run_in_main_thread
-	def show_prompt(self, text, default=''):
-		dialog = QInputDialog(self)
-		dialog.setWindowTitle('fman')
-		# Let API users pass arbitrary objects by converting with str(...):
-		dialog.setLabelText(str(text))
-		dialog.setTextEchoMode(QLineEdit.Normal)
+	def show_prompt(self, text, default='', cursor_pos=0, selection_len=None):
+		# Let API users pass arbitrary objects by converting str(text):
+		text_str = str(text)
+		dialog = \
+			Prompt(self, 'fman', text_str, default, cursor_pos, selection_len)
 		dialog.setTextValue(default)
 		result = self.exec_dialog(dialog)
 		if result:
@@ -311,6 +310,52 @@ class MessageBox(QMessageBox):
 	def keyPressEvent(self, event):
 		if self._allow_escape or event.key() != Key_Escape:
 			super().keyPressEvent(event)
+
+class Prompt(QInputDialog):
+	def __init__(
+		self, parent, title, text, default='', cursor_pos=0, selection_len=None
+	):
+		if selection_len is None:
+			selection_len = len(default)
+		super().__init__(parent)
+		self.setWindowTitle(title)
+		self.setLabelText(text)
+		self._cursor_pos = cursor_pos
+		self._selection_len = selection_len
+		if default:
+			self.setTextValue(default)
+		self.setTextEchoMode(QLineEdit.Normal)
+	def showEvent(self, event):
+		super().showEvent(event)
+		# We don't set the cursor and selection in the constructor because it
+		# seems to have no effect there. What's more, we use a QTimer(...) to
+		# further delay the setting of the cursor. The reason for this is the
+		# following example: Say we want the user to enter a file path, and we
+		# want to pre-select the default file's base name without the extension.
+		# The file path is likely too long to be contained in the QLineEdit. We
+		# want to see:
+		#
+		#     /path/to/my/file.txt
+		#          |      ----   |
+		#
+		# where --- is the selection and |...| are the visible borders of the
+		# text field. Instead, by default we see:
+		#
+		#     /path/to/my/file.txt
+		#       |         ----|
+		#
+		# In other words, "file" is highlighted but the ".txt" suffix is not
+		# visible. Using QTimer with a timeout of 50 ms prevents this:
+		QTimer(self).singleShot(50, self._set_cursor_and_selection)
+	def _set_cursor_and_selection(self):
+		line_edit = self._get_line_edit()
+		line_edit.setCursorPosition(self._cursor_pos)
+		line_edit.setSelection(self._cursor_pos, self._selection_len)
+	def _get_line_edit(self):
+		for child in self.children():
+			if isinstance(child, QLineEdit):
+				return child
+		raise AssertionError('Should not reach here')
 
 class Splitter(QSplitter):
 	def createHandle(self):

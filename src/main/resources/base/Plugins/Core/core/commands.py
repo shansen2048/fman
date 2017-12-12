@@ -286,8 +286,14 @@ class CreateAndEditFile(OpenWithEditor):
 			default_name = basename(file_under_cursor)
 		else:
 			default_name = ''
-		file_name, ok = \
-			show_prompt('Enter file name to create/edit:', default_name)
+		try:
+			selection_len = default_name.index('.')
+		except ValueError as not_found:
+			selection_len = len(default_name)
+		file_name, ok = show_prompt(
+			'Enter file name to create/edit:', default_name,
+			selection_len=selection_len
+		)
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
 			if not exists(file_to_edit):
@@ -325,17 +331,46 @@ class _TreeCommand(DirectoryPaneCommand):
 		if not files:
 			ui.show_alert('No file is selected!')
 			return
+		cursor_pos = 0
+		selection_len = None # Select everything
 		if len(files) == 1:
 			file_, = files
-			dest_name = '' if fs.is_dir(file_) else basename(file_)
-			files_descr = '"%s"' % basename(file_)
+			dest_name = basename(file_)
+			files_descr = '"%s"' % dest_name
+			if fs.is_dir(file_):
+				"""
+				There is only one reasonable course of action when the file to
+				be copied is a dir: Suggest the parent directory and copy the
+				dir into it as a folder. The alternative would be to suggest the
+				destination directory and copy the dir's *contents*. But this 
+				brings a host of problems: Say we copy folder src/ to (inside) 
+				dst/ once, and then a second time. Then src/dst is suggested. It
+				already exists. This leads to the remaining logic in this class
+				copying to src/dst/dst instead of overwriting the previously 
+				copied files.
+				
+				Another problem with the alternative approach would be that the
+				user may copy a folder with a lot of files, and manually type in
+				an existing destination directory. If we copied the folder's 
+				contents, then the user may end up with thousands of files 
+				scattered all over the existing directory when he intended for 
+				them to be contained in a separate, single directory.
+				
+				Finally, the alternative approach might not be able to preserve
+				the directory's permissions when an existing destination folder
+				is supplied.
+				"""
+				suggested_dst = as_human_readable(dest_dir)
+			else:
+				dest_url = join(dest_dir, dest_name)
+				suggested_dst, cursor_pos, selection_len = \
+					get_dest_suggestion(dest_url)
 		else:
-			dest_name = ''
 			files_descr = '%d files' % len(files)
-		descr_verb = cls.__name__
-		message = '%s %s to' % (descr_verb, files_descr)
-		dest = as_human_readable(join(dest_dir, dest_name))
-		dest, ok = ui.show_prompt(message, dest)
+			suggested_dst = as_human_readable(dest_dir)
+		message = '%s %s to' % (cls.__name__, files_descr)
+		dest, ok = \
+			ui.show_prompt(message, suggested_dst, cursor_pos, selection_len)
 		if dest and ok:
 			dest = _from_human_readable(dest, dest_dir, src_dir)
 			if fs.exists(dest):
@@ -347,7 +382,7 @@ class _TreeCommand(DirectoryPaneCommand):
 					else:
 						ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
-							descr_verb.lower()
+							cls.__name__.lower()
 						)
 			else:
 				if len(files) == 1:
@@ -356,11 +391,34 @@ class _TreeCommand(DirectoryPaneCommand):
 					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(as_human_readable(dest), descr_verb.lower()),
+						(as_human_readable(dest), cls.__name__.lower()),
 						YES | NO, YES
 					)
 					if choice & YES:
 						return dest, None
+
+def get_dest_suggestion(dst_url):
+	scheme, path = splitscheme(dst_url)
+	if scheme == 'file://':
+		sep = os.sep
+		suggested_dst = path = as_human_readable(dst_url)
+		prefix = ''
+	else:
+		sep = '/'
+		suggested_dst = dst_url
+		prefix = scheme
+	try:
+		last_sep = path.rindex(sep)
+	except ValueError as no_slash:
+		cursor_pos = len(prefix)
+	else:
+		cursor_pos = len(prefix) + last_sep + 1
+		path = path[last_sep + 1:]
+	try:
+		selection_len = path.index('.')
+	except ValueError as no_dot:
+		selection_len = len(path)
+	return suggested_dst, cursor_pos, selection_len
 
 def _get_opposite_pane(pane):
 	panes = pane.window.get_panes()
@@ -1402,8 +1460,10 @@ class Pack(DirectoryPaneCommand):
 			dest_name = basename(self.pane.get_path()) + '.zip'
 		dest_dir = _get_opposite_pane(self.pane).get_path()
 		dest_url = join(dest_dir, dest_name)
-		dest, ok = \
-			show_prompt('Pack %s to:' % descr, as_human_readable(dest_url))
+		suggested_dst, cursor_pos, selection_len = get_dest_suggestion(dest_url)
+		dest, ok = show_prompt(
+			'Pack %s to:' % descr, suggested_dst, cursor_pos, selection_len
+		)
 		if dest and ok:
 			dest = _from_human_readable(dest, dest_dir, self.pane.get_path())
 			scheme = _get_handler_for_archive(basename(dest))
