@@ -287,12 +287,12 @@ class CreateAndEditFile(OpenWithEditor):
 		else:
 			default_name = ''
 		try:
-			selection_len = default_name.index('.')
+			selection_end = default_name.index('.')
 		except ValueError as not_found:
-			selection_len = len(default_name)
+			selection_end = None
 		file_name, ok = show_prompt(
 			'Enter file name to create/edit:', default_name,
-			selection_len=selection_len
+			selection_end=selection_end
 		)
 		if ok and file_name:
 			file_to_edit = join(self.pane.get_path(), file_name)
@@ -331,8 +331,8 @@ class _TreeCommand(DirectoryPaneCommand):
 		if not files:
 			ui.show_alert('No file is selected!')
 			return
-		cursor_pos = 0
-		selection_len = None # Select everything
+		selection_start = 0
+		selection_end = None # Select everything
 		if len(files) == 1:
 			file_, = files
 			dest_name = basename(file_)
@@ -363,14 +363,15 @@ class _TreeCommand(DirectoryPaneCommand):
 				suggested_dst = as_human_readable(dest_dir)
 			else:
 				dest_url = join(dest_dir, dest_name)
-				suggested_dst, cursor_pos, selection_len = \
+				suggested_dst, selection_start, selection_end = \
 					get_dest_suggestion(dest_url)
 		else:
 			files_descr = '%d files' % len(files)
 			suggested_dst = as_human_readable(dest_dir)
 		message = '%s %s to' % (cls.__name__, files_descr)
-		dest, ok = \
-			ui.show_prompt(message, suggested_dst, cursor_pos, selection_len)
+		dest, ok = ui.show_prompt(
+			message, suggested_dst, selection_start, selection_end
+		)
 		if dest and ok:
 			dest = _from_human_readable(dest, dest_dir, src_dir)
 			if fs.exists(dest):
@@ -398,27 +399,26 @@ class _TreeCommand(DirectoryPaneCommand):
 						return dest, None
 
 def get_dest_suggestion(dst_url):
-	scheme, path = splitscheme(dst_url)
+	scheme = splitscheme(dst_url)[0]
 	if scheme == 'file://':
 		sep = os.sep
-		suggested_dst = path = as_human_readable(dst_url)
-		prefix = ''
+		suggested_dst = as_human_readable(dst_url)
+		offset = 0
 	else:
 		sep = '/'
 		suggested_dst = dst_url
-		prefix = scheme
+		offset = len(scheme)
 	try:
-		last_sep = path.rindex(sep)
-	except ValueError as no_slash:
-		cursor_pos = len(prefix)
+		last_sep = suggested_dst.rindex(sep, offset)
+	except ValueError as no_sep:
+		selection_start = offset
 	else:
-		cursor_pos = len(prefix) + last_sep + 1
-		path = path[last_sep + 1:]
+		selection_start = last_sep + 1
 	try:
-		selection_len = path.index('.')
+		selection_end = suggested_dst.index('.', selection_start)
 	except ValueError as no_dot:
-		selection_len = len(path)
-	return suggested_dst, cursor_pos, selection_len
+		selection_end = None
+	return suggested_dst, selection_start, selection_end
 
 def _get_opposite_pane(pane):
 	panes = pane.window.get_panes()
@@ -1468,9 +1468,10 @@ class Pack(DirectoryPaneCommand):
 			dest_name = basename(self.pane.get_path()) + '.zip'
 		dest_dir = _get_opposite_pane(self.pane).get_path()
 		dest_url = join(dest_dir, dest_name)
-		suggested_dst, cursor_pos, selection_len = get_dest_suggestion(dest_url)
+		suggested_dst, selection_start, selection_end = \
+			get_dest_suggestion(dest_url)
 		dest, ok = show_prompt(
-			'Pack %s to:' % descr, suggested_dst, cursor_pos, selection_len
+			'Pack %s to:' % descr, suggested_dst, selection_start, selection_end
 		)
 		if dest and ok:
 			dest = _from_human_readable(dest, dest_dir, self.pane.get_path())

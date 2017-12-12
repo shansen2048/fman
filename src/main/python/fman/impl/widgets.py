@@ -4,7 +4,7 @@ from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import run_in_main_thread, \
 	disable_window_animations_mac, Key_Escape, AscendingOrder
 from fman.impl.util.system import is_windows, is_mac
-from fman.impl.view import FileListView, Layout, LocationBar
+from fman.impl.view import FileListView, Layout, LocationBar, set_selection
 from fman.url import as_human_readable
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
@@ -221,11 +221,14 @@ class MainWindow(QMainWindow):
 			self, str(caption), str(dir_path), str(filter_text)
 		)[0]
 	@run_in_main_thread
-	def show_prompt(self, text, default='', cursor_pos=0, selection_len=None):
+	def show_prompt(
+		self, text, default='', selection_start=0, selection_end=None
+	):
 		# Let API users pass arbitrary objects by converting str(text):
 		text_str = str(text)
-		dialog = \
-			Prompt(self, 'fman', text_str, default, cursor_pos, selection_len)
+		dialog = Prompt(
+			self, 'fman', text_str, default, selection_start, selection_end
+		)
 		dialog.setTextValue(default)
 		result = self.exec_dialog(dialog)
 		if result:
@@ -313,15 +316,14 @@ class MessageBox(QMessageBox):
 
 class Prompt(QInputDialog):
 	def __init__(
-		self, parent, title, text, default='', cursor_pos=0, selection_len=None
+		self, parent, title, text, default='', selection_start=0,
+		selection_end=None
 	):
-		if selection_len is None:
-			selection_len = len(default)
 		super().__init__(parent)
 		self.setWindowTitle(title)
 		self.setLabelText(text)
-		self._cursor_pos = cursor_pos
-		self._selection_len = selection_len
+		self._selection_start = selection_start
+		self._selection_end = selection_end
 		if default:
 			self.setTextValue(default)
 		self.setTextEchoMode(QLineEdit.Normal)
@@ -349,8 +351,7 @@ class Prompt(QInputDialog):
 		QTimer(self).singleShot(50, self._set_cursor_and_selection)
 	def _set_cursor_and_selection(self):
 		line_edit = self._get_line_edit()
-		line_edit.setCursorPosition(self._cursor_pos)
-		line_edit.setSelection(self._cursor_pos, self._selection_len)
+		set_selection(line_edit, self._selection_start, self._selection_end)
 	def _get_line_edit(self):
 		for child in self.children():
 			if isinstance(child, QLineEdit):

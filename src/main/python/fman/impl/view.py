@@ -293,14 +293,7 @@ class FileListView(
 		)
 	def edit_name(self, file_url, selection_start=0, selection_end=-1):
 		def on_editor_shown(editor):
-			cursor_pos = selection_start
-			if selection_start == selection_end:
-				editor.setCursorPosition(cursor_pos)
-			else:
-				text_len = len(editor.text())
-				selection_len = (selection_end % text_len) - \
-								(selection_start % text_len) + 1
-				editor.setSelection(cursor_pos, selection_len)
+			set_selection(editor, selection_start, selection_end)
 		connect_once(self._delegate.editor_shown, on_editor_shown)
 		self.edit(self._get_index(file_url))
 	def keyPressEvent(self, event):
@@ -395,6 +388,26 @@ class FileListView(
 	def _get_url(self, index):
 		model = self.model()
 		return model.sourceModel().url(model.mapToSource(index))
+
+def set_selection(qlineedit, selection_start, selection_end=None):
+	"""
+	Set the selection and/or cursor on the given QLineEdit. The indices
+	`selection_start` and `selection_end` identify the respective "gap" between
+	characters, where the cursor can be placed. If you want to only set the
+	cursor position without selecting anything, use
+	selection_start = selection_end. The default of selection_end=None indicates
+	that everything from selection_start until the end of the text is to be
+	selected.
+	"""
+	text_len = len(qlineedit.text())
+	if selection_end is None:
+		selection_end = text_len
+	cursor_pos = selection_start
+	if selection_start == selection_end:
+		qlineedit.setCursorPosition(cursor_pos)
+	else:
+		selection_len = selection_end - selection_start
+		qlineedit.setSelection(cursor_pos, selection_len)
 
 def _get_ideal_column_widths(widths, min_widths, available_width):
 	if len(widths) != len(min_widths):

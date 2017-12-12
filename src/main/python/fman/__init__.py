@@ -171,8 +171,8 @@ def save_json(name, value=None):
 def show_alert(text, buttons=OK, default_button=OK):
 	return _get_ui().show_alert(text, buttons, default_button)
 
-def show_prompt(text, default='', cursor_pos=0, selection_len=None):
-	return _get_ui().show_prompt(text, default, cursor_pos, selection_len)
+def show_prompt(text, default='', selection_start=0, selection_end=None):
+	return _get_ui().show_prompt(text, default, selection_start, selection_end)
 
 def show_status_message(text, timeout_secs=None):
 	return _get_ui().show_status_message(text, timeout_secs)
