@@ -291,7 +291,7 @@ class FileListView(
 		self.selectionModel().select(
 			self._get_index(file_url), QISM.Toggle | QISM.Rows
 		)
-	def edit_name(self, file_url, selection_start=0, selection_end=-1):
+	def edit_name(self, file_url, selection_start=0, selection_end=None):
 		def on_editor_shown(editor):
 			set_selection(editor, selection_start, selection_end)
 		connect_once(self._delegate.editor_shown, on_editor_shown)

@@ -476,13 +476,13 @@ class Rename(DirectoryPaneCommand):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
 			if is_dir(file_under_cursor):
-				selection_end = -1
+				selection_end = None
 			else:
 				file_name = basename(file_under_cursor)
 				try:
-					selection_end = file_name.index('.') - 1
+					selection_end = file_name.index('.')
 				except ValueError as no_dot:
-					selection_end = -1
+					selection_end = None
 			self.pane.edit_name(file_under_cursor, selection_end=selection_end)
 		else:
 			show_alert('No file is selected!')

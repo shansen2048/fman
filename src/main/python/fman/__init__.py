@@ -108,7 +108,7 @@ class DirectoryPane:
 		self._widget.set_location(dir_url, callback)
 	def reload(self):
 		self._widget.reload()
-	def edit_name(self, file_url, selection_start=0, selection_end=-1):
+	def edit_name(self, file_url, selection_start=0, selection_end=None):
 		self._widget.edit_name(file_url, selection_start, selection_end)
 	def select_all(self):
 		self._widget.select_all()
