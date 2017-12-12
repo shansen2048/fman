@@ -104,8 +104,8 @@ class DirectoryPaneWidget(QWidget):
 	def place_cursor_at(self, file_url):
 		self._file_view.place_cursor_at(file_url)
 	@run_in_main_thread
-	def edit_name(self, file_url):
-		self._file_view.edit_name(file_url)
+	def edit_name(self, file_url, cursor_pos=0, selection_len=None):
+		self._file_view.edit_name(file_url, cursor_pos, selection_len)
 	@run_in_main_thread
 	def add_filter(self, filter_):
 		self._model_sorted.add_filter(filter_)

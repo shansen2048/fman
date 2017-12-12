@@ -1,9 +1,9 @@
 from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Home, \
 	Key_End, ShiftModifier, ControlModifier, AltModifier, MoveAction, \
-	NoButton, CopyAction, Key_Return, Key_Enter, ToolTipRole
+	NoButton, CopyAction, Key_Return, Key_Enter, ToolTipRole, connect_once
 from fman.impl.util.system import is_mac
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
-	QItemSelectionModel
+	QItemSelectionModel, pyqtSignal
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QAbstractItemView, QHeaderView, QToolTip
@@ -272,7 +272,8 @@ class FileListView(
 		# Double click should not open editor:
 		self.setEditTriggers(self.NoEditTriggers)
 		self._init_vertical_header()
-		self.add_delegate(FileListItemDelegate())
+		self._delegate = FileListItemDelegate()
+		self.add_delegate(self._delegate)
 		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 		self.horizontalHeader().sectionResized.connect(self._on_col_resized)
 		self._old_col_widths = None
@@ -290,7 +291,12 @@ class FileListView(
 		self.selectionModel().select(
 			self._get_index(file_url), QISM.Toggle | QISM.Rows
 		)
-	def edit_name(self, file_url):
+	def edit_name(self, file_url, cursor_pos=0, selection_len=None):
+		def on_editor_shown(editor):
+			if selection_len is not None:
+				editor.setCursorPosition(cursor_pos)
+				editor.setSelection(cursor_pos, selection_len)
+		connect_once(self._delegate.editor_shown, on_editor_shown)
 		self.edit(self._get_index(file_url))
 	def keyPressEvent(self, event):
 		if event.key() in (Key_Return, Key_Enter) \
@@ -474,12 +480,17 @@ def _resize_column(col, new_size, widths, min_widths, available_width):
 	return result
 
 class FileListItemDelegate(QStyledItemDelegate):
+
+	editor_shown = pyqtSignal(QLineEdit)
+
 	def eventFilter(self, editor, event):
 		if not editor:
 			# Are required to return True iff "editor is a valid QWidget and the
 			# given event is handled". No editor means not valid:
 			return False
-		if event.type() == QEvent.KeyPress:
+		if event.type() == QEvent.Show:
+			self.editor_shown.emit(editor)
+		elif event.type() == QEvent.KeyPress:
 			# On Mac, the default implementation of Qt jumps to the first/last
 			# list item when the user presses Home/End while editing a file. We
 			# want to jump to the start/end of the text in the editor instead:
