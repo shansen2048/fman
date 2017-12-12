@@ -315,6 +315,32 @@ class MessageBox(QMessageBox):
 			super().keyPressEvent(event)
 
 class Prompt(QInputDialog):
+	"""
+	Most of the code in this otherwise simple class solves the following
+	problem: Say we want the user to enter a file path, and we want to
+	pre-select the default file's base name without the extension. The file path
+	is likely too long to be contained in the text field. We want to see:
+
+		/path/to/my/file.txt
+			 |      ----   |
+
+	where --- is the selection and |...| are the visible borders of the text
+	field. Instead, by default we see:
+
+		/path/to/my/file.txt
+		  |         ----|
+
+	In other words, "file" is highlighted but the ".txt" suffix is not visible.
+
+	QInputDialog and thus this class use QLineEdit for text input. That class
+	internally uses a `hscroll` parameter to indicate the horizontal scroll
+	position which distinguishes the two figures above. The problem is,
+	`hscroll` is not settable from the outside and is, in fact, only set in
+	QLineEdit::paintEvent(...). We'd like to call #repaint(...) but for some
+	reason, this does not always call paintEvent synchronously (perhaps this is
+	QTBUG-4453?). So instead we override paintEvent and call ourselves again
+	one extra time to achieve the desired effect.
+	"""
 	def __init__(
 		self, parent, title, text, default='', selection_start=0,
 		selection_end=None
@@ -327,28 +353,29 @@ class Prompt(QInputDialog):
 		if default:
 			self.setTextValue(default)
 		self.setTextEchoMode(QLineEdit.Normal)
-	def showEvent(self, event):
-		super().showEvent(event)
-		# We don't set the cursor and selection in the constructor because it
-		# seems to have no effect there. What's more, we use a QTimer(...) to
-		# further delay the setting of the cursor. The reason for this is the
-		# following example: Say we want the user to enter a file path, and we
-		# want to pre-select the default file's base name without the extension.
-		# The file path is likely too long to be contained in the QLineEdit. We
-		# want to see:
-		#
-		#     /path/to/my/file.txt
-		#          |      ----   |
-		#
-		# where --- is the selection and |...| are the visible borders of the
-		# text field. Instead, by default we see:
-		#
-		#     /path/to/my/file.txt
-		#       |         ----|
-		#
-		# In other words, "file" is highlighted but the ".txt" suffix is not
-		# visible. Using QTimer with a timeout of 50 ms prevents this:
-		QTimer(self).singleShot(50, self._set_cursor_and_selection)
+		self._set_selection_now = False
+	def setVisible(self, visible):
+		"""
+		Unfortunately, our double call to paintEvent(...) leads to flickering
+		effects on slower systems. The super implementation of this function
+		selects the text edit's entire text. This makes the flickering effect
+		especially noticeable. To alleviate this, we only place the cursor at
+		the end of the text field (via .end(...)). This still has the desired
+		effect of getting Qt to not cut off the rightmost characters of the text
+		field, yet has less visual effect.
+		"""
+		if visible:
+			self.labelText() # Use this to call ensureLayout() of the superclass
+			self._get_line_edit().end(False)
+			self._set_selection_now = True
+		QDialog.setVisible(self, visible)
+	def paintEvent(self, e):
+		if self._set_selection_now:
+			self._set_selection_now = False
+			# Avoid warning "Recursive repaint detected":
+			self.setAttribute(Qt.WA_WState_InPaintEvent, False)
+			self.repaint()
+			self._set_cursor_and_selection()
 	def _set_cursor_and_selection(self):
 		line_edit = self._get_line_edit()
 		set_selection(line_edit, self._selection_start, self._selection_end)
