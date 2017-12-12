@@ -52,7 +52,10 @@ class Config:
 				# already written to the same json file, then the delta
 				# computation may fail with a ValueError. Ignore this so we can
 				# at least save the other files in _save_on_quit:
-				pass
+				continue
+			except OSError:
+				# Not much we can do. Try the other JSONs at least:
+				continue
 	def _reload_cache(self):
 		old_cache = self._cache
 		self._cache = {}
