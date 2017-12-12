@@ -983,11 +983,29 @@ class SuggestLocations:
 				path += '\\'
 		if isabs(path):
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
-			if self.fs.isdir(path):
-				dir_ = self.fs.resolve(path)
+			try:
+				path_isdir = self.fs.isdir(path)
+			except OSError:
+				path_isdir = False
+			if path_isdir:
+				try:
+					dir_ = self.fs.resolve(path)
+				except OSError:
+					dir_ = path
 				return [dir_] + get_subdirs(dir_)
-			elif self.fs.isdir(os.path.dirname(path)):
-				return get_subdirs(self.fs.resolve(os.path.dirname(path)))
+			else:
+				parent_path = os.path.dirname(path)
+				try:
+					parent_isdir = self.fs.isdir(parent_path)
+				except OSError:
+					parent_isdir = False
+				if parent_isdir:
+					try:
+						parent = self.fs.resolve(parent_path)
+					except OSError:
+						pass
+					else:
+						return get_subdirs(parent)
 		result = set(self.visited_paths)
 		if len(query) > 2:
 			"""Compensate for directories not yet in self.visited_paths:"""
@@ -1030,8 +1048,11 @@ class SuggestLocations:
 		else:
 			for name in dir_contents:
 				file_path = os.path.join(dir_, name)
-				if self.fs.isdir(file_path):
-					yield file_path
+				try:
+					if self.fs.isdir(file_path):
+						yield file_path
+				except OSError:
+					pass
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 
