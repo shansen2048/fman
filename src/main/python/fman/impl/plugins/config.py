@@ -107,11 +107,18 @@ def load_json(paths):
 	return result
 
 def write_differential_json(obj, paths, dest_path):
-	old_obj = load_json(paths + [dest_path])
+	difference = get_differential_json(obj, paths, dest_path)
+	if difference is not None:
+		makedirs(dirname(dest_path), exist_ok=True)
+		with open(dest_path, 'w') as f:
+			json.dump(difference, f)
+
+def get_differential_json(obj, paths, final_path):
+	old_obj = load_json(paths + [final_path])
 	if obj == old_obj:
-		return
+		return None
 	if old_obj is None:
-		difference = obj
+		return obj
 	else:
 		if type(obj) != type(old_obj):
 			raise ValueError(
@@ -127,12 +134,12 @@ def write_differential_json(obj, paths, dest_path):
 					'Deleting keys %r is not supported.' % wrongly_deleted
 				)
 			base = load_json(paths) or {}
-			difference = {
+			return {
 				key: value for key, value in obj.items()
 				if key not in base or base[key] != value
 			}
 		elif isinstance(obj, list):
-			changeable = load_json([dest_path]) or []
+			changeable = load_json([final_path]) or []
 			remainder = old_obj[len(changeable):]
 			if remainder:
 				if obj[-len(remainder):] != remainder:
@@ -140,11 +147,8 @@ def write_differential_json(obj, paths, dest_path):
 						"It's not possible to update list items in paths %r." %
 						(paths,)
 					)
-				difference = obj[:-len(remainder)]
+				return obj[:-len(remainder)]
 			else:
-				difference = obj
+				return obj
 		else:
-			difference = obj
-	makedirs(dirname(dest_path), exist_ok=True)
-	with open(dest_path, 'w') as f:
-		json.dump(difference, f)
+			return obj
