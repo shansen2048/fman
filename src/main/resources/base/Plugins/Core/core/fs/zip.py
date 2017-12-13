@@ -265,6 +265,15 @@ class _7ZipFileSystem(FileSystem):
 		args = ['l', '-ba', '-slt', zip_path]
 		if path_in_zip:
 			args.append(path_in_zip)
+		# Make 7-Zip only list direct children of the given directory. This
+		# _hugely_ improves performance. Unfortunately, it comes at the cost of
+		# not working for "malformed" archives, which do not contain separate
+		# entries for intermediate directories. (Eg. if you have a/b in an
+		# archive, "good" implementations write an entry for "a/" and an entry
+		# for "a/b" into the archive's table of contents. In theory, the "a/"
+		# entry is optional. Our current implementation requires it.
+		exclude = (path_in_zip + '/' if path_in_zip else '') + '*/*'
+		args.append('-x!' + exclude)
 		process = self._start_7zip(args)
 		try:
 			file_info = self._read_file_info(process.stdout)
