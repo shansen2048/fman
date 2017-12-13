@@ -23,9 +23,7 @@ _7ZIP_BINARY = join(bin_dir, '7za' + ('.exe' if PLATFORM == 'Windows' else ''))
 
 del bin_dir
 
-class ZipFileSystem(FileSystem):
-
-	scheme = 'zip://'
+class _7ZipFileSystem(FileSystem):
 
 	_7ZIP_WARNING = 1
 
@@ -315,5 +313,11 @@ class ZipFileSystem(FileSystem):
 					mtime = datetime.strptime(mtime_str, '%Y-%m-%d %H:%M:%S')
 		if path:
 			return _FileInfo(path, is_dir, size, mtime)
+
+class ZipFileSystem(_7ZipFileSystem):
+	scheme = 'zip://'
+
+class SevenZipFileSystem(_7ZipFileSystem):
+	scheme = '7z://'
 
 _FileInfo = namedtuple('_FileInfo', ('path', 'is_dir', 'size_bytes', 'mtime'))
