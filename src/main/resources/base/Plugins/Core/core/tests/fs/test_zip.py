@@ -321,7 +321,7 @@ class ZipFileSystemTest(TestCase):
 		ZipFile(path, 'w').close()
 	def setUp(self):
 		super().setUp()
-		self._fs = ZipFileSystem(StubFS())
+		self._fs = ZipFileSystem(StubFS(), {'.zip'})
 		self._tmp_dir = TemporaryDirectory()
 		self._zip = copyfile(
 			get_resource('ZipFileSystemTest.zip'),

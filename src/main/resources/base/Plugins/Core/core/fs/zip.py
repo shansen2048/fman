@@ -2,7 +2,7 @@ from collections import namedtuple
 from core.os_ import is_arch
 from core.util import filenotfounderror
 from datetime import datetime
-from fman import PLATFORM
+from fman import PLATFORM, load_json
 from fman.fs import FileSystem
 from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
@@ -29,16 +29,25 @@ class ZipFileSystem(FileSystem):
 
 	_7ZIP_WARNING = 1
 
-	def __init__(self, fs=fman.fs):
+	def __init__(self, fs=fman.fs, suffixes=None):
 		super().__init__()
 		self._fs = fs
+		self._suffixes = self._load_suffixes() if suffixes is None else suffixes
+	def _load_suffixes(self):
+		settings = load_json('Core Settings.json', default={})
+		archive_handlers = settings.get('archive_handlers', {})
+		return set(
+			suffix for suffix, scheme in archive_handlers.items()
+			if scheme == self.scheme
+		)
 
 	def get_default_columns(self, path):
 		return 'Name', 'Size', 'Modified'
 	def resolve(self, path):
-		if '.zip' in path.lower():
-			# Return zip:// + path:
-			return super().resolve(path)
+		for suffix in self._suffixes:
+			if suffix in path.lower():
+				# Return zip:// + path:
+				return super().resolve(path)
 		return as_url(path)
 	def iterdir(self, path):
 		zip_path, path_in_zip = self._split(path)
@@ -225,12 +234,14 @@ class ZipFileSystem(FileSystem):
 				args.insert(1, '-l')
 			self._run_7zip(args, cwd=tmp_dir)
 	def _split(self, path):
-		suffix = '.zip'
-		try:
-			split_point = path.lower().index(suffix) + len(suffix)
-		except ValueError:
-			raise filenotfounderror(self.scheme + path) from None
-		return path[:split_point], path[split_point:].lstrip('/')
+		for suffix in self._suffixes:
+			try:
+				split_point = path.lower().index(suffix) + len(suffix)
+			except ValueError as suffix_not_found:
+				continue
+			else:
+				return path[:split_point], path[split_point:].lstrip('/')
+		raise filenotfounderror(self.scheme + path) from None
 	def _iter_names(self, zip_path, path_in_zip):
 		for file_info in self._iter_infos(zip_path, path_in_zip):
 			yield file_info.path
