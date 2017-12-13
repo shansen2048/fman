@@ -49,9 +49,7 @@ class MotherFileSystem:
 	def exists(self, url):
 		return self._query(url, 'exists')
 	def iterdir(self, url):
-		return self._query_cache(url, 'iterdir', self._iterdir)
-	def _iterdir(self, url):
-		return CachedIterable(self._query(url, 'iterdir'))
+		return self._query_cache(url, 'iterdir')
 	def query(self, url, fs_method_name):
 		return self._query_cache(url, fs_method_name)
 	def is_dir(self, url):
@@ -152,6 +150,10 @@ class MotherFileSystem:
 						del self._cache[url]
 					raise e from None
 				if not cache_true_only or value:
+					try:
+						value = CachedIterable(value)
+					except TypeError as not_an_iterable:
+						pass
 					cache[prop] = value
 				return value
 	def _query(self, url, prop):

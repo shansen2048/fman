@@ -3,7 +3,8 @@ from core.os_ import is_arch
 from core.util import filenotfounderror
 from datetime import datetime
 from fman import PLATFORM, load_json
-from fman.fs import FileSystem
+from fman.fs import FileSystem, query
+from fman.impl.util.path import parent
 from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from os.path import join, dirname
@@ -13,6 +14,7 @@ from tempfile import TemporaryDirectory
 
 import fman.fs
 import os
+import os.path
 
 if is_arch():
 	bin_dir = '/usr/bin'
@@ -27,11 +29,16 @@ class _7ZipFileSystem(FileSystem):
 
 	_7ZIP_WARNING = 1
 
-	def __init__(self, fs=fman.fs, suffixes=None):
+	def __init__(self, fs=fman.fs, suffixes=None, query_fn=None):
+		if suffixes is None:
+			suffixes = self._load_suffixes_from_json()
+		if query_fn is None:
+			query_fn = lambda path, attr: query(self.scheme + path, attr)
 		super().__init__()
 		self._fs = fs
-		self._suffixes = self._load_suffixes() if suffixes is None else suffixes
-	def _load_suffixes(self):
+		self._suffixes = suffixes
+		self._query = query_fn
+	def _load_suffixes_from_json(self):
 		settings = load_json('Core Settings.json', default={})
 		archive_handlers = settings.get('archive_handlers', {})
 		return set(
@@ -70,10 +77,9 @@ class _7ZipFileSystem(FileSystem):
 		if not dir_path:
 			return Path(zip_path).exists()
 		try:
-			for info in self._iter_infos(zip_path, dir_path):
-				if info.path == dir_path:
-					return info.is_dir
-				return True
+			result = self._query_info_attr(zip_path, dir_path, 'is_dir', True)
+			if result is not None:
+				return result
 		except FileNotFoundError:
 			return False
 		return False
@@ -85,7 +91,7 @@ class _7ZipFileSystem(FileSystem):
 		if not path_in_zip:
 			return Path(zip_path).exists()
 		try:
-			next(iter(self._iter_infos(zip_path, path_in_zip)))
+			next(iter(self._iter_infos_cached(zip_path, path_in_zip)))
 		except FileNotFoundError:
 			return False
 		return True
@@ -163,19 +169,21 @@ class _7ZipFileSystem(FileSystem):
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			self._run_7zip(['d', zip_path, path_in_zip])
 	def get_size_bytes(self, path):
-		zip_path, dir_path = self._split(path)
-		for info in self._iter_infos(zip_path, dir_path):
-			if info.path == dir_path:
-				return info.size_bytes
-			# Is a directory:
-			return None
+		zip_path, path_in_zip = self._split(path)
+		return self._query_info_attr(zip_path, path_in_zip, 'size_bytes', None)
 	def get_modified_datetime(self, path):
-		zip_path, dir_path = self._split(path)
-		for info in self._iter_infos(zip_path, dir_path):
-			if info.path == dir_path:
-				return info.mtime
-			# Is a directory:
-			return None
+		zip_path, path_in_zip = self._split(path)
+		return self._query_info_attr(zip_path, path_in_zip, 'mtime', None)
+	def _query_info_attr(self, zip_path, path_in_zip, attr, folder_default):
+		parent_dir = parent(path_in_zip)
+		# Perhaps we already have the information in the parent's cache:
+		for info in self._iter_infos_cached(zip_path, parent_dir):
+			if info.path == path_in_zip:
+				return getattr(info, attr)
+		for info in self._iter_infos_cached(zip_path, path_in_zip):
+			if info.path == path_in_zip:
+				return getattr(info, attr)
+			return folder_default
 	def _preserve_empty_parent(self, zip_path, path_in_zip):
 		# 7-Zip deletes empty directories that remain after an operation. For
 		# instance, when deleting the last file from a directory, or when moving
@@ -240,10 +248,19 @@ class _7ZipFileSystem(FileSystem):
 			else:
 				return path[:split_point], path[split_point:].lstrip('/')
 		raise filenotfounderror(self.scheme + path) from None
+	def _unsplit(self, zip_path, path_in_zip):
+		result = zip_path
+		if path_in_zip:
+			result += '/' + path_in_zip
+		return result
 	def _iter_names(self, zip_path, path_in_zip):
-		for file_info in self._iter_infos(zip_path, path_in_zip):
+		for file_info in self._iter_infos_cached(zip_path, path_in_zip):
 			yield file_info.path
-	def _iter_infos(self, zip_path, path_in_zip):
+	def _iter_infos_cached(self, zip_path, path_in_zip):
+		path = self._unsplit(zip_path, path_in_zip)
+		return self._query(path, '_iter_infos')
+	def _iter_infos(self, path):
+		zip_path, path_in_zip = self._split(path)
 		self._raise_filenotfounderror_if_not_exists(zip_path)
 		args = ['l', '-ba', '-slt', zip_path]
 		if path_in_zip:
@@ -252,8 +269,7 @@ class _7ZipFileSystem(FileSystem):
 		try:
 			file_info = self._read_file_info(process.stdout)
 			if not file_info:
-				url = '%s%s/%s' % (self.scheme, zip_path, path_in_zip)
-				raise filenotfounderror(url)
+				raise filenotfounderror(self.scheme + path)
 			while file_info:
 				yield file_info
 				file_info = self._read_file_info(process.stdout)
@@ -301,13 +317,16 @@ class _7ZipFileSystem(FileSystem):
 				path = line[len('Path = '):].replace(os.sep, '/')
 			elif line.startswith('Folder = '):
 				folder = line[len('Folder = '):]
-				is_dir = folder == '+'
+				is_dir = is_dir or folder == '+'
 			elif line.startswith('Size = '):
 				size = int(line[len('Size = '):])
 			elif line.startswith('Modified = '):
 				mtime_str = line[len('Modified = '):]
 				if mtime_str:
 					mtime = datetime.strptime(mtime_str, '%Y-%m-%d %H:%M:%S')
+			elif line.startswith('Attributes = '):
+				attributes = line[len('Attributes = '):]
+				is_dir = is_dir or attributes.startswith('D')
 		if path:
 			return _FileInfo(path, is_dir, size, mtime)
 

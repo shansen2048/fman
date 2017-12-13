@@ -22,7 +22,7 @@ def add_backslash_to_drive_if_missing(file_path): # Copied from Core plugin
 			return file_path + '\\'
 	return file_path
 
-def parent(path):
+def parent(path): # Copied from Core plugin
 	if path == '/':
 		return ''
 	result = str(PurePosixPath(path).parent) if path else ''

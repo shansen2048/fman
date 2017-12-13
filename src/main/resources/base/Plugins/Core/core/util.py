@@ -1,5 +1,6 @@
 from os import listdir, strerror
 from os.path import join
+from pathlib import PurePosixPath
 
 import errno
 
@@ -24,3 +25,9 @@ def filenotfounderror(path):
 	# The correct way of instantiating FileNotFoundError in a way that respects
 	# the parent class (OSError)'s arguments:
 	return FileNotFoundError(errno.ENOENT, strerror(errno.ENOENT), path)
+
+def parent(path):
+	if path == '/':
+		return ''
+	result = str(PurePosixPath(path).parent) if path else ''
+	return '' if result == '.' else result

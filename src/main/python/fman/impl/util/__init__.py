@@ -88,6 +88,9 @@ class CachedIterable:
 	_DELETED = object()
 
 	def __init__(self, source):
+		"""
+		This constructor must(!) raise `TypeError` if source is not an iterable.
+		"""
 		self._source = iter(source)
 		self._lock = Lock()
 		self._items = []
