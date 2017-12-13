@@ -1523,7 +1523,7 @@ def _get_handler_for_archive(file_name):
 		key=lambda tpl: -len(tpl[0])
 	)
 	for suffix, scheme in archive_types:
-		if file_name.endswith(suffix):
+		if file_name.lower().endswith(suffix):
 			return scheme
 
 class ArchiveOpenListener(DirectoryPaneListener):

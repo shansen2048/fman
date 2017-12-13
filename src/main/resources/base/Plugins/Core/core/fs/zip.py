@@ -36,7 +36,7 @@ class ZipFileSystem(FileSystem):
 	def get_default_columns(self, path):
 		return 'Name', 'Size', 'Modified'
 	def resolve(self, path):
-		if '.zip' in path:
+		if '.zip' in path.lower():
 			# Return zip:// + path:
 			return super().resolve(path)
 		return as_url(path)
@@ -227,7 +227,7 @@ class ZipFileSystem(FileSystem):
 	def _split(self, path):
 		suffix = '.zip'
 		try:
-			split_point = path.index(suffix) + len(suffix)
+			split_point = path.lower().index(suffix) + len(suffix)
 		except ValueError:
 			raise filenotfounderror(self.scheme + path) from None
 		return path[:split_point], path[split_point:].lstrip('/')
