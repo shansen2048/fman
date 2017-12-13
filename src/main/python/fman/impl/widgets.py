@@ -324,22 +324,21 @@ class Prompt(QInputDialog):
 		/path/to/my/file.txt
 			 |      ----   |
 
-	where --- is the selection and |...| are the visible borders of the text
+	where --- is the selection and |   | are the visible borders of the text
 	field. Instead, by default we see:
 
 		/path/to/my/file.txt
 		  |         ----|
 
-	In other words, "file" is highlighted but the ".txt" suffix is not visible.
+	In other words, "file" is highlighted but the ".txt" suffix is cut off.
 
 	QInputDialog and thus this class use QLineEdit for text input. That class
 	internally uses a `hscroll` parameter to indicate the horizontal scroll
 	position which distinguishes the two figures above. The problem is,
-	`hscroll` is not settable from the outside and is, in fact, only set in
-	QLineEdit::paintEvent(...). We'd like to call #repaint(...) but for some
-	reason, this does not always call paintEvent synchronously (perhaps this is
-	QTBUG-4453?). So instead we override paintEvent and call ourselves again
-	one extra time to achieve the desired effect.
+	`hscroll` is not settable from the outside. In fact, it is only set by
+	QLineEdit::paintEvent(...). We thus perform the initial paintEvent(...)
+	twice: First with the cursor at the end and then with the cursor / selection
+	at the correct position. This sets `hscroll` to the required value.
 	"""
 	def __init__(
 		self, parent, title, text, default='', selection_start=0,
@@ -353,11 +352,12 @@ class Prompt(QInputDialog):
 		if default:
 			self.setTextValue(default)
 		self.setTextEchoMode(QLineEdit.Normal)
-		self._set_selection_now = False
+		self._request_immediate_repaint = False
+		self._is_second_paint = False
 	def setVisible(self, visible):
 		"""
 		Unfortunately, our double call to paintEvent(...) leads to flickering
-		effects on slower systems. The super implementation of this function
+		effects on slower systems. The super() implementation of this function
 		selects the text edit's entire text. This makes the flickering effect
 		especially noticeable. To alleviate this, we only place the cursor at
 		the end of the text field (via .end(...)). This still has the desired
@@ -365,16 +365,18 @@ class Prompt(QInputDialog):
 		field, yet has less visual effect.
 		"""
 		if visible:
-			self.labelText() # Use this to call ensureLayout() of the superclass
+			self.labelText() # Call private ensureLayout() of the superclass
 			self._get_line_edit().end(False)
-			self._set_selection_now = True
+			self._request_immediate_repaint = True
 		QDialog.setVisible(self, visible)
 	def paintEvent(self, e):
-		if self._set_selection_now:
-			self._set_selection_now = False
-			# Avoid warning "Recursive repaint detected":
-			self.setAttribute(Qt.WA_WState_InPaintEvent, False)
-			self.repaint()
+		if self._request_immediate_repaint:
+			self._request_immediate_repaint = False
+			# Request the second paint:
+			self.update()
+			self._is_second_paint = True
+		elif self._is_second_paint:
+			self._is_second_paint = False
 			self._set_cursor_and_selection()
 	def _set_cursor_and_selection(self):
 		line_edit = self._get_line_edit()
