@@ -189,7 +189,7 @@ class ZipFileSystem(FileSystem):
 							self.makedirs(parent_fullpath)
 		return CM()
 	def _extract(self, zip_path, path_in_zip, dst_path):
-		# Create temp dir next to dst_path to ensure Path.rename(...) works
+		# Create temp dir next to dst_path to ensure Path.replace(...) works
 		# because it's on the same file system.
 		tmp_dir = self._create_temp_dir_next_to(dst_path)
 		try:
@@ -198,7 +198,7 @@ class ZipFileSystem(FileSystem):
 				args.insert(2, path_in_zip)
 			self._run_7zip(args)
 			root = Path(tmp_dir.name, *path_in_zip.split('/'))
-			root.rename(dst_path)
+			root.replace(dst_path)
 		finally:
 			try:
 				tmp_dir.cleanup()
