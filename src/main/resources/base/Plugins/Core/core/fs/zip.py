@@ -328,7 +328,9 @@ class _7ZipFileSystem(FileSystem):
 				folder = line[len('Folder = '):]
 				is_dir = is_dir or folder == '+'
 			elif line.startswith('Size = '):
-				size = int(line[len('Size = '):])
+				size_str = line[len('Size = '):]
+				if size_str:
+					size = int(size_str)
 			elif line.startswith('Modified = '):
 				mtime_str = line[len('Modified = '):]
 				if mtime_str:
@@ -344,5 +346,8 @@ class ZipFileSystem(_7ZipFileSystem):
 
 class SevenZipFileSystem(_7ZipFileSystem):
 	scheme = '7z://'
+
+class TarFileSystem(_7ZipFileSystem):
+	scheme = 'tar://'
 
 _FileInfo = namedtuple('_FileInfo', ('path', 'is_dir', 'size_bytes', 'mtime'))
