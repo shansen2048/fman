@@ -1,7 +1,7 @@
 from errno import ENOENT
 from core.fs.zip import ZipFileSystem
 from core.tests import StubFS
-from datetime import datetime
+from datetime import date
 from fman.url import as_url, join, as_human_readable, splitscheme
 from fman_integrationtest import get_resource
 from os import listdir
@@ -263,13 +263,13 @@ class ZipFileSystemTest(TestCase):
 	def test_get_modified_datetime_file(self):
 		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
 		mtime = self._fs.get_modified_datetime(self._path(file_path))
-		self.assertEqual(datetime(2017, 11, 8, 13, 26, 42), mtime)
+		# Compare by date only because the time depends on the system time zone:
+		self.assertEqual(date(2017, 11, 8), mtime.date())
 	def test_get_modified_datetime_dir(self):
 		dir_path = self._path('ZipFileTest/Directory/Subdirectory')
-		self.assertEqual(
-			datetime(2017, 12, 13, 16, 27, 21),
-			self._fs.get_modified_datetime(dir_path)
-		)
+		mtime = self._fs.get_modified_datetime(dir_path)
+		# Compare by date only because the time depends on the system time zone:
+		self.assertEqual(date(2017, 12, 13), mtime.date())
 	def test_get_modified_datetime_root(self):
 		self.assertIsNone(self._fs.get_modified_datetime(self._path('')))
 	def test_get_modified_datetime_nonexistent_zip(self):
