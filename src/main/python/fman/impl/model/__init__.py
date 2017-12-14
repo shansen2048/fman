@@ -105,6 +105,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._null_location = null_location
 		self._location = None # until we call set_location(...) below
 		self._location_loaded = False
+		self._already_visited = set()
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
 		self._columns = ()
@@ -312,7 +313,11 @@ class FileSystemModel(DragAndDropMixin):
 		# change the cursor position.
 		callback()
 		self.location_loaded.emit(location)
-		self._execute_async(self.reload, location)
+		# No point reloading if this is the first visit and the location was
+		# thus just loaded.
+		if location in self._already_visited:
+			self._execute_async(self.reload, location)
+		self._already_visited.add(location)
 	def _load_row(self, url, ignore=(PermissionError,)):
 		def get(getter, default=None):
 			try:
