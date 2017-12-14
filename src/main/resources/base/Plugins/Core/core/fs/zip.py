@@ -92,7 +92,7 @@ class _7ZipFileSystem(FileSystem):
 			return Path(zip_path).exists()
 		try:
 			next(iter(self._iter_infos_cached(zip_path, path_in_zip)))
-		except FileNotFoundError:
+		except (StopIteration, FileNotFoundError):
 			return False
 		return True
 	def copy(self, src_url, dst_url):
