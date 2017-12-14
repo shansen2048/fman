@@ -1,7 +1,7 @@
 from fman.impl.tutorial import Tutorial, TutorialStep
 from fman.impl.util import is_below_dir
 from fman.impl.util.path import add_backslash_to_drive_if_missing
-from fman.impl.util.qt import run_in_main_thread
+from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.util.system import is_mac, is_windows
 from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \

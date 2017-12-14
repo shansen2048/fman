@@ -1,6 +1,7 @@
 from fman.impl.html_style import highlight, underline
 from fman.impl.widgets import Overlay
-from fman.impl.util.qt import run_in_main_thread, connect_once
+from fman.impl.util.qt import connect_once
+from fman.impl.util.qt.thread import run_in_main_thread
 
 import re
 

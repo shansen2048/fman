@@ -1,4 +1,4 @@
-from fman.impl.util.qt import run_in_thread
+from fman.impl.util.qt.thread import run_in_thread, Executor
 from PyQt5.QtCore import QThread
 from PyQt5.QtCore import QCoreApplication, pyqtSignal, Qt
 from threading import get_ident
@@ -51,4 +51,5 @@ class RunInThreadIT(QtIT):
 	def tearDown(self):
 		self.other_thread.exit()
 		self.other_thread.wait()
+		Executor._INSTANCE = None
 		super().tearDown()

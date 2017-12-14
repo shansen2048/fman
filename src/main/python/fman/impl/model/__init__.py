@@ -5,7 +5,8 @@ from fman.impl.util import is_debug
 from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
 	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
-	run_in_main_thread, is_in_main_thread, ToolTipRole, as_qurl, from_qurl
+	ToolTipRole, as_qurl, from_qurl
+from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.impl.util.url import get_existing_pardir, is_pardir
 from fman.url import dirname, join
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, \
@@ -104,7 +105,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._fs = fs
 		self._null_location = null_location
 		self._location = None # until we call set_location(...) below
-		self._location_loaded = False
+		self._allow_reload = False
 		self._already_visited = set()
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
@@ -180,7 +181,7 @@ class FileSystemModel(DragAndDropMixin):
 	@run_in_main_thread
 	def _prepare_new_location(self, url):
 		self._location = url
-		self._location_loaded = False
+		self._allow_reload = False
 		self.location_changed.emit(url)
 		self.beginResetModel()
 		self._rows = []
@@ -220,34 +221,42 @@ class FileSystemModel(DragAndDropMixin):
 			return True
 		return super().setData(index, value, role)
 	def reload(self, location=None):
-		assert not is_in_main_thread()
-		if not self._location_loaded:
-			# Don't allow reload when initial load is still in progress.
-			return
 		if location is None:
 			location = self._location
-		# Abort reload if path changed:
-		if location != self._location:
-			return
-		self._fs.clear_cache(location)
-		rows = []
-		file_names = iter(self._fs.iterdir(location))
-		while self._location == location: # Abort reload if location changed
-			try:
-				file_name = next(file_names)
-			except (StopIteration, OSError):
-				break
-			else:
-				file_url = join(location, file_name)
-				self._fs.clear_cache(file_url)
-				try:
-					rows.append(self._load_row(file_url))
-				except FileNotFoundError:
-					pass
+		if is_in_main_thread():
+			self._execute_async(self._reload, location)
 		else:
-			assert self._location != location
+			self._reload(location)
+	def _reload(self, location):
+		assert not is_in_main_thread()
+		if not self._allow_reload:
 			return
-		self._on_reloaded(location, rows)
+		self._allow_reload = False
+		try:
+			# Abort reload if path changed:
+			if location != self._location:
+				return
+			self._fs.clear_cache(location)
+			rows = []
+			file_names = iter(self._fs.iterdir(location))
+			while self._location == location: # Abort reload if location changed
+				try:
+					file_name = next(file_names)
+				except (StopIteration, OSError):
+					break
+				else:
+					file_url = join(location, file_name)
+					self._fs.clear_cache(file_url)
+					try:
+						rows.append(self._load_row(file_url))
+					except FileNotFoundError:
+						pass
+			else:
+				assert self._location != location
+				return
+			self._on_reloaded(location, rows)
+		finally:
+			self._allow_reload = True
 	@run_in_main_thread
 	def _on_reloaded(self, location, rows):
 		# Abort reload if path changed:
@@ -305,7 +314,6 @@ class FileSystemModel(DragAndDropMixin):
 			return
 		if batch:
 			self._on_rows_loaded(batch, location)
-		self._location_loaded = True
 		# Invoke the callback before emitting location_loaded. The reason is
 		# that the default location_loaded handler places the cursor - it is has
 		# not been placed yet. If the callback does place it, ugly "flickering"
@@ -313,10 +321,11 @@ class FileSystemModel(DragAndDropMixin):
 		# change the cursor position.
 		callback()
 		self.location_loaded.emit(location)
+		self._allow_reload = True
 		# No point reloading if this is the first visit and the location was
 		# thus just loaded.
 		if location in self._already_visited:
-			self._execute_async(self.reload, location)
+			self.reload(location)
 		self._already_visited.add(location)
 	def _load_row(self, url, ignore=(PermissionError,)):
 		def get(getter, default=None):
@@ -395,7 +404,7 @@ class FileSystemModel(DragAndDropMixin):
 		assert is_in_main_thread()
 		if url == self._location:
 			# The common case
-			self._execute_async(self.reload, url)
+			self.reload(url)
 		elif self._is_in_root(url):
 			self._execute_async(self._reload_row, url)
 	def _reload_row(self, url):

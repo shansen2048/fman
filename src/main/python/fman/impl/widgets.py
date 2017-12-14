@@ -1,8 +1,9 @@
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.quicksearch import Quicksearch
-from fman.impl.util.qt import run_in_main_thread, \
-	disable_window_animations_mac, Key_Escape, AscendingOrder
+from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
+	AscendingOrder
+from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.util.system import is_windows, is_mac
 from fman.impl.view import FileListView, Layout, LocationBar, set_selection
 from fman.url import as_human_readable
@@ -18,6 +19,7 @@ class Application(QApplication):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._main_window = None
+		self.applicationStateChanged.connect(self._on_state_changed)
 	def set_main_window(self, main_window):
 		self._main_window = main_window
 		# Ensure all other windows are closed as well when the main window
@@ -30,6 +32,10 @@ class Application(QApplication):
 	@run_in_main_thread
 	def set_style_sheet(self, stylesheet):
 		self.setStyleSheet(stylesheet)
+	def _on_state_changed(self, new_state):
+		if new_state == Qt.ApplicationActive:
+			for pane in self._main_window.get_panes():
+				pane.reload()
 
 class DirectoryPaneWidget(QWidget):
 

@@ -1,71 +1,12 @@
 from fman.impl.util.system import is_windows
 from fman.url import splitscheme, as_human_readable, as_url
-from functools import wraps
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QEvent, QUrl
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt, QObject, QEvent, QUrl
 
 def connect_once(signal, slot):
 	def _connect_once(*args, **kwargs):
 		signal.disconnect(_connect_once)
 		slot(*args, **kwargs)
 	signal.connect(_connect_once)
-
-def run_in_thread(thread_fn):
-	def decorator(f):
-		@wraps(f)
-		def result(*args, **kwargs):
-			thread = thread_fn()
-			if QThread.currentThread() == thread:
-				return f(*args, **kwargs)
-			task = Task(f, args, kwargs)
-			receiver = Receiver(task)
-			receiver.moveToThread(thread)
-			sender = Sender()
-			sender.signal.connect(receiver.slot, Qt.BlockingQueuedConnection)
-			sender.signal.emit()
-			return task.result
-		return result
-	return decorator
-
-def _main_thread():
-	return QApplication.instance().thread()
-
-run_in_main_thread = run_in_thread(_main_thread)
-
-def is_in_main_thread():
-	return QThread.currentThread() == _main_thread()
-
-class Task:
-	def __init__(self, fn, args, kwargs):
-		self.fn = fn
-		self.args = args
-		self.kwargs = kwargs
-		self.has_run = False
-		self._result = self._exception = None
-	def __call__(self):
-		try:
-			self._result = self.fn(*self.args, **self.kwargs)
-		except Exception as e:
-			self._exception = e
-		finally:
-			self.has_run = True
-	@property
-	def result(self):
-		if not self.has_run:
-			raise ValueError("Hasn't run.")
-		if self._exception:
-			raise self._exception
-		return self._result
-
-class Sender(QObject):
-	signal = pyqtSignal()
-
-class Receiver(QObject):
-	def __init__(self, callback, parent=None):
-		super().__init__(parent)
-		self.callback = callback
-	def slot(self):
-		self.callback()
 
 def disable_window_animations_mac(window):
 	# We need to access `.winId()` below. This method has an unwanted (and not
