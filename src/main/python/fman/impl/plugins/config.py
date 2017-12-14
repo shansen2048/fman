@@ -73,6 +73,16 @@ class Config:
 				self._cache[json_name] = new
 			elif json_name in self._save_on_quit:
 				self._cache[json_name] = old
+		self._check_integrity()
+	def _check_integrity(self):
+		"""
+		We spuriously get KeyErrors in on_quit because a json_name is in
+		_save_on_quit but not in _cache. This method aims to expose when the
+		inconsistent state is introduced.
+		"""
+		for json_name in self._save_on_quit:
+			if json_name not in self._cache:
+				raise AssertionError('%r is not in cache' % json_name)
 
 def load_json(paths):
 	result = None
