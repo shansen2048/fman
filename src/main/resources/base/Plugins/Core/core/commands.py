@@ -1492,7 +1492,8 @@ class Pack(DirectoryPaneCommand):
 		suggested_dst, selection_start, selection_end = \
 			get_dest_suggestion(dest_url)
 		dest, ok = show_prompt(
-			'Pack %s to:' % descr, suggested_dst, selection_start, selection_end
+			'Pack %s to (.zip, .7z, .tar):' % descr, suggested_dst,
+			selection_start, selection_end
 		)
 		if dest and ok:
 			dest = _from_human_readable(dest, dest_dir, self.pane.get_path())
