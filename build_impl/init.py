@@ -1,5 +1,5 @@
-from build_impl import is_windows, path, replace_in_file, replace_in_files, \
-	is_mac
+from build_impl import is_windows, replace_in_file, replace_in_files, is_mac
+from fbs.conf import path
 from io import BytesIO
 from os import listdir
 from os.path import join, dirname
@@ -7,13 +7,11 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 from time import time
 from urllib.request import urlopen
-from venv import EnvBuilder
 from zipfile import ZipFile
 
 import sys
 
 _QT_INSTALL_DIR = path('cache/Qt-5.6.2')
-_VENV_DIR = path('venv')
 
 _SIP_DOWNLOAD_URL = \
 	'https://downloads.sourceforge.net/project/pyqt/sip/sip-4.18.1/' \
@@ -25,11 +23,6 @@ _PYQT_DOWNLOAD_URL = \
 	'PyQt5_gpl-5.6.zip?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fpyqt%2F' \
 	'files%2FPyQt5%2FPyQt-5.6%2F&ts={time:.0f}&use_mirror=vorboss'\
 	.format(time=time())
-
-def create_venv(system_site_packages=False):
-	builder = \
-		EnvBuilder(with_pip=True, system_site_packages=system_site_packages)
-	builder.create(_VENV_DIR)
 
 def install_sip():
 	data = _download_file(_SIP_DOWNLOAD_URL)

@@ -1,52 +1,21 @@
+from fbs.conf import OPTIONS, path
 from glob import glob
 from importlib import import_module
 from os import makedirs, readlink, symlink, remove
 from os.path import dirname, join, relpath, islink, isdir, basename, isfile, \
-	pardir, exists, normpath, splitext
+	exists, splitext
 from pathlib import Path
 from shutil import copy, copytree, copymode
 from subprocess import Popen, STDOUT, CalledProcessError, check_output
 from time import time
 
-import json
 import os
 import re
 import sys
 
-PROJECT_DIR = join(dirname(__file__), pardir)
+OPTIONS['venv_dir'] = path('venv')
+
 _ALL_OSS = {'mac', 'windows', 'linux'}
-
-class LazyOptions:
-	def __init__(self):
-		self.cache = {}
-	def __getitem__(self, item):
-		return self.cache[item]
-	def __setitem__(self, key, value):
-		self.cache[key] = value
-		if key == 'release':
-			self.update(read_filter())
-	def update(self, other):
-		for key, value in other.items():
-			self[key] = value
-	def items(self):
-		return self.cache.items()
-
-def read_filter():
-	with open(path('src/main/filters/filter-local.json'), 'r') as f:
-		result = json.load(f)
-	if OPTIONS['release']:
-		with open(path('src/main/filters/filter-release.json'), 'r') as f:
-			result.update(json.load(f))
-	return result
-
-def path(relpath):
-	return normpath(join(PROJECT_DIR, *relpath.split('/')))
-
-OPTIONS = LazyOptions()
-OPTIONS.update({
-	'release': False,
-	'files_to_filter': []
-})
 
 def generate_resources(
 	dest_dir=path('target/resources'), dest_dir_for_base=None, exclude=None

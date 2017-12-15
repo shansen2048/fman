@@ -1,5 +1,6 @@
-from build_impl import path, generate_resources, copy_python_library, \
+from build_impl import generate_resources, copy_python_library, \
 	run_pyinstaller, copy_with_filtering, get_icons
+from fbs.conf import path
 from glob import glob
 from os import makedirs, remove
 from os.path import join, dirname
