@@ -1,4 +1,5 @@
 from build_impl import path, OPTIONS, git, create_cloudfront_invalidation
+from fbs import run
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import unlink, listdir, remove, makedirs
 from os.path import join, isdir, isfile, islink, expanduser
@@ -11,6 +12,7 @@ import subprocess
 import sys
 
 OPTIONS.update({
+	'app_identifier': 'fman',
 	'local_media_dir': expanduser('~/dev/fman.io/media'),
 	'server_media_dir': '/home/fman/src/media',
 	'server_user': 'fman@fman.io',

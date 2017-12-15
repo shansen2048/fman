@@ -6,4 +6,4 @@ CALL venv\scripts\activate.bat
 DOSKEY clean=python build.py clean
 DOSKEY exe=python build.py exe $*
 DOSKEY setup=python build.py setup $*
-DOSKEY run=cmd /C "set "PYTHONPATH=src\main\python;src\main\resources\base\Plugins\Core" && python src\main\python\fman\main.py"
+DOSKEY run=python build.py run $*
