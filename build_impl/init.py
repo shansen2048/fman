@@ -1,5 +1,5 @@
 from build_impl import is_windows, replace_in_file, replace_in_files, is_mac
-from fbs.conf import path
+from fbs.conf import path, OPTIONS
 from io import BytesIO
 from os import listdir
 from os.path import join, dirname
@@ -62,9 +62,9 @@ def install_pyqt():
 		executable_suffix = '.exe' if is_windows() else ''
 		qmake_path = join(_QT_INSTALL_DIR, 'bin', 'qmake' + executable_suffix)
 		if is_windows():
-			sip_exe_path = join(_VENV_DIR, 'sip.exe')
+			sip_exe_path = join(OPTIONS['venv_dir'], 'sip.exe')
 		else:
-			sip_exe_path = join(_VENV_DIR, 'bin', 'sip')
+			sip_exe_path = join(OPTIONS['venv_dir'], 'bin', 'sip')
 		_run_in_venv(
 			"python configure.py --confirm-license --qmake %s --sip %s%s"
 			% (qmake_path, sip_exe_path, _EXTRA_FLAGS), cwd=pyqt_dir
@@ -89,9 +89,10 @@ def _download_file(url):
 
 def _run_in_venv(command, **kwargs):
 	if is_windows():
-		activate_venv = 'call ' + join(_VENV_DIR, 'Scripts', 'activate.bat')
+		activate_venv = \
+			'call ' + join(OPTIONS['venv_dir'], 'Scripts', 'activate.bat')
 	else:
-		activate_venv = '. ' + join(_VENV_DIR, 'bin', 'activate')
+		activate_venv = '. ' + join(OPTIONS['venv_dir'], 'bin', 'activate')
 	run("%s && %s" % (activate_venv, command), shell=True, check=True, **kwargs)
 
 def _run_make(*args, **kwargs):
