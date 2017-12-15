@@ -1,5 +1,6 @@
 from build_impl import replace_in_file, replace_in_files
 from fbs.conf import path, OPTIONS
+from fbs.init import run_in_venv
 from fbs.platform import is_windows, is_mac
 from io import BytesIO
 from os import listdir
@@ -31,7 +32,7 @@ def install_sip():
 	with TemporaryDirectory() as tmp_dir:
 		z.extractall(tmp_dir)
 		sip_dir = join(tmp_dir, listdir(tmp_dir)[0])
-		_run_in_venv('python configure.py' + _EXTRA_FLAGS, cwd=sip_dir)
+		run_in_venv('python configure.py' + _EXTRA_FLAGS, cwd=sip_dir)
 		if is_windows():
 			siplib_makefile = join(sip_dir, 'siplib', 'Makefile')
 			python35lib_absolute = _find_python_library('python35.lib')
@@ -66,7 +67,7 @@ def install_pyqt():
 			sip_exe_path = join(OPTIONS['venv_dir'], 'sip.exe')
 		else:
 			sip_exe_path = join(OPTIONS['venv_dir'], 'bin', 'sip')
-		_run_in_venv(
+		run_in_venv(
 			"python configure.py --confirm-license --qmake %s --sip %s%s"
 			% (qmake_path, sip_exe_path, _EXTRA_FLAGS), cwd=pyqt_dir
 		)
@@ -79,22 +80,11 @@ def install_pyqt():
 			_run_make(cwd=pyqt_dir)
 		_run_make('install', cwd=pyqt_dir)
 
-def install_requirements(requirements_file):
-	_run_in_venv("pip install -r " + requirements_file)
-
 def _download_file(url):
 	response = urlopen(url)
 	data = response.read()
 	assert response.code == 200, response.code
 	return data
-
-def _run_in_venv(command, **kwargs):
-	if is_windows():
-		activate_venv = \
-			'call ' + join(OPTIONS['venv_dir'], 'Scripts', 'activate.bat')
-	else:
-		activate_venv = '. ' + join(OPTIONS['venv_dir'], 'bin', 'activate')
-	run("%s && %s" % (activate_venv, command), shell=True, check=True, **kwargs)
 
 def _run_make(*args, **kwargs):
 	make = 'jom' if is_windows() else 'make'

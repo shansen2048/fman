@@ -1,11 +1,10 @@
 from build_impl import linux, run, OPTIONS, copy_with_filtering, upload_file, \
 	get_path_on_server, upload_installer_to_aws
-from build_impl.init import install_requirements
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons, remove_shared_libraries
 from distutils.dir_util import copy_tree
 from fbs.conf import path
-from fbs.init import create_venv
+from fbs.init import create_venv, install_requirements
 from os import makedirs
 from os.path import exists, join, expanduser
 from shutil import rmtree, copytree, copy
