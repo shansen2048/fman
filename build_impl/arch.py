@@ -19,7 +19,7 @@ _PKG_FILE = path('target/fman.pkg.tar.xz')
 
 def init():
 	create_venv(system_site_packages=True)
-	install_requirements(path('requirements/arch.txt'))
+	install_requirements(path('requirements/linux.txt'))
 
 def exe():
 	linux.exe()

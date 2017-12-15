@@ -1,7 +1,6 @@
 from build_impl import linux, check_output_decode, remove_if_exists, \
 	copy_with_filtering, run, OPTIONS, upload_installer_to_aws, upload_file, \
 	run_on_server, get_path_on_server
-from build_impl.init import install_sip, install_pyqt
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
 from fbs.conf import path
@@ -15,8 +14,6 @@ import re
 
 def init():
 	create_venv()
-	install_sip()
-	install_pyqt()
 	install_requirements(path('requirements/ubuntu.txt'))
 
 def exe():

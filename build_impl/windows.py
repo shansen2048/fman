@@ -1,6 +1,5 @@
 from build_impl import run, generate_resources, OPTIONS, copy_with_filtering, \
 	copy_python_library, run_pyinstaller, upload_to_s3
-from build_impl.init import install_sip, install_pyqt
 from fbs.conf import path
 from fbs.init import create_venv, install_requirements
 from datetime import date
@@ -14,8 +13,6 @@ import sys
 
 def init():
 	create_venv()
-	install_sip()
-	install_pyqt()
 	install_requirements(path('requirements/windows.txt'))
 
 def exe():
