@@ -1,12 +1,12 @@
 from collections import deque
-from fman.impl.util.system import is_linux
+from fbs_runtime.system import is_linux
 from http.client import HTTPException
+from os import makedirs
+from os.path import dirname, exists
 from queue import Queue
 from threading import Thread
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
-from os import makedirs
-from os.path import dirname, exists
 
 import json
 import ssl

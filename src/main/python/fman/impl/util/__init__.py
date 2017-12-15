@@ -1,13 +1,12 @@
-from threading import Lock
-from functools import lru_cache
+from fbs_runtime.application_context import is_frozen
 from getpass import getuser
 from os import listdir, strerror
 from os.path import join, basename, expanduser, dirname, realpath, relpath, \
 	pardir, splitdrive
+from threading import Lock
 
 import errno
 import os
-import sys
 
 def listdir_absolute(dir_path):
 	return [join(dir_path, file_name) for file_name in listdir(dir_path)]
@@ -28,12 +27,6 @@ def parse_version(version_str):
 	if version_str.endswith('-SNAPSHOT'):
 		version_str = version_str[:-len('-SNAPSHOT')]
 	return tuple(map(int, version_str.split('.')))
-
-def cached_property(getter):
-	return property(lru_cache()(getter))
-
-def is_frozen():
-	return getattr(sys, 'frozen', False)
 
 def is_debug():
 	return not is_frozen()

@@ -10,6 +10,14 @@ def is_mac():
 def is_linux():
 	return sys.platform.startswith('linux')
 
+def name():
+	if is_windows():
+		return 'Windows'
+	if is_mac():
+		return 'Mac'
+	if is_linux():
+		return 'Linux'
+
 def is_gnome_based():
 	# If you update this, also update the same fn in the Core module!
 	curr_desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()

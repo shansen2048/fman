@@ -1,10 +1,10 @@
+from fbs_runtime.system import is_windows, is_mac
 from fman import OK
 from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
 	AscendingOrder
 from fman.impl.util.qt.thread import run_in_main_thread
-from fman.impl.util.system import is_windows, is_mac
 from fman.impl.view import FileListView, Layout, LocationBar, set_selection
 from fman.url import as_human_readable
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent

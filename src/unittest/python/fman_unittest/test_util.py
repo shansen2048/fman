@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
+from fbs_runtime.system import is_windows
 from fman.impl.util import is_below_dir, CachedIterable
-from fman.impl.util.system import is_windows
 from os.path import join
 from threading import Event
 from time import sleep

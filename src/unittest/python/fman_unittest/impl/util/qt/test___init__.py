@@ -1,5 +1,5 @@
+from fbs_runtime.system import is_windows
 from fman.impl.util.qt import as_qurl, from_qurl
-from fman.impl.util.system import is_windows
 from unittest import TestCase
 
 class AsFromQurlTest(TestCase):

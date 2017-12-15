@@ -1,7 +1,7 @@
+from fbs_runtime.system import is_mac
 from fman.impl.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, \
 	Key_Right, Key_Return, Key_Enter, Key_Shift, Key_Control, Key_Meta, \
 	Key_Alt, Key_AltGr, Key_CapsLock, Key_NumLock, Key_ScrollLock, ShiftModifier
-from fman.impl.util.system import is_mac
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from weakref import WeakValueDictionary

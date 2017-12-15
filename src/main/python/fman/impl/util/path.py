@@ -1,4 +1,4 @@
-from fman.impl.util.system import is_windows
+from fbs_runtime.system import is_windows
 from os.path import splitdrive, normpath, expanduser, realpath
 from pathlib import PurePosixPath
 

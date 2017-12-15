@@ -1,4 +1,4 @@
-from fman import is_mac
+from fbs_runtime.system import is_mac
 from fman.impl.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, \
 	Key_Home, Key_End, Key_PageUp, UserRole, AlignRight, AlignVCenter, \
 	NoFocus, FramelessWindowHint, AlignTop

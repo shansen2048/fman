@@ -1,7 +1,7 @@
+from fbs_runtime.system import is_mac
 from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Home, \
 	Key_End, ShiftModifier, ControlModifier, AltModifier, MoveAction, \
 	NoButton, CopyAction, Key_Return, Key_Enter, ToolTipRole, connect_once
-from fman.impl.util.system import is_mac
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	QItemSelectionModel, pyqtSignal
 from PyQt5.QtGui import QPen

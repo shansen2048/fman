@@ -1,37 +1,37 @@
+from fbs_runtime import system
+from fbs_runtime import application_context as fbs_appctxt
+from fbs_runtime.application_context import cached_property, is_frozen
 from fman import PLATFORM, DATA_DIRECTORY, Window
+from fman.impl.controller import Controller
+from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.font_database import FontDatabase
-from fman.impl.plugins.key_bindings import KeyBindings
-from fman.impl.theme import Theme
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
-from fman.impl.controller import Controller
-from fman.impl.excepthook import Excepthook, RollbarExcepthook
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 	GnomeNotAvailable, IconProvider
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback
 from fman.impl.plugins.builtin import BuiltinPlugin, NullFileSystem
+from fman.impl.plugins.config import Config
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
-from fman.impl.plugins.config import Config
+from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
-from fman.impl.signal_ import SignalWakeupHandler
+from fman.impl.theme import Theme
 from fman.impl.tutorial import TutorialController
 from fman.impl.tutorial.impl import TutorialImpl
 from fman.impl.updater import MacUpdater
-from fman.impl.util import system, cached_property, is_frozen
 from fman.impl.util.qt import connect_once
 from fman.impl.util.settings import Settings
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from os import makedirs
-from os.path import dirname, join, pardir, normpath, exists
+from os.path import dirname, join, pardir, exists
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPalette, QIcon
+from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import QStyleFactory, QFileIconProvider
-from signal import signal, SIGINT
 
 import fman
 import json
@@ -47,18 +47,10 @@ def get_application_context():
 
 _APPLICATION_CONTEXT = None
 
-class ApplicationContext:
+class ApplicationContext(fbs_appctxt.DevelopmentApplicationContext):
 	def __init__(self):
+		super().__init__(join(dirname(__file__), *(pardir,) * 5))
 		self._main_window = None
-		# Many Qt classes require a QApplication to have been instantiated.
-		# Do this here, before everything else, to achieve this:
-		self.app
-	def setup_signals(self):
-		# We don't build fman as a console app on Windows, so no point in
-		# installing the SIGINT handler:
-		if not system.is_windows():
-			_ = self.signal_wakeup_handler
-			signal(SIGINT, lambda *_: self.app.exit(130))
 	def run(self):
 		self.init_logging()
 		fman.FMAN_VERSION = self.fman_version
@@ -112,22 +104,17 @@ class ApplicationContext:
 		result.aboutToQuit.connect(self.on_quit)
 		return result
 	@cached_property
-	def app_icon(self):
-		if not system.is_mac():
-			return QIcon(self._get_resource('fman.ico'))
-	@cached_property
 	def command_callback(self):
 		return CommandCallback(self.metrics)
 	@cached_property
 	def constants(self):
-		with open(self._get_resource('constants.json'), 'r') as f:
+		with open(self.get_resource('constants.json'), 'r') as f:
 			result = json.load(f)
 		self._postprocess_constants(result)
 		return result
 	def _postprocess_constants(self, constants):
-		filter_path = join(
-			self._get_resource(), pardir, pardir, 'filters', 'filter-local.json'
-		)
+		filter_path = \
+			join(self.base_dir, 'src', 'main', 'filters', 'filter-local.json')
 		with open(filter_path, 'r') as f:
 			filter_ = json.load(f)
 		for key, value in constants.items():
@@ -212,7 +199,7 @@ class ApplicationContext:
 	@cached_property
 	def plugin_dirs(self):
 		result = find_plugin_dirs(
-			self._get_resource('Plugins'),
+			self.get_resource('Plugins'),
 			join(DATA_DIRECTORY, 'Plugins', 'Third-party'),
 			join(DATA_DIRECTORY, 'Plugins', 'User')
 		)
@@ -327,9 +314,6 @@ class ApplicationContext:
 		result.setColor(QPalette.Window, QColor(0x44, 0x44, 0x44))
 		return result
 	@cached_property
-	def signal_wakeup_handler(self):
-		return SignalWakeupHandler(self.app)
-	@cached_property
 	def session_manager(self):
 		settings = Settings(self._get_local_data_file('Session.json'))
 		return SessionManager(
@@ -338,8 +322,8 @@ class ApplicationContext:
 		)
 	@cached_property
 	def theme(self):
-		qss_files = [self._get_resource('styles.qss')]
-		os_styles = self._get_resource('os_styles.qss')
+		qss_files = [self.get_resource('styles.qss')]
+		os_styles = self.get_resource('os_styles.qss')
 		if exists(os_styles):
 			qss_files.append(os_styles)
 		return Theme(self.app, qss_files)
@@ -352,18 +336,12 @@ class ApplicationContext:
 	@cached_property
 	def window(self):
 		return Window()
-	def _get_resource(self, *rel_path):
-		res_dir = join(dirname(__file__), pardir, pardir, pardir, 'resources')
-		os_dir = join(res_dir, PLATFORM.lower())
-		os_path = normpath(join(os_dir, *rel_path))
-		if exists(os_path):
-			return os_path
-		base_dir = join(res_dir, 'base')
-		return normpath(join(base_dir, *rel_path))
 	def _get_local_data_file(self, *rel_path):
 		return join(DATA_DIRECTORY, 'Local', *rel_path)
 
-class FrozenApplicationContext(ApplicationContext):
+class FrozenApplicationContext(
+	fbs_appctxt.FrozenApplicationContext, ApplicationContext
+):
 	def __init__(self):
 		super().__init__()
 		self._updater = None
@@ -393,9 +371,5 @@ class FrozenApplicationContext(ApplicationContext):
 			return True
 		else:
 			return data.get('enabled', True)
-	def _get_resource(self, *rel_path):
-		if system.is_mac():
-			rel_path = (pardir, 'Resources') + rel_path
-		return normpath(join(dirname(sys.executable), *rel_path))
 	def _postprocess_constants(self, constants):
 		pass

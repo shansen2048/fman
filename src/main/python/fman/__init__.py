@@ -1,5 +1,5 @@
 from . import clipboard
-from fman.impl.util.system import is_mac, is_linux, is_windows
+from fbs_runtime import system
 from os import getenv
 from os.path import join, expanduser
 from PyQt5.QtWidgets import QMessageBox
@@ -27,14 +27,13 @@ CANCEL = QMessageBox.Cancel
 
 FMAN_VERSION = ''
 
-if is_windows():
-	PLATFORM = 'Windows'
+PLATFORM = system.name()
+
+if PLATFORM == 'Windows':
 	DATA_DIRECTORY = join(getenv('APPDATA'), 'fman')
-elif is_mac():
-	PLATFORM = 'Mac'
+elif PLATFORM == 'Mac':
 	DATA_DIRECTORY = expanduser('~/Library/Application Support/fman')
-elif is_linux():
-	PLATFORM = 'Linux'
+elif PLATFORM == 'Linux':
 	DATA_DIRECTORY = expanduser('~/.config/fman')
 
 class ApplicationCommand:

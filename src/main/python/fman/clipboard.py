@@ -1,4 +1,4 @@
-from fman.impl.util.system import is_linux, is_windows, is_gnome_based, \
+from fbs_runtime.system import is_linux, is_windows, is_gnome_based, \
 	is_kde_based
 from fman.impl.util.qt import as_qurl, from_qurl
 from fman.impl.util.qt.thread import run_in_main_thread

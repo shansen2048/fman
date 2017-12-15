@@ -1,4 +1,4 @@
-from fman.impl.util.system import is_windows
+from fbs_runtime.system import is_windows
 from fman.url import splitscheme, as_human_readable, as_url
 from PyQt5.QtCore import Qt, QObject, QEvent, QUrl
 

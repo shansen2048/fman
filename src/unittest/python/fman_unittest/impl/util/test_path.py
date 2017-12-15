@@ -1,4 +1,4 @@
-from fman.impl.util import system
+from fbs_runtime.system import is_windows
 from fman.impl.util.path import make_absolute, resolve
 from os.path import join, expanduser
 from unittest import TestCase, skipUnless
@@ -11,10 +11,10 @@ class MakeAbsoluteTest(TestCase):
 			join(expanduser('~'), 'foo', 'test.txt'),
 			self._make_absolute(sep.join(['~', 'foo', 'test.txt']))
 		)
-	@skipUnless(system.is_windows(), 'Only run this test on Windows')
+	@skipUnless(is_windows(), 'Only run this test on Windows')
 	def test_home_dir_backslash(self):
 		self.test_home_dir(sep='\\')
-	@skipUnless(system.is_windows(), 'Only run this test on Windows')
+	@skipUnless(is_windows(), 'Only run this test on Windows')
 	def test_c_drive_no_backslash(self):
 		self.assertEqual('C:\\', self._make_absolute('C:'))
 	def setUp(self):
@@ -25,7 +25,7 @@ class MakeAbsoluteTest(TestCase):
 	def _make_path(self, path):
 		return join(self._get_root_dir(), *path.split('/'))
 	def _get_root_dir(self):
-		return 'C:\\' if system.is_windows() else '/'
+		return 'C:\\' if is_windows() else '/'
 
 class ResolveTest(TestCase):
 	def test_fine(self):

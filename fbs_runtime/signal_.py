@@ -30,8 +30,9 @@ class SignalWakeupHandler(QAbstractSocket):
 
 	See: https://stackoverflow.com/a/37229299/1839209
 	"""
-	def __init__(self, parent=None):
-		super().__init__(QAbstractSocket.UdpSocket, parent)
+	def __init__(self, app):
+		super().__init__(QAbstractSocket.UdpSocket, app)
+		self._app = app
 		self.old_fd = None
 		# Create a socket pair
 		self.wsock, self.rsock = socketpair(type=SOCK_DGRAM)
@@ -45,6 +46,8 @@ class SignalWakeupHandler(QAbstractSocket):
 		self.readyRead.connect(lambda : None)
 		# Second handler does the real handling
 		self.readyRead.connect(self._readSignal)
+	def install(self):
+		signal.signal(signal.SIGINT, lambda *_: self._app.exit(130))
 	def __del__(self):
 		# Restore any old handler on deletion
 		if self.old_fd is not None and signal and signal.set_wakeup_fd:
