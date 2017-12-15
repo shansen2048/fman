@@ -1,5 +1,6 @@
-from build_impl import is_windows, replace_in_file, replace_in_files, is_mac
+from build_impl import replace_in_file, replace_in_files
 from fbs.conf import path, OPTIONS
+from fbs.platform import is_windows, is_mac
 from io import BytesIO
 from os import listdir
 from os.path import join, dirname

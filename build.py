@@ -1,5 +1,5 @@
-from build_impl import path, is_windows, is_mac, is_linux, OPTIONS, git, \
-	create_cloudfront_invalidation, is_ubuntu, is_arch_linux
+from build_impl import path, OPTIONS, git, create_cloudfront_invalidation
+from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import unlink, listdir, remove, makedirs
 from os.path import join, isdir, isfile, islink, expanduser
 from shutil import rmtree, copytree, copy

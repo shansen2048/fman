@@ -1,4 +1,5 @@
 from fbs.conf import OPTIONS, path
+from fbs.platform import is_windows, is_mac, is_linux
 from glob import glob
 from importlib import import_module
 from os import makedirs, readlink, symlink, remove
@@ -183,15 +184,6 @@ def run(cmd, extra_env=None, check_result=True, cwd=None):
 	if check_result and process.returncode:
 		raise CalledProcessError(process.returncode, cmd)
 
-def is_windows():
-	return sys.platform in ('win32', 'cygwin')
-
-def is_mac():
-	return sys.platform == 'darwin'
-
-def is_linux():
-	return sys.platform.startswith('linux')
-
 def get_canonical_os_name():
 	if is_windows():
 		return 'windows'
@@ -200,14 +192,6 @@ def get_canonical_os_name():
 	if is_linux():
 		return 'linux'
 	raise ValueError('Unknown operating system.')
-
-def is_ubuntu():
-	with open('/etc/issue', 'r') as f:
-		return f.read().startswith('Ubuntu ')
-
-def is_arch_linux():
-	with open('/etc/issue', 'r') as f:
-		return f.read().startswith('Arch Linux ')
 
 def get_icons():
 	result = {}
