@@ -14,6 +14,19 @@ import sys
 def init():
 	create_venv()
 	install_requirements(path('requirements/windows.txt'))
+	_install_go_dependencies()
+
+def _install_go_dependencies():
+	gopath = {'GOPATH': path('src/main/go')}
+	go_get = lambda dep: run(['go', 'get', dep], extra_env=gopath)
+	# We used to have a solution with third-party tool `godep` here.
+	# This let us tie down the specific versions of our dependencies.
+	# However, the tool did not work with some of our dependencies.
+	# So just use `go get` and live with the fact that we will now
+	# get different versions every time this function is called.
+	go_get('golang.org/x/sys/windows')
+	go_get('github.com/josephspurrier/goversioninfo/cmd/goversioninfo')
+	go_get('github.com/jteeuwen/go-bindata/...')
 
 def exe():
 	run_pyinstaller(extra_args=[
@@ -23,11 +36,12 @@ def exe():
 		# Required by the Core plugin:
 		'--hidden-import', 'adodbapi'
 	])
-	# PyInstaller somehow corrupts python35.dll - see:
+	# PyInstaller somehow corrupts python3*.dll - see:
 	# https://github.com/pyinstaller/pyinstaller/issues/2526
 	# Restore the uncorrupted original:
-	remove(path('target/fman/python35.dll'))
-	copy(join(dirname(sys.executable), 'python35.dll'), path('target/fman'))
+	for dll_name in ('python3.dll', 'python35.dll'):
+		remove(path('target/fman/' + dll_name))
+		copy(join(dirname(sys.executable), dll_name), path('target/fman'))
 	generate_resources(dest_dir=path('target/fman'))
 	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
@@ -73,7 +87,10 @@ def _build_launcher(dest):
 def _run_go(*args):
 	run(
 		['go'] + list(args),
-		extra_env={'GOPATH': path('target/go') + ';' + os.environ['GOPATH']}
+		extra_env={
+			'GOPATH': path('target/go') + ';' + path('src/main/go'),
+			'PATH': path('src/main/go/bin') + ';' + os.environ['PATH']
+		}
 	)
 
 def sign_exe():
@@ -106,7 +123,7 @@ def installer():
 	prefix = path('target/fman').replace('\\', '/')
 	data_go = path('target/go/src/installer/data/data.go')
 	run([
-		'go-bindata', '-prefix', prefix, '-o', data_go,
+		path('src/main/go/bin/go-bindata'), '-prefix', prefix, '-o', data_go,
 		prefix + '/...'
 	])
 	_repl_in_file(data_go, b'package main', b'package data')
