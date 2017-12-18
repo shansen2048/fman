@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 OPTIONS.update({
-	'app_identifier': 'fman',
+	'main_module': path('src/main/python/fman/main.py'),
 	'local_media_dir': expanduser('~/dev/fman.io/media'),
 	'server_media_dir': '/home/fman/src/media',
 	'server_user': 'fman@fman.io',

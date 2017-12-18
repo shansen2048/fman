@@ -11,5 +11,4 @@ def run():
 	if old_pythonpath:
 		pythonpath += os.pathsep + old_pythonpath
 	env['PYTHONPATH'] = pythonpath
-	main_module = path('src/main/python/%s/main.py' % OPTIONS['app_identifier'])
-	subprocess.run([sys.executable, main_module], env=env)
+	subprocess.run([sys.executable, OPTIONS['main_module']], env=env)
