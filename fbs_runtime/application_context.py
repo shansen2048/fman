@@ -72,7 +72,8 @@ class _DevelopmentResourceLocator(_ResourceLocator):
 		resources_dir = join(project_dir, 'src', 'main', 'resources')
 		resource_dirs = [
 			join(resources_dir, system.name().lower()),
-			join(resources_dir, 'base')
+			join(resources_dir, 'base'),
+			join(project_dir, 'src', 'main', 'icons')
 		]
 		super().__init__(resource_dirs)
 	def _get_project_base_dir(self, appctxt_cls):

@@ -30,7 +30,7 @@ def _install_go_dependencies():
 @command
 def exe():
 	run_pyinstaller(extra_args=[
-		'--windowed', '--icon', path('src/main/resources/base/Icon.ico'),
+		'--windowed', '--icon', path('src/main/icons/Icon.ico'),
 		# Required by send2trash, which is used in the Core plugin:
 		'--hidden-import', 'ctypes.wintypes',
 		# Required by the Core plugin:
@@ -43,6 +43,7 @@ def exe():
 		remove(path('target/fman/' + dll_name))
 		copy(join(dirname(sys.executable), dll_name), path('target/fman'))
 	generate_resources(dest_dir=path('target/fman'))
+	copy(path('src/main/icons/Icon.ico'), path('target/fman'))
 	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
@@ -77,10 +78,7 @@ def _build_launcher(dest):
 			'year': date.today().year
 		}, files_to_filter=[path("src/main/go/src/launcher/versioninfo.json")]
 	)
-	copy(
-		path('src/main/resources/base/Icon.ico'),
-		path('target/go/src/launcher')
-	)
+	copy(path('src/main/icons/Icon.ico'), path('target/go/src/launcher'))
 	_run_go('generate', 'launcher')
 	_run_go('build', '-o', dest, '-ldflags', '-H windowsgui', 'launcher')
 

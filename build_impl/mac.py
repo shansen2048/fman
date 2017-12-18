@@ -22,8 +22,7 @@ def app():
 	_fix_sparkle_delta_updates()
 	generate_resources(
 		dest_dir=path('target/fman.app'),
-		dest_dir_for_base=path('target/fman.app/Contents/Resources'),
-		exclude=[path('src/main/resources/base/Icon.ico')]
+		dest_dir_for_base=path('target/fman.app/Contents/Resources')
 	)
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),

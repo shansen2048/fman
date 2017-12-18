@@ -14,6 +14,7 @@ FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 def exe():
 	run_pyinstaller()
 	generate_resources(dest_dir=path('target/fman'))
+	copy(path('src/main/icons/Icon.ico'), path('target/fman'))
 	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
 	# For some reason, PyInstaller packages libstdc++.so.6 even though it is
