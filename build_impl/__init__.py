@@ -1,9 +1,8 @@
 from fbs.conf import SETTINGS, path
 from fbs.platform import is_windows, is_mac, is_linux
-from glob import glob
 from importlib import import_module
 from os import makedirs, readlink, symlink, remove
-from os.path import dirname, join, islink, isdir, basename, splitext
+from os.path import dirname, join, islink, isdir, basename
 from shutil import copy, copytree
 from subprocess import run, check_output
 from time import time
@@ -56,16 +55,6 @@ def get_canonical_os_name():
 	if is_linux():
 		return 'linux'
 	raise ValueError('Unknown operating system.')
-
-def get_icons():
-	result = {}
-	for icons_dir in (
-		'src/main/icons/base', 'src/main/icons/' + get_canonical_os_name()
-	):
-		for icon_path in glob(path(icons_dir + '/*.png')):
-			size = int(splitext(basename(icon_path))[0])
-			result[size] = icon_path
-	return list(result.items())
 
 def upload_file(f, dest_dir):
 	print('Uploading %s...' % basename(f))

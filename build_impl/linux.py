@@ -1,7 +1,7 @@
-from build_impl import copy_python_library, get_icons
+from build_impl import copy_python_library
 from fbs.conf import path
 from fbs.freeze.linux import freeze_linux
-from fbs.resources import copy_with_filtering
+from fbs.resources import copy_with_filtering, get_icons
 from os import makedirs
 from os.path import join, dirname
 from shutil import copy

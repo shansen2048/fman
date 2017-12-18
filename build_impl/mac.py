@@ -1,31 +1,19 @@
 from build_impl import copy_framework, get_canonical_os_name, SETTINGS, \
 	copy_python_library, upload_file, run_on_server, check_output_decode, \
-	get_path_on_server, get_icons, upload_installer_to_aws
+	get_path_on_server, upload_installer_to_aws
 from fbs import command
 from fbs.conf import path
-from fbs.freeze import run_pyinstaller
-from fbs.resources import generate_resources
+from fbs.freeze.mac import freeze_mac
 from glob import glob
-from os import unlink, rename, symlink, makedirs
+from os import makedirs
 from os.path import basename, join, exists, splitext
-from shutil import rmtree, copy
+from shutil import copy
 from subprocess import run
 from tempfile import TemporaryDirectory
 
 @command
 def app():
-	if not exists(path('target/fman.icns')):
-		icon()
-	run_pyinstaller(extra_args=[
-		'--windowed', '--osx-bundle-identifier', 'io.fman.fman',
-		'--icon', path('target/fman.icns')
-	])
-	_remove_unwanted_pyinstaller_files()
-	_fix_sparkle_delta_updates()
-	generate_resources(
-		dest_dir=path('target/app'),
-		dest_dir_for_base=path('target/app/Contents/Resources')
-	)
+	freeze_mac()
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),
 		path('target/app/Contents/Frameworks/Sparkle.framework')
@@ -35,36 +23,6 @@ def app():
 	)
 	copy_python_library(
 		'ordered_set', path('target/app/Contents/Resources/Plugins/Core')
-	)
-
-def icon():
-	_generate_iconset()
-	run(['iconutil', '-c', 'icns', path('target/fman.iconset')], check=True)
-
-def _generate_iconset():
-	makedirs(path('target/fman.iconset'), exist_ok=True)
-	for size, icon_path in get_icons():
-		dest_name = 'icon_%dx%d.png' % (size, size)
-		copy(icon_path, path('target/fman.iconset/' + dest_name))
-
-def _remove_unwanted_pyinstaller_files():
-	for unwanted in ('include', 'lib', 'lib2to3'):
-		unlink(path('target/app/Contents/MacOS/' + unwanted))
-		rmtree(path('target/app/Contents/Resources/' + unwanted))
-
-def _fix_sparkle_delta_updates():
-	# Sparkle's Delta Updates mechanism does not support signed non-Mach-O files
-	# in Contents/MacOS. base_library.zip, which is created by PyInstaller,
-	# violates this. We therefore move base_library.zip to Contents/Resources.
-	# Fortunately, everything still works if we then create a symlink
-	# MacOS/base_library.zip -> ../Resources/base_library.zip.
-	rename(
-		path('target/app/Contents/MacOS/base_library.zip'),
-		path('target/app/Contents/Resources/base_library.zip')
-	)
-	symlink(
-		'../Resources/base_library.zip',
-		path('target/app/Contents/MacOS/base_library.zip')
 	)
 
 @command

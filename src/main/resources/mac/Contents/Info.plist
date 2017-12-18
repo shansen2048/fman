@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>fman</string>
+	<string>${app_name}</string>
 	<key>CFBundleDisplayName</key>
-	<string>fman</string>
+	<string>${app_name}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleIconFile</key>
-	<string>fman.icns</string>
+	<string>Icon.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>io.fman.fman</string>
+	<string>${mac_bundle_identifier}</string>
 	<key>LSBackgroundOnly</key>
 	<string>0</string>
 	<key>CFBundleShortVersionString</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleVersion</key>
 	<string>${version}</string>
 	<key>CFBundleName</key>
-	<string>fman</string>
+	<string>${app_name}</string>
 	<!-- Enable Retina support on OS X: -->
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>

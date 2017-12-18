@@ -1,7 +1,9 @@
+from build_impl import get_canonical_os_name
 from fbs import platform
 from fbs.conf import path, SETTINGS
+from glob import glob
 from os import makedirs
-from os.path import exists, dirname, isfile, join, basename, relpath
+from os.path import exists, dirname, isfile, join, basename, relpath, splitext
 from pathlib import Path
 from shutil import copy, copymode
 
@@ -44,6 +46,16 @@ def copy_with_filtering(
 			_copy_with_filtering(src, dest, replacements)
 		else:
 			copy(src, dest)
+
+def get_icons():
+	result = {}
+	for icons_dir in (
+		'src/main/icons/base', 'src/main/icons/' + get_canonical_os_name()
+	):
+		for icon_path in glob(path(icons_dir + '/*.png')):
+			size = int(splitext(basename(icon_path))[0])
+			result[size] = icon_path
+	return list(result.items())
 
 def _get_files_to_copy(src_dir_or_file, dest_dir, exclude):
 	excludes = _paths(exclude)
