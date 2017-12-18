@@ -1,4 +1,3 @@
-from build_impl import get_canonical_os_name
 from fbs import platform
 from fbs.conf import path, SETTINGS
 from glob import glob
@@ -50,7 +49,7 @@ def copy_with_filtering(
 def get_icons():
 	result = {}
 	for icons_dir in (
-		'src/main/icons/base', 'src/main/icons/' + get_canonical_os_name()
+		'src/main/icons/base', 'src/main/icons/' + platform.name().lower()
 	):
 		for icon_path in glob(path(icons_dir + '/*.png')):
 			size = int(splitext(basename(icon_path))[0])
