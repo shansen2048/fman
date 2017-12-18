@@ -7,7 +7,9 @@ from pathlib import PurePath
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 
+import errno
 import inspect
+import os
 import sys
 
 @lru_cache()
@@ -65,6 +67,9 @@ class _ResourceLocator:
 			resource_path = join(resource_dir, *rel_path)
 			if exists(resource_path):
 				return realpath(resource_path)
+		raise FileNotFoundError(
+			errno.ENOENT, 'Could not locate resource', os.sep.join(rel_path)
+		)
 
 class _DevelopmentResourceLocator(_ResourceLocator):
 	def __init__(self, appctxt_cls):
