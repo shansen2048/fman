@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from fbs import conf
+from fbs.platform import is_windows, is_mac, is_linux, is_arch_linux
 from fbs.conf import path, SETTINGS, load_settings
 from os import listdir, remove, unlink
 from os.path import join, isfile, isdir, islink, abspath
@@ -36,6 +36,26 @@ def run():
 		pythonpath += os.pathsep + old_pythonpath
 	env['PYTHONPATH'] = pythonpath
 	subprocess.run([sys.executable, SETTINGS['main_module']], env=env)
+
+@command
+def freeze():
+	# Import respective functions late to avoid circular import
+	# fbs <-> fbs.freeze.X:
+	if is_windows():
+		from fbs.freeze.windows import freeze_windows
+		freeze_windows()
+	elif is_mac():
+		from fbs.freeze.mac import freeze_mac
+		freeze_mac()
+	elif is_linux():
+		if is_arch_linux():
+			from fbs.freeze.arch import freeze_arch
+			freeze_arch()
+		else:
+			from fbs.freeze.linux import freeze_linux
+			freeze_linux()
+	else:
+		raise RuntimeError('Unsupported OS')
 
 @command
 def test():
