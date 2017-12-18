@@ -1,13 +1,5 @@
-import sys
-
-def is_windows():
-	return sys.platform in ('win32', 'cygwin')
-
-def is_mac():
-	return sys.platform == 'darwin'
-
-def is_linux():
-	return sys.platform.startswith('linux')
+# Make is_windows, is_mac, is_linux available here as well:
+from fbs_runtime.system import is_windows, is_mac, is_linux
 
 def is_ubuntu():
 	with open('/etc/issue', 'r') as f:

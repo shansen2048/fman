@@ -39,9 +39,9 @@ class ApplicationContext:
 				resources_dir = join(executable_dir, pardir, 'Resources')
 			else:
 				resources_dir = executable_dir
-			return ResourceLocator([resources_dir])
+			return _ResourceLocator([resources_dir])
 		else:
-			return DevelopmentResourceLocator(self.__class__)
+			return _DevelopmentResourceLocator(self.__class__)
 	@cached_property
 	def app(self):
 		return QApplication(sys.argv)
@@ -54,7 +54,10 @@ class ApplicationContext:
 	def run(self):
 		raise NotImplementedError()
 
-class ResourceLocator:
+def is_frozen():
+	return getattr(sys, 'frozen', False)
+
+class _ResourceLocator:
 	def __init__(self, resource_dirs):
 		self._dirs = resource_dirs
 	def locate(self, *rel_path):
@@ -63,7 +66,7 @@ class ResourceLocator:
 			if exists(resource_path):
 				return realpath(resource_path)
 
-class DevelopmentResourceLocator(ResourceLocator):
+class _DevelopmentResourceLocator(_ResourceLocator):
 	def __init__(self, appctxt_cls):
 		project_dir = self._get_project_base_dir(appctxt_cls)
 		resources_dir = join(project_dir, 'src', 'main', 'resources')
@@ -84,6 +87,3 @@ class DevelopmentResourceLocator(ResourceLocator):
 			'Could not determine project base directory for %s. Is it in '
 			'src/main/python?' % appctxt_cls
 		)
-
-def is_frozen():
-	return getattr(sys, 'frozen', False)
