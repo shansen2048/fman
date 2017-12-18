@@ -2,9 +2,9 @@ from fbs import OPTIONS
 from os.path import dirname
 OPTIONS['project_dir'] = dirname(__file__)
 
-from build_impl import path, OPTIONS, git, create_cloudfront_invalidation, \
-	read_filter
-from fbs import run
+from build_impl import git, create_cloudfront_invalidation, read_filter
+from fbs import run, OPTIONS
+from fbs.conf import path
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import unlink, listdir, remove, makedirs
 from os.path import join, isdir, isfile, islink, expanduser
