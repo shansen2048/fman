@@ -9,7 +9,7 @@
 	"local_media_dir": "../fman.io/media",
 	"server_user": "fman@fman.io",
 	"ssh_key": "conf/ssh/id_rsa",
-	"files_to_filter": [
+	"resources_to_filter": [
 		"src/main/resources/base/constants.json",
 		"src/main/resources/mac/Contents/Info.plist",
 		"src/main/resources/mac/Contents/SharedSupport/bin/fman"

@@ -4,5 +4,5 @@
 		"src/unittest/python",
 		"src/integrationtest/python"
 	],
-	"files_to_filter": []
+	"resources_to_filter": []
 }

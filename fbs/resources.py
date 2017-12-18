@@ -17,13 +17,14 @@ def generate_resources(dest_dir=None, dest_dir_for_base=None, exclude=None):
 		dest_dir_for_base = dest_dir
 	if exclude is None:
 		exclude = []
-	exclude = exclude
+	resources_to_filter = SETTINGS['resources_to_filter']
+	kwargs = {'exclude': exclude, 'files_to_filter': resources_to_filter}
 	copy_with_filtering(
-		path('src/main/resources/base'), dest_dir_for_base, exclude=exclude
+		path('src/main/resources/base'), dest_dir_for_base, **kwargs
 	)
 	os_resources_dir = path('src/main/resources/' + platform.name().lower())
 	if exists(os_resources_dir):
-		copy_with_filtering(os_resources_dir, dest_dir, exclude=exclude)
+		copy_with_filtering(os_resources_dir, dest_dir, **kwargs)
 
 def copy_with_filtering(
 	src_dir_or_file, dest_dir, replacements=None, files_to_filter=None,
@@ -32,7 +33,7 @@ def copy_with_filtering(
 	if replacements is None:
 		replacements = SETTINGS
 	if files_to_filter is None:
-		files_to_filter = SETTINGS['files_to_filter']
+		files_to_filter = []
 	if exclude is None:
 		exclude = []
 	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, exclude)
