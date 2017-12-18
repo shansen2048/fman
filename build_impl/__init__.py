@@ -3,124 +3,13 @@ from fbs.platform import is_windows, is_mac, is_linux
 from glob import glob
 from importlib import import_module
 from os import makedirs, readlink, symlink, remove
-from os.path import dirname, join, relpath, islink, isdir, basename, isfile, \
-	exists, splitext
-from pathlib import Path
-from shutil import copy, copytree, copymode
+from os.path import dirname, join, islink, isdir, basename, splitext
+from shutil import copy, copytree
 from subprocess import run, check_output
 from time import time
 
-import os
 import re
 import sys
-
-_ALL_OSS = {'mac', 'windows', 'linux'}
-
-def generate_resources(dest_dir=None, dest_dir_for_base=None, exclude=None):
-	if dest_dir is None:
-		# Set this default here instead of in the function definition
-		# (`def generate_resources(dest_dir=path(...) ...)`) because we can't
-		# call path(...) at the module level.
-		path('target/resources')
-	if dest_dir_for_base is None:
-		dest_dir_for_base = dest_dir
-	if exclude is None:
-		exclude = []
-	exclude = exclude + _get_dirs_to_exclude_from_core_plugin()
-	copy_with_filtering(
-		path('src/main/resources/base'), dest_dir_for_base, exclude=exclude
-	)
-	os_resources_dir = path('src/main/resources/' + get_canonical_os_name())
-	if exists(os_resources_dir):
-		copy_with_filtering(os_resources_dir, dest_dir, exclude=exclude)
-
-def _get_dirs_to_exclude_from_core_plugin():
-	other_oss = set(_ALL_OSS)
-	other_oss.remove(get_canonical_os_name())
-	core_bin = 'src/main/resources/base/Plugins/Core/bin'
-	return [path(core_bin) + '/' + to_exclude for to_exclude in other_oss]
-
-def copy_with_filtering(
-	src_dir_or_file, dest_dir, replacements=None, files_to_filter=None,
-	exclude=None
-):
-	if replacements is None:
-		replacements = SETTINGS
-	if files_to_filter is None:
-		files_to_filter = SETTINGS['files_to_filter']
-	if exclude is None:
-		exclude = []
-	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, exclude)
-	to_filter = _paths(files_to_filter)
-	for src, dest in to_copy:
-		makedirs(dirname(dest), exist_ok=True)
-		if files_to_filter is None or src in to_filter:
-			_copy_with_filtering(src, dest, replacements)
-		else:
-			copy(src, dest)
-
-def _get_files_to_copy(src_dir_or_file, dest_dir, exclude):
-	excludes = _paths(exclude)
-	if isfile(src_dir_or_file) and src_dir_or_file not in excludes:
-		yield src_dir_or_file, join(dest_dir, basename(src_dir_or_file))
-	else:
-		for (subdir, _, files) in os.walk(src_dir_or_file):
-			dest_subdir = join(dest_dir, relpath(subdir, src_dir_or_file))
-			for file_ in files:
-				file_path = join(subdir, file_)
-				dest_path = join(dest_subdir, file_)
-				if file_path not in excludes:
-					yield file_path, dest_path
-
-def _copy_with_filtering(
-	src_file, dest_file, dict_, place_holder='${%s}', encoding='utf-8'
-):
-	replacements = []
-	for key, value in dict_.items():
-		old = (place_holder % key).encode(encoding)
-		new = str(value).encode(encoding)
-		replacements.append((old, new))
-	with open(src_file, 'rb') as open_src_file:
-		with open(dest_file, 'wb') as open_dest_file:
-			for line in open_src_file:
-				new_line = line
-				for old, new in replacements:
-					new_line = new_line.replace(old, new)
-				open_dest_file.write(new_line)
-		copymode(src_file, dest_file)
-
-class _paths:
-	def __init__(self, paths):
-		self._paths = [Path(p).resolve() for p in paths]
-	def __contains__(self, item):
-		item = Path(item).resolve()
-		for p in self._paths:
-			if p.samefile(item) or p in item.parents:
-				return True
-		return False
-
-def replace_in_files(dir_, string, replacement):
-	for subdir, _, files in os.walk(dir_):
-		for file_ in files:
-			ext = splitext(file_)[1]
-			if ext in (
-				'.exe', '.lib', '.dll', '.pyc', '.dmp', '.cer', '.pfx', '.idb',
-				'.dblite', '.avi', '.bmp', '.msi', '.ico', '.pdb', '.res', '.rc'
-			):
-				continue
-			f_path = join(subdir, file_)
-			try:
-				replace_in_file(f_path, string, replacement, check_found=False)
-			except UnicodeDecodeError:
-				pass
-
-def replace_in_file(path, string, replacement, check_found=True):
-	with open(path, 'r') as f:
-		contents = f.read()
-	if check_found:
-		assert string in contents, contents
-	with open(path, 'w') as f:
-		f.write(contents.replace(string, replacement))
 
 def copy_framework(src_dir, dest_dir):
 	assert basename(src_dir).endswith('.framework')
@@ -149,21 +38,6 @@ def remove_if_exists(file_path):
 		remove(file_path)
 	except FileNotFoundError:
 		pass
-
-def run_pyinstaller(extra_args=None):
-	if extra_args is None:
-		extra_args = []
-	cmdline = [
-		'pyinstaller',
-		'--name', 'fman',
-		'--noupx'
-	] + extra_args + [
-		'--distpath', path('target'),
-		'--specpath', path('target/build'),
-		'--workpath', path('target/build'),
-		SETTINGS['main_module']
-	]
-	run(cmdline, check=True)
 
 def copy_python_library(name, dest_dir):
 	library = import_module(name)

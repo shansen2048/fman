@@ -1,7 +1,8 @@
-from build_impl import generate_resources, SETTINGS, copy_with_filtering, \
-	copy_python_library, run_pyinstaller, upload_to_s3
+from build_impl import copy_python_library, upload_to_s3
 from fbs import command
-from fbs.conf import path
+from fbs.conf import path, SETTINGS
+from fbs.freeze import run_pyinstaller
+from fbs.resources import generate_resources, copy_with_filtering
 from datetime import date
 from os import rename, makedirs, remove
 from os.path import join, splitext, dirname
@@ -41,15 +42,15 @@ def exe():
 	# https://github.com/pyinstaller/pyinstaller/issues/2526
 	# Restore the uncorrupted original:
 	for dll_name in ('python3.dll', 'python35.dll'):
-		remove(path('target/fman/' + dll_name))
-		copy(join(dirname(sys.executable), dll_name), path('target/fman'))
-	generate_resources(dest_dir=path('target/fman'))
-	copy(path('src/main/icons/Icon.ico'), path('target/fman'))
+		remove(path('target/app/' + dll_name))
+		copy(join(dirname(sys.executable), dll_name), path('target/app'))
+	generate_resources(dest_dir=path('target/app'))
+	copy(path('src/main/icons/Icon.ico'), path('target/app'))
 	_add_missing_dlls()
-	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
-	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
+	copy_python_library('send2trash', path('target/app/Plugins/Core'))
+	copy_python_library('ordered_set', path('target/app/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
-	_build_launcher(dest=path('target/fman/fman.exe'))
+	_build_launcher(dest=path('target/app/fman.exe'))
 	_generate_uninstaller()
 
 def _add_missing_dlls():
@@ -58,11 +59,11 @@ def _add_missing_dlls():
 		'msvcp140.dll', 'concrt140.dll', 'vccorlib140.dll',
 		'api-ms-win-crt-multibyte-l1-1-0.dll'
 	):
-		copy(join(r'c:\Windows\System32', dll), path('target/fman'))
+		copy(join(r'c:\Windows\System32', dll), path('target/app'))
 
 def _move_pyinstaller_output_to_version_subdir():
-	rename(path('target/fman'), path('target/pyinstaller'))
-	versions_dir = path('target/fman/Versions')
+	rename(path('target/app'), path('target/pyinstaller'))
+	versions_dir = path('target/app/Versions')
 	makedirs(versions_dir, exist_ok=True)
 	rename(path('target/pyinstaller'), join(versions_dir, SETTINGS['version']))
 
@@ -91,7 +92,7 @@ def _run_go(*args):
 
 @command
 def sign_exe():
-	for subdir, _, files in os.walk(path('target/fman')):
+	for subdir, _, files in os.walk(path('target/app')):
 		for file_ in files:
 			extension = splitext(file_)[1]
 			if extension in ('.exe', '.cab', '.dll', '.ocx', '.msi', '.xpi'):
@@ -107,7 +108,7 @@ def _generate_uninstaller():
 	)
 	run(['makensis', path('target/Uninstaller.nsi')], check=True)
 	run([
-		path('target/UninstallerSetup.exe'), '/S', '/D=' + path('target/fman')
+		path('target/UninstallerSetup.exe'), '/S', '/D=' + path('target/app')
 	], check=True)
 
 @command
@@ -118,7 +119,7 @@ def installer():
 		{'version': SETTINGS['version']}, files_to_filter=[installer_go]
 	)
 	# We need to replace \ by / for go-bindata:
-	prefix = path('target/fman').replace('\\', '/')
+	prefix = path('target/app').replace('\\', '/')
 	data_go = path('target/go/src/installer/data/data.go')
 	run([
 		path('src/main/go/bin/go-bindata'), '-prefix', prefix, '-o', data_go,

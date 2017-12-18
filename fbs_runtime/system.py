@@ -17,6 +17,7 @@ def name():
 		return 'Mac'
 	if is_linux():
 		return 'Linux'
+	raise RuntimeError('Unknown operating system.')
 
 def is_gnome_based():
 	# If you update this, also update the same fn in the Core module!

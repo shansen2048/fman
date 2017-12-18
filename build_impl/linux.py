@@ -1,8 +1,8 @@
-from build_impl import generate_resources, copy_python_library, \
-	run_pyinstaller, copy_with_filtering, get_icons
+from build_impl import copy_python_library, get_icons
 from fbs.conf import path
-from glob import glob
-from os import makedirs, remove
+from fbs.freeze.linux import freeze_linux
+from fbs.resources import copy_with_filtering
+from os import makedirs
 from os.path import join, dirname
 from shutil import copy
 
@@ -12,25 +12,9 @@ FMAN_AUTHOR = 'Michael Herrmann'
 FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 
 def exe():
-	run_pyinstaller()
-	generate_resources(dest_dir=path('target/fman'))
-	copy(path('src/main/icons/Icon.ico'), path('target/fman'))
-	copy_python_library('send2trash', path('target/fman/Plugins/Core'))
-	copy_python_library('ordered_set', path('target/fman/Plugins/Core'))
-	# For some reason, PyInstaller packages libstdc++.so.6 even though it is
-	# available on most Linux distributions. If we include it and run fman on a
-	# different Ubuntu version, then Popen(...) calls fail with errors
-	# "GLIBCXX_... not found" or "CXXABI_..." not found. So ensure we don't
-	# package the file, so that the respective system's compatible version is
-	# used:
-	remove_shared_libraries(
-		'libstdc++.so.*', 'libtinfo.so.*', 'libreadline.so.*', 'libdrm.so.*'
-	)
-
-def remove_shared_libraries(*filename_patterns):
-	for pattern in filename_patterns:
-		for file_path in glob(path('target/fman/' + pattern)):
-			remove(file_path)
+	freeze_linux()
+	copy_python_library('send2trash', path('target/app/Plugins/Core'))
+	copy_python_library('ordered_set', path('target/app/Plugins/Core'))
 
 def copy_linux_package_resources(root_path):
 	source_dir = 'src/main/resources/linux-package'

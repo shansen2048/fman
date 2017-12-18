@@ -1,9 +1,11 @@
-from build_impl import linux, SETTINGS, copy_with_filtering, upload_file, \
-	get_path_on_server, upload_installer_to_aws
+from build_impl import SETTINGS, upload_file, get_path_on_server, \
+	upload_installer_to_aws
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
-	copy_linux_package_resources, copy_icons, remove_shared_libraries
+	copy_linux_package_resources, copy_icons
 from distutils.dir_util import copy_tree
 from fbs import command
+from fbs.freeze.arch import freeze_arch
+from fbs.resources import copy_with_filtering
 from fbs.conf import path
 from os import makedirs
 from os.path import exists, join, expanduser
@@ -19,19 +21,13 @@ _PKG_FILE = path('target/fman.pkg.tar.xz')
 
 @command
 def exe():
-	linux.exe()
-	# fman normally ships with eg. libQt5Core.so.5. This loads other .so files,
-	# if present, from /usr/lib. If those libraries are Qt libraries of a
-	# different Qt version, errors occur.
-	# For this reason, on systems with pacman, we don't include Qt. Instead, we
-	# declare it as a dependency and leave it up to pacman to fetch it.
-	remove_shared_libraries('libicudata.so.*', 'libQt*.so.*')
+	freeze_arch()
 
 @command
 def pkg():
 	if exists(path('target/arch-pkg')):
 		rmtree(path('target/arch-pkg'))
-	copytree(path('target/fman'), path('target/arch-pkg/opt/fman'))
+	copytree(path('target/app'), path('target/arch-pkg/opt/fman'))
 	copy_linux_package_resources(path('target/arch-pkg'))
 	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
 	copy_icons(path('target/arch-pkg'))

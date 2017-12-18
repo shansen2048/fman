@@ -1,9 +1,10 @@
 from build_impl import copy_framework, get_canonical_os_name, SETTINGS, \
 	copy_python_library, upload_file, run_on_server, check_output_decode, \
-	get_path_on_server, run_pyinstaller, get_icons, upload_installer_to_aws, \
-	generate_resources
+	get_path_on_server, get_icons, upload_installer_to_aws
 from fbs import command
 from fbs.conf import path
+from fbs.freeze import run_pyinstaller
+from fbs.resources import generate_resources
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
@@ -22,18 +23,18 @@ def app():
 	_remove_unwanted_pyinstaller_files()
 	_fix_sparkle_delta_updates()
 	generate_resources(
-		dest_dir=path('target/fman.app'),
-		dest_dir_for_base=path('target/fman.app/Contents/Resources')
+		dest_dir=path('target/app'),
+		dest_dir_for_base=path('target/app/Contents/Resources')
 	)
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),
-		path('target/fman.app/Contents/Frameworks/Sparkle.framework')
+		path('target/app/Contents/Frameworks/Sparkle.framework')
 	)
 	copy_python_library(
-		'osxtrash', path('target/fman.app/Contents/Resources/Plugins/Core')
+		'osxtrash', path('target/app/Contents/Resources/Plugins/Core')
 	)
 	copy_python_library(
-		'ordered_set', path('target/fman.app/Contents/Resources/Plugins/Core')
+		'ordered_set', path('target/app/Contents/Resources/Plugins/Core')
 	)
 
 def icon():
@@ -48,8 +49,8 @@ def _generate_iconset():
 
 def _remove_unwanted_pyinstaller_files():
 	for unwanted in ('include', 'lib', 'lib2to3'):
-		unlink(path('target/fman.app/Contents/MacOS/' + unwanted))
-		rmtree(path('target/fman.app/Contents/Resources/' + unwanted))
+		unlink(path('target/app/Contents/MacOS/' + unwanted))
+		rmtree(path('target/app/Contents/Resources/' + unwanted))
 
 def _fix_sparkle_delta_updates():
 	# Sparkle's Delta Updates mechanism does not support signed non-Mach-O files
@@ -58,12 +59,12 @@ def _fix_sparkle_delta_updates():
 	# Fortunately, everything still works if we then create a symlink
 	# MacOS/base_library.zip -> ../Resources/base_library.zip.
 	rename(
-		path('target/fman.app/Contents/MacOS/base_library.zip'),
-		path('target/fman.app/Contents/Resources/base_library.zip')
+		path('target/app/Contents/MacOS/base_library.zip'),
+		path('target/app/Contents/Resources/base_library.zip')
 	)
 	symlink(
 		'../Resources/base_library.zip',
-		path('target/fman.app/Contents/MacOS/base_library.zip')
+		path('target/app/Contents/MacOS/base_library.zip')
 	)
 
 @command
@@ -71,7 +72,7 @@ def sign_app():
 	run([
 		'codesign', '--deep', '--verbose',
 		'-s', "Developer ID Application: Michael Herrmann",
-		path('target/fman.app')
+		path('target/app')
 	], check=True)
 
 @command
@@ -79,7 +80,7 @@ def dmg():
 	run([
 		path('bin/mac/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
 		'--app-drop-link', '0', '10', '--icon', 'fman', '200', '10',
-		 path('target/fman.dmg'), path('target/fman.app')
+		 path('target/fman.dmg'), path('target/app')
 	], check=True)
 
 @command
@@ -93,7 +94,7 @@ def sign_dmg():
 def create_autoupdate_files():
 	run([
 		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
-		path('target/fman.app'),
+		path('target/app'),
 		path('target/autoupdate/%s.zip' % SETTINGS['version'])
 	], check=True)
 	_create_autoupdate_patches()
@@ -120,7 +121,7 @@ def _create_autoupdate_patches(num=10):
 			run(['ditto', '-x', '-k', version_file, tmp_dir], check=True)
 			run([
 				path('lib/mac/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
-				join(tmp_dir, 'fman.app'), path('target/fman.app'),
+				join(tmp_dir, 'app'), path('target/app'),
 				path('target/autoupdate/%s-%s.delta' % (version, new_version))
 			], check=True)
 

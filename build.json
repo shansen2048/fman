@@ -1,5 +1,6 @@
 {
 	"version": "0.7.9-SNAPSHOT",
+	"app_name": "fman",
 	"release": false,
 	"environment": "local",
 	"server_url": "http://127.0.0.1:8000",

@@ -1,10 +1,11 @@
 from build_impl import linux, check_output_decode, remove_if_exists, \
-	copy_with_filtering, SETTINGS, upload_installer_to_aws, upload_file, \
-	run_on_server, get_path_on_server
+	SETTINGS, upload_installer_to_aws, upload_file, run_on_server, \
+	get_path_on_server
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
 from fbs import command
 from fbs.conf import path
+from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import exists, join, basename
 from shutil import rmtree, copytree, copy
@@ -45,7 +46,7 @@ def _remove_gtk_dependencies():
 			# is used instead. We therefore need to keep libpng12.so.0 so fman
 			# can run on Ubuntu 17.04+:
 			if so_name != 'libpng12.so.0':
-				remove_if_exists(path('target/fman/' + so_name))
+				remove_if_exists(path('target/app/' + so_name))
 
 @command
 def deb():
@@ -53,7 +54,7 @@ def deb():
 		rmtree(path('target/deb'))
 	if exists(path('target/deb-config')):
 		rmtree(path('target/deb-config'))
-	copytree(path('target/fman'), path('target/deb/opt/fman'))
+	copytree(path('target/app'), path('target/deb/opt/fman'))
 	deb_resource = \
 		lambda relpath: path('src/main/resources/linux-deb' + relpath)
 	copy_with_filtering(
