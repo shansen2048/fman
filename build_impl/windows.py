@@ -1,7 +1,7 @@
 from build_impl import copy_python_library, upload_to_s3
 from fbs import command
 from fbs.conf import path, SETTINGS
-from fbs.freeze import run_pyinstaller
+from fbs.freeze.windows import freeze_windows
 from fbs.resources import generate_resources, copy_with_filtering
 from datetime import date
 from os import rename, makedirs, remove
@@ -31,35 +31,17 @@ def _install_go_dependencies():
 
 @command
 def exe():
-	run_pyinstaller(extra_args=[
-		'--windowed', '--icon', path('src/main/icons/Icon.ico'),
+	freeze_windows(extra_pyinstaller_args=[
 		# Required by send2trash, which is used in the Core plugin:
 		'--hidden-import', 'ctypes.wintypes',
 		# Required by the Core plugin:
 		'--hidden-import', 'adodbapi'
 	])
-	# PyInstaller somehow corrupts python3*.dll - see:
-	# https://github.com/pyinstaller/pyinstaller/issues/2526
-	# Restore the uncorrupted original:
-	for dll_name in ('python3.dll', 'python35.dll'):
-		remove(path('target/app/' + dll_name))
-		copy(join(dirname(sys.executable), dll_name), path('target/app'))
-	generate_resources(dest_dir=path('target/app'))
-	copy(path('src/main/icons/Icon.ico'), path('target/app'))
-	_add_missing_dlls()
 	copy_python_library('send2trash', path('target/app/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/app/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('target/app/fman.exe'))
 	_generate_uninstaller()
-
-def _add_missing_dlls():
-	for dll in (
-		'msvcr100.dll', 'msvcr110.dll', 'msvcp110.dll', 'vcruntime140.dll',
-		'msvcp140.dll', 'concrt140.dll', 'vccorlib140.dll',
-		'api-ms-win-crt-multibyte-l1-1-0.dll'
-	):
-		copy(join(r'c:\Windows\System32', dll), path('target/app'))
 
 def _move_pyinstaller_output_to_version_subdir():
 	rename(path('target/app'), path('target/pyinstaller'))
