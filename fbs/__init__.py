@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from fbs import conf
 from fbs.conf import path, SETTINGS, load_settings
 from os import listdir, remove, unlink
 from os.path import join, isfile, isdir, islink, abspath
@@ -10,15 +11,15 @@ import subprocess
 import sys
 
 def main(project_dir):
-	SETTINGS['project_dir'] = abspath(project_dir)
-	SETTINGS.update(load_settings(join(project_dir, 'build.json')))
-	parser = ArgumentParser(description='fbs')
-	parser.add_argument('cmd')
-	parser.add_argument('args', metavar='arg', nargs='*')
-	args = parser.parse_args()
+	init(abspath(project_dir))
+	args = _parse_cmdline()
 	result = _COMMANDS[args.cmd](*args.args)
 	if result:
 		print(result)
+
+def init(project_dir):
+	SETTINGS['project_dir'] = project_dir
+	SETTINGS.update(load_settings(join(project_dir, 'build.json')))
 
 def command(f):
 	_COMMANDS[f.__name__] = f
@@ -67,3 +68,9 @@ def clean():
 				remove(fpath)
 			elif islink(fpath):
 				unlink(fpath)
+
+def _parse_cmdline():
+	parser = ArgumentParser(description='fbs')
+	parser.add_argument('cmd')
+	parser.add_argument('args', metavar='arg', nargs='*')
+	return parser.parse_args()
