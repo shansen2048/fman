@@ -1,4 +1,4 @@
-//go:generate goversioninfo -icon=fman.ico
+//go:generate goversioninfo -icon=Icon.ico
 
 /*
 Looks at directory "Versions" next to this executable. Finds the latest version

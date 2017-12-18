@@ -23,7 +23,7 @@ def app():
 	generate_resources(
 		dest_dir=path('target/fman.app'),
 		dest_dir_for_base=path('target/fman.app/Contents/Resources'),
-		exclude=[path('src/main/resources/base/fman.ico')]
+		exclude=[path('src/main/resources/base/Icon.ico')]
 	)
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),

@@ -30,7 +30,7 @@ def _install_go_dependencies():
 @command
 def exe():
 	run_pyinstaller(extra_args=[
-		'--windowed', '--icon', path('src/main/resources/base/fman.ico'),
+		'--windowed', '--icon', path('src/main/resources/base/Icon.ico'),
 		# Required by send2trash, which is used in the Core plugin:
 		'--hidden-import', 'ctypes.wintypes',
 		# Required by the Core plugin:
@@ -78,7 +78,7 @@ def _build_launcher(dest):
 		}, files_to_filter=[path("src/main/go/src/launcher/versioninfo.json")]
 	)
 	copy(
-		path('src/main/resources/base/fman.ico'),
+		path('src/main/resources/base/Icon.ico'),
 		path('target/go/src/launcher')
 	)
 	_run_go('generate', 'launcher')
