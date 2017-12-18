@@ -170,7 +170,7 @@ def run_pyinstaller(extra_args=None):
 		'--distpath', path('target'),
 		'--specpath', path('target/build'),
 		'--workpath', path('target/build'),
-		path('src/main/python/fman/main.py')
+		SETTINGS['main_module']
 	]
 	run(cmdline)
 
