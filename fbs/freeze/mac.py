@@ -22,10 +22,10 @@ def freeze_mac():
 	)
 
 def _generate_iconset():
-	makedirs(path('target/fman.iconset'), exist_ok=True)
+	makedirs(path('target/Icon.iconset'), exist_ok=True)
 	for size, icon_path in get_icons():
 		dest_name = 'icon_%dx%d.png' % (size, size)
-		copy(icon_path, path('target/fman.iconset/' + dest_name))
+		copy(icon_path, path('target/Icon.iconset/' + dest_name))
 
 def _remove_unwanted_pyinstaller_files():
 	for unwanted in ('include', 'lib', 'lib2to3'):
