@@ -10,20 +10,11 @@ from shutil import copy, copytree, copymode
 from subprocess import run, check_output
 from time import time
 
-import json
 import os
 import re
 import sys
 
 _ALL_OSS = {'mac', 'windows', 'linux'}
-
-def read_filter():
-	with open(path('src/main/filters/filter-local.json'), 'r') as f:
-		result = json.load(f)
-	if SETTINGS['release']:
-		with open(path('src/main/filters/filter-release.json'), 'r') as f:
-			result.update(json.load(f))
-	return result
 
 def generate_resources(dest_dir=None, dest_dir_for_base=None, exclude=None):
 	if dest_dir is None:

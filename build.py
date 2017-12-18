@@ -1,6 +1,6 @@
 from fbs import command, clean
-from build_impl import git, create_cloudfront_invalidation, read_filter
-from fbs.conf import path, SETTINGS
+from build_impl import git, create_cloudfront_invalidation
+from fbs.conf import path, SETTINGS, load_settings
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import listdir, makedirs
 from os.path import join, isdir, dirname
@@ -63,7 +63,7 @@ def publish():
 def release():
 	clean()
 	SETTINGS['release'] = True
-	SETTINGS.update(read_filter())
+	SETTINGS.update(load_settings(path('build_release.json')))
 	version = SETTINGS['version']
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
