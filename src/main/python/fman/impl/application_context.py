@@ -322,7 +322,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def theme(self):
 		qss_files = [self.get_resource('styles.qss')]
 		os_styles = self.get_resource('os_styles.qss')
-		if exists(os_styles):
+		if os_styles is not None:
 			qss_files.append(os_styles)
 		return Theme(self.app, qss_files)
 	@cached_property

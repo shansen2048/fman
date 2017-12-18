@@ -1,5 +1,5 @@
 from fbs.freeze import run_pyinstaller
-from fbs.conf import path
+from fbs.conf import path, SETTINGS
 from fbs.resources import generate_resources, get_icons
 from os import makedirs, unlink, rename, symlink
 from os.path import exists
@@ -11,7 +11,8 @@ def freeze_mac():
 		_generate_iconset()
 		run(['iconutil', '-c', 'icns', path('target/Icon.iconset')], check=True)
 	run_pyinstaller(extra_args=[
-		'--windowed', '--osx-bundle-identifier', 'io.fman.fman',
+		'--windowed',
+		'--osx-bundle-identifier', SETTINGS['mac_bundle_identifier'],
 		'--icon', path('target/Icon.icns')
 	])
 	_remove_unwanted_pyinstaller_files()
@@ -29,8 +30,14 @@ def _generate_iconset():
 
 def _remove_unwanted_pyinstaller_files():
 	for unwanted in ('include', 'lib', 'lib2to3'):
-		unlink(path('target/app/Contents/MacOS/' + unwanted))
-		rmtree(path('target/app/Contents/Resources/' + unwanted))
+		try:
+			unlink(path('target/app/Contents/MacOS/' + unwanted))
+		except FileNotFoundError:
+			pass
+		try:
+			rmtree(path('target/app/Contents/Resources/' + unwanted))
+		except FileNotFoundError:
+			pass
 
 def _fix_sparkle_delta_updates():
 	# Sparkle's Delta Updates mechanism does not support signed non-Mach-O files

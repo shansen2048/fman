@@ -1,4 +1,5 @@
 from fbs import path, SETTINGS
+from fbs.platform import is_mac
 from os import rename
 from subprocess import run
 
@@ -17,5 +18,5 @@ def run_pyinstaller(extra_args=None):
 		SETTINGS['main_module']
 	]
 	run(cmdline, check=True)
-	pyinstaller_output_dir = path('target/' + app_name)
-	rename(pyinstaller_output_dir, path('target/app'))
+	output_dir = path('target/' + app_name + ('.app' if is_mac() else ''))
+	rename(output_dir, path('target/app'))
