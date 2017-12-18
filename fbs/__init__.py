@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
-from fbs.conf import path, OPTIONS
+from fbs.conf import path, OPTIONS, load_options
 from os import listdir, remove, unlink
-from os.path import join, isfile, isdir, islink
+from os.path import join, isfile, isdir, islink, abspath
 from shutil import rmtree
 from unittest import TestSuite, TextTestRunner, defaultTestLoader
 
@@ -9,7 +9,9 @@ import os
 import subprocess
 import sys
 
-def main():
+def main(project_dir):
+	OPTIONS['project_dir'] = abspath(project_dir)
+	OPTIONS.update(load_options(join(project_dir, 'build.json')))
 	parser = ArgumentParser(description='fbs')
 	parser.add_argument('cmd')
 	parser.add_argument('args', metavar='arg', nargs='*')

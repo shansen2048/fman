@@ -1,0 +1,27 @@
+{
+	"version": "0.7.9-SNAPSHOT",
+	"release": false,
+	"environment": "local",
+	"server_url": "http://127.0.0.1:8000",
+	"info_plist_extra": "<key>NSAppTransportSecurity</key>\n\t<dict>\n\t\t<key>NSAllowsArbitraryLoads</key>\n\t\t<true/>\n\t</dict>",
+	"main_module": "src/main/python/fman/main.py",
+	"local_media_dir": "../fman.io/media",
+	"server_user": "fman@fman.io",
+	"ssh_key": "conf/ssh/id_rsa",
+	"files_to_filter": [
+		"src/main/resources/base/constants.json",
+		"src/main/resources/mac/Contents/Info.plist",
+		"src/main/resources/mac/Contents/SharedSupport/bin/fman"
+	],
+	"gpg_key": "B015FE599CFAF7EB",
+	"gpg_pass": "fenst4r",
+	"aws_access_key_id": "AKIAIWTB3R6KKMMTWXEA",
+	"aws_secret_access_key": "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",
+	"aws_bucket": "fman",
+	"aws_distribution_id": "E36JGR8Q7NMYHR",
+	"test_dirs": [
+		"src/unittest/python",
+		"src/integrationtest/python",
+		"src/main/resources/base/Plugins/Core"
+	]
+}

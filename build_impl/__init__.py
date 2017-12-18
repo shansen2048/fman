@@ -25,9 +25,12 @@ def read_filter():
 			result.update(json.load(f))
 	return result
 
-def generate_resources(
-	dest_dir=path('target/resources'), dest_dir_for_base=None, exclude=None
-):
+def generate_resources(dest_dir=None, dest_dir_for_base=None, exclude=None):
+	if dest_dir is None:
+		# Set this default here instead of in the function definition
+		# (`def generate_resources(dest_dir=path(...) ...)`) because we can't
+		# call path(...) at the module level.
+		path('target/resources')
 	if dest_dir_for_base is None:
 		dest_dir_for_base = dest_dir
 	if exclude is None:

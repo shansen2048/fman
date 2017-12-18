@@ -1,13 +1,9 @@
-from fbs import OPTIONS, command, clean
-from os.path import dirname
-# Set project_dir before importing build_impl, which uses path(...):
-OPTIONS['project_dir'] = dirname(__file__)
-
+from fbs import command, clean
 from build_impl import git, create_cloudfront_invalidation, read_filter
-from fbs.conf import path
+from fbs.conf import path, OPTIONS
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import listdir, makedirs
-from os.path import join, isdir, expanduser
+from os.path import join, isdir, dirname
 from shutil import copytree, copy
 from subprocess import DEVNULL
 
@@ -15,31 +11,6 @@ import fbs
 import re
 import subprocess
 import sys
-
-OPTIONS['release'] = False
-OPTIONS.update(read_filter())
-OPTIONS.update({
-	'main_module': path('src/main/python/fman/main.py'),
-	'local_media_dir': expanduser('~/dev/fman.io/media'),
-	'server_media_dir': '/home/fman/src/media',
-	'server_user': 'fman@fman.io',
-	'ssh_key': path('conf/ssh/id_rsa'),
-	'files_to_filter': [
-		path('src/main/resources/base/constants.json'),
-		path('src/main/resources/mac/Contents/Info.plist'),
-		path('src/main/resources/mac/Contents/SharedSupport/bin/fman')
-	],
-	'gpg_key': 'B015FE599CFAF7EB',
-	'gpg_pass': 'fenst4r',
-	'aws_access_key_id': 'AKIAIWTB3R6KKMMTWXEA',
-	'aws_secret_access_key': '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',
-	'aws_bucket': 'fman',
-	'aws_distribution_id': 'E36JGR8Q7NMYHR',
-	'test_dirs': list(map(path, [
-		'src/unittest/python', 'src/integrationtest/python',
-		'src/main/resources/base/Plugins/Core'
-	]))
-})
 
 if is_windows():
 	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
@@ -238,4 +209,4 @@ def _is_in_gitignore(file_path):
 	return not process.returncode
 
 if __name__ == '__main__':
-	fbs.main()
+	fbs.main(dirname(__file__))

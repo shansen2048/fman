@@ -29,7 +29,7 @@ from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from os import makedirs
 from os.path import dirname, join, exists
-from pathlib import PurePath
+from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import QStyleFactory, QFileIconProvider
@@ -110,16 +110,15 @@ class DevelopmentApplicationContext(ApplicationContext):
 		self._postprocess_constants(result)
 		return result
 	def _postprocess_constants(self, constants):
-		filter_path = str(
-			PurePath(__file__).parents[5] /
-			'src' / 'main' / 'filters' / 'filter-local.json'
-		)
-		with open(filter_path, 'r') as f:
+		filter_path = Path(__file__).parents[5] / 'build.json'
+		with filter_path.open() as f:
 			filter_ = json.load(f)
 		for key, value in constants.items():
 			if isinstance(value, str):
 				for filter_key, filter_value in filter_.items():
-					value = value.replace('${%s}' % filter_key, filter_value)
+					if isinstance(filter_value, str):
+						value = \
+							value.replace('${%s}' % filter_key, filter_value)
 				constants[key] = value
 	@cached_property
 	def excepthook(self):

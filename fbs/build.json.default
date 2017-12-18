@@ -1,0 +1,7 @@
+{
+	"extends": [],
+	"test_dirs": [
+		"src/unittest/python",
+		"src/integrationtest/python"
+	]
+}
