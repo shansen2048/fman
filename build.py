@@ -1,4 +1,9 @@
-from build_impl import path, OPTIONS, git, create_cloudfront_invalidation
+from fbs import OPTIONS
+from os.path import dirname
+OPTIONS['project_dir'] = dirname(__file__)
+
+from build_impl import path, OPTIONS, git, create_cloudfront_invalidation, \
+	read_filter
 from fbs import run
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import unlink, listdir, remove, makedirs
@@ -12,6 +17,7 @@ import subprocess
 import sys
 
 OPTIONS.update({
+	'venv_dir': path('venv'),
 	'main_module': path('src/main/python/fman/main.py'),
 	'local_media_dir': expanduser('~/dev/fman.io/media'),
 	'server_media_dir': '/home/fman/src/media',
@@ -97,6 +103,7 @@ def publish():
 def release():
 	clean()
 	OPTIONS['release'] = True
+	OPTIONS.update(read_filter())
 	version = OPTIONS['version']
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
@@ -265,6 +272,7 @@ if __name__ == '__main__':
 	)
 	args = parser.parse_args()
 	OPTIONS['release'] = args.release
+	OPTIONS.update(read_filter())
 	result = globals()[args.cmd](*args.args)
 	if result:
 		print(result)

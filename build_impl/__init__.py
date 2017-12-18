@@ -10,13 +10,20 @@ from shutil import copy, copytree, copymode
 from subprocess import Popen, STDOUT, CalledProcessError, check_output
 from time import time
 
+import json
 import os
 import re
 import sys
 
-OPTIONS['venv_dir'] = path('venv')
-
 _ALL_OSS = {'mac', 'windows', 'linux'}
+
+def read_filter():
+	with open(path('src/main/filters/filter-local.json'), 'r') as f:
+		result = json.load(f)
+	if OPTIONS['release']:
+		with open(path('src/main/filters/filter-release.json'), 'r') as f:
+			result.update(json.load(f))
+	return result
 
 def generate_resources(
 	dest_dir=path('target/resources'), dest_dir_for_base=None, exclude=None
