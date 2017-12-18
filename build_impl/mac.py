@@ -2,6 +2,7 @@ from build_impl import run, copy_framework, get_canonical_os_name, OPTIONS, \
 	copy_python_library, upload_file, run_on_server, check_output_decode, \
 	get_path_on_server, run_pyinstaller, get_icons, upload_installer_to_aws, \
 	generate_resources
+from fbs import command
 from fbs.init import create_venv, install_requirements
 from fbs.conf import path
 from glob import glob
@@ -10,10 +11,12 @@ from os.path import basename, join, exists, splitext
 from shutil import rmtree, copy
 from tempfile import TemporaryDirectory
 
+@command
 def init():
 	create_venv()
 	install_requirements(path('requirements/mac.txt'))
 
+@command
 def app():
 	if not exists(path('target/fman.icns')):
 		icon()
@@ -69,6 +72,7 @@ def _fix_sparkle_delta_updates():
 		path('target/fman.app/Contents/MacOS/base_library.zip')
 	)
 
+@command
 def sign_app():
 	run([
 		'codesign', '--deep', '--verbose',
@@ -76,6 +80,7 @@ def sign_app():
 		path('target/fman.app')
 	])
 
+@command
 def dmg():
 	run([
 		path('bin/mac/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
@@ -83,6 +88,7 @@ def dmg():
 		 path('target/fman.dmg'), path('target/fman.app')
 	])
 
+@command
 def sign_dmg():
 	run([
 		'codesign', '--verbose',
@@ -190,6 +196,7 @@ def _version_str_to_tuple(version_str):
 def _version_tuple_to_str(version_tuple):
 	return '.'.join(map(str, version_tuple))
 
+@command
 def upload():
 	updates_dir = _get_updates_dir()
 	upload_file(

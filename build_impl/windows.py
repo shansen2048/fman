@@ -1,5 +1,6 @@
 from build_impl import run, generate_resources, OPTIONS, copy_with_filtering, \
 	copy_python_library, run_pyinstaller, upload_to_s3
+from fbs import command
 from fbs.conf import path
 from fbs.init import create_venv, install_requirements
 from datetime import date
@@ -11,6 +12,7 @@ from subprocess import call, DEVNULL
 import os
 import sys
 
+@command
 def init():
 	create_venv()
 	install_requirements(path('requirements/windows.txt'))
@@ -28,6 +30,7 @@ def _install_go_dependencies():
 	go_get('github.com/josephspurrier/goversioninfo/cmd/goversioninfo')
 	go_get('github.com/jteeuwen/go-bindata/...')
 
+@command
 def exe():
 	run_pyinstaller(extra_args=[
 		'--windowed', '--icon', path('src/main/resources/base/fman.ico'),
@@ -93,6 +96,7 @@ def _run_go(*args):
 		}
 	)
 
+@command
 def sign_exe():
 	for subdir, _, files in os.walk(path('target/fman')):
 		for file_ in files:
@@ -113,6 +117,7 @@ def _generate_uninstaller():
 		path('target/UninstallerSetup.exe'), '/S', '/D=' + path('target/fman')
 	])
 
+@command
 def installer():
 	installer_go = path('src/main/go/src/installer/installer.go')
 	copy_with_filtering(
@@ -165,6 +170,7 @@ class StateMachine:
 			self.i = 0
 		return self.i == len(self.bytes) - 1
 
+@command
 def add_installer_manifest():
 	"""
 	If an .exe name contains "installer", "setup" etc., then at least Windows 10
@@ -176,6 +182,7 @@ def add_installer_manifest():
 		'-outputresource:%s;1' % path('target/fmanSetup.exe')
 	])
 
+@command
 def sign_installer():
 	_sign(path('target/fmanSetup.exe'), 'fman Setup', 'https://fman.io')
 
@@ -199,6 +206,7 @@ def _sign(file_path, description='', url=''):
 		args[:-1] + ['/as', '/fd', 'sha256', '/td', 'sha256'] + args[-1:]
 	run(args_sha256)
 
+@command
 def upload():
 	if OPTIONS['release']:
 		src_path = path('target/fmanSetup.exe')

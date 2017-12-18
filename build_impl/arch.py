@@ -3,6 +3,7 @@ from build_impl import linux, run, OPTIONS, copy_with_filtering, upload_file, \
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons, remove_shared_libraries
 from distutils.dir_util import copy_tree
+from fbs import command
 from fbs.conf import path
 from fbs.init import create_venv, install_requirements
 from os import makedirs
@@ -17,10 +18,12 @@ _ARCH_DEPENDENCIES = ('qt5-base', 'p7zip')
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 _PKG_FILE = path('target/fman.pkg.tar.xz')
 
+@command
 def init():
 	create_venv(system_site_packages=True)
 	install_requirements(path('requirements/linux.txt'))
 
+@command
 def exe():
 	linux.exe()
 	# fman normally ships with eg. libQt5Core.so.5. This loads other .so files,
@@ -30,6 +33,7 @@ def exe():
 	# declare it as a dependency and leave it up to pacman to fetch it.
 	remove_shared_libraries('libicudata.so.*', 'libQt*.so.*')
 
+@command
 def pkg():
 	if exists(path('target/arch-pkg')):
 		rmtree(path('target/arch-pkg'))
@@ -56,6 +60,7 @@ def pkg():
 	])
 	run(args)
 
+@command
 def sign_pkg():
 	gpg_pw = OPTIONS['gpg_pass']
 	run([
@@ -77,6 +82,7 @@ def sign_pkg():
 		stdout, stderr = process.communicate()
 		raise CalledProcessError(process.returncode, cmd, stdout, stderr)
 
+@command
 def repo():
 	if exists(path('target/arch-repo')):
 		rmtree(path('target/arch-repo'))
@@ -91,6 +97,7 @@ def repo():
 	# Ensure the permissions on the server are correct:
 	run(['chmod', 'g-w', '-R', repo_dir])
 
+@command
 def pkgbuild():
 	with open(_PKG_FILE, 'rb') as f:
 		sha256 = hashlib.sha256(f.read()).hexdigest()
@@ -116,6 +123,7 @@ def pkgbuild():
 		srcinfo, path('target/pkgbuild'), context, files_to_filter=[srcinfo]
 	)
 
+@command
 def upload():
 	upload_file(path('target/arch-repo/arch'), get_path_on_server('updates'))
 	if OPTIONS['release']:

@@ -1,21 +1,23 @@
-from fbs import OPTIONS
+from fbs import OPTIONS, command, clean
 from os.path import dirname
+# Set project_dir before importing build_impl, which uses path(...):
 OPTIONS['project_dir'] = dirname(__file__)
 
 from build_impl import git, create_cloudfront_invalidation, read_filter
-from fbs import run, OPTIONS
 from fbs.conf import path
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
-from os import unlink, listdir, remove, makedirs
-from os.path import join, isdir, isfile, islink, expanduser
-from shutil import rmtree, copytree, copy
+from os import listdir, makedirs
+from os.path import join, isdir, expanduser
+from shutil import copytree, copy
 from subprocess import DEVNULL
-from unittest import TestSuite, TextTestRunner, defaultTestLoader
 
+import fbs
 import re
 import subprocess
 import sys
 
+OPTIONS['release'] = False
+OPTIONS.update(read_filter())
 OPTIONS.update({
 	'venv_dir': path('venv'),
 	'main_module': path('src/main/python/fman/main.py'),
@@ -33,41 +35,28 @@ OPTIONS.update({
 	'aws_access_key_id': 'AKIAIWTB3R6KKMMTWXEA',
 	'aws_secret_access_key': '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',
 	'aws_bucket': 'fman',
-	'aws_distribution_id': 'E36JGR8Q7NMYHR'
-})
-
-if is_windows():
-	from build_impl.windows import init, exe, installer, sign_exe, \
-		sign_installer, add_installer_manifest, upload
-elif is_mac():
-	from build_impl.mac import init, app, sign_app, dmg, sign_dmg, upload, \
-		create_autoupdate_files
-elif is_linux():
-	if is_ubuntu():
-		from build_impl.ubuntu import init, exe, deb, upload
-	elif is_arch_linux():
-		from build_impl.arch import init, exe, pkg, sign_pkg, repo, pkgbuild, \
-			upload
-	else:
-		raise NotImplementedError()
-
-def test():
-	test_dirs = list(map(path, [
+	'aws_distribution_id': 'E36JGR8Q7NMYHR',
+	'test_dirs': list(map(path, [
 		'src/unittest/python', 'src/integrationtest/python',
 		'src/main/resources/base/Plugins/Core'
 	]))
-	sys.path.append(path('src/main/python'))
-	suite = TestSuite()
-	for test_dir in test_dirs:
-		sys.path.append(test_dir)
-		for dir_name in listdir(test_dir):
-			dir_path = join(test_dir, dir_name)
-			if isfile(join(dir_path, '__init__.py')):
-				suite.addTest(defaultTestLoader.discover(
-					dir_name, top_level_dir=test_dir
-				))
-	TextTestRunner().run(suite)
+})
 
+if is_windows():
+	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
+		add_installer_manifest, upload
+elif is_mac():
+	from build_impl.mac import app, sign_app, dmg, sign_dmg, upload, \
+		create_autoupdate_files
+elif is_linux():
+	if is_ubuntu():
+		from build_impl.ubuntu import exe, deb, upload
+	elif is_arch_linux():
+		from build_impl.arch import exe, pkg, sign_pkg, repo, pkgbuild, upload
+	else:
+		raise NotImplementedError()
+
+@command
 def publish():
 	if is_windows():
 		exe()
@@ -100,6 +89,7 @@ def publish():
 	else:
 		raise ValueError('Unknown operating system.')
 
+@command
 def release():
 	clean()
 	OPTIONS['release'] = True
@@ -140,6 +130,7 @@ def release():
 
 snapshot_suffix = '-SNAPSHOT'
 
+@command
 def post_release():
 	version = OPTIONS['version']
 	assert not version.endswith(snapshot_suffix)
@@ -185,24 +176,7 @@ def _replace_re_group(pattern, string, group_replacement):
 			   group_replacement + \
 			   string[match.end(1):]
 
-def clean():
-	try:
-		rmtree(path('target'))
-	except FileNotFoundError:
-		return
-	except OSError:
-		# In a docker container, target/ may be mounted so we can't delete it.
-		# Delete its contents instead:
-		for f in listdir(path('target')):
-			if f != 'cache':
-				fpath = join(path('target'), f)
-				if isdir(fpath):
-					rmtree(fpath, ignore_errors=True)
-				elif isfile(fpath):
-					remove(fpath)
-				elif islink(fpath):
-					unlink(fpath)
-
+@command
 def arch_docker_image():
 	build_dir = path('target/arch-docker-image')
 	copytree(path('src/main/docker/arch'), build_dir)
@@ -211,6 +185,7 @@ def arch_docker_image():
 	_build_docker_image('fman/arch', build_dir, path('cache/arch'))
 	arch(['/bin/bash', '-c', 'python build.py init'])
 
+@command
 def ubuntu_docker_image():
 	build_dir = path('target/ubuntu-docker-image')
 	copytree(path('src/main/docker/ubuntu'), build_dir)
@@ -219,9 +194,11 @@ def ubuntu_docker_image():
 	_build_docker_image('fman/ubuntu', build_dir, path('cache/ubuntu'))
 	ubuntu(['/bin/bash', '-c', 'python3.5 build.py init'])
 
+@command
 def ubuntu(extra_args=None):
 	_run_docker_image('fman/ubuntu', path('cache/ubuntu'), extra_args)
 
+@command
 def arch(extra_args=None):
 	_run_docker_image('fman/arch', path('cache/arch'), extra_args)
 
@@ -261,18 +238,5 @@ def _is_in_gitignore(file_path):
 	process = subprocess.run(['git', 'check-ignore', file_path], stdout=DEVNULL)
 	return not process.returncode
 
-from argparse import ArgumentParser
 if __name__ == '__main__':
-	parser = ArgumentParser(description='Build fman.')
-	parser.add_argument('cmd')
-	parser.add_argument('args', metavar='arg', nargs='*')
-	parser.add_argument(
-		'--release', dest='release', action='store_const', const=True,
-		default=False
-	)
-	args = parser.parse_args()
-	OPTIONS['release'] = args.release
-	OPTIONS.update(read_filter())
-	result = globals()[args.cmd](*args.args)
-	if result:
-		print(result)
+	fbs.main()

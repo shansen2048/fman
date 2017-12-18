@@ -3,6 +3,7 @@ from build_impl import linux, check_output_decode, remove_if_exists, \
 	run_on_server, get_path_on_server
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
+from fbs import command
 from fbs.conf import path
 from fbs.init import create_venv, install_requirements
 from os import makedirs
@@ -12,10 +13,12 @@ from time import time
 
 import re
 
+@command
 def init():
 	create_venv()
 	install_requirements(path('requirements/ubuntu.txt'))
 
+@command
 def exe():
 	linux.exe()
 	# We're using Python library `pgi` instead of `gi`, `GObject` or other more
@@ -49,6 +52,7 @@ def _remove_gtk_dependencies():
 			if so_name != 'libpng12.so.0':
 				remove_if_exists(path('target/fman/' + so_name))
 
+@command
 def deb():
 	if exists(path('target/deb')):
 		rmtree(path('target/deb'))
@@ -88,6 +92,7 @@ def deb():
 	])
 	run(['chmod', 'g-r', '-R', path('target/deb')])
 
+@command
 def upload():
 	_upload_deb()
 	if OPTIONS['release']:
