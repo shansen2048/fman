@@ -17,9 +17,13 @@ def load_settings(json_path):
 	result.update(result_raw)
 	return result
 
-def path(relpath):
+def path(path_str):
+	if isabs(path_str):
+		return path_str
 	try:
 		project_dir = SETTINGS['project_dir']
 	except KeyError:
-		raise RuntimeError("Please set SETTINGS['project_dir']") from None
-	return normpath(join(project_dir, *relpath.split('/')))
+		error_message = "Setting 'project_dir' is not defined. " \
+						"Did you call fbs.init(...)?"
+		raise RuntimeError(error_message) from None
+	return normpath(join(project_dir, *path_str.split('/')))

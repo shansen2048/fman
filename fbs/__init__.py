@@ -41,9 +41,13 @@ def run():
 def test():
 	sys.path.append(path('src/main/python'))
 	suite = TestSuite()
-	for test_dir in SETTINGS['test_dirs']:
+	for test_dir in map(path, SETTINGS['test_dirs']):
 		sys.path.append(test_dir)
-		for dir_name in listdir(test_dir):
+		try:
+			dir_names = listdir(test_dir)
+		except FileNotFoundError:
+			continue
+		for dir_name in dir_names:
 			dir_path = join(test_dir, dir_name)
 			if isfile(join(dir_path, '__init__.py')):
 				suite.addTest(defaultTestLoader.discover(
