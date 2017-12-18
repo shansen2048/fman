@@ -21,13 +21,7 @@ def cached_property(getter):
 
 class ApplicationContext:
 	def __init__(self):
-		if is_frozen():
-			resource_dir = dirname(sys.executable)
-			if is_mac():
-				resource_dir = join(resource_dir, pardir, 'Resources')
-			self._resource_locator = ResourceLocator([resource_dir])
-		else:
-			self._resource_locator = DevelopmentResourceLocator(self.__class__)
+		self._resource_locator = self._create_resource_locator()
 		# Many Qt classes require a QApplication to have been instantiated.
 		# Do this here, before everything else, to achieve this:
 		self.app
@@ -38,6 +32,16 @@ class ApplicationContext:
 			self._signal_wakeup_handler.install()
 		if self.app_icon:
 			self.app.setWindowIcon(self.app_icon)
+	def _create_resource_locator(self):
+		if is_frozen():
+			executable_dir = dirname(sys.executable)
+			if is_mac():
+				resources_dir = join(executable_dir, pardir, 'Resources')
+			else:
+				resources_dir = executable_dir
+			return ResourceLocator([resources_dir])
+		else:
+			return DevelopmentResourceLocator(self.__class__)
 	@cached_property
 	def app(self):
 		return QApplication(sys.argv)
