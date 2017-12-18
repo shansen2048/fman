@@ -1,6 +1,6 @@
 from fbs import command, clean
 from build_impl import git, create_cloudfront_invalidation, read_filter
-from fbs.conf import path, OPTIONS
+from fbs.conf import path, SETTINGS
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import listdir, makedirs
 from os.path import join, isdir, dirname
@@ -62,9 +62,9 @@ def publish():
 @command
 def release():
 	clean()
-	OPTIONS['release'] = True
-	OPTIONS.update(read_filter())
-	version = OPTIONS['version']
+	SETTINGS['release'] = True
+	SETTINGS.update(read_filter())
+	version = SETTINGS['version']
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
 		print('Releasing version %s' % release_version)
@@ -74,7 +74,7 @@ def release():
 		_commit_version(
 			release_version, 'Set version number for release ' + release_version
 		)
-		OPTIONS['version'] = release_version
+		SETTINGS['version'] = release_version
 		publish()
 		release_tag = 'v' + release_version
 		git('tag', release_tag)
@@ -102,7 +102,7 @@ snapshot_suffix = '-SNAPSHOT'
 
 @command
 def post_release():
-	version = OPTIONS['version']
+	version = SETTINGS['version']
 	assert not version.endswith(snapshot_suffix)
 	cloudfront_items_to_invalidate = []
 	for item in ('fman.deb', 'fman.dmg', 'fmanSetup.exe'):

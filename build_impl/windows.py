@@ -1,4 +1,4 @@
-from build_impl import run, generate_resources, OPTIONS, copy_with_filtering, \
+from build_impl import run, generate_resources, SETTINGS, copy_with_filtering, \
 	copy_python_library, run_pyinstaller, upload_to_s3
 from fbs import command
 from fbs.conf import path
@@ -62,15 +62,15 @@ def _move_pyinstaller_output_to_version_subdir():
 	rename(path('target/fman'), path('target/pyinstaller'))
 	versions_dir = path('target/fman/Versions')
 	makedirs(versions_dir, exist_ok=True)
-	rename(path('target/pyinstaller'), join(versions_dir, OPTIONS['version']))
+	rename(path('target/pyinstaller'), join(versions_dir, SETTINGS['version']))
 
 def _build_launcher(dest):
-	major_str, minor_str, patch_str = OPTIONS['version'].split('.')
+	major_str, minor_str, patch_str = SETTINGS['version'].split('.')
 	if patch_str.endswith('-SNAPSHOT'):
 		patch_str = patch_str[:-len('-SNAPSHOT')]
 	copy_with_filtering(
 		path('src/main/go/src/launcher'), path('target/go/src/launcher'), {
-			'version': OPTIONS['version'],
+			'version': SETTINGS['version'],
 			'version.major': major_str,
 			'version.minor': minor_str,
 			'version.patch': patch_str,
@@ -106,7 +106,7 @@ def sign_exe():
 def _generate_uninstaller():
 	uninstaller_nsi = path('src/main/Uninstaller.nsi')
 	copy_with_filtering(
-		uninstaller_nsi, path('target'), {'version': OPTIONS['version']},
+		uninstaller_nsi, path('target'), {'version': SETTINGS['version']},
 		files_to_filter=[uninstaller_nsi]
 	)
 	run(['makensis', path('target/Uninstaller.nsi')])
@@ -119,7 +119,7 @@ def installer():
 	installer_go = path('src/main/go/src/installer/installer.go')
 	copy_with_filtering(
 		installer_go, path('target/go/src/installer'),
-		{'version': OPTIONS['version']}, files_to_filter=[installer_go]
+		{'version': SETTINGS['version']}, files_to_filter=[installer_go]
 	)
 	# We need to replace \ by / for go-bindata:
 	prefix = path('target/fman').replace('\\', '/')
@@ -131,7 +131,7 @@ def installer():
 	_repl_in_file(data_go, b'package main', b'package data')
 	setup = path('target/fmanSetup.exe')
 	args = ['build', '-o', setup]
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		# The flags below hide the console window. We only apply them during a
 		# release so we can use fmt.Print* while developing.
 		args.extend(['-ldflags', '-H windowsgui'])
@@ -205,8 +205,8 @@ def _sign(file_path, description='', url=''):
 
 @command
 def upload():
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		src_path = path('target/fmanSetup.exe')
-		dest_path = OPTIONS['version'] + '/fmanSetup.exe'
+		dest_path = SETTINGS['version'] + '/fmanSetup.exe'
 		upload_to_s3(src_path, dest_path)
 		print('\nDone. Please upload fmanSetup.exe to update.fman.io now.')

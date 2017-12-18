@@ -1,4 +1,4 @@
-from fbs.conf import OPTIONS, path
+from fbs.conf import SETTINGS, path
 from fbs.platform import is_windows, is_mac, is_linux
 from glob import glob
 from importlib import import_module
@@ -20,7 +20,7 @@ _ALL_OSS = {'mac', 'windows', 'linux'}
 def read_filter():
 	with open(path('src/main/filters/filter-local.json'), 'r') as f:
 		result = json.load(f)
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		with open(path('src/main/filters/filter-release.json'), 'r') as f:
 			result.update(json.load(f))
 	return result
@@ -54,9 +54,9 @@ def copy_with_filtering(
 	exclude=None
 ):
 	if replacements is None:
-		replacements = OPTIONS
+		replacements = SETTINGS
 	if files_to_filter is None:
-		files_to_filter = OPTIONS['files_to_filter']
+		files_to_filter = SETTINGS['files_to_filter']
 	if exclude is None:
 		exclude = []
 	to_copy = _get_files_to_copy(src_dir_or_file, dest_dir, exclude)
@@ -216,10 +216,10 @@ def get_icons():
 def upload_file(f, dest_dir):
 	print('Uploading %s...' % basename(f))
 	dest_path = get_path_on_server(dest_dir)
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		run([
-			'rsync', '-ravz', '-e', 'ssh -i ' + OPTIONS['ssh_key'],
-			f, OPTIONS['server_user'] + ':' + dest_path
+			'rsync', '-ravz', '-e', 'ssh -i ' + SETTINGS['ssh_key'],
+			f, SETTINGS['server_user'] + ':' + dest_path
 		])
 	else:
 		if isdir(f):
@@ -230,16 +230,16 @@ def upload_file(f, dest_dir):
 def get_path_on_server(file_path):
 	if file_path.startswith('/'):
 		return file_path
-	if OPTIONS['release']:
-		staticfiles_dir = OPTIONS['server_media_dir']
+	if SETTINGS['release']:
+		staticfiles_dir = SETTINGS['server_media_dir']
 	else:
-		staticfiles_dir = OPTIONS['local_media_dir']
+		staticfiles_dir = SETTINGS['local_media_dir']
 	return join(staticfiles_dir, file_path)
 
 def run_on_server(command):
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		return check_output_decode([
-			'ssh', '-i', OPTIONS['ssh_key'], OPTIONS['server_user'], command
+			'ssh', '-i', SETTINGS['ssh_key'], SETTINGS['server_user'], command
 		])
 	else:
 		return check_output_decode(command, shell=True)
@@ -248,10 +248,10 @@ def check_output_decode(*args, **kwargs):
 	return check_output(*args, **kwargs).decode(sys.stdout.encoding)
 
 def upload_installer_to_aws(installer_name):
-	assert OPTIONS['release']
+	assert SETTINGS['release']
 	src_path = path('target/' + installer_name)
 	upload_to_s3(src_path, installer_name)
-	version_dest_path = '%s/%s' % (OPTIONS['version'], installer_name)
+	version_dest_path = '%s/%s' % (SETTINGS['version'], installer_name)
 	upload_to_s3(src_path, version_dest_path)
 
 def git(cmd, *args):
@@ -260,7 +260,7 @@ def git(cmd, *args):
 def upload_to_s3(src_path, dest_path):
 	import boto3
 	s3 = boto3.resource('s3', **_get_aws_credentials())
-	s3.Bucket(OPTIONS['aws_bucket']).upload_file(
+	s3.Bucket(SETTINGS['aws_bucket']).upload_file(
 		src_path, dest_path, ExtraArgs={'ACL': 'public-read'}
 	)
 
@@ -268,7 +268,7 @@ def create_cloudfront_invalidation(items):
 	import boto3
 	cloudfront = boto3.client('cloudfront', **_get_aws_credentials())
 	cloudfront.create_invalidation(
-		DistributionId=OPTIONS['aws_distribution_id'],
+		DistributionId=SETTINGS['aws_distribution_id'],
 		InvalidationBatch={
 			'Paths': {
 				'Quantity': len(items),
@@ -280,6 +280,6 @@ def create_cloudfront_invalidation(items):
 
 def _get_aws_credentials():
 	return {
-		'aws_access_key_id': OPTIONS['aws_access_key_id'],
-		'aws_secret_access_key': OPTIONS['aws_secret_access_key']
+		'aws_access_key_id': SETTINGS['aws_access_key_id'],
+		'aws_secret_access_key': SETTINGS['aws_secret_access_key']
 	}

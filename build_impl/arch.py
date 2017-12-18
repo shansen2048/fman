@@ -1,4 +1,4 @@
-from build_impl import linux, run, OPTIONS, copy_with_filtering, upload_file, \
+from build_impl import linux, run, SETTINGS, copy_with_filtering, upload_file, \
 	get_path_on_server, upload_installer_to_aws
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons, remove_shared_libraries
@@ -37,7 +37,7 @@ def pkg():
 	copy_icons(path('target/arch-pkg'))
 	# Avoid pacman warning "directory permissions differ" when installing:
 	run(['chmod', 'g-w', '-R', path('target/arch-pkg')])
-	version = OPTIONS['version']
+	version = SETTINGS['version']
 	args = [
 		'fpm', '-s', 'dir', '-t', 'pacman', '-n', 'fman',
 		'-v', version,
@@ -56,7 +56,7 @@ def pkg():
 
 @command
 def sign_pkg():
-	gpg_pw = OPTIONS['gpg_pass']
+	gpg_pw = SETTINGS['gpg_pass']
 	run([
 		'gpg', '--batch', '--yes', '--passphrase', gpg_pw,
 		'--import', path('conf/linux/private.gpg-key'),
@@ -65,7 +65,7 @@ def sign_pkg():
 	], check_result=False)
 	cmd = [
 		'gpg', '--batch', '--yes', '--pinentry-mode', 'loopback',
-		'--passphrase-fd', '0', '-u', '0x%s!' % OPTIONS['gpg_key'],
+		'--passphrase-fd', '0', '-u', '0x%s!' % SETTINGS['gpg_key'],
 		'--output', _PKG_FILE + '.sig', '--detach-sig', _PKG_FILE
 	]
 	process = Popen(cmd, stdin=PIPE, universal_newlines=True)
@@ -82,7 +82,7 @@ def repo():
 		rmtree(path('target/arch-repo'))
 	repo_dir = path('target/arch-repo/arch')
 	makedirs(repo_dir)
-	pkg_file_versioned = 'fman-%s.pkg.tar.xz' % OPTIONS['version']
+	pkg_file_versioned = 'fman-%s.pkg.tar.xz' % SETTINGS['version']
 	copy(_PKG_FILE, join(repo_dir, pkg_file_versioned))
 	copy(_PKG_FILE + '.sig', join(repo_dir, pkg_file_versioned + '.sig'))
 	run([
@@ -99,7 +99,7 @@ def pkgbuild():
 	context = {
 		'author': FMAN_AUTHOR,
 		'author_email': FMAN_AUTHOR_EMAIL,
-		'version': OPTIONS['version'],
+		'version': SETTINGS['version'],
 		'description': FMAN_DESCRIPTION,
 		'deps': ' '.join(map(repr, _ARCH_DEPENDENCIES)),
 		'opt_deps': ' '.join(map(repr, _ARCH_OPT_DEPENDENCIES)),
@@ -120,7 +120,7 @@ def pkgbuild():
 @command
 def upload():
 	upload_file(path('target/arch-repo/arch'), get_path_on_server('updates'))
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		upload_installer_to_aws('fman.pkg.tar.xz')
 		_publish_to_AUR()
 
@@ -129,7 +129,7 @@ def _publish_to_AUR():
 		rmtree(path('target/AUR'))
 	makedirs(path('target/AUR'))
 	env = {
-		'GIT_SSH_COMMAND': 'ssh -i ' + OPTIONS['ssh_key']
+		'GIT_SSH_COMMAND': 'ssh -i ' + SETTINGS['ssh_key']
 	}
 	cwd = path('target/AUR')
 	def git(*args):
@@ -139,7 +139,7 @@ def _publish_to_AUR():
 	copy_tree(path('target/pkgbuild'), path('target/AUR/fman'))
 	cwd = path('target/AUR/fman')
 	git('add', '-A')
-	git('commit', '-m', 'Changes for fman ' + OPTIONS['version'])
+	git('commit', '-m', 'Changes for fman ' + SETTINGS['version'])
 	git('push', '-u', 'origin', 'master')
 
 def _add_to_known_hosts(host):

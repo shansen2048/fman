@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from fbs.conf import path, OPTIONS, load_options
+from fbs.conf import path, SETTINGS, load_settings
 from os import listdir, remove, unlink
 from os.path import join, isfile, isdir, islink, abspath
 from shutil import rmtree
@@ -10,8 +10,8 @@ import subprocess
 import sys
 
 def main(project_dir):
-	OPTIONS['project_dir'] = abspath(project_dir)
-	OPTIONS.update(load_options(join(project_dir, 'build.json')))
+	SETTINGS['project_dir'] = abspath(project_dir)
+	SETTINGS.update(load_settings(join(project_dir, 'build.json')))
 	parser = ArgumentParser(description='fbs')
 	parser.add_argument('cmd')
 	parser.add_argument('args', metavar='arg', nargs='*')
@@ -34,13 +34,13 @@ def run():
 	if old_pythonpath:
 		pythonpath += os.pathsep + old_pythonpath
 	env['PYTHONPATH'] = pythonpath
-	subprocess.run([sys.executable, OPTIONS['main_module']], env=env)
+	subprocess.run([sys.executable, SETTINGS['main_module']], env=env)
 
 @command
 def test():
 	sys.path.append(path('src/main/python'))
 	suite = TestSuite()
-	for test_dir in OPTIONS['test_dirs']:
+	for test_dir in SETTINGS['test_dirs']:
 		sys.path.append(test_dir)
 		for dir_name in listdir(test_dir):
 			dir_path = join(test_dir, dir_name)

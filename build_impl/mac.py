@@ -1,4 +1,4 @@
-from build_impl import run, copy_framework, get_canonical_os_name, OPTIONS, \
+from build_impl import run, copy_framework, get_canonical_os_name, SETTINGS, \
 	copy_python_library, upload_file, run_on_server, check_output_decode, \
 	get_path_on_server, run_pyinstaller, get_icons, upload_installer_to_aws, \
 	generate_resources
@@ -94,7 +94,7 @@ def create_autoupdate_files():
 	run([
 		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
 		path('target/fman.app'),
-		path('target/autoupdate/%s.zip' % OPTIONS['version'])
+		path('target/autoupdate/%s.zip' % SETTINGS['version'])
 	])
 	_create_autoupdate_patches()
 
@@ -105,7 +105,7 @@ def _create_autoupdate_patches(num=10):
 	if not version_files:
 		return
 	latest_version = version_files[-1]
-	new_version = OPTIONS['version']
+	new_version = SETTINGS['version']
 	if _version_str_to_tuple(new_version) <= get_version_tpl(latest_version):
 		raise ValueError(
 			"Version being built (%s) is <= latest version on server (%s)."
@@ -126,7 +126,7 @@ def _create_autoupdate_patches(num=10):
 
 def _sync_cache_with_server():
 	result = []
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		cache_dir = path('cache/server')
 	else:
 		cache_dir = path('cache/local')
@@ -155,7 +155,7 @@ def _get_versions_on_server():
 			'do shasum -a 256 $f',
 		'done'
 	])
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		shasums_lines = run_on_server(hash_cmd)
 	else:
 		shasums_lines = check_output_decode(hash_cmd, shell=True)
@@ -173,13 +173,13 @@ def _shasum(path_):
 
 def _download_from_server(file_path, dest_dir):
 	print('Downloading %s.' % file_path)
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		# If the file permissions are too open, macOS reports an error and
 		# aborts:
-		run(['chmod', '600', OPTIONS['ssh_key']])
+		run(['chmod', '600', SETTINGS['ssh_key']])
 		run([
-			'scp', '-i', OPTIONS['ssh_key'],
-			OPTIONS['server_user'] + ':' + file_path, dest_dir
+			'scp', '-i', SETTINGS['ssh_key'],
+			SETTINGS['server_user'] + ':' + file_path, dest_dir
 		])
 	else:
 		copy(file_path, dest_dir)
@@ -194,11 +194,11 @@ def _version_tuple_to_str(version_tuple):
 def upload():
 	updates_dir = _get_updates_dir()
 	upload_file(
-		path('target/autoupdate/%s.zip' % OPTIONS['version']), updates_dir
+		path('target/autoupdate/%s.zip' % SETTINGS['version']), updates_dir
 	)
 	for patch_file in glob(path('target/autoupdate/*.delta')):
 		upload_file(patch_file, updates_dir)
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		upload_installer_to_aws('fman.dmg')
 
 def _get_updates_dir():

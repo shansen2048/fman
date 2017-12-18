@@ -2,9 +2,9 @@ from os.path import normpath, join, dirname, isabs
 
 import json
 
-OPTIONS = {}
+SETTINGS = {}
 
-def load_options(json_path):
+def load_settings(json_path):
 	result = {}
 	with open(json_path, 'r') as f:
 		result_raw = json.load(f)
@@ -13,13 +13,13 @@ def load_options(json_path):
 	for extended in extends:
 		if not isabs(extended):
 			extended = join(dirname(json_path), extended)
-		result.update(load_options(extended))
+		result.update(load_settings(extended))
 	result.update(result_raw)
 	return result
 
 def path(relpath):
 	try:
-		project_dir = OPTIONS['project_dir']
+		project_dir = SETTINGS['project_dir']
 	except KeyError:
-		raise RuntimeError("Please set OPTIONS['project_dir']") from None
+		raise RuntimeError("Please set SETTINGS['project_dir']") from None
 	return normpath(join(project_dir, *relpath.split('/')))

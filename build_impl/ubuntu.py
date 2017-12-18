@@ -1,5 +1,5 @@
 from build_impl import linux, check_output_decode, remove_if_exists, \
-	copy_with_filtering, run, OPTIONS, upload_installer_to_aws, upload_file, \
+	copy_with_filtering, run, SETTINGS, upload_installer_to_aws, upload_file, \
 	run_on_server, get_path_on_server
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
@@ -70,7 +70,7 @@ def deb():
 	copy_icons(path('target/deb'))
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',
-		'-v', OPTIONS['version'],
+		'-v', SETTINGS['version'],
 		'--description', FMAN_DESCRIPTION,
 		'-m', '%s <%s>' % (FMAN_AUTHOR, FMAN_AUTHOR_EMAIL),
 		'--vendor', FMAN_AUTHOR,
@@ -89,7 +89,7 @@ def deb():
 @command
 def upload():
 	_upload_deb()
-	if OPTIONS['release']:
+	if SETTINGS['release']:
 		upload_installer_to_aws('fman.deb')
 
 def _upload_deb():
@@ -107,7 +107,7 @@ def _upload_deb():
 	upload_file(tmp_dir_local, '/tmp')
 	tmp_dir_remote = '/tmp/' + basename(tmp_dir_local)
 	try:
-		gpg_pass = OPTIONS['gpg_pass']
+		gpg_pass = SETTINGS['gpg_pass']
 		run_on_server(
 			'gpg --batch --yes --passphrase %s --import "%s/private.gpg-key" '
 			'"%s/public.gpg-key" || true' %
@@ -125,7 +125,7 @@ def _upload_deb():
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
 
 def _get_deb_name(architecture='amd64'):
-	return 'fman_%s_%s.deb' % (OPTIONS['version'], architecture)
+	return 'fman_%s_%s.deb' % (SETTINGS['version'], architecture)
 
 def _generate_reprepro_distributions_file(dest_dir):
 	conf_dir = join(dest_dir, 'reprepro', 'conf')
@@ -138,5 +138,5 @@ def _generate_reprepro_distributions_file(dest_dir):
 			'Architectures: amd64',
 			'Components: main',
 			'Description: ' + FMAN_DESCRIPTION,
-			'SignWith: ' + OPTIONS['gpg_key']
+			'SignWith: ' + SETTINGS['gpg_key']
 		]) + '\n\n')
