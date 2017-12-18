@@ -3,18 +3,12 @@ from build_impl import run, copy_framework, get_canonical_os_name, OPTIONS, \
 	get_path_on_server, run_pyinstaller, get_icons, upload_installer_to_aws, \
 	generate_resources
 from fbs import command
-from fbs.init import create_venv, install_requirements
 from fbs.conf import path
 from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
 from shutil import rmtree, copy
 from tempfile import TemporaryDirectory
-
-@command
-def init():
-	create_venv()
-	install_requirements(path('requirements/mac.txt'))
 
 @command
 def app():

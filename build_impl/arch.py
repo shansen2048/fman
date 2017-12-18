@@ -5,7 +5,6 @@ from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 from distutils.dir_util import copy_tree
 from fbs import command
 from fbs.conf import path
-from fbs.init import create_venv, install_requirements
 from os import makedirs
 from os.path import exists, join, expanduser
 from shutil import rmtree, copytree, copy
@@ -17,11 +16,6 @@ import subprocess
 _ARCH_DEPENDENCIES = ('qt5-base', 'p7zip')
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 _PKG_FILE = path('target/fman.pkg.tar.xz')
-
-@command
-def init():
-	create_venv(system_site_packages=True)
-	install_requirements(path('requirements/linux.txt'))
 
 @command
 def exe():

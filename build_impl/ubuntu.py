@@ -5,18 +5,12 @@ from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
 from fbs import command
 from fbs.conf import path
-from fbs.init import create_venv, install_requirements
 from os import makedirs
 from os.path import exists, join, basename
 from shutil import rmtree, copytree, copy
 from time import time
 
 import re
-
-@command
-def init():
-	create_venv()
-	install_requirements(path('requirements/ubuntu.txt'))
 
 @command
 def exe():

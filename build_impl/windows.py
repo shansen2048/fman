@@ -2,7 +2,6 @@ from build_impl import run, generate_resources, OPTIONS, copy_with_filtering, \
 	copy_python_library, run_pyinstaller, upload_to_s3
 from fbs import command
 from fbs.conf import path
-from fbs.init import create_venv, install_requirements
 from datetime import date
 from os import rename, makedirs, remove
 from os.path import join, splitext, dirname
@@ -14,8 +13,6 @@ import sys
 
 @command
 def init():
-	create_venv()
-	install_requirements(path('requirements/windows.txt'))
 	_install_go_dependencies()
 
 def _install_go_dependencies():
