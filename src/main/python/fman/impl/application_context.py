@@ -1,6 +1,6 @@
 from fbs_runtime import system
 from fbs_runtime import application_context as fbs_appctxt
-from fbs_runtime.application_context import cached_property, is_frozen
+from fbs_runtime.application_context import cached_property, ApplicationContext
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
@@ -28,7 +28,8 @@ from fman.impl.util.settings import Settings
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from os import makedirs
-from os.path import dirname, join, pardir, exists
+from os.path import dirname, join, exists
+from pathlib import PurePath
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import QStyleFactory, QFileIconProvider
@@ -39,17 +40,13 @@ import logging
 import sys
 
 def get_application_context():
-	global _APPLICATION_CONTEXT
-	if _APPLICATION_CONTEXT is None:
-		cls = FrozenApplicationContext if is_frozen() else ApplicationContext
-		_APPLICATION_CONTEXT = cls()
-	return _APPLICATION_CONTEXT
+	return fbs_appctxt.get_application_context(
+		DevelopmentApplicationContext, FrozenApplicationContext
+	)
 
-_APPLICATION_CONTEXT = None
-
-class ApplicationContext(fbs_appctxt.DevelopmentApplicationContext):
+class DevelopmentApplicationContext(ApplicationContext):
 	def __init__(self):
-		super().__init__(join(dirname(__file__), *(pardir,) * 5))
+		super().__init__()
 		self._main_window = None
 	def run(self):
 		self.init_logging()
@@ -113,8 +110,10 @@ class ApplicationContext(fbs_appctxt.DevelopmentApplicationContext):
 		self._postprocess_constants(result)
 		return result
 	def _postprocess_constants(self, constants):
-		filter_path = \
-			join(self.base_dir, 'src', 'main', 'filters', 'filter-local.json')
+		filter_path = str(
+			PurePath(__file__).parents[5] /
+			'src' / 'main' / 'filters' / 'filter-local.json'
+		)
 		with open(filter_path, 'r') as f:
 			filter_ = json.load(f)
 		for key, value in constants.items():
@@ -339,9 +338,7 @@ class ApplicationContext(fbs_appctxt.DevelopmentApplicationContext):
 	def _get_local_data_file(self, *rel_path):
 		return join(DATA_DIRECTORY, 'Local', *rel_path)
 
-class FrozenApplicationContext(
-	fbs_appctxt.FrozenApplicationContext, ApplicationContext
-):
+class FrozenApplicationContext(DevelopmentApplicationContext):
 	def __init__(self):
 		super().__init__()
 		self._updater = None
