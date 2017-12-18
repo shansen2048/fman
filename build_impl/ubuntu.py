@@ -1,5 +1,5 @@
 from build_impl import linux, check_output_decode, remove_if_exists, \
-	copy_with_filtering, run, SETTINGS, upload_installer_to_aws, upload_file, \
+	copy_with_filtering, SETTINGS, upload_installer_to_aws, upload_file, \
 	run_on_server, get_path_on_server
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
@@ -8,6 +8,7 @@ from fbs.conf import path
 from os import makedirs
 from os.path import exists, join, basename
 from shutil import rmtree, copytree, copy
+from subprocess import run
 from time import time
 
 import re
@@ -83,8 +84,8 @@ def deb():
 		'-d', 'gnupg',
 		'-p', path('target/fman.deb'),
 		'-f', '-C', path('target/deb')
-	])
-	run(['chmod', 'g-r', '-R', path('target/deb')])
+	], check=True)
+	run(['chmod', 'g-r', '-R', path('target/deb')], check=True)
 
 @command
 def upload():

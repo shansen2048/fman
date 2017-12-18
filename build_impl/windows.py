@@ -1,4 +1,4 @@
-from build_impl import run, generate_resources, SETTINGS, copy_with_filtering, \
+from build_impl import generate_resources, SETTINGS, copy_with_filtering, \
 	copy_python_library, run_pyinstaller, upload_to_s3
 from fbs import command
 from fbs.conf import path
@@ -6,7 +6,7 @@ from datetime import date
 from os import rename, makedirs, remove
 from os.path import join, splitext, dirname
 from shutil import copy
-from subprocess import call, DEVNULL
+from subprocess import call, DEVNULL, run
 
 import os
 import sys
@@ -16,8 +16,9 @@ def init():
 	_install_go_dependencies()
 
 def _install_go_dependencies():
-	gopath = {'GOPATH': path('src/main/go')}
-	go_get = lambda dep: run(['go', 'get', dep], extra_env=gopath)
+	env = dict(os.environ)
+	env['GOPATH'] = path('src/main/go')
+	go_get = lambda dep: run(['go', 'get', dep], env=env, check=True)
 	# We used to have a solution with third-party tool `godep` here.
 	# This let us tie down the specific versions of our dependencies.
 	# However, the tool did not work with some of our dependencies.
@@ -83,13 +84,10 @@ def _build_launcher(dest):
 	_run_go('build', '-o', dest, '-ldflags', '-H windowsgui', 'launcher')
 
 def _run_go(*args):
-	run(
-		['go'] + list(args),
-		extra_env={
-			'GOPATH': path('target/go') + ';' + path('src/main/go'),
-			'PATH': path('src/main/go/bin') + ';' + os.environ['PATH']
-		}
-	)
+	env = dict(os.environ)
+	env['GOPATH'] = path('target/go') + ';' + path('src/main/go')
+	env['PATH'] = path('src/main/go/bin') + ';' + os.environ['PATH']
+	run(['go'] + list(args), env=env, check=True)
 
 @command
 def sign_exe():
@@ -107,10 +105,10 @@ def _generate_uninstaller():
 		uninstaller_nsi, path('target'), {'version': SETTINGS['version']},
 		files_to_filter=[uninstaller_nsi]
 	)
-	run(['makensis', path('target/Uninstaller.nsi')])
+	run(['makensis', path('target/Uninstaller.nsi')], check=True)
 	run([
 		path('target/UninstallerSetup.exe'), '/S', '/D=' + path('target/fman')
-	])
+	], check=True)
 
 @command
 def installer():
@@ -125,7 +123,7 @@ def installer():
 	run([
 		path('src/main/go/bin/go-bindata'), '-prefix', prefix, '-o', data_go,
 		prefix + '/...'
-	])
+	], check=True)
 	_repl_in_file(data_go, b'package main', b'package data')
 	setup = path('target/fmanSetup.exe')
 	args = ['build', '-o', setup]
@@ -175,7 +173,7 @@ def add_installer_manifest():
 	run([
 		'mt.exe', '-manifest', path('src/main/fmanSetup.exe.manifest'),
 		'-outputresource:%s;1' % path('target/fmanSetup.exe')
-	])
+	], check=True)
 
 @command
 def sign_installer():
@@ -196,10 +194,10 @@ def _sign(file_path, description='', url=''):
 	if url:
 		args.extend(['/du', url])
 	args.append(file_path)
-	run(args)
+	run(args, check=True)
 	args_sha256 = \
 		args[:-1] + ['/as', '/fd', 'sha256', '/td', 'sha256'] + args[-1:]
-	run(args_sha256)
+	run(args_sha256, check=True)
 
 @command
 def upload():

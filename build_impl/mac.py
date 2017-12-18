@@ -1,4 +1,4 @@
-from build_impl import run, copy_framework, get_canonical_os_name, SETTINGS, \
+from build_impl import copy_framework, get_canonical_os_name, SETTINGS, \
 	copy_python_library, upload_file, run_on_server, check_output_decode, \
 	get_path_on_server, run_pyinstaller, get_icons, upload_installer_to_aws, \
 	generate_resources
@@ -8,6 +8,7 @@ from glob import glob
 from os import unlink, rename, symlink, makedirs
 from os.path import basename, join, exists, splitext
 from shutil import rmtree, copy
+from subprocess import run
 from tempfile import TemporaryDirectory
 
 @command
@@ -37,7 +38,7 @@ def app():
 
 def icon():
 	_generate_iconset()
-	run(['iconutil', '-c', 'icns', path('target/fman.iconset')])
+	run(['iconutil', '-c', 'icns', path('target/fman.iconset')], check=True)
 
 def _generate_iconset():
 	makedirs(path('target/fman.iconset'), exist_ok=True)
@@ -71,7 +72,7 @@ def sign_app():
 		'codesign', '--deep', '--verbose',
 		'-s', "Developer ID Application: Michael Herrmann",
 		path('target/fman.app')
-	])
+	], check=True)
 
 @command
 def dmg():
@@ -79,7 +80,7 @@ def dmg():
 		path('bin/mac/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
 		'--app-drop-link', '0', '10', '--icon', 'fman', '200', '10',
 		 path('target/fman.dmg'), path('target/fman.app')
-	])
+	], check=True)
 
 @command
 def sign_dmg():
@@ -87,14 +88,14 @@ def sign_dmg():
 		'codesign', '--verbose',
 		'-s', "Developer ID Application: Michael Herrmann",
 		path('target/fman.dmg')
-	])
+	], check=True)
 
 def create_autoupdate_files():
 	run([
 		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
 		path('target/fman.app'),
 		path('target/autoupdate/%s.zip' % SETTINGS['version'])
-	])
+	], check=True)
 	_create_autoupdate_patches()
 
 def _create_autoupdate_patches(num=10):
@@ -116,12 +117,12 @@ def _create_autoupdate_patches(num=10):
 		with TemporaryDirectory() as tmp_dir:
 			# Use ditto instead of Python's ZipFile because the latter does not
 			# give 100% the same result, making Sparkle's hash check fail:
-			run(['ditto', '-x', '-k', version_file, tmp_dir])
+			run(['ditto', '-x', '-k', version_file, tmp_dir], check=True)
 			run([
 				path('lib/mac/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
 				join(tmp_dir, 'fman.app'), path('target/fman.app'),
 				path('target/autoupdate/%s-%s.delta' % (version, new_version))
-			])
+			], check=True)
 
 def _sync_cache_with_server():
 	result = []
@@ -175,11 +176,11 @@ def _download_from_server(file_path, dest_dir):
 	if SETTINGS['release']:
 		# If the file permissions are too open, macOS reports an error and
 		# aborts:
-		run(['chmod', '600', SETTINGS['ssh_key']])
+		run(['chmod', '600', SETTINGS['ssh_key']], check=True)
 		run([
 			'scp', '-i', SETTINGS['ssh_key'],
 			SETTINGS['server_user'] + ':' + file_path, dest_dir
-		])
+		], check=True)
 	else:
 		copy(file_path, dest_dir)
 

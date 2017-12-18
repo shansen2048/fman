@@ -1,4 +1,4 @@
-from build_impl import linux, run, SETTINGS, copy_with_filtering, upload_file, \
+from build_impl import linux, SETTINGS, copy_with_filtering, upload_file, \
 	get_path_on_server, upload_installer_to_aws
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons, remove_shared_libraries
@@ -8,10 +8,10 @@ from fbs.conf import path
 from os import makedirs
 from os.path import exists, join, expanduser
 from shutil import rmtree, copytree, copy
-from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError
+from subprocess import run, Popen, PIPE, TimeoutExpired, CalledProcessError
 
 import hashlib
-import subprocess
+import os
 
 _ARCH_DEPENDENCIES = ('qt5-base', 'p7zip')
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
@@ -36,7 +36,7 @@ def pkg():
 	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
 	copy_icons(path('target/arch-pkg'))
 	# Avoid pacman warning "directory permissions differ" when installing:
-	run(['chmod', 'g-w', '-R', path('target/arch-pkg')])
+	run(['chmod', 'g-w', '-R', path('target/arch-pkg')], check=True)
 	version = SETTINGS['version']
 	args = [
 		'fpm', '-s', 'dir', '-t', 'pacman', '-n', 'fman',
@@ -52,7 +52,7 @@ def pkg():
 		'-p', _PKG_FILE,
 		'-f', '-C', path('target/arch-pkg')
 	])
-	run(args)
+	run(args, check=True)
 
 @command
 def sign_pkg():
@@ -61,8 +61,7 @@ def sign_pkg():
 		'gpg', '--batch', '--yes', '--passphrase', gpg_pw,
 		'--import', path('conf/linux/private.gpg-key'),
 		path('conf/linux/public.gpg-key')
-		# The command fails if the key is already installed - ignore:
-	], check_result=False)
+	]) # Don't check=True because the call fails if the key is already installed
 	cmd = [
 		'gpg', '--batch', '--yes', '--pinentry-mode', 'loopback',
 		'--passphrase-fd', '0', '-u', '0x%s!' % SETTINGS['gpg_key'],
@@ -87,9 +86,9 @@ def repo():
 	copy(_PKG_FILE + '.sig', join(repo_dir, pkg_file_versioned + '.sig'))
 	run([
 		'repo-add', 'fman.db.tar.gz', pkg_file_versioned
-	], cwd=repo_dir)
+	], cwd=repo_dir, check=True)
 	# Ensure the permissions on the server are correct:
-	run(['chmod', 'g-w', '-R', repo_dir])
+	run(['chmod', 'g-w', '-R', repo_dir], check=True)
 
 @command
 def pkgbuild():
@@ -128,12 +127,11 @@ def _publish_to_AUR():
 	if exists(path('target/AUR')):
 		rmtree(path('target/AUR'))
 	makedirs(path('target/AUR'))
-	env = {
-		'GIT_SSH_COMMAND': 'ssh -i ' + SETTINGS['ssh_key']
-	}
+	env = dict(os.environ)
+	env['GIT_SSH_COMMAND'] = 'ssh -i ' + SETTINGS['ssh_key']
 	cwd = path('target/AUR')
 	def git(*args):
-		run(['git'] + list(args), cwd=cwd, extra_env=env)
+		run(['git'] + list(args), cwd=cwd, env=env, check=True)
 	_add_to_known_hosts('aur.archlinux.org')
 	git('clone', 'ssh://aur@aur.archlinux.org/fman.git')
 	copy_tree(path('target/pkgbuild'), path('target/AUR/fman'))
@@ -143,6 +141,6 @@ def _publish_to_AUR():
 	git('push', '-u', 'origin', 'master')
 
 def _add_to_known_hosts(host):
-	p = subprocess.run(['ssh-keyscan', '-H', host], stdout=PIPE, stderr=PIPE)
+	p = run(['ssh-keyscan', '-H', host], stdout=PIPE, stderr=PIPE)
 	with open(expanduser('~/.ssh/known_hosts'), 'ab') as f:
 		f.write(b'\n' + p.stdout)

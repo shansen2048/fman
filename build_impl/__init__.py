@@ -7,7 +7,7 @@ from os.path import dirname, join, relpath, islink, isdir, basename, isfile, \
 	exists, splitext
 from pathlib import Path
 from shutil import copy, copytree, copymode
-from subprocess import Popen, STDOUT, CalledProcessError, check_output
+from subprocess import run, check_output
 from time import time
 
 import json
@@ -172,7 +172,7 @@ def run_pyinstaller(extra_args=None):
 		'--workpath', path('target/build'),
 		SETTINGS['main_module']
 	]
-	run(cmdline)
+	run(cmdline, check=True)
 
 def copy_python_library(name, dest_dir):
 	library = import_module(name)
@@ -182,17 +182,6 @@ def copy_python_library(name, dest_dir):
 		copytree(package_dir, join(dest_dir, basename(package_dir)))
 	else:
 		copy(library.__file__, dest_dir)
-
-def run(cmd, extra_env=None, check_result=True, cwd=None):
-	if extra_env:
-		env = dict(os.environ)
-		env.update(extra_env)
-	else:
-		env = None
-	process = Popen(cmd, env=env, stderr=STDOUT, cwd=cwd)
-	process.wait()
-	if check_result and process.returncode:
-		raise CalledProcessError(process.returncode, cmd)
 
 def get_canonical_os_name():
 	if is_windows():
@@ -220,7 +209,7 @@ def upload_file(f, dest_dir):
 		run([
 			'rsync', '-ravz', '-e', 'ssh -i ' + SETTINGS['ssh_key'],
 			f, SETTINGS['server_user'] + ':' + dest_path
-		])
+		], check=True)
 	else:
 		if isdir(f):
 			copytree(f, join(dest_dir, basename(f)))
@@ -255,7 +244,7 @@ def upload_installer_to_aws(installer_name):
 	upload_to_s3(src_path, version_dest_path)
 
 def git(cmd, *args):
-	run(['git', cmd] + list(args))
+	run(['git', cmd] + list(args), check=True)
 
 def upload_to_s3(src_path, dest_path):
 	import boto3
