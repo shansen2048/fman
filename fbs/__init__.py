@@ -10,13 +10,16 @@ import os
 import subprocess
 import sys
 
-def main(project_dir=None, cmd=None):
+def main(project_dir=None):
 	if project_dir is None:
 		project_dir = getcwd()
-	if cmd is None:
-		cmd = _parse_cmdline().cmd
 	init(abspath(project_dir))
-	_COMMANDS[cmd]()
+	parser = _get_cmdline_parser()
+	args = parser.parse_args()
+	if hasattr(args, 'cmd'):
+		args.cmd()
+	else:
+		parser.print_help()
 
 def init(project_dir):
 	SETTINGS['project_dir'] = project_dir
@@ -30,6 +33,9 @@ _COMMANDS = {}
 
 @command
 def run():
+	"""
+	Run your app from source
+	"""
 	env = dict(os.environ)
 	pythonpath = path('src/main/python')
 	old_pythonpath = env.get('PYTHONPATH', '')
@@ -40,6 +46,9 @@ def run():
 
 @command
 def freeze():
+	"""
+	Compile your app to target/app
+	"""
 	# Import respective functions late to avoid circular import
 	# fbs <-> fbs.freeze.X:
 	if is_windows():
@@ -60,9 +69,13 @@ def freeze():
 
 @command
 def test():
+	"""
+	Execute your automated tests
+	"""
 	sys.path.append(path('src/main/python'))
 	suite = TestSuite()
-	for test_dir in map(path, SETTINGS['test_dirs']):
+	test_dirs = SETTINGS['test_dirs']
+	for test_dir in map(path, test_dirs):
 		sys.path.append(test_dir)
 		try:
 			dir_names = listdir(test_dir)
@@ -74,10 +87,20 @@ def test():
 				suite.addTest(defaultTestLoader.discover(
 					dir_name, top_level_dir=test_dir
 				))
-	TextTestRunner().run(suite)
+	has_tests = bool(list(suite))
+	if has_tests:
+		TextTestRunner().run(suite)
+	else:
+		print(
+			'No tests found. You can add them to:\n * '+
+			'\n * '.join(test_dirs)
+		)
 
 @command
 def clean():
+	"""
+	Remove previous build outputs
+	"""
 	try:
 		rmtree(path('target'))
 	except FileNotFoundError:
@@ -94,7 +117,7 @@ def clean():
 			elif islink(fpath):
 				unlink(fpath)
 
-def _parse_cmdline():
+def _get_cmdline_parser():
 	# Were we invoked with `python -m fbs`?
 	is_python_m_fbs = splitext(basename(sys.argv[0]))[0] == '__main__'
 	if is_python_m_fbs:
@@ -102,8 +125,11 @@ def _parse_cmdline():
 	else:
 		prog = None
 	parser = ArgumentParser(prog=prog, description='fbs')
-	parser.add_argument('cmd', choices=_COMMANDS)
-	return parser.parse_args()
+	subparsers = parser.add_subparsers()
+	for cmd_name, cmd_fn in _COMMANDS.items():
+		cmd_parser = subparsers.add_parser(cmd_name, help=cmd_fn.__doc__)
+		cmd_parser.set_defaults(cmd=cmd_fn)
+	return parser
 
 if __name__ == '__main__':
 	main()
