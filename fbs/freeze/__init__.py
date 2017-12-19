@@ -10,11 +10,12 @@ def run_pyinstaller(extra_args=None):
 	cmdline = [
 		'pyinstaller',
 		'--name', app_name,
-		'--noupx'
+		'--noupx',
+		'--log-level', 'WARN'
 	] + extra_args + [
 		'--distpath', path('target'),
-		'--specpath', path('target/build'),
-		'--workpath', path('target/build'),
+		'--specpath', path('target/PyInstaller'),
+		'--workpath', path('target/PyInstaller'),
 		SETTINGS['main_module']
 	]
 	run(cmdline, check=True)
