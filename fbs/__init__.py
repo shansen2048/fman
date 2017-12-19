@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 from fbs.platform import is_windows, is_mac, is_linux, is_arch_linux
 from fbs.conf import path, SETTINGS, load_settings
-from os import listdir, remove, unlink
-from os.path import join, isfile, isdir, islink, abspath
+from os import listdir, remove, unlink, getcwd
+from os.path import join, isfile, isdir, islink, abspath, basename, splitext
 from shutil import rmtree
 from unittest import TestSuite, TextTestRunner, defaultTestLoader
 
@@ -10,12 +10,13 @@ import os
 import subprocess
 import sys
 
-def main(project_dir):
+def main(project_dir=None, cmd=None):
+	if project_dir is None:
+		project_dir = getcwd()
+	if cmd is None:
+		cmd = _parse_cmdline().cmd
 	init(abspath(project_dir))
-	args = _parse_cmdline()
-	result = _COMMANDS[args.cmd](*args.args)
-	if result:
-		print(result)
+	_COMMANDS[cmd]()
 
 def init(project_dir):
 	SETTINGS['project_dir'] = project_dir
@@ -94,7 +95,15 @@ def clean():
 				unlink(fpath)
 
 def _parse_cmdline():
-	parser = ArgumentParser(description='fbs')
-	parser.add_argument('cmd')
-	parser.add_argument('args', metavar='arg', nargs='*')
+	# Were we invoked with `python -m fbs`?
+	is_python_m_fbs = splitext(basename(sys.argv[0]))[0] == '__main__'
+	if is_python_m_fbs:
+		prog = '%s -m fbs' % basename(sys.executable)
+	else:
+		prog = None
+	parser = ArgumentParser(prog=prog, description='fbs')
+	parser.add_argument('cmd', choices=_COMMANDS)
 	return parser.parse_args()
+
+if __name__ == '__main__':
+	main()
