@@ -2,15 +2,14 @@ from build_impl import copy_python_library, upload_to_s3
 from fbs import command
 from fbs.conf import path, SETTINGS
 from fbs.freeze.windows import freeze_windows
-from fbs.resources import generate_resources, copy_with_filtering
+from fbs.resources import copy_with_filtering
 from datetime import date
-from os import rename, makedirs, remove
-from os.path import join, splitext, dirname
+from os import rename, makedirs
+from os.path import join, splitext
 from shutil import copy
 from subprocess import call, DEVNULL, run
 
 import os
-import sys
 
 @command
 def init():
