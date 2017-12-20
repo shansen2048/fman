@@ -3,7 +3,6 @@ FROM ubuntu:14.04
 RUN apt-get update && \
     apt-get upgrade -y
 
-ADD install_qt.sh /tmp
 ADD install_python35.sh /tmp
 
 WORKDIR /tmp
