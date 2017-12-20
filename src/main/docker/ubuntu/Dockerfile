@@ -8,8 +8,6 @@ ADD install_python35.sh /tmp
 
 WORKDIR /tmp
 
-RUN ./install_qt.sh ~/dev/fman/cache/Qt-5.6.2
-
 RUN ./install_python35.sh
 ENV LD_LIBRARY_PATH /usr/local/lib
 
