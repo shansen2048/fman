@@ -10,7 +10,7 @@ from os import makedirs
 from os.path import exists, join, basename
 from shutil import rmtree, copytree, copy
 from subprocess import run
-from time import time
+from tempfile import TemporaryDirectory
 
 import re
 
@@ -95,19 +95,18 @@ def upload():
 		upload_installer_to_aws('fman.deb')
 
 def _upload_deb():
-	tmp_dir_local = path('target/upload_%d' % time())
-	makedirs(tmp_dir_local)
-	deb_name = _get_deb_name()
-	copy(path('target/fman.deb'), join(tmp_dir_local, deb_name))
-	copy(path('conf/linux/private.gpg-key'), tmp_dir_local)
-	copy(path('conf/linux/public.gpg-key'), tmp_dir_local)
-	copy(
-		path('src/main/resources/linux-deb-upload/reprepro_no_pw_prompt.sh'),
-		tmp_dir_local
-	)
-	_generate_reprepro_distributions_file(tmp_dir_local)
-	upload_file(tmp_dir_local, '/tmp')
-	tmp_dir_remote = '/tmp/' + basename(tmp_dir_local)
+	with TemporaryDirectory() as tmp_dir_local:
+		deb_name = _get_deb_name()
+		copy(path('target/fman.deb'), join(tmp_dir_local, deb_name))
+		copy(path('conf/linux/private.gpg-key'), tmp_dir_local)
+		copy(path('conf/linux/public.gpg-key'), tmp_dir_local)
+		copy(
+			path('src/main/resources/linux-deb-upload/reprepro_no_pw_prompt.sh'),
+			tmp_dir_local
+		)
+		_generate_reprepro_distributions_file(tmp_dir_local)
+		upload_file(tmp_dir_local, '/tmp')
+		tmp_dir_remote = '/tmp/' + basename(tmp_dir_local)
 	try:
 		gpg_pass = SETTINGS['gpg_pass']
 		run_on_server(
