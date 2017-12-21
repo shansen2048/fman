@@ -1,12 +1,11 @@
-from build_impl import SETTINGS, upload_file, get_path_on_server, \
-	upload_installer_to_aws
+from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
 from distutils.dir_util import copy_tree
 from fbs import command
 from fbs.freeze.arch import freeze_arch
 from fbs.resources import copy_with_filtering
-from fbs.conf import path
+from fbs.conf import path, SETTINGS
 from os import makedirs
 from os.path import exists, join, expanduser
 from shutil import rmtree, copytree, copy
@@ -17,7 +16,6 @@ import os
 
 _ARCH_DEPENDENCIES = ('qt5-base', 'p7zip')
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
-_PKG_FILE = path('target/fman.pkg.tar.xz')
 
 @command
 def exe():
@@ -27,7 +25,7 @@ def exe():
 def pkg():
 	if exists(path('target/arch-pkg')):
 		rmtree(path('target/arch-pkg'))
-	copytree(path('target/app'), path('target/arch-pkg/opt/fman'))
+	copytree(path('target/App.app'), path('target/arch-pkg/opt/fman'))
 	copy_linux_package_resources(path('target/arch-pkg'))
 	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
 	copy_icons(path('target/arch-pkg'))
@@ -45,7 +43,7 @@ def pkg():
 	for dep in _ARCH_DEPENDENCIES:
 		args.extend(['-d', dep])
 	args.extend([
-		'-p', _PKG_FILE,
+		'-p', path(SETTINGS['arch_pkg']),
 		'-f', '-C', path('target/arch-pkg')
 	])
 	run(args, check=True)
@@ -58,10 +56,11 @@ def sign_pkg():
 		'--import', path('conf/linux/private.gpg-key'),
 		path('conf/linux/public.gpg-key')
 	]) # Don't check=True because the call fails if the key is already installed
+	pkg_file = path(SETTINGS['arch_pkg'])
 	cmd = [
 		'gpg', '--batch', '--yes', '--pinentry-mode', 'loopback',
 		'--passphrase-fd', '0', '-u', '0x%s!' % SETTINGS['gpg_key'],
-		'--output', _PKG_FILE + '.sig', '--detach-sig', _PKG_FILE
+		'--output', pkg_file + '.sig', '--detach-sig', pkg_file
 	]
 	process = Popen(cmd, stdin=PIPE, universal_newlines=True)
 	try:
@@ -78,8 +77,9 @@ def repo():
 	repo_dir = path('target/arch-repo/arch')
 	makedirs(repo_dir)
 	pkg_file_versioned = 'fman-%s.pkg.tar.xz' % SETTINGS['version']
-	copy(_PKG_FILE, join(repo_dir, pkg_file_versioned))
-	copy(_PKG_FILE + '.sig', join(repo_dir, pkg_file_versioned + '.sig'))
+	pkg_file = path(SETTINGS['arch_pkg'])
+	copy(pkg_file, join(repo_dir, pkg_file_versioned))
+	copy(pkg_file + '.sig', join(repo_dir, pkg_file_versioned + '.sig'))
 	run([
 		'repo-add', 'fman.db.tar.gz', pkg_file_versioned
 	], cwd=repo_dir, check=True)
@@ -88,7 +88,7 @@ def repo():
 
 @command
 def pkgbuild():
-	with open(_PKG_FILE, 'rb') as f:
+	with open(path(SETTINGS['arch_pkg']), 'rb') as f:
 		sha256 = hashlib.sha256(f.read()).hexdigest()
 	pkgbuild = path('src/main/resources/linux-AUR/PKGBUILD')
 	context = {

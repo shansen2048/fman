@@ -36,14 +36,14 @@ def exe():
 		# Required by the Core plugin:
 		'--hidden-import', 'adodbapi'
 	])
-	copy_python_library('send2trash', path('target/app/Plugins/Core'))
-	copy_python_library('ordered_set', path('target/app/Plugins/Core'))
+	copy_python_library('send2trash', path('target/App.app/Plugins/Core'))
+	copy_python_library('ordered_set', path('target/App.app/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
-	_build_launcher(dest=path('target/app/fman.exe'))
+	_build_launcher(dest=path('target/App.app/fman.exe'))
 	_generate_uninstaller()
 
 def _move_pyinstaller_output_to_version_subdir():
-	rename(path('target/app'), path('target/pyinstaller'))
+	rename(path('target/App.app'), path('target/pyinstaller'))
 	versions_dir = path('target/app/Versions')
 	makedirs(versions_dir, exist_ok=True)
 	rename(path('target/pyinstaller'), join(versions_dir, SETTINGS['version']))

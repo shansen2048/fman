@@ -27,4 +27,7 @@ RUN apt-get install ruby ruby-dev build-essential -y && \
 # Required for Python dependency pgi:
 RUN apt-get install gobject-introspection libgtk-3-0 -y
 
+# Required for our use of reprepro:
+RUN apt-get install reprepro expect -y
+
 WORKDIR /root/dev/fman

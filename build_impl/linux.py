@@ -13,8 +13,8 @@ FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 
 def exe():
 	freeze_linux()
-	copy_python_library('send2trash', path('target/app/Plugins/Core'))
-	copy_python_library('ordered_set', path('target/app/Plugins/Core'))
+	copy_python_library('send2trash', path('target/App.app/Plugins/Core'))
+	copy_python_library('ordered_set', path('target/App.app/Plugins/Core'))
 
 def copy_linux_package_resources(root_path):
 	source_dir = 'src/main/resources/linux-package'

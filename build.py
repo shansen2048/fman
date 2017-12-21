@@ -3,8 +3,8 @@ from build_impl import git, create_cloudfront_invalidation
 from fbs.conf import path, SETTINGS, load_settings
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import listdir, makedirs
-from os.path import join, isdir, dirname
-from shutil import copytree, copy
+from os.path import join, isdir, dirname, exists
+from shutil import copytree, copy, rmtree
 from subprocess import DEVNULL
 
 import fbs
@@ -149,20 +149,32 @@ def _replace_re_group(pattern, string, group_replacement):
 @command
 def arch_docker_image():
 	build_dir = path('target/arch-docker-image')
+	if exists(build_dir):
+		rmtree(build_dir)
 	copytree(path('src/main/docker/arch'), build_dir)
 	copy(path('conf/ssh/id_rsa'), build_dir)
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/arch', build_dir, path('cache/arch'))
-	arch(['/bin/bash', '-c', 'python build.py init'])
+	arch(['/bin/bash', '-c',
+		  'python -m venv venv && '
+		  'source venv/bin/activate && '
+		  'pip install -r requirements/linux.txt'
+	])
 
 @command
 def ubuntu_docker_image():
 	build_dir = path('target/ubuntu-docker-image')
+	if exists(build_dir):
+		rmtree(build_dir)
 	copytree(path('src/main/docker/ubuntu'), build_dir)
 	copy(path('conf/ssh/id_rsa'), build_dir)
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/ubuntu', build_dir, path('cache/ubuntu'))
-	ubuntu(['/bin/bash', '-c', 'python3.5 build.py init'])
+	ubuntu(['/bin/bash', '-c',
+		'python3.5 -m venv venv && '
+		'source venv/bin/activate && '
+		'pip install -r requirements/ubuntu.txt'
+	])
 
 @command
 def ubuntu(extra_args=None):

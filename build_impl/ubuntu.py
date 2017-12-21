@@ -46,7 +46,7 @@ def _remove_gtk_dependencies():
 			# is used instead. We therefore need to keep libpng12.so.0 so fman
 			# can run on Ubuntu 17.04+:
 			if so_name != 'libpng12.so.0':
-				remove_if_exists(path('target/app/' + so_name))
+				remove_if_exists(path('target/App.app/' + so_name))
 
 @command
 def deb():
@@ -54,7 +54,7 @@ def deb():
 		rmtree(path('target/deb'))
 	if exists(path('target/deb-config')):
 		rmtree(path('target/deb-config'))
-	copytree(path('target/app'), path('target/deb/opt/fman'))
+	copytree(path('target/App.app'), path('target/deb/opt/fman'))
 	deb_resource = \
 		lambda relpath: path('src/main/resources/linux-deb' + relpath)
 	copy_with_filtering(
