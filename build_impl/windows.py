@@ -5,10 +5,12 @@ from fbs.freeze.windows import freeze_windows
 from fbs.resources import copy_with_filtering
 from datetime import date
 from os import rename, makedirs
-from os.path import join, splitext
+from os.path import join, splitext, dirname, basename
 from shutil import copy
 from subprocess import call, DEVNULL, run
 
+import hashlib
+import json
 import os
 
 @command
@@ -162,24 +164,77 @@ def sign_installer():
 	_sign(path('target/fmanSetup.exe'), 'fman Setup', 'https://fman.io')
 
 def _is_signed(file_path):
-	return not call(
-		['signtool', 'verify', '/pa', file_path], stdout=DEVNULL, stderr=DEVNULL
-	)
+	return SignHelper.instance().is_signed(file_path)
 
 def _sign(file_path, description='', url=''):
-	args = [
-		'signtool', 'sign', '/f', path('conf/windows/michaelherrmann.pfx'),
-		'/p', 'Tu4suttmdpn!', '/tr', 'http://tsa.startssl.com/rfc3161'
-	]
-	if description:
-		args.extend(['/d', description])
-	if url:
-		args.extend(['/du', url])
-	args.append(file_path)
-	run(args, check=True)
-	args_sha256 = \
-		args[:-1] + ['/as', '/fd', 'sha256', '/td', 'sha256'] + args[-1:]
-	run(args_sha256, check=True)
+	SignHelper.instance().sign(file_path, description, url)
+
+class SignHelper:
+	_INSTANCE = None
+	@classmethod
+	def instance(cls):
+		if cls._INSTANCE is None:
+			cls._INSTANCE = cls(path('cache/signed'))
+		return cls._INSTANCE
+	def __init__(self, cache_dir):
+		self._cache_dir = cache_dir
+	def is_signed(self, file_path):
+		return not call(
+			['signtool', 'verify', '/pa', file_path], stdout=DEVNULL,
+			stderr=DEVNULL
+		)
+	def sign(self, file_path, description, url):
+		json_path = self._get_json_path(file_path)
+		try:
+			with open(json_path) as f:
+				cached = json.load(f)
+			is_in_cache = description == cached['description'] and \
+			              url == cached['url'] and \
+			              self._hash(file_path) == cached['hash']
+		except FileNotFoundError:
+			is_in_cache = False
+		if not is_in_cache:
+			self._sign(file_path, description, url)
+		copy(self._get_path_in_cache(file_path), file_path)
+	def _sign(self, file_path, description, url):
+		path_in_cache = self._get_path_in_cache(file_path)
+		makedirs(dirname(path_in_cache), exist_ok=True)
+		copy(file_path, path_in_cache)
+		hash_ = self._hash(path_in_cache)
+		self._run_signtool(path_in_cache)
+		with open(self._get_json_path(file_path), 'w') as f:
+			json.dump({
+				'description': description,
+				'url': url,
+				'hash': hash_
+			}, f)
+	def _get_json_path(self, file_path):
+		return self._get_path_in_cache(file_path) + '.json'
+	def _get_path_in_cache(self, file_path):
+		return join(self._cache_dir, basename(file_path))
+	def _run_signtool(self, file_path, description='', url=''):
+		args = [
+			'signtool', 'sign', '/f', path('conf/windows/michaelherrmann.pfx'),
+			'/p', 'Tu4suttmdpn!', '/tr', 'http://tsa.startssl.com/rfc3161'
+		]
+		if description:
+			args.extend(['/d', description])
+		if url:
+			args.extend(['/du', url])
+		args.append(file_path)
+		run(args, check=True)
+		args_sha256 = \
+			args[:-1] + ['/as', '/fd', 'sha256', '/td', 'sha256'] + args[-1:]
+		run(args_sha256, check=True)
+	def _hash(self, file_path):
+		bufsize = 65536
+		hasher = hashlib.md5()
+		with open(file_path, 'rb') as f:
+			buf = f.read(bufsize)
+			while buf:
+				hasher.update(buf)
+				buf = f.read(bufsize)
+		return hasher.hexdigest()
 
 @command
 def upload():
