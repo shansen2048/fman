@@ -14,8 +14,8 @@ from tempfile import TemporaryDirectory
 @command
 def app():
 	freeze_mac()
-	rmtree(path('target/App.app/Plugins/Core/bin/linux'))
-	rmtree(path('target/App.app/Plugins/Core/bin/windows'))
+	rmtree(path('target/App.app/Contents/Resources/Plugins/Core/bin/linux'))
+	rmtree(path('target/App.app/Contents/Resources/Plugins/Core/bin/windows'))
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),
 		path('target/App.app/Contents/Frameworks/Sparkle.framework')
