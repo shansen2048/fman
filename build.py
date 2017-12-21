@@ -67,7 +67,7 @@ def publish():
 def release():
 	clean()
 	SETTINGS['release'] = True
-	SETTINGS.update(load_settings(path('build_release.json')))
+	SETTINGS.update(load_settings(path('src/build/settings/release.json')))
 	version = SETTINGS['version']
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
@@ -225,4 +225,7 @@ def _is_in_gitignore(file_path):
 	return not process.returncode
 
 if __name__ == '__main__':
-	fbs.main(dirname(__file__))
+	project_dir = dirname(__file__)
+	settings_dir = join(project_dir, *'src/build/settings'.split('/'))
+	settings_path = join(settings_dir, 'mac.json' if is_mac() else 'base.json')
+	fbs.main(project_dir, settings_path)

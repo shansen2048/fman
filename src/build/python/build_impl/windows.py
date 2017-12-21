@@ -38,19 +38,19 @@ def exe():
 		# Required by the Core plugin:
 		'--hidden-import', 'adodbapi'
 	])
-	rmtree(path('target/App.app/Plugins/Core/bin/mac'))
-	rmtree(path('target/App.app/Plugins/Core/bin/windows'))
-	copy_python_library('send2trash', path('target/App.app/Plugins/Core'))
-	copy_python_library('ordered_set', path('target/App.app/Plugins/Core'))
+	rmtree(path('${freeze_dir}/Plugins/Core/bin/mac'))
+	rmtree(path('${freeze_dir}/Plugins/Core/bin/windows'))
+	copy_python_library('send2trash', path('${freeze_dir}/Plugins/Core'))
+	copy_python_library('ordered_set', path('${freeze_dir}/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
-	_build_launcher(dest=path('target/App.app/fman.exe'))
+	_build_launcher(dest=path('${freeze_dir}/fman.exe'))
 	_generate_uninstaller()
 
 def _move_pyinstaller_output_to_version_subdir():
-	rename(path('target/App.app'), path('target/App.app.tmp'))
-	versions_dir = path('target/App.app/Versions')
+	rename(path('${freeze_dir}'), path('${freeze_dir}.tmp'))
+	versions_dir = path('${freeze_dir}/Versions')
 	makedirs(versions_dir, exist_ok=True)
-	rename(path('target/App.app.tmp'), join(versions_dir, SETTINGS['version']))
+	rename(path('${freeze_dir}.tmp'), join(versions_dir, SETTINGS['version']))
 
 def _build_launcher(dest):
 	major_str, minor_str, patch_str = SETTINGS['version'].split('.')
@@ -77,7 +77,7 @@ def _run_go(*args):
 
 @command
 def sign_exe():
-	for subdir, _, files in os.walk(path('target/App.app')):
+	for subdir, _, files in os.walk(path('${freeze_dir}')):
 		for file_ in files:
 			extension = splitext(file_)[1]
 			if extension in ('.exe', '.cab', '.dll', '.ocx', '.msi', '.xpi'):
@@ -93,7 +93,7 @@ def _generate_uninstaller():
 	)
 	run(['makensis', path('target/Uninstaller.nsi')], check=True)
 	run([
-		path('target/UninstallerSetup.exe'), '/S', '/D=' + path('target/App.app')
+		path('target/UninstallerSetup.exe'), '/S', '/D=' + path('${freeze_dir}')
 	], check=True)
 
 @command
@@ -104,7 +104,7 @@ def installer():
 		{'version': SETTINGS['version']}, files_to_filter=[installer_go]
 	)
 	# We need to replace \ by / for go-bindata:
-	prefix = path('target/App.app').replace('\\', '/')
+	prefix = path('${freeze_dir}').replace('\\', '/')
 	data_go = path('target/go/src/installer/data/data.go')
 	run([
 		path('src/main/go/bin/go-bindata'), '-prefix', prefix, '-o', data_go,

@@ -2,6 +2,7 @@
 	"version": "0.7.9-SNAPSHOT",
 	"app_name": "fman",
 	"main_module": "src/main/python/fman/main.py",
+	"freeze_dir": "target/${app_name}",
 	"test_dirs": [
 		"src/unittest/python",
 		"src/integrationtest/python",

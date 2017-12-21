@@ -1,5 +1,5 @@
 {
-	"extends": ["build.json"],
+	"extends": ["base.json"],
 	"environment": "production",
 	"server_url": "https://fman.io",
 	"info_plist_extra": ""

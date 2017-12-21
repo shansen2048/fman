@@ -14,17 +14,17 @@ from tempfile import TemporaryDirectory
 @command
 def app():
 	freeze_mac()
-	rmtree(path('target/App.app/Contents/Resources/Plugins/Core/bin/linux'))
-	rmtree(path('target/App.app/Contents/Resources/Plugins/Core/bin/windows'))
+	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/linux'))
+	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/windows'))
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),
-		path('target/App.app/Contents/Frameworks/Sparkle.framework')
+		path('${freeze_dir}/Contents/Frameworks/Sparkle.framework')
 	)
 	copy_python_library(
-		'osxtrash', path('target/App.app/Contents/Resources/Plugins/Core')
+		'osxtrash', path('${freeze_dir}/Contents/Resources/Plugins/Core')
 	)
 	copy_python_library(
-		'ordered_set', path('target/App.app/Contents/Resources/Plugins/Core')
+		'ordered_set', path('${freeze_dir}/Contents/Resources/Plugins/Core')
 	)
 
 @command
@@ -32,7 +32,7 @@ def sign_app():
 	run([
 		'codesign', '--deep', '--verbose',
 		'-s', "Developer ID Application: Michael Herrmann",
-		path('target/App.app')
+		path('${freeze_dir}')
 	], check=True)
 
 @command
@@ -40,7 +40,7 @@ def dmg():
 	run([
 		path('bin/mac/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
 		'--app-drop-link', '0', '10', '--icon', 'fman', '200', '10',
-		 path('target/fman.dmg'), path('target/App.app')
+		 path('target/fman.dmg'), path('${freeze_dir}')
 	], check=True)
 
 @command
@@ -54,7 +54,7 @@ def sign_dmg():
 def create_autoupdate_files():
 	run([
 		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
-		path('target/App.app'),
+		path('${freeze_dir}'),
 		path('target/autoupdate/%s.zip' % SETTINGS['version'])
 	], check=True)
 	_create_autoupdate_patches()
@@ -81,7 +81,7 @@ def _create_autoupdate_patches(num=10):
 			run(['ditto', '-x', '-k', version_file, tmp_dir], check=True)
 			run([
 				path('lib/mac/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
-				join(tmp_dir, 'app'), path('target/App.app'),
+				join(tmp_dir, 'app'), path('${freeze_dir}'),
 				path('target/autoupdate/%s-%s.delta' % (version, new_version))
 			], check=True)
 

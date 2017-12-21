@@ -25,7 +25,7 @@ def exe():
 def pkg():
 	if exists(path('target/arch-pkg')):
 		rmtree(path('target/arch-pkg'))
-	copytree(path('target/App.app'), path('target/arch-pkg/opt/fman'))
+	copytree(path('${freeze_dir}'), path('target/arch-pkg/opt/fman'))
 	copy_linux_package_resources(path('target/arch-pkg'))
 	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
 	copy_icons(path('target/arch-pkg'))
