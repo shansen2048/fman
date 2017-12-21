@@ -110,7 +110,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 		self._postprocess_constants(result)
 		return result
 	def _postprocess_constants(self, constants):
-		filter_path = Path(__file__).parents[5] / 'build.json'
+		filter_path = Path(__file__).parents[5] \
+					  / 'src' / 'build' / 'settings' / 'base.json'
 		with filter_path.open() as f:
 			filter_ = json.load(f)
 		for key, value in constants.items():
