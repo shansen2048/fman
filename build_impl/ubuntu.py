@@ -95,7 +95,12 @@ def upload():
 		upload_installer_to_aws('fman.deb')
 
 def _upload_deb():
-	with TemporaryDirectory() as tmp_dir_local:
+	# We supply the dir=... parameter to TemporaryDirectory for the following
+	# reason: In the Ubuntu Docker build, upload_file(...) copies to /tmp.
+	# Without the dir=... parameter, tmp_dir_local below would also lie in /tmp.
+	# So upload_file(...) would try to copy the directory itself. This fails for
+	# obvious reasons.
+	with TemporaryDirectory(dir=path('target')) as tmp_dir_local:
 		deb_name = _get_deb_name()
 		copy(path('target/fman.deb'), join(tmp_dir_local, deb_name))
 		copy(path('conf/linux/private.gpg-key'), tmp_dir_local)
