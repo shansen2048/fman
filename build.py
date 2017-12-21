@@ -155,7 +155,7 @@ def arch_docker_image():
 	build_dir = path('target/arch-docker-image')
 	if exists(build_dir):
 		rmtree(build_dir)
-	copytree(path('src/main/docker/arch'), build_dir)
+	copytree(path('src/build/docker/arch'), build_dir)
 	copy(path('conf/ssh/id_rsa'), build_dir)
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/arch', build_dir, path('cache/arch'))
@@ -170,7 +170,7 @@ def ubuntu_docker_image():
 	build_dir = path('target/ubuntu-docker-image')
 	if exists(build_dir):
 		rmtree(build_dir)
-	copytree(path('src/main/docker/ubuntu'), build_dir)
+	copytree(path('src/build/docker/ubuntu'), build_dir)
 	copy(path('conf/ssh/id_rsa'), build_dir)
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/ubuntu', build_dir, path('cache/ubuntu'))
