@@ -4,7 +4,7 @@ from fbs.freeze.linux import freeze_linux
 from fbs.resources import copy_with_filtering, get_icons
 from os import makedirs
 from os.path import join, dirname
-from shutil import copy
+from shutil import copy, rmtree
 
 FMAN_DESCRIPTION = \
 	'A modern file manager for power users. Beautiful, fast and extensible'
@@ -13,6 +13,8 @@ FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 
 def exe():
 	freeze_linux()
+	rmtree(path('target/App.app/Plugins/Core/bin/mac'))
+	rmtree(path('target/App.app/Plugins/Core/bin/windows'))
 	copy_python_library('send2trash', path('target/App.app/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/App.app/Plugins/Core'))
 

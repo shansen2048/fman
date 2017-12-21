@@ -7,13 +7,15 @@ from fbs.freeze.mac import freeze_mac
 from glob import glob
 from os import makedirs
 from os.path import basename, join, exists, splitext
-from shutil import copy
+from shutil import copy, rmtree
 from subprocess import run
 from tempfile import TemporaryDirectory
 
 @command
 def app():
 	freeze_mac()
+	rmtree(path('target/App.app/Plugins/Core/bin/linux'))
+	rmtree(path('target/App.app/Plugins/Core/bin/windows'))
 	copy_framework(
 		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),
 		path('target/App.app/Contents/Frameworks/Sparkle.framework')

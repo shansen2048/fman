@@ -6,7 +6,7 @@ from fbs.resources import copy_with_filtering
 from datetime import date
 from os import rename, makedirs
 from os.path import join, splitext, dirname, basename
-from shutil import copy
+from shutil import copy, rmtree
 from subprocess import call, DEVNULL, run
 
 import hashlib
@@ -38,6 +38,8 @@ def exe():
 		# Required by the Core plugin:
 		'--hidden-import', 'adodbapi'
 	])
+	rmtree(path('target/App.app/Plugins/Core/bin/mac'))
+	rmtree(path('target/App.app/Plugins/Core/bin/windows'))
 	copy_python_library('send2trash', path('target/App.app/Plugins/Core'))
 	copy_python_library('ordered_set', path('target/App.app/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
