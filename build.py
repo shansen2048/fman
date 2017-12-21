@@ -1,3 +1,7 @@
+from os.path import dirname, join
+import sys
+sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
+
 from fbs import command, clean
 from build_impl import git, create_cloudfront_invalidation
 from fbs.conf import path, SETTINGS, load_settings
