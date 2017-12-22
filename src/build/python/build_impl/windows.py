@@ -39,7 +39,7 @@ def exe():
 		'--hidden-import', 'adodbapi'
 	])
 	rmtree(path('${freeze_dir}/Plugins/Core/bin/mac'))
-	rmtree(path('${freeze_dir}/Plugins/Core/bin/windows'))
+	rmtree(path('${freeze_dir}/Plugins/Core/bin/linux'))
 	copy_python_library('send2trash', path('${freeze_dir}/Plugins/Core'))
 	copy_python_library('ordered_set', path('${freeze_dir}/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
