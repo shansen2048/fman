@@ -121,7 +121,7 @@ def _get_suggested_next_version(version):
 	return '.'.join(version_parts[:-1]) + '.' + next_patch
 
 def _commit_version(version, commit_message):
-	filter_path = path('src/main/filters/filter-local.json')
+	filter_path = path('src/build/settings/base.json')
 	_replace_in_json(filter_path, 'version', version)
 	git('add', filter_path)
 	git('commit', '-m', commit_message)
