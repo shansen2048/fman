@@ -1,5 +1,5 @@
 {
-	"version": "0.8.0-SNAPSHOT",
+	"version": "0.8.0",
 	"app_name": "fman",
 	"main_module": "src/main/python/fman/main.py",
 	"freeze_dir": "target/${app_name}",
