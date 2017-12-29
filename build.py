@@ -67,7 +67,9 @@ def publish():
 def release():
 	clean()
 	SETTINGS['release'] = True
-	SETTINGS.update(load_settings(path('src/build/settings/release.json')))
+	settings = \
+		path('src/build/settings/release%s.json' % ('_mac' if is_mac() else ''))
+	SETTINGS.update(load_settings(settings))
 	version = SETTINGS['version']
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]

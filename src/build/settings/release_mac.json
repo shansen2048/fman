@@ -1,0 +1,4 @@
+{
+	"extends": ["release.json"],
+	"freeze_dir": "target/fman.app"
+}
