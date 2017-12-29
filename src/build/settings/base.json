@@ -15,6 +15,7 @@
 	"server_url": "http://127.0.0.1:8000",
 	"info_plist_extra": "<key>NSAppTransportSecurity</key>\n\t<dict>\n\t\t<key>NSAllowsArbitraryLoads</key>\n\t\t<true/>\n\t</dict>",
 	"local_media_dir": "../fman.io/media",
+	"server_media_dir": "/home/fman/src/media",
 	"server_user": "fman@fman.io",
 	"ssh_key": "conf/ssh/id_rsa",
 	"resources_to_filter": [

@@ -81,6 +81,9 @@ def get_path_on_server(file_path):
 
 def run_on_server(command):
 	if SETTINGS['release']:
+		# If the file permissions are too open, macOS reports an error and
+		# aborts:
+		run(['chmod', '600', SETTINGS['ssh_key']], check=True)
 		return check_output_decode([
 			'ssh', '-i', SETTINGS['ssh_key'], SETTINGS['server_user'], command
 		])
