@@ -79,9 +79,10 @@ def _create_autoupdate_patches(num=10):
 			# Use ditto instead of Python's ZipFile because the latter does not
 			# give 100% the same result, making Sparkle's hash check fail:
 			run(['ditto', '-x', '-k', version_file, tmp_dir], check=True)
+			freeze_dir = path('${freeze_dir}')
 			run([
 				path('lib/mac/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
-				join(tmp_dir, 'app'), path('${freeze_dir}'),
+				join(tmp_dir, basename(freeze_dir)), freeze_dir,
 				path('target/autoupdate/%s-%s.delta' % (version, new_version))
 			], check=True)
 
