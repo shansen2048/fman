@@ -17,7 +17,7 @@ def app():
 	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/linux'))
 	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/windows'))
 	copy_framework(
-		path('lib/mac/Sparkle-1.14.0/Sparkle.framework'),
+		path('lib/mac/Sparkle-1.18.1/Sparkle.framework'),
 		path('${freeze_dir}/Contents/Frameworks/Sparkle.framework')
 	)
 	copy_python_library(
@@ -81,7 +81,7 @@ def _create_autoupdate_patches(num=10):
 			run(['ditto', '-x', '-k', version_file, tmp_dir], check=True)
 			freeze_dir = path('${freeze_dir}')
 			run([
-				path('lib/mac/Sparkle-1.14.0/bin/BinaryDelta'), 'create',
+				path('lib/mac/Sparkle-1.18.1/bin/BinaryDelta'), 'create',
 				join(tmp_dir, basename(freeze_dir)), freeze_dir,
 				path('target/autoupdate/%s-%s.delta' % (version, new_version))
 			], check=True)
