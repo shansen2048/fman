@@ -26,7 +26,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>SUFeedURL</key>
-	<string>${server_url}/updates/Appcast.xml</string>
+	<string>${appcast_url}</string>
 	${info_plist_extra}
 </dict>
 </plist>
