@@ -11,6 +11,7 @@ RUN ./install_python35.sh
 ENV LD_LIBRARY_PATH /usr/local/lib
 
 ADD id_rsa /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
 ADD id_rsa.pub /root/.ssh/id_rsa.pub
 RUN apt-get install openssh-client -y && \
     ssh-keyscan -H dev.herrmann.io >> ~/.ssh/known_hosts && \
