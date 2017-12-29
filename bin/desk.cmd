@@ -1,9 +1,8 @@
 SET ROOT=c:\Users\Michael\dev\fman
-SET GOPATH=%ROOT%\src\main\go
-SET PATH=%ROOT%\lib\windows\Qt-5.6.1-1\bin;%GOPATH%\bin;%PATH%
 CD %ROOT%
 CALL venv\scripts\activate.bat
 DOSKEY clean=python build.py clean
 DOSKEY exe=python build.py exe $*
-DOSKEY setup=python build.py setup $*
+DOSKEY installer=python build.py installer $*
+DOSKEY test=python build.py test $*
 DOSKEY run=python build.py run $*
