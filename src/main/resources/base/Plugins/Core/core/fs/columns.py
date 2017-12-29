@@ -32,7 +32,7 @@ class Size(Column):
 		size_bytes = self._get_size(url)
 		if size_bytes is None:
 			return ''
-		units = ('%d bytes', '%d KB', '%.1f MB', '%.1f GB')
+		units = ('%d B', '%d KB', '%.1f MB', '%.1f GB')
 		if size_bytes <= 0:
 			unit_index = 0
 		else:
