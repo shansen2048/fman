@@ -114,7 +114,7 @@ class Column:
 		than a simple reversal when is_ascending is False. That's why this
 		method receives is_ascending as a parameter.
 		"""
-		raise NotImplementedError()
+		return self.get_str(url)
 	@property
 	def name(self):
 		return self.__class__.__name__

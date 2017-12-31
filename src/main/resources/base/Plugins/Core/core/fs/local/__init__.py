@@ -3,8 +3,8 @@ from core.util import filenotfounderror
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
-from fman.fs import FileSystem
-from fman.url import as_url, splitscheme
+from fman.fs import FileSystem, Column
+from fman.url import as_url, splitscheme, as_human_readable
 from io import UnsupportedOperation
 from os import remove
 from os.path import isdir, getsize, getmtime, samefile, splitdrive
@@ -115,7 +115,7 @@ if PLATFORM == 'Windows':
 		scheme = 'drives://'
 
 		def get_default_columns(self, path):
-			return 'Name',
+			return 'DriveName',
 		def resolve(self, path):
 			if not path:
 				# Showing the list of all drives:
@@ -141,3 +141,31 @@ if PLATFORM == 'Windows':
 					result.append(letter + ':')
 				bitmask >>= 1
 			return result
+
+	class DriveName(Column):
+		@property
+		def name(self):
+			return 'Name'
+		def get_str(self, url):
+			scheme, path = splitscheme(url)
+			if scheme != 'drives://':
+				raise ValueError('Unsupported URL: %r' % url)
+			result = path
+			try:
+				vol_name = self._get_volume_name(path + '\\')
+			except WindowsError:
+				pass
+			else:
+				if vol_name:
+					result += ' ' + vol_name
+			return result
+		def _get_volume_name(self, volume_path):
+			import ctypes
+			kernel32 = ctypes.windll.kernel32
+			buffer = ctypes.create_unicode_buffer(1024)
+			if not kernel32.GetVolumeInformationW(
+				ctypes.c_wchar_p(volume_path), buffer, ctypes.sizeof(buffer),
+				None, None, None, None, 0
+			):
+				raise ctypes.WinError()
+			return buffer.value
