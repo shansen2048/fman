@@ -12,6 +12,7 @@
 	{ "keys": ["PgUp"], "command": "move_cursor_page_up" },
 	{ "keys": ["Shift+PgUp"], "command": "move_cursor_page_up", "args": {"toggle_selection": true} },
 	{ "keys": ["Space"], "command": "toggle_selection" },
+	{ "keys": ["Tab"], "command": "switch_panes" },
 	{ "keys": ["Backspace"], "command": "go_up" },
 	{ "keys": ["Enter"], "command": "open" },
 	{ "keys": ["F1"], "command": "help" },

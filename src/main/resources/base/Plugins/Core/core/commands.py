@@ -1547,3 +1547,11 @@ class Reload(DirectoryPaneCommand):
 
 	def __call__(self):
 		self.pane.reload()
+
+class SwitchPanes(DirectoryPaneCommand):
+	def __call__(self, pane_index=None):
+		if pane_index is None:
+			pane = _get_opposite_pane(self.pane)
+		else:
+			pane = self.pane.window.get_panes()[pane_index]
+		pane.focus()

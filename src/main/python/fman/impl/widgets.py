@@ -311,6 +311,10 @@ class MainWindow(QMainWindow):
 			return False
 		self._splitter.restoreState(state[self_state_len:-1])
 		return True
+	def focusNextPrevChild(self, next):
+		# Returning False here lets us receive Tab in keyPressEvent(...).
+		# This in turn lets us define our own key binding for the Tab key.
+		return False
 
 class MessageBox(QMessageBox):
 	def __init__(self, parent, allow_escape=True):
