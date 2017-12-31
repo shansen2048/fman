@@ -1,6 +1,6 @@
 from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
-	copy_linux_package_resources, copy_icons
+	copy_linux_package_resources, copy_icons, postprocess_exe
 from distutils.dir_util import copy_tree
 from fbs import path, SETTINGS
 from fbs.cmdline import command
@@ -20,6 +20,7 @@ _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 @command
 def exe():
 	freeze_arch()
+	postprocess_exe()
 
 @command
 def pkg():

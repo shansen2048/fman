@@ -1,2 +1,3 @@
 -r linux.txt
+PyQt5==5.9.2
 pgi==0.0.11.1

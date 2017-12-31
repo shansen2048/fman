@@ -1,6 +1,5 @@
 from build_impl import copy_python_library
 from fbs import path
-from fbs.freeze.linux import freeze_linux
 from fbs.resources import copy_with_filtering, get_icons
 from os import makedirs
 from os.path import join, dirname
@@ -11,8 +10,7 @@ FMAN_DESCRIPTION = \
 FMAN_AUTHOR = 'Michael Herrmann'
 FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 
-def exe():
-	freeze_linux()
+def postprocess_exe():
 	rmtree(path('${freeze_dir}/Plugins/Core/bin/mac'))
 	rmtree(path('${freeze_dir}/Plugins/Core/bin/windows'))
 	copy_python_library('send2trash', path('${freeze_dir}/Plugins/Core'))

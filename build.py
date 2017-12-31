@@ -160,7 +160,7 @@ def arch_docker_image():
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/arch', build_dir, path('cache/arch'))
 	arch(['/bin/bash', '-c',
-		  'python -m venv venv && '
+		  'python -m venv --system-site-packages venv && '
 		  'source venv/bin/activate && '
 		  'pip install -r requirements/linux.txt'
 	])

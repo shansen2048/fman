@@ -1,10 +1,10 @@
-from build_impl import linux, check_output_decode, remove_if_exists, \
-	SETTINGS, upload_installer_to_aws, upload_file, run_on_server, \
-	get_path_on_server
+from build_impl import check_output_decode, remove_if_exists, SETTINGS, \
+	upload_installer_to_aws, upload_file, run_on_server, get_path_on_server
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
-	copy_linux_package_resources, copy_icons
+	copy_linux_package_resources, copy_icons, postprocess_exe
 from fbs import path
 from fbs.cmdline import command
+from fbs.freeze.linux import freeze_linux
 from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import exists, join, basename
@@ -16,7 +16,8 @@ import re
 
 @command
 def exe():
-	linux.exe()
+	freeze_linux()
+	postprocess_exe()
 	# When we build on Ubuntu on 14.04 and run on 17.10, fman fails to start
 	# with the following error:
 	#
