@@ -1,4 +1,3 @@
 {
-	"extends": ["base.json"],
 	"freeze_dir": "target/fman.app"
 }

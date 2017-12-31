@@ -1,4 +1,4 @@
-from fbs.conf import SETTINGS, path
+from fbs import SETTINGS, path
 from fbs.platform import is_windows, is_mac, is_linux
 from importlib import import_module
 from os import makedirs, readlink, symlink, remove

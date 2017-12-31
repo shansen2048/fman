@@ -1,6 +1,6 @@
 from build_impl import copy_python_library, upload_to_s3
-from fbs import command
-from fbs.conf import path, SETTINGS
+from fbs import path, SETTINGS
+from fbs.cmdline import command
 from fbs.freeze.windows import freeze_windows
 from fbs.resources import copy_with_filtering
 from datetime import date

@@ -2,10 +2,10 @@ from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
 from distutils.dir_util import copy_tree
-from fbs import command
+from fbs import path, SETTINGS
+from fbs.cmdline import command
 from fbs.freeze.arch import freeze_arch
 from fbs.resources import copy_with_filtering
-from fbs.conf import path, SETTINGS
 from os import makedirs
 from os.path import exists, join, expanduser
 from shutil import rmtree, copytree, copy

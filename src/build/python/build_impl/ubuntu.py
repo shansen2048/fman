@@ -3,8 +3,8 @@ from build_impl import linux, check_output_decode, remove_if_exists, \
 	get_path_on_server
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons
-from fbs import command
-from fbs.conf import path
+from fbs import path
+from fbs.cmdline import command
 from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import exists, join, basename

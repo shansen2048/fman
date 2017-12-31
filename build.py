@@ -2,16 +2,17 @@ from os.path import dirname, join
 import sys
 sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
 
-from fbs import command, clean
 from build_impl import git, create_cloudfront_invalidation
-from fbs.conf import path, SETTINGS, load_settings
+from fbs import path, activate_profile, SETTINGS
+from fbs.builtin_commands import clean
+from fbs.cmdline import command
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import listdir, makedirs
 from os.path import join, isdir, dirname, exists
 from shutil import copytree, copy, rmtree
 from subprocess import DEVNULL
 
-import fbs
+import fbs.cmdline
 import re
 import subprocess
 import sys
@@ -66,10 +67,7 @@ def publish():
 @command
 def release():
 	clean()
-	SETTINGS['release'] = True
-	settings = \
-		path('src/build/settings/release%s.json' % ('_mac' if is_mac() else ''))
-	SETTINGS.update(load_settings(settings))
+	activate_profile('release')
 	version = SETTINGS['version']
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
@@ -228,6 +226,4 @@ def _is_in_gitignore(file_path):
 
 if __name__ == '__main__':
 	project_dir = dirname(__file__)
-	settings_dir = join(project_dir, *'src/build/settings'.split('/'))
-	settings_path = join(settings_dir, 'mac.json' if is_mac() else 'base.json')
-	fbs.main(project_dir, settings_path)
+	fbs.cmdline.main(project_dir)

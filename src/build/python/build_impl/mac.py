@@ -1,8 +1,8 @@
 from build_impl import copy_framework, get_canonical_os_name, SETTINGS, \
 	copy_python_library, upload_file, run_on_server, check_output_decode, \
 	get_path_on_server, upload_installer_to_aws
-from fbs import command
-from fbs.conf import path
+from fbs import path
+from fbs.cmdline import command
 from fbs.freeze.mac import freeze_mac
 from glob import glob
 from os import makedirs

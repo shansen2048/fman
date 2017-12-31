@@ -1,5 +1,4 @@
 {
-	"extends": ["base.json"],
 	"release": true,
 	"environment": "production",
 	"server_url": "https://fman.io",
