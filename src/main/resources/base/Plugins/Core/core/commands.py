@@ -180,7 +180,12 @@ class OpenListener(DirectoryPaneListener):
 class OpenDirectory(DirectoryPaneCommand):
 	def __call__(self, url):
 		if is_dir(url):
-			self.pane.set_path(url)
+			try:
+				self.pane.set_path(url)
+			except PermissionError:
+				show_alert(
+					'Access to "%s" was denied.' % as_human_readable(url)
+				)
 		else:
 			def callback():
 				self.pane.place_cursor_at(url)
