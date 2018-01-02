@@ -11,12 +11,6 @@ from PyQt5.QtWidgets import QDialog, QLabel, QVBoxLayout, QRadioButton, \
 
 class NonexistentShortcutHandler:
 
-	_TAB_MESSAGE = \
-		'The shortcut for switching between panes is %s. Unfortunately, it ' \
-		'is not (yet) possible to change this behaviour. If it is important ' \
-		'to you, please create an issue at ' \
-		'<a href="https://fman.io/issues">https://fman.io/issues</a>.' \
-		% highlight('Tab')
 	_THANK_YOU_FOR_FEEDBACK_MESSAGE = \
 		'Thank you for your feedback. We will take it into account for ' \
 		'future versions of fman!'
@@ -92,7 +86,7 @@ class NonexistentShortcutHandler:
 				% highlight(('Cmd' if is_mac() else 'Alt') + '+Left')
 			)
 		elif choice == 'Switch to left pane':
-			show_alert(self._TAB_MESSAGE)
+			self._offer_to_install_switchpanes_plugin()
 		else:
 			assert choice == 'Other'
 			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
@@ -149,7 +143,7 @@ class NonexistentShortcutHandler:
 				% highlight(('Cmd' if is_mac() else 'Alt') + '+Right')
 			)
 		elif choice == 'Switch to right pane':
-			show_alert(self._TAB_MESSAGE)
+			self._offer_to_install_switchpanes_plugin()
 		else:
 			assert choice == 'Other'
 			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
@@ -205,6 +199,18 @@ class NonexistentShortcutHandler:
 		if choice & YES:
 			run_application_command('install_plugin', {
 				'github_repo': 'mherrmann/ArrowNavigation'
+			})
+	def _offer_to_install_switchpanes_plugin(self):
+		choice = show_alert(
+			'The normal shortcut for switching between panes is %s. There is a '
+			'plugin that lets you use the Arrows keys %s and %s instead. Would '
+			'you like to install it?'
+			% (highlight('Tab'), highlight('Left'), highlight('Right')),
+			YES | NO, YES
+		)
+		if choice & YES:
+			run_application_command('install_plugin', {
+				'github_repo': 'mherrmann/SwitchPanesWithArrowKeys'
 			})
 	def _open_url(self, url):
 		QDesktopServices.openUrl(QUrl(url))
