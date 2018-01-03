@@ -60,10 +60,9 @@ def is_arch():
 		return False
 
 def open_native_file_manager(dir_path):
-	gnome_default = {'args': ['nautilus', '{curr_dir}']}
-	kde_default = {'args': ['dolphin', '{curr_dir}']}
+	linux_default = {'args': ['xdg-open', '{curr_dir}']}
 	_run_app_from_setting(
-		'native_file_manager', gnome_default, kde_default, dir_path
+		'native_file_manager', linux_default, linux_default, dir_path
 	)
 	if is_gnome_based():
 		try:
