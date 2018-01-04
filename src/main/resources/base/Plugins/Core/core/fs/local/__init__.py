@@ -143,9 +143,9 @@ if PLATFORM == 'Windows':
 			return result
 
 	class DriveName(Column):
-		@property
-		def name(self):
-			return 'Name'
+
+		name = 'Name'
+
 		def get_str(self, url):
 			scheme, path = splitscheme(url)
 			if scheme != 'drives://':
