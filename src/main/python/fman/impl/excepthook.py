@@ -20,10 +20,10 @@ class Excepthook:
 				'Plugin %r raised an error.' % basename(causing_plugin)
 			)
 		else:
-			self._handle_nonplugin_error(exc_type, exc_value, exc_tb)
+			if not isinstance(exc_value, SystemExit):
+				self._handle_nonplugin_error(exc_type, exc_value, exc_tb)
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
-		if not isinstance(exc_value, SystemExit):
-			sys.__excepthook__(exc_type, exc_value, exc_tb)
+		sys.__excepthook__(exc_type, exc_value, exc_tb)
 	def _get_plugin_causing_error(self, traceback):
 		for frame in extract_tb(traceback):
 			for plugin_dir in self._plugin_dirs:
