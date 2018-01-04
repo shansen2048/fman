@@ -14,7 +14,6 @@ from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, \
 from time import time
 
 import sip
-import sys
 
 class DragAndDropMixin(QAbstractTableModel):
 
@@ -492,10 +491,7 @@ class FileSystemModel(DragAndDropMixin):
 
 		This method ensures that no exception goes unreported.
 		"""
-		try:
-			future.result()
-		except:
-			sys.excepthook(*sys.exc_info())
+		future.result()
 	def _is_in_root(self, url):
 		return dirname(url) == self._location
 
