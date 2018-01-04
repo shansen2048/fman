@@ -500,9 +500,7 @@ class FileSystemModel(DragAndDropMixin):
 			# So instead, we catch exceptions and forward them to
 			# sys.excepthook(...).
 			future.result()
-		# Use `except Exception:` instead of just `except:` so as not to
-		# accidentally catch SystemExit!
-		except Exception:
+		except (Exception, SystemExit):
 			sys.excepthook(*sys.exc_info())
 	def _is_in_root(self, url):
 		return dirname(url) == self._location
