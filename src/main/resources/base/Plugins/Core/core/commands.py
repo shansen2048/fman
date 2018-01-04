@@ -743,7 +743,6 @@ class GoTo(DirectoryPaneCommand):
 	def __call__(self):
 		# TODO: Rename to Visited Locations.json?
 		visited_paths = load_json('Visited Paths.json', default={})
-		_migrate_visited_paths(visited_paths)
 		if not visited_paths:
 			visited_paths.update({
 				path: 0 for path in self._get_default_paths()
@@ -836,21 +835,6 @@ class GoTo(DirectoryPaneCommand):
 					already_yielded.add(stat.st_ino)
 					to_visit.append((stat, file_path))
 			to_visit.sort(key=lambda tpl: tpl[0].st_mtime)
-
-# TODO: Remove this migration after November 2017
-def _migrate_visited_paths(visited_paths):
-	global _MIGRATED_VISITED_PATHS
-	if _MIGRATED_VISITED_PATHS:
-		return
-	new_visited_paths = {
-		expanduser(path): count
-		for path, count in visited_paths.items()
-	}
-	visited_paths.clear()
-	visited_paths.update(new_visited_paths)
-	_MIGRATED_VISITED_PATHS = True
-
-_MIGRATED_VISITED_PATHS = False
 
 class GoToListener(DirectoryPaneListener):
 	def __init__(self, *args, **kwargs):
