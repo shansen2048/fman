@@ -14,6 +14,7 @@ from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, \
 from time import time
 
 import sip
+import sys
 
 class DragAndDropMixin(QAbstractTableModel):
 
@@ -491,7 +492,16 @@ class FileSystemModel(DragAndDropMixin):
 
 		This method ensures that no exception goes unreported.
 		"""
-		future.result()
+		try:
+			# It is tempting to simply do `future.result()` here without
+			# try...except. But this crashes the thread for Python's
+			# ThreadPoolExecutor and results in it logging
+			# "CRITICAL:concurrent.futures:Exception in worker".
+			# So instead, we catch exceptions and forward them to
+			# sys.excepthook(...).
+			future.result()
+		except:
+			sys.excepthook(*sys.exc_info())
 	def _is_in_root(self, url):
 		return dirname(url) == self._location
 
