@@ -14,7 +14,7 @@ def listdir_absolute(dir_path):
 def get_user():
 	try:
 		return getuser()
-	except:
+	except Exception:
 		return basename(expanduser('~'))
 
 def is_below_dir(file_path, directory):

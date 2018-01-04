@@ -736,7 +736,7 @@ def _get_volumes_url():
 def _get_user():
 	try:
 		return getuser()
-	except:
+	except Exception:
 		return os.path.basename(expanduser('~'))
 
 class GoTo(DirectoryPaneCommand):

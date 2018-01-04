@@ -78,7 +78,7 @@ class Plugin:
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
-		except:
+		except Exception:
 			self._error_handler.report(
 				'Could not instantiate command %r.' % cmd_class.__name__
 			)
@@ -89,7 +89,7 @@ class Plugin:
 	def _instantiate_listener(self, listener_class, *args, **kwargs):
 		try:
 			listener = listener_class(*args, **kwargs)
-		except:
+		except Exception:
 			self._error_handler.report(
 				'Could not instantiate listener %r.' % listener_class.__name__
 			)
@@ -98,7 +98,7 @@ class Plugin:
 	def _instantiate_file_system(self, fs_cls):
 		try:
 			instance = fs_cls()
-		except:
+		except Exception:
 			self._error_handler.report(
 				'Could not instantiate file system %r.' % fs_cls.__name__
 			)
@@ -128,7 +128,7 @@ class ExternalPlugin(Plugin):
 	def load(self):
 		try:
 			self._load()
-		except:
+		except Exception:
 			self._error_handler.report('Plugin %r failed to load.' % self.name)
 			return False
 		return True
@@ -190,7 +190,7 @@ class ExternalPlugin(Plugin):
 				self._error_handler.report(
 					'Could not load key bindings: ' + e.args[0], exc=False
 				)
-			except:
+			except Exception:
 				self._error_handler.report('Could not load key bindings.')
 			else:
 				errors = self._key_bindings.load(bindings)
