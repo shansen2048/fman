@@ -105,6 +105,9 @@ class MoveToTrash(DirectoryPaneCommand):
 			for url in urls:
 				try:
 					move_to_trash(url)
+				except FileNotFoundError:
+					# Perhaps the file has already been deleted.
+					pass
 				except UnsupportedOperation:
 					delete(url)
 
@@ -126,7 +129,11 @@ class DeletePermanently(DirectoryPaneCommand):
 		)
 		if choice & YES:
 			for file_path in urls:
-				delete(file_path)
+				try:
+					delete(file_path)
+				except FileNotFoundError:
+					# Perhaps the file has already been deleted.
+					pass
 
 class GoUp(DirectoryPaneCommand):
 
