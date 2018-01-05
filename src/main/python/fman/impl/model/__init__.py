@@ -160,7 +160,7 @@ class FileSystemModel(DragAndDropMixin):
 	def headerData(self, section, orientation, role=DisplayRole):
 		if orientation == Qt.Horizontal and role == DisplayRole \
 			and 0 <= section < self.columnCount():
-			return QVariant(self._columns[section].name)
+			return QVariant(self._columns[section].display_name)
 		return QVariant()
 	def location(self):
 		return self._location

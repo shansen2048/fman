@@ -151,7 +151,7 @@ if PLATFORM == 'Windows':
 
 	class DriveName(Column):
 
-		name = 'Name'
+		display_name = 'Name'
 
 		def get_str(self, url):
 			scheme, path = splitscheme(url)

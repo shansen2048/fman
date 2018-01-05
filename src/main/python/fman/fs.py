@@ -126,7 +126,7 @@ class Column:
 		"""
 		return self.get_str(url).lower()
 	@property
-	def name(self):
+	def display_name(self):
 		return self.__class__.__name__
 
 def _get_mother_fs():

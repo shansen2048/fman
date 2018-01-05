@@ -37,7 +37,7 @@ class NullFileSystem(FileSystem):
 
 class NullColumn(Column):
 
-	name = 'null'
+	display_name = 'null'
 
 	def get_str(self, url):
 		return ''

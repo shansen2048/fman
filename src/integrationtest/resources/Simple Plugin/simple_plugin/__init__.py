@@ -23,7 +23,8 @@ class TestFileSystem(FileSystem):
 	scheme = 'test://'
 
 class TestColumn(Column):
-	name = 'Test'
+
+	display_name = 'Test'
 
 class NonexistentColumnFileSystem(FileSystem):
 
