@@ -162,6 +162,8 @@ class FileSystemModel(DragAndDropMixin):
 			and 0 <= section < self.columnCount():
 			return QVariant(self._columns[section].display_name)
 		return QVariant()
+	def get_columns(self):
+		return self._columns
 	def get_location(self):
 		return self._location
 	def set_location(self, url, callback=None):

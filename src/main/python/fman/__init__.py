@@ -117,6 +117,10 @@ class DirectoryPane:
 		self._widget.toggle_selection(file_url)
 	def focus(self):
 		self._widget.focus()
+	def get_columns(self):
+		return self._widget.get_columns()
+	def set_sort_column(self, column, is_ascending=True):
+		self._widget.set_sort_column(column, is_ascending)
 	def _has_focus(self):
 		return self._widget.hasFocus()
 

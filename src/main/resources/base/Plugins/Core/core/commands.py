@@ -1589,3 +1589,22 @@ class SwitchPanes(DirectoryPaneCommand):
 		else:
 			pane = self.pane.window.get_panes()[pane_index]
 		pane.focus()
+
+class SetSortColumn(DirectoryPaneCommand):
+	def __call__(self, column_name=None):
+		if column_name is None:
+			choice = show_quicksearch(self._get_items)
+			if choice:
+				column_name = choice[1]
+				if column_name:
+					self.pane.set_sort_column(column_name)
+	def _get_items(self, query):
+		for item in self.pane.get_columns():
+			try:
+				index = item.lower().index(query.lower())
+			except ValueError as not_found:
+				continue
+			else:
+				# The characters that should be highlighted:
+				highlight = range(index, index + len(query))
+				yield QuicksearchItem(item, highlight=highlight)
