@@ -85,11 +85,18 @@ class MotherFileSystemTest(TestCase):
 		mother_fs.is_dir('fsre://foo')
 		with self.assertRaises(PermissionError):
 			mother_fs.iterdir('fsre://foo')
-	def test_is_dir_exists_false(self):
+	def test_is_dir_file(self):
+		fs = StubFileSystem({
+			'a': {}
+		})
+		mother_fs = self._create_mother_fs(fs)
+		self.assertFalse(mother_fs.is_dir('stub://a'))
+	def test_is_dir_nonexistent(self):
 		fs = StubFileSystem({})
 		mother_fs = self._create_mother_fs(fs)
 		url = 'stub://non-existent'
-		self.assertFalse(mother_fs.is_dir(url))
+		with self.assertRaises(FileNotFoundError):
+			mother_fs.is_dir(url)
 		self.assertFalse(mother_fs.exists(url))
 		mother_fs.mkdir(url)
 		self.assertTrue(mother_fs.is_dir(url))
@@ -101,14 +108,14 @@ class MotherFileSystemTest(TestCase):
 		self.assertTrue(mother_fs.is_dir('stub://a'))
 		mother_fs.remove_child(fs.scheme)
 		mother_fs.add_child(fs.scheme, StubFileSystem({}))
-		self.assertFalse(
-			mother_fs.is_dir('stub://a'), 'Should have cleared cache'
-		)
+		with self.assertRaises(FileNotFoundError):
+			mother_fs.is_dir('stub://a')
 	def test_mkdir_triggers_file_added(self):
 		mother_fs = self._create_mother_fs(StubFileSystem({}))
 		url = 'stub://test'
-		# MotherFileSystem should not put `url` in cache as a result of this:
-		mother_fs.is_dir(url)
+		with self.assertRaises(FileNotFoundError):
+			# This should not put `url` in cache:
+			mother_fs.is_dir(url)
 		files_added = []
 		def on_file_added(url_):
 			files_added.append(url_)
@@ -122,7 +129,8 @@ class MotherFileSystemTest(TestCase):
 		}))
 		self.assertTrue(mother_fs.is_dir('stub://a/b/..'))
 		mother_fs.move('stub://a', 'stub://b')
-		self.assertFalse(mother_fs.is_dir('stub://a/b/..'))
+		with self.assertRaises(FileNotFoundError):
+			mother_fs.is_dir('stub://a/b/..')
 		mother_fs.touch('stub://a/../c')
 		self.assertTrue(mother_fs.exists('stub://c'))
 		mother_fs.mkdir('stub://a/../dir')

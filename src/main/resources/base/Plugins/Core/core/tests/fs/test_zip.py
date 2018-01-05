@@ -39,9 +39,8 @@ class ZipFileSystemTest(TestCase):
 		for nondir in self._files_in_zip:
 			self.assertFalse(self._fs.is_dir(self._path(nondir)), nondir)
 		for nonexistent in ('nonexistent', 'ZipFileTest/nonexistent'):
-			self.assertFalse(
+			with self.assertRaises(FileNotFoundError):
 				self._fs.is_dir(self._path(nonexistent)), nonexistent
-			)
 	def test_exists(self):
 		for existent in self._dirs_in_zip + self._files_in_zip:
 			self.assertTrue(self._fs.exists(self._path(existent)), existent)

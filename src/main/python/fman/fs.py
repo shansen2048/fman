@@ -50,8 +50,12 @@ class FileSystem:
 	def iterdir(self, path):
 		message = self.__class__.__name__ + ' does not implement iterdir(...)'
 		raise NotImplementedError(message)
-	def is_dir(self, path):
-		return True
+	def is_dir(self, existing_path):
+		"""
+		N.B.: Should raise FileNotFoundError if the given path does not exist.
+		This is unlike Python's isdir(...), which returns False.
+		"""
+		return False
 	def resolve(self, path):
 		return self.scheme + resolve(path)
 	def watch(self, path):

@@ -69,20 +69,16 @@ class _7ZipFileSystem(FileSystem):
 						yield name
 						already_yielded.add(name)
 				candidate = parent
-	def is_dir(self, path):
-		try:
-			zip_path, dir_path = self._split(path)
-		except FileNotFoundError:
-			return False
-		if not dir_path:
-			return Path(zip_path).exists()
-		try:
-			result = self._query_info_attr(zip_path, dir_path, 'is_dir', True)
-			if result is not None:
-				return result
-		except FileNotFoundError:
-			return False
-		return False
+	def is_dir(self, existing_path):
+		zip_path, path_in_zip = self._split(existing_path)
+		if not path_in_zip:
+			if Path(zip_path).exists():
+				return True
+			raise filenotfounderror(existing_path)
+		result = self._query_info_attr(zip_path, path_in_zip, 'is_dir', True)
+		if result is not None:
+			return result
+		raise filenotfounderror(existing_path)
 	def exists(self, path):
 		try:
 			zip_path, path_in_zip = self._split(path)
@@ -200,7 +196,7 @@ class _7ZipFileSystem(FileSystem):
 			def __exit__(cm, exc_type, exc_val, exc_tb):
 				if not exc_val:
 					if cm._parent_wasdir_before:
-						if not self.is_dir(parent_fullpath):
+						if not self.exists(parent_fullpath):
 							self.makedirs(parent_fullpath)
 		return CM()
 	def _extract(self, zip_path, path_in_zip, dst_path):

@@ -53,7 +53,7 @@ class MotherFileSystem:
 	def query(self, url, fs_method_name):
 		return self._query_cache(url, fs_method_name)
 	def is_dir(self, url):
-		return self._query_cache(url, 'is_dir', cache_true_only=True)
+		return self._query_cache(url, 'is_dir')
 	def icon(self, url):
 		return self._query_cache(url, 'icon', self._icon_provider.get_icon)
 	def touch(self, url):
@@ -133,7 +133,7 @@ class MotherFileSystem:
 			del self._cache[url]
 		except KeyError:
 			pass
-	def _query_cache(self, url, prop, get_default=None, cache_true_only=False):
+	def _query_cache(self, url, prop, get_default=None):
 		if get_default is None:
 			get_default = partial(self._query, prop=prop)
 		# We exploit the fact that setdefault is an atomic operation to avoid
@@ -149,12 +149,11 @@ class MotherFileSystem:
 					if not cache:
 						del self._cache[url]
 					raise e from None
-				if not cache_true_only or value:
-					try:
-						value = CachedIterable(value)
-					except TypeError as not_an_iterable:
-						pass
-					cache[prop] = value
+				try:
+					value = CachedIterable(value)
+				except TypeError as not_an_iterable:
+					pass
+				cache[prop] = value
 				return value
 	def _query(self, url, prop):
 		child, path = self._split(url)

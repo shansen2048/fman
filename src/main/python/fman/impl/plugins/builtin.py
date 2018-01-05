@@ -1,6 +1,7 @@
 from fman import ApplicationCommand
 from fman.fs import FileSystem, Column
 from fman.impl.plugins.plugin import Plugin
+from fman.impl.util import filenotfounderror
 
 class BuiltinPlugin(Plugin):
 	def __init__(self, tutorial_controller, *super_args):
@@ -27,8 +28,10 @@ class NullFileSystem(FileSystem):
 		return 'NullColumn',
 	def iterdir(self, path):
 		return []
-	def is_dir(self, path):
-		return not path
+	def is_dir(self, existing_path):
+		if not existing_path:
+			return True
+		raise filenotfounderror(self.scheme + existing_path)
 	def exists(self, path):
 		return not path
 

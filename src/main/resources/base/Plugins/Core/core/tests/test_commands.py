@@ -20,7 +20,11 @@ class ConfirmTreeOperationTest(TestCase):
 			return url in self._files
 
 		def is_dir(self, url):
-			return self._files.get(url, {}).get('is_dir', False)
+			try:
+				file_info = self._files[url]
+			except KeyError:
+				raise filenotfounderror(url) from None
+			return file_info['is_dir']
 
 	def test_no_files(self):
 		self._expect_alert(('No file is selected!',), answer=OK)

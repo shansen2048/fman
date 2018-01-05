@@ -1,4 +1,5 @@
 from fman.fs import FileSystem
+from fman.impl.util import filenotfounderror
 from fman.impl.util.path import resolve
 from fman.url import splitscheme
 from io import UnsupportedOperation
@@ -14,11 +15,13 @@ class StubFileSystem(FileSystem):
 		return resolve(path) in self._items
 	def iterdir(self, path):
 		return list(self._items[resolve(path)].get('files', []))
-	def is_dir(self, path):
+	def is_dir(self, existing_path):
+		path_resolved = resolve(existing_path)
 		try:
-			return self._items[resolve(path)]['is_dir']
+			item = self._items[path_resolved]
 		except KeyError:
-			return False
+			raise filenotfounderror(existing_path)
+		return item.get('is_dir', False)
 	def get_size_bytes(self, path):
 		return self._items[resolve(path)].get('size', 1)
 	def get_modified_datetime(self, path):

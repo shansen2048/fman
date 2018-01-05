@@ -163,10 +163,17 @@ class Open(DirectoryPaneCommand):
 		if url is None:
 			url = self.pane.get_file_under_cursor()
 		if url:
-			# Use `run_command` to delegate the actual task of opening the file.
-			# This makes it possible for plugins to modify the default open
-			# behaviour by implementing DirectoryPaneListener#on_command(...).
-			if is_dir(url):
+			try:
+				url_is_dir = is_dir(url)
+			except OSError as e:
+				show_alert(
+					'Could not read from %s (%s)' % (as_human_readable(url), e)
+				)
+				return
+			# Use `run_command` to delegate the actual opening. This makes it
+			# possible for plugins to modify the default open behaviour by
+			# implementing DirectoryPaneListener#on_command(...).
+			if url_is_dir:
 				self.pane.run_command('open_directory', {'url': url})
 			else:
 				self.pane.run_command('open_file', {'url': url})
@@ -179,7 +186,14 @@ class OpenListener(DirectoryPaneListener):
 
 class OpenDirectory(DirectoryPaneCommand):
 	def __call__(self, url):
-		if is_dir(url):
+		try:
+			url_is_dir = is_dir(url)
+		except OSError as e:
+			show_alert(
+				'Could not read from %s (%s)' % (as_human_readable(url), e)
+			)
+			return
+		if url_is_dir:
 			try:
 				self.pane.set_path(url)
 			except PermissionError:
@@ -287,10 +301,14 @@ class CreateAndEditFile(OpenWithEditor):
 
 	def __call__(self, url=None):
 		file_under_cursor = self.pane.get_file_under_cursor()
-		if file_under_cursor and not is_dir(file_under_cursor):
-			default_name = basename(file_under_cursor)
-		else:
-			default_name = ''
+		default_name = ''
+		if file_under_cursor:
+			try:
+				file_is_dir = is_dir(file_under_cursor)
+			except OSError:
+				file_is_dir = False
+			if not file_is_dir:
+				default_name = basename(file_under_cursor)
 		try:
 			selection_end = default_name.index('.')
 		except ValueError as not_found:
@@ -342,7 +360,17 @@ class _TreeCommand(DirectoryPaneCommand):
 			file_, = files
 			dest_name = basename(file_)
 			files_descr = '"%s"' % dest_name
-			if fs.is_dir(file_):
+			try:
+				exists_and_is_dir = fs.is_dir(file_)
+			except FileNotFoundError:
+				exists_and_is_dir = False
+			except OSError as e:
+				ui.show_alert(
+					'Could not read from %s (%s)' %
+					(as_human_readable(file_), e)
+				)
+				return
+			if exists_and_is_dir:
 				"""
 				There is only one reasonable course of action when the file to
 				be copied is a dir: Suggest the parent directory and copy the
@@ -378,13 +406,18 @@ class _TreeCommand(DirectoryPaneCommand):
 			message, suggested_dst, selection_start, selection_end
 		)
 		if dest and ok:
-			dest = _from_human_readable(dest, dest_dir, src_dir)
-			if fs.exists(dest):
-				if fs.is_dir(dest):
-					return dest, None
+			dest_url = _from_human_readable(dest, dest_dir, src_dir)
+			if fs.exists(dest_url):
+				try:
+					dest_is_dir = fs.is_dir(dest_url)
+				except OSError as e:
+					ui.show_alert('Could not read from %s (%s)' % (dest, e))
+					return
+				if dest_is_dir:
+					return dest_url, None
 				else:
 					if len(files) == 1:
-						return _split(dest)
+						return _split(dest_url)
 					else:
 						ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
@@ -392,16 +425,16 @@ class _TreeCommand(DirectoryPaneCommand):
 						)
 			else:
 				if len(files) == 1:
-					return _split(dest)
+					return _split(dest_url)
 				else:
 					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(as_human_readable(dest), cls.__name__.lower()),
+						(as_human_readable(dest_url), cls.__name__.lower()),
 						YES | NO, YES
 					)
 					if choice & YES:
-						return dest, None
+						return dest_url, None
 
 def get_dest_suggestion(dst_url):
 	scheme = splitscheme(dst_url)[0]
@@ -480,7 +513,15 @@ class Rename(DirectoryPaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
 		if file_under_cursor:
-			if is_dir(file_under_cursor):
+			try:
+				file_is_dir = is_dir(file_under_cursor)
+			except OSError as e:
+				show_alert(
+					'Could not read from %s (%s)' %
+					(as_human_readable(file_under_cursor), e)
+				)
+				return
+			if file_is_dir:
 				selection_end = None
 			else:
 				file_name = basename(file_under_cursor)
@@ -536,10 +577,7 @@ class CreateDirectory(DirectoryPaneCommand):
 			try:
 				mkdir(dir_url)
 			except FileExistsError:
-				if is_dir(dir_url):
-					show_alert("This directory already exists!")
-				else:
-					show_alert("A file with this name already exists!")
+				show_alert("A file with this name already exists!")
 			self.pane.place_cursor_at(dir_url)
 
 class OpenTerminal(DirectoryPaneCommand):

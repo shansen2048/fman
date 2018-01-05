@@ -4,13 +4,16 @@ from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.fs import FileSystem, Column
-from fman.url import as_url, splitscheme, as_human_readable
+from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from os import remove
-from os.path import isdir, getsize, getmtime, samefile, splitdrive
+from os.path import getsize, getmtime, samefile, splitdrive
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import copytree, move, copyfile, copystat
+from stat import S_ISDIR
+
+import os
 
 if PLATFORM == 'Windows':
 	from core.fs.local.rmtree_windows import rmtree
@@ -31,8 +34,10 @@ class LocalFileSystem(FileSystem):
 	def iterdir(self, path):
 		for entry in Path(path).iterdir():
 			yield entry.name
-	def is_dir(self, path):
-		return isdir(path)
+	def is_dir(self, existing_path):
+		# Like Python's isdir(...) except raises FileNotFoundError if the file
+		# does not exist and OSError if there is another error.
+		return S_ISDIR(os.stat(existing_path).st_mode)
 	def get_size_bytes(self, path):
 		return getsize(path)
 	def get_modified_datetime(self, path):
@@ -127,8 +132,10 @@ if PLATFORM == 'Windows':
 			if path:
 				raise filenotfounderror(path)
 			return self._get_drives()
-		def is_dir(self, path):
-			return self.exists(path)
+		def is_dir(self, existing_path):
+			if not self.exists(existing_path):
+				raise filenotfounderror(existing_path)
+			return True
 		def exists(self, path):
 			return not path or path in self._get_drives()
 		def _get_drives(self):
