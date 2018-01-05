@@ -56,6 +56,12 @@ class FileSystem:
 		This is unlike Python's isdir(...), which returns False.
 		"""
 		return False
+	def exists(self, path):
+		try:
+			self.is_dir(path)
+		except FileNotFoundError:
+			return False
+		return True
 	def resolve(self, path):
 		return self.scheme + resolve(path)
 	def watch(self, path):
