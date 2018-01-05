@@ -14,8 +14,8 @@ def mkdir(url):
 def makedirs(url, exist_ok=False):
 	_get_mother_fs().makedirs(url, exist_ok=exist_ok)
 
-def is_dir(url):
-	return _get_mother_fs().is_dir(url)
+def is_dir(existing_url):
+	return _get_mother_fs().is_dir(existing_url)
 
 def move(src_url, dst_url):
 	_get_mother_fs().move(src_url, dst_url)

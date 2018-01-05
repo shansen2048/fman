@@ -52,8 +52,8 @@ class MotherFileSystem:
 		return self._query_cache(url, 'iterdir')
 	def query(self, url, fs_method_name):
 		return self._query_cache(url, fs_method_name)
-	def is_dir(self, url):
-		return self._query_cache(url, 'is_dir')
+	def is_dir(self, existing_url):
+		return self._query_cache(existing_url, 'is_dir')
 	def icon(self, url):
 		return self._query_cache(url, 'icon', self._icon_provider.get_icon)
 	def touch(self, url):
