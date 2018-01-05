@@ -118,7 +118,7 @@ class Column:
 		than a simple reversal when is_ascending is False. That's why this
 		method receives is_ascending as a parameter.
 		"""
-		return self.get_str(url)
+		return self.get_str(url).lower()
 	@property
 	def name(self):
 		return self.__class__.__name__
