@@ -101,7 +101,7 @@ class DirectoryPaneWidget(QWidget):
 		return self._file_view.get_file_under_cursor()
 	@run_in_main_thread
 	def get_location(self):
-		return self._model.location()
+		return self._model.get_location()
 	def set_location(self, url, callback=None):
 		self._model_sorted.set_location(url, callback)
 	def reload(self):
