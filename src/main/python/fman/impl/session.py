@@ -1,4 +1,5 @@
 from base64 import b64encode, b64decode
+from concurrent.futures import ThreadPoolExecutor
 from fman.impl.util import parse_version
 from fman.impl.util.path import make_absolute
 from fman.impl.util.qt import connect_once
@@ -8,6 +9,7 @@ from os import getcwd
 from os.path import expanduser
 from threading import Thread
 
+import concurrent
 import logging
 import sys
 
@@ -42,7 +44,7 @@ class SessionManager:
 			# these, so call show() instead of showMaximized():
 			main_window.show()
 		thread_args = (panes, pane_infos, sys.argv[1:])
-		Thread(target=self._populate_panes, args=thread_args).start()
+		Thread(target=self._init_panes, args=thread_args).start()
 	def _restore_window_geometry(self, main_window):
 		geometry_b64 = self._settings.get('window_geometry', None)
 		if geometry_b64:
@@ -79,44 +81,47 @@ class SessionManager:
 		return 'Updated to v%s. ' \
 			   '<a href="https://fman.io/changelog?s=f">Changelog</a>' \
 			   % self._fman_version
-	def _populate_panes(self, panes, pane_infos, paths_on_command_line):
-		errors = []
-		home_dir = expanduser('~')
+	def _init_panes(self, panes, pane_infos, paths_on_command_line):
+		with ThreadPoolExecutor(max_workers=len(panes)) as executor:
+			futures = [
+				executor.submit(self._init_pane, *args) for args in
+				self._get_pane_args(panes, pane_infos, paths_on_command_line)
+			]
+			for future in concurrent.futures.as_completed(futures):
+				# Re-raise any exceptions:
+				future.result()
+	def _get_pane_args(self, panes, pane_infos, paths_on_command_line):
 		for i, (pane_info, pane) in enumerate(zip(pane_infos, panes)):
 			try:
 				path = make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
-				path = pane_info.get('location', home_dir)
+				path = pane_info.get('location', expanduser('~'))
 			url = path if '://' in path else as_url(path)
-			callback = None
-			try:
-				if self._fs.is_dir(url):
-					location = url
-				elif self._fs.exists(url):
-					location = dirname(url)
-					def callback(pane=pane, url=url):
-						pane.place_cursor_at(url)
-				else:
-					location = get_existing_pardir(url, self._fs.is_dir) \
-							   or as_url(home_dir)
-				pane.set_location(location, callback)
-			except Exception as exc:
-				msg = 'Could not load folder %s' % as_human_readable(url)
-				errors.append((msg, exc, pane))
-			try:
-				col_widths = pane_info['col_widths']
-			except KeyError:
-				pass
+			yield pane, url, pane_info.get('col_widths')
+	def _init_pane(self, pane, url, col_widths=None):
+		callback = None
+		home_dir = as_url(expanduser('~'))
+		try:
+			if self._fs.is_dir(url):
+				location = url
+			elif self._fs.exists(url):
+				location = dirname(url)
+				def callback(pane=pane, url=url):
+					pane.place_cursor_at(url)
 			else:
-				try:
-					pane.set_column_widths(col_widths)
-				except ValueError:
-					# This for instance happens when the old and new numbers of
-					# columns don't match (eg. 2 columns before, 3 now).
-					pass
-		for msg, exc, pane in errors:
+				location = get_existing_pardir(url, self._fs.is_dir) or home_dir
+			pane.set_location(location, callback)
+		except Exception as exc:
+			msg = 'Could not load folder %s' % as_human_readable(url)
 			self._error_handler.report(msg, exc)
-			pane.set_location(as_url(home_dir))
+			pane.set_location(home_dir)
+		if col_widths:
+			try:
+				pane.set_column_widths(col_widths)
+			except ValueError:
+				# This for instance happens when the old and new numbers of
+				# columns don't match (eg. 2 columns before, 3 now).
+				pass
 	def on_close(self, main_window):
 		self._settings['window_geometry'] = _encode(main_window.saveGeometry())
 		self._settings['window_state'] = \
