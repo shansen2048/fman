@@ -1,6 +1,6 @@
 from fbs_runtime.system import is_windows, is_mac
 from fman import OK
-from fman.impl.model import FileSystemModel, SortDirectoriesBeforeFiles
+from fman.impl.model import FileSystemModel, SortedFileSystemModel
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
 	AscendingOrder
@@ -48,7 +48,7 @@ class DirectoryPaneWidget(QWidget):
 		self._model = FileSystemModel(fs, null_location)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
-		self._model_sorted = SortDirectoriesBeforeFiles(self)
+		self._model_sorted = SortedFileSystemModel(self)
 		self._model_sorted.setSourceModel(self._model)
 		self._model_sorted.sort(0, AscendingOrder)
 		self._file_view = FileListView(self)

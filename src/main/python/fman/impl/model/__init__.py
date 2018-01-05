@@ -537,7 +537,7 @@ class FileWatcher:
 			self._fs.remove_file_changed_callback(url, self._callback)
 		self._watched_files = []
 
-class SortDirectoriesBeforeFiles(QSortFilterProxyModel):
+class SortedFileSystemModel(QSortFilterProxyModel):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.filters = []
