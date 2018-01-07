@@ -1627,12 +1627,12 @@ class SortByColumn(DirectoryPaneCommand):
 		if column_index is not None:
 			sort_column, sort_column_is_ascending = self.pane.get_sort_order()
 			if column_index == sort_column:
-				is_ascending = not sort_column_is_ascending
+				ascending = not sort_column_is_ascending
 			else:
-				is_ascending = True
-			self.pane.set_sort_order(column_index, is_ascending)
+				ascending = True
+			self.pane.set_sort_order(column_index, ascending)
 			path = self.pane.get_path()
-			self._remember_settings(path, column_index, is_ascending)
+			self._remember_settings(path, column_index, ascending)
 	def _get_items(self, query):
 		result = [[] for _ in self._MATCHERS]
 		for col_index, col_name in enumerate(self.pane.get_columns()):

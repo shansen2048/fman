@@ -124,8 +124,8 @@ class DirectoryPaneWidget(QWidget):
 	def get_columns(self):
 		return [col.__class__.__name__ for col in self._model.get_columns()]
 	@run_in_main_thread
-	def set_sort_order(self, column_index, is_ascending=True):
-		order = Qt.AscendingOrder if is_ascending else Qt.DescendingOrder
+	def set_sort_order(self, column_index, ascending=True):
+		order = Qt.AscendingOrder if ascending else Qt.DescendingOrder
 		self._file_view.sortByColumn(column_index, order)
 		# It would be nicer not to change the cursor here because it would give
 		# the calling function the freedom not to change the cursor if it
