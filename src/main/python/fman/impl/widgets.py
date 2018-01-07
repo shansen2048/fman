@@ -127,6 +127,14 @@ class DirectoryPaneWidget(QWidget):
 	def set_sort_order(self, column_index, is_ascending=True):
 		order = Qt.AscendingOrder if is_ascending else Qt.DescendingOrder
 		self._file_view.sortByColumn(column_index, order)
+		# It would be nicer not to change the cursor here because it would give
+		# the calling function the freedom not to change the cursor if it
+		# doesn't want to. However, at this point we're in the main thread.
+		# If we don't move the cursor here, then the widget is redrawn once we
+		# return. If the calling function then does set the cursor (which is
+		# most likely), then an ugly flickering effect appears. We move the
+		# cursor here to avoid this.
+		self.move_cursor_home()
 	@run_in_main_thread
 	def get_sort_order(self):
 		header = self._file_view.horizontalHeader()

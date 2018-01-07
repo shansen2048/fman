@@ -1631,7 +1631,6 @@ class SortByColumn(DirectoryPaneCommand):
 			else:
 				is_ascending = True
 			self.pane.set_sort_order(column_index, is_ascending)
-			self.pane.move_cursor_home()
 	def _get_items(self, query):
 		result = [[] for _ in self._MATCHERS]
 		for col_index, col_name in enumerate(self.pane.get_columns()):
