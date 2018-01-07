@@ -1631,6 +1631,8 @@ class SortByColumn(DirectoryPaneCommand):
 			else:
 				is_ascending = True
 			self.pane.set_sort_order(column_index, is_ascending)
+			path = self.pane.get_path()
+			self._remember_settings(path, column_index, is_ascending)
 	def _get_items(self, query):
 		result = [[] for _ in self._MATCHERS]
 		for col_index, col_name in enumerate(self.pane.get_columns()):
@@ -1641,3 +1643,31 @@ class SortByColumn(DirectoryPaneCommand):
 					result[i].append(item)
 					break
 		return chain.from_iterable(result)
+	def _remember_settings(self, path, column_index, is_ascending):
+		settings = load_json('Sort Settings.json', default={})
+		default = (0, True)
+		if (column_index, is_ascending) == default:
+			settings.pop(path, None)
+		else:
+			settings.setdefault(
+				path, {
+					'column': self.pane.get_columns()[column_index],
+					'is_ascending': is_ascending
+				}
+			)
+		save_json('Sort Settings.json')
+
+class RememberSortSettings(DirectoryPaneListener):
+	def on_path_changed(self):
+		settings = load_json('Sort Settings.json', default={})
+		try:
+			data = settings[self.pane.get_path()]
+		except KeyError:
+			return
+		column, is_ascending = data['column'], data['is_ascending']
+		all_columns = self.pane.get_columns()
+		try:
+			column_index = all_columns.index(column)
+		except ValueError:
+			return
+		self.pane.set_sort_order(column_index, is_ascending)
