@@ -1626,6 +1626,7 @@ class SetSortColumn(DirectoryPaneCommand):
 				column_index, is_ascending = result[1]
 		if column_index is not None:
 			self.pane.set_sort_column(column_index, is_ascending)
+			self.pane.move_cursor_home()
 	def _get_items(self, query):
 		result = [[] for _ in self._MATCHERS]
 		sort_column, sort_column_is_ascending = self.pane.get_sort_column()
