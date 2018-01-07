@@ -1618,28 +1618,27 @@ class SetSortColumn(DirectoryPaneCommand):
 
 	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
 
-	def __call__(self, column_name=None, is_ascending=True):
-		if column_name is None:
+	def __call__(self, column_index=None, is_ascending=True):
+		if column_index is None:
 			curr_sort_col = self.pane.get_sort_column()[0]
-			initial_item = self.pane.get_columns().index(curr_sort_col)
-			result = show_quicksearch(self._get_items, item=initial_item)
+			result = show_quicksearch(self._get_items, item=curr_sort_col)
 			if result:
-				column_name, is_ascending = result[1]
-		if column_name:
-			self.pane.set_sort_column(column_name, is_ascending)
+				column_index, is_ascending = result[1]
+		if column_index is not None:
+			self.pane.set_sort_column(column_index, is_ascending)
 	def _get_items(self, query):
 		result = [[] for _ in self._MATCHERS]
 		sort_column, sort_column_is_ascending = self.pane.get_sort_column()
-		for column in self.pane.get_columns():
+		for col_index, col_name in enumerate(self.pane.get_columns()):
 			for i, matcher in enumerate(self._MATCHERS):
-				highlight = matcher(column.lower(), query.lower())
+				highlight = matcher(col_name.lower(), query.lower())
 				if highlight is not None:
-					if column == sort_column:
+					if col_index == sort_column:
 						is_ascending = not sort_column_is_ascending
 					else:
 						is_ascending = True
-					qsi_value = (column, is_ascending)
-					item = QuicksearchItem(qsi_value, column, highlight)
+					item_value = (col_index, is_ascending)
+					item = QuicksearchItem(item_value, col_name, highlight)
 					result[i].append(item)
 					break
 		return chain.from_iterable(result)
