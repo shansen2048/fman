@@ -105,7 +105,7 @@ class DirectoryPaneWidget(QWidget):
 	@run_in_main_thread
 	def set_location(self, url, callback=None):
 		self._model_sorted.set_location(url, callback)
-		self.set_sort_order(0, True)
+		self.set_sort_column(0, True)
 	def reload(self):
 		self._model_sorted.reload()
 	@run_in_main_thread
@@ -126,11 +126,11 @@ class DirectoryPaneWidget(QWidget):
 	def get_columns(self):
 		return [col.__class__.__name__ for col in self._model.get_columns()]
 	@run_in_main_thread
-	def set_sort_order(self, column_index, ascending=True):
+	def set_sort_column(self, column_index, ascending=True):
 		order = Qt.AscendingOrder if ascending else Qt.DescendingOrder
 		self._file_view.sortByColumn(column_index, order)
 	@run_in_main_thread
-	def get_sort_order(self):
+	def get_sort_column(self):
 		header = self._file_view.horizontalHeader()
 		column_index = header.sortIndicatorSection()
 		is_ascending = header.sortIndicatorOrder() == Qt.AscendingOrder

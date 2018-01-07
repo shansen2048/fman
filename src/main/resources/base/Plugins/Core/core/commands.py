@@ -1620,17 +1620,17 @@ class SortByColumn(DirectoryPaneCommand):
 
 	def __call__(self, column_index=None):
 		if column_index is None:
-			curr_sort_col = self.pane.get_sort_order()[0]
+			curr_sort_col = self.pane.get_sort_column()[0]
 			result = show_quicksearch(self._get_items, item=curr_sort_col)
 			if result:
 				column_index = result[1]
 		if column_index is not None:
-			sort_column, sort_column_is_ascending = self.pane.get_sort_order()
+			sort_column, sort_column_is_ascending = self.pane.get_sort_column()
 			if column_index == sort_column:
 				ascending = not sort_column_is_ascending
 			else:
 				ascending = True
-			self.pane.set_sort_order(column_index, ascending)
+			self.pane.set_sort_column(column_index, ascending)
 			path = self.pane.get_path()
 			self._remember_settings(path, column_index, ascending)
 	def _get_items(self, query):
@@ -1668,4 +1668,4 @@ class RememberSortSettings(DirectoryPaneListener):
 			column_index = all_columns.index(column)
 		except ValueError:
 			return
-		self.pane.set_sort_order(column_index, is_ascending)
+		self.pane.set_sort_column(column_index, is_ascending)
