@@ -119,10 +119,10 @@ class DirectoryPane:
 		self._widget.focus()
 	def get_columns(self):
 		return self._widget.get_columns()
-	def set_sort_column(self, column_index, is_ascending=True):
-		self._widget.set_sort_column(column_index, is_ascending)
-	def get_sort_column(self):
-		return self._widget.get_sort_column()
+	def set_sort_order(self, column_index, is_ascending=True):
+		self._widget.set_sort_order(column_index, is_ascending)
+	def get_sort_order(self):
+		return self._widget.get_sort_order()
 	def _has_focus(self):
 		return self._widget.hasFocus()
 
