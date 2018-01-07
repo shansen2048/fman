@@ -240,13 +240,14 @@ class FileSystemModel(DragAndDropMixin):
 				return
 			self._fs.clear_cache(location)
 			rows = []
-			file_urls = iter(self._iter(location))
+			file_names = iter(self._fs.iterdir(location))
 			while self._location == location: # Abort reload if location changed
 				try:
-					file_url = next(file_urls)
+					file_name = next(file_names)
 				except (StopIteration, OSError):
 					break
 				else:
+					file_url = join(location, file_name)
 					self._fs.clear_cache(file_url)
 					try:
 						rows.append(self._load_row(file_url))
@@ -258,9 +259,6 @@ class FileSystemModel(DragAndDropMixin):
 			self._on_reloaded(location, rows)
 		finally:
 			self._allow_reload = True
-	def _iter(self, location):
-		for file_name in self._fs.iterdir(location):
-			yield self._fs.resolve(join(location, file_name))
 	@run_in_main_thread
 	def _on_reloaded(self, location, rows):
 		# Abort reload if path changed:
@@ -297,15 +295,15 @@ class FileSystemModel(DragAndDropMixin):
 			return
 		batch = []
 		last_update = time()
-		file_urls = iter(self._iter(location))
+		file_names = iter(self._fs.iterdir(location))
 		while self._location == location: # Abort if location changed
 			try:
-				file_url = next(file_urls)
+				file_name = next(file_names)
 			except (StopIteration, OSError):
 				break
 			else:
 				try:
-					row = self._load_row(file_url)
+					row = self._load_row(join(location, file_name))
 				except FileNotFoundError:
 					continue
 				batch.append(row)
