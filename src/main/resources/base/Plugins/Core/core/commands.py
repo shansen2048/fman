@@ -1649,12 +1649,10 @@ class SortByColumn(DirectoryPaneCommand):
 		if (column_index, is_ascending) == default:
 			settings.pop(path, None)
 		else:
-			settings.setdefault(
-				path, {
-					'column': self.pane.get_columns()[column_index],
-					'is_ascending': is_ascending
-				}
-			)
+			settings[path] = {
+				'column': self.pane.get_columns()[column_index],
+				'is_ascending': is_ascending
+			}
 		save_json('Sort Settings.json')
 
 class RememberSortSettings(DirectoryPaneListener):
