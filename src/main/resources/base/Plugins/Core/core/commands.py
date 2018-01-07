@@ -1132,11 +1132,11 @@ class CommandPalette(DirectoryPaneCommand):
 			for alias in aliases:
 				this_alias_matched = False
 				for i, matcher in enumerate(self._MATCHERS):
-					match = matcher(alias.lower(), query.lower())
-					if match is not None:
+					highlight = matcher(alias.lower(), query.lower())
+					if highlight is not None:
 						shortcuts = self._get_shortcuts_for_command(cmd_name)
 						hint = ', '.join(shortcuts)
-						item = QuicksearchItem(command, alias, match, hint)
+						item = QuicksearchItem(command, alias, highlight, hint)
 						result[i].append(item)
 						this_alias_matched = True
 						break
@@ -1615,20 +1615,31 @@ class SwitchPanes(DirectoryPaneCommand):
 		pane.focus()
 
 class SetSortColumn(DirectoryPaneCommand):
-	def __call__(self, column_name=None):
+
+	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
+
+	def __call__(self, column_name=None, is_ascending=True):
 		if column_name is None:
-			choice = show_quicksearch(self._get_items)
-			if choice:
-				column_name = choice[1]
-				if column_name:
-					self.pane.set_sort_column(column_name)
+			curr_sort_col = self.pane.get_sort_column()[0]
+			initial_item = self.pane.get_columns().index(curr_sort_col)
+			result = show_quicksearch(self._get_items, item=initial_item)
+			if result:
+				column_name, is_ascending = result[1]
+		if column_name:
+			self.pane.set_sort_column(column_name, is_ascending)
 	def _get_items(self, query):
-		for item in self.pane.get_columns():
-			try:
-				index = item.lower().index(query.lower())
-			except ValueError as not_found:
-				continue
-			else:
-				# The characters that should be highlighted:
-				highlight = range(index, index + len(query))
-				yield QuicksearchItem(item, highlight=highlight)
+		result = [[] for _ in self._MATCHERS]
+		sort_column, sort_column_is_ascending = self.pane.get_sort_column()
+		for column in self.pane.get_columns():
+			for i, matcher in enumerate(self._MATCHERS):
+				highlight = matcher(column.lower(), query.lower())
+				if highlight is not None:
+					if column == sort_column:
+						is_ascending = not sort_column_is_ascending
+					else:
+						is_ascending = True
+					qsi_value = (column, is_ascending)
+					item = QuicksearchItem(qsi_value, column, highlight)
+					result[i].append(item)
+					break
+		return chain.from_iterable(result)

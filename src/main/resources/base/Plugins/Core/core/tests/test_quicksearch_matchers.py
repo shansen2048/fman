@@ -17,6 +17,11 @@ class ContainsCharsAfterSeparatorTest(TestCase):
 			[0, 1, 2, 3, 5],
 			self.find_chars_after_space('copy paths', 'copyp')
 		)
+	def test_prefix_match(self):
+		self.assertEqual(
+			[0, 1],
+			self.find_chars_after_space('column count', 'co')
+		)
 	def setUp(self):
 		super().setUp()
 		self.find_chars_after_space = contains_chars_after_separator(' ')

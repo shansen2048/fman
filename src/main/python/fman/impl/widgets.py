@@ -130,6 +130,12 @@ class DirectoryPaneWidget(QWidget):
 		self._file_view.sortByColumn(col_index, order)
 		self._file_view.move_cursor_home()
 	@run_in_main_thread
+	def get_sort_column(self):
+		header = self._file_view.horizontalHeader()
+		column = self.get_columns()[header.sortIndicatorSection()]
+		is_ascending = header.sortIndicatorOrder() == Qt.AscendingOrder
+		return column, is_ascending
+	@run_in_main_thread
 	def get_column_widths(self):
 		return [self._file_view.columnWidth(i) for i in (0, 1)]
 	@run_in_main_thread
