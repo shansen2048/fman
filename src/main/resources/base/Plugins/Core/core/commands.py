@@ -1099,12 +1099,33 @@ class CommandPalette(DirectoryPaneCommand):
 		'Up': '↑', 'Down': '↓', 'Left': '←', 'Right': '→', 'Enter': '↩'
 	}
 
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._last_query = ''
+		self._last_cmd_name = ''
 	def __call__(self):
-		result = show_quicksearch(self._suggest_commands)
+		if self._last_cmd_name:
+			initial_suggestions = [
+				quicksearch_item.value.name
+				for quicksearch_item in self._suggest_commands(self._last_query)
+			]
+			try:
+				initial_item = initial_suggestions.index(self._last_cmd_name)
+			except ValueError:
+				initial_item = 0
+		else:
+			initial_item = 0
+		result = show_quicksearch(
+			self._suggest_commands, query=self._last_query, item=initial_item
+		)
 		if result:
-			command = result[1]
+			query, command = result
 			if command:
+				self._last_query = query
+				self._last_cmd_name = command.name
 				command()
+		else:
+			self._last_query = self._last_cmd_name = ''
 	def _suggest_commands(self, query):
 		result = [[] for _ in self._MATCHERS]
 		for cmd_name, aliases, command in self._get_all_commands():
@@ -1130,16 +1151,12 @@ class CommandPalette(DirectoryPaneCommand):
 		for cmd_name in self.pane.get_commands():
 			if not self.pane.is_command_visible(cmd_name):
 				continue
-			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
-			# defined-in-a-loop-with-different-values-all-return-the-same-result
 			aliases = self.pane.get_command_aliases(cmd_name)
-			command = lambda cmd=cmd_name: self.pane.run_command(cmd)
+			command = CommandPaletteItem(self.pane.run_command, cmd_name)
 			result.append((cmd_name, aliases, command))
 		for cmd_name in get_application_commands():
 			aliases = get_application_command_aliases(cmd_name)
-			# https://docs.python.org/3/faq/programming.html#why-do-lambdas-
-			# defined-in-a-loop-with-different-values-all-return-the-same-result
-			command = lambda cmd=cmd_name: run_application_command(cmd)
+			command = CommandPaletteItem(run_application_command, cmd_name)
 			result.append((cmd_name, aliases, command))
 		return result
 	def _get_shortcuts_for_command(self, command):
@@ -1152,6 +1169,13 @@ class CommandPalette(DirectoryPaneCommand):
 	def _insert_mac_key_symbols(self, shortcut):
 		keys = shortcut.split('+')
 		return ''.join(self._KEY_SYMBOLS_MAC.get(key, key) for key in keys)
+
+class CommandPaletteItem:
+	def __init__(self, run_fn, cmd_name):
+		self._run_fn = run_fn
+		self.name = cmd_name
+	def __call__(self):
+		self._run_fn(self.name)
 
 class Quit(ApplicationCommand):
 

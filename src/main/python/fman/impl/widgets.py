@@ -249,9 +249,12 @@ class MainWindow(QMainWindow):
 			return dialog.textValue(), True
 		return '', False
 	@run_in_main_thread
-	def show_quicksearch(self, get_items, get_tab_completion=None):
+	def show_quicksearch(
+		self, get_items, get_tab_completion=None, query='', item=0
+	):
 		self._dialog = Quicksearch(
-			self, self._app, self._theme, get_items, get_tab_completion
+			self, self._app, self._theme, get_items, get_tab_completion, query,
+			item
 		)
 		self.before_quicksearch.emit(self._dialog)
 		result = self.exec_dialog(self._dialog)

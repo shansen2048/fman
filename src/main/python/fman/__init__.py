@@ -186,8 +186,10 @@ def clear_status_message():
 def show_file_open_dialog(caption, dir_path, filter_text=''):
 	return _get_ui().show_file_open_dialog(caption, dir_path, filter_text)
 
-def show_quicksearch(get_items, get_tab_completion=None):
-	return _get_ui().show_quicksearch(get_items, get_tab_completion)
+def show_quicksearch(get_items, get_tab_completion=None, query='', item=0):
+	return _get_ui().show_quicksearch(
+		get_items, get_tab_completion, query, item
+	)
 
 class QuicksearchItem:
 	def __init__(

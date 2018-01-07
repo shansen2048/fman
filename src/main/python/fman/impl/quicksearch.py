@@ -14,7 +14,8 @@ class Quicksearch(QDialog):
 	shown = pyqtSignal()
 
 	def __init__(
-			self, parent, app, theme, get_items, get_tab_completion=None
+		self, parent, app, theme, get_items, get_tab_completion=None, query='',
+		item=0
 	):
 		if get_tab_completion is None:
 			get_tab_completion = lambda _: None
@@ -23,22 +24,25 @@ class Quicksearch(QDialog):
 		self._theme = theme
 		self._get_items = get_items
 		self._get_tab_completion = get_tab_completion
+		self._initial_query = query
+		self._initial_item = item
 		self._curr_items = []
 		self._result = None
 		self._init_ui()
 	def exec(self):
-		self._update_items('')
-		self._place_cursor_at_first_item()
+		self._update_items(self._initial_query)
+		self._place_cursor_at_item(self._initial_item)
 		if super().exec():
 			return self._result
 	def showEvent(self, event):
 		super().showEvent(event)
 		self.shown.emit()
 	def _init_ui(self):
-		self._query = LineEdit()
+		self._query = LineEdit(self._initial_query, self)
 		self._query.keyPressEventFilter = self._on_key_pressed
 		self._query.textChanged.connect(self._on_text_changed)
 		self._query.returnPressed.connect(self._on_return_pressed)
+		self._query.setSelection(0, len(self._initial_query))
 		self._items = QListView()
 		self._items.setUniformItemSizes(True)
 		self._items.setModel(QuicksearchListModel(self))
@@ -77,8 +81,8 @@ class Quicksearch(QDialog):
 		return False
 	def _on_text_changed(self, text):
 		self._update_items(text)
-		self._place_cursor_at_first_item()
-	def _place_cursor_at_first_item(self):
+		self._place_cursor_at_item(0)
+	def _place_cursor_at_item(self, item):
 		model = self._items.model()
 		row = 0
 		root = self._items.rootIndex()
@@ -86,8 +90,11 @@ class Quicksearch(QDialog):
 			index = model.index(row, 0, root)
 			if index.isValid():
 				if not self._items.isIndexHidden(index):
-					self._items.setCurrentIndex(index)
-					break
+					if item == 0:
+						self._items.setCurrentIndex(index)
+						break
+					else:
+						item -= 1
 			else:
 				break
 			row += 1
