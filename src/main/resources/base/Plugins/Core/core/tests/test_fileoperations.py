@@ -11,6 +11,12 @@ import os.path
 import stat
 
 class FileTreeOperationAT:
+
+	if PLATFORM == 'Windows':
+		_NO_SUCH_FILE_MSG = 'the system cannot find the file specified'
+	else:
+		_NO_SUCH_FILE_MSG = 'no such file or directory'
+
 	def __init__(self, operation, operation_descr_verb, methodName='runTest'):
 		super().__init__(methodName=methodName)
 		self.operation = operation
@@ -195,9 +201,11 @@ class FileTreeOperationAT:
 		existent_file = join(self.src, 'bar.txt')
 		self._touch(existent_file)
 		self._expect_alert(
-			('Could not %s %s (no such file or directory). '
-			 'Do you want to continue?' %
-			 (self.operation_descr_verb, as_human_readable(nonexistent_file)),
+			('Could not %s %s (%s). '
+			 'Do you want to continue?' % (
+				self.operation_descr_verb, as_human_readable(nonexistent_file),
+				self._NO_SUCH_FILE_MSG
+			 ),
 			 YES | YES_TO_ALL | ABORT, YES),
 			answer=YES if do_continue else ABORT
 		)
@@ -208,8 +216,8 @@ class FileTreeOperationAT:
 	def test_error_only_one_file(self):
 		nonexistent_file = join(self.src, 'foo.txt')
 		file_path = as_human_readable(nonexistent_file)
-		message = 'Could not %s %s (no such file or directory).' \
-				  % (self.operation_descr_verb, file_path)
+		message = 'Could not %s %s (%s).' % \
+		          (self.operation_descr_verb, file_path, self._NO_SUCH_FILE_MSG)
 		self._expect_alert((message, OK, OK), answer=OK)
 		self._perform_on(nonexistent_file)
 	def test_relative_path_parent_dir(self):
