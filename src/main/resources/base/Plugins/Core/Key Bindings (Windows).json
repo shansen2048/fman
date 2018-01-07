@@ -13,5 +13,8 @@
 	{ "keys": ["Alt+Left"], "command": "go_back" },
 	{ "keys": ["Alt+Right"], "command": "go_forward" },
 	{ "keys": ["Alt+F5"], "command": "pack" },
-	{ "keys": ["Ctrl+R"], "command": "reload"}
+	{ "keys": ["Ctrl+R"], "command": "reload"},
+	{ "keys": ["Ctrl+F1"], "command": "sort_by_column", "args": {"column_index": 0}},
+	{ "keys": ["Ctrl+F2"], "command": "sort_by_column", "args": {"column_index": 1}},
+	{ "keys": ["Ctrl+F3"], "command": "sort_by_column", "args": {"column_index": 2}}
 ]
