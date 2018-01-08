@@ -21,6 +21,7 @@ RUN pacman -S --noconfirm python-pyqt5 p7zip
 
 RUN pacman -S --noconfirm ruby && \
     source ~/.bashrc && \
+    gem update --system && \
     gem install --no-ri --no-rdoc fpm
 
 RUN pacman -S --noconfirm git && \
