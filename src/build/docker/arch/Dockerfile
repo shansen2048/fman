@@ -1,6 +1,16 @@
 FROM base/devel
 
-RUN pacman -Syu --noconfirm
+# The mirrorlist from the default Docker image only lists a single mirror.
+# If that mirror has problems, this image cannot be built. Avoid this by using
+# the full list of mirrors:
+RUN curl -o /etc/pacman.d/mirrorlist "https://www.archlinux.org/mirrorlist/?protocol=http&protocol=https&ip_version=4&use_mirror_status=on" && \
+    sed -i 's/^#Server/Server/' /etc/pacman.d/mirrorlist && \
+    pacman -Syyu --noconfirm
+
+# Choose the best mirror:
+RUN pacman -S --noconfirm reflector && \
+    reflector --latest 10 --protocol http --protocol https --sort rate --save /etc/pacman.d/mirrorlist && \
+    pacman -Syyu --noconfirm
 
 ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
 RUN gpgconf --kill gpg-agent
