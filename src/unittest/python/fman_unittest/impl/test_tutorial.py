@@ -1,5 +1,5 @@
 from fbs_runtime.system import is_windows
-from fman.impl.tutorial.impl import _get_navigation_steps
+from fman.impl.tutorial.steps import _get_navigation_steps
 from fman.url import as_url, basename, dirname, as_human_readable, join
 from os.path import splitdrive
 from unittest import skipIf, TestCase
