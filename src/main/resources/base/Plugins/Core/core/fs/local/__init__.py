@@ -154,13 +154,12 @@ if PLATFORM == 'Windows':
 		display_name = 'Name'
 
 		def get_str(self, url):
-			# NB: url is a file:// URL, not drives://. The reason for this is
-			# that entries of drives:// resolve(...) to file:// URLs and fman
-			# (currently) resolves URLs before passing them to columns.
-			path = as_human_readable(url)
-			result = path.rstrip('\\')
+			scheme, path = splitscheme(url)
+			if scheme != 'drives://':
+				raise ValueError('Unsupported URL: %r' % url)
+			result = path
 			try:
-				vol_name = self._get_volume_name(path)
+				vol_name = self._get_volume_name(path + '\\')
 			except WindowsError:
 				pass
 			else:
