@@ -188,7 +188,7 @@ class MotherFileSystem:
 			pass
 		else:
 			parent_files.add(basename(url))
-	def _lock(self, url, item=None):
+	def _lock(self, url, item):
 		return self._cache_locks.setdefault((url, item), Lock())
 
 class TriggerFileAdded:
