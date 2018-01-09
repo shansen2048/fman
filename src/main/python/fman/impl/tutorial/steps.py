@@ -2,6 +2,7 @@ from fbs_runtime.system import is_mac, is_windows
 from fman.impl.tutorial import Tutorial, TutorialStep
 from fman.impl.util import is_below_dir
 from fman.impl.util.path import add_backslash_to_drive_if_missing
+from fman.impl.util.qt import connect_once
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
@@ -234,7 +235,34 @@ class TutorialImpl(Tutorial):
 		self._src_url = self._get_src_url(dir_path)
 		self._curr_step_index += 1
 		self._track_current_step()
-		self._set_location(self._src_url, callback=self._navigate)
+		self._go_to_src_url()
+	def _go_to_src_url(self):
+		"""
+		Opens `self._src_url` and calls `self._navigate()` once it's loaded.
+
+		The "obvious" implementation for this method would be to use the
+		callback=... parameter of DirectoryPaneWidget#set_location(...) to call
+		_navigate(). However, this has a problem: _navigate() registers a
+		location_changed listener. FileSystemModel#set_location(...)
+		calls callback() before broadcasting location_changed. This would lead
+		to _navigate() being called twice: First as the callback() and then
+		again as a location_changed listener.
+
+		The first intuitive solution to this problem would be to not use
+		callback=... but simply connect _navigate() to location_changed once.
+		But this too has a problem: location_changed isn't called when the
+		location doesn't actually change.
+
+		To solve all of the above, we handle the case where we're already at the
+		correct location separately. Only if we're not do we use
+		connect_once(location_changed, ...):
+		"""
+		if self._src_url == self._get_location():
+			self._navigate()
+		else:
+			navigate = lambda _: self._navigate()
+			connect_once(self._pane_widget.location_changed, navigate)
+			self._set_location(self._src_url)
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
@@ -370,8 +398,8 @@ class TutorialImpl(Tutorial):
 		return lambda: self._next_step(num_steps + 1)
 	def _get_location(self):
 		return self._pane_widget.get_location()
-	def _set_location(self, url, callback=None):
-		self._pane_widget.set_location(url, callback)
+	def _set_location(self, url):
+		self._pane_widget.set_location(url)
 
 def _get_navigation_steps(dst_url, src_url):
 	result = []
