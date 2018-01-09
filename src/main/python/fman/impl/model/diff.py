@@ -27,7 +27,8 @@ class ComputeDiff:
 			new_row = self._new_rows[i]
 			if old_row != new_row:
 				self._update_row(i, new_row)
-		assert self._old_keys == self._new_keys
+		if self._old_keys != self._new_keys:
+			raise AssertionError('%r != %r' % (self._old_keys, self._new_keys))
 		return self._join_adjacent()
 	def _remove_row(self, i):
 		self._result.append(DiffEntry(i, i + 1, -1, []))
