@@ -1,4 +1,5 @@
 from fbs_runtime.system import is_mac, is_windows
+from fman import load_json
 from fman.impl.tutorial import Tutorial, TutorialStep
 from fman.impl.util import is_below_dir
 from fman.impl.util.path import add_backslash_to_drive_if_missing
@@ -7,10 +8,12 @@ from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
 	split, normpath
+from PyQt5.QtCore import QFileInfo
 from PyQt5.QtWidgets import QFileDialog
 from time import time
 
 import fman.url
+import os.path
 
 class TutorialImpl(Tutorial):
 	def __init__(self, *args, **kwargs):
@@ -266,7 +269,7 @@ class TutorialImpl(Tutorial):
 	def _navigate(self):
 		if self._start_time is None:
 			self._start_time = time()
-		steps = _get_navigation_steps(self._dst_url, self._get_location())
+		steps = self._get_navigation_steps(self._dst_url, self._get_location())
 		if not steps:
 			# We have arrived:
 			self._time_taken = time() - self._start_time
@@ -274,16 +277,18 @@ class TutorialImpl(Tutorial):
 			self._format_next_step_paragraph((current_dir, self._time_taken))
 			self._next_step()
 			return
-		step = steps[0]
-		step_paras = self._get_step_paras(step)
-		self._steps[self._curr_step_index] = TutorialStep(
-			'', step_paras, {'on': {'location_changed': self._navigate}}
-		)
-		if step[0] == 'open' and step[1] != '..':
-			toggle_url = fman.url.join(self._get_location(), step[1])
+		instruction, path = steps[0]
+		paragraphs = self._get_step_paragraphs(instruction, path)
+		actions = {'on': {'location_changed': self._navigate}}
+		if instruction == 'toggle hidden files':
+			actions['after'] = {'ToggleHiddenFiles': self._navigate}
+		self._steps[self._curr_step_index] = \
+			TutorialStep('', paragraphs, actions)
+		if instruction == 'open' and path != '..':
+			toggle_url = fman.url.join(self._get_location(), path)
 			self._pane_widget.toggle_selection(toggle_url)
 		self._show_current_screen()
-	def _get_step_paras(self, navigation_step):
+	def _get_step_paragraphs(self, instruction, path):
 		result = []
 		if not self._last_step:
 			result.append(
@@ -291,7 +296,6 @@ class TutorialImpl(Tutorial):
 				"now navigate to your *%s* folder in the left pane." %
 				fman.url.basename(self._dst_url)
 			)
-		instruction, path = navigation_step
 		encouragement = self._get_encouragement() if self._last_step else ''
 		if instruction == 'show drives':
 			result.append(
@@ -319,6 +323,14 @@ class TutorialImpl(Tutorial):
 								   "press *Backspace* to do this."
 			text %= 'nother' if self._last_step == 'go up' else ''
 			result.append(text)
+		elif instruction == 'toggle hidden files':
+			now = ' now' if self._last_step else ''
+			result.append(
+				encouragement +
+				"We%s want to open your *%s* folder, but it is hidden. Please "
+				"press *%s+.* to show hidden files." %
+				(now, path, 'Cmd' if is_mac() else 'Ctrl')
+			)
 		else:
 			assert instruction == 'go to'
 			text = "We need to go to *%s*. Please press *%s* to open " \
@@ -334,7 +346,7 @@ class TutorialImpl(Tutorial):
 		return result
 	def _get_src_url(self, dst_path):
 		dst_url = as_url(dst_path)
-		steps_from = lambda url: len(_get_navigation_steps(dst_url, url))
+		steps_from = lambda url: len(self._get_navigation_steps(dst_url, url))
 		current = self._get_location()
 		if steps_from(current) >= 3:
 			return current
@@ -351,6 +363,16 @@ class TutorialImpl(Tutorial):
 			return home_url
 		home_drive = splitdrive(home)[0] or '/'
 		return as_url(add_backslash_to_drive_if_missing(home_drive))
+	def _get_navigation_steps(self, dst_url, src_url):
+		try:
+			pane_info = load_json('Panes.json', default=[])[0]
+		except IndexError:
+			showing_hidden_files = False
+		else:
+			showing_hidden_files = pane_info.get('show_hidden_files', False)
+		return _get_navigation_steps(
+			dst_url, src_url, _is_hidden, showing_hidden_files
+		)
 	def _format_next_step_paragraph(self, *values):
 		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
 		for i, value in enumerate(values):
@@ -401,7 +423,16 @@ class TutorialImpl(Tutorial):
 	def _set_location(self, url):
 		self._pane_widget.set_location(url)
 
-def _get_navigation_steps(dst_url, src_url):
+def _is_hidden(url):
+	scheme, path = splitscheme(url)
+	if scheme != 'file://':
+		return False
+	# Copied from core.commands:
+	return QFileInfo(as_human_readable(url)).isHidden()
+
+def _get_navigation_steps(
+	dst_url, src_url, is_hidden=lambda url: False, showing_hidden_files=True
+):
 	result = []
 	dst_scheme, dst_path = splitscheme(dst_url)
 	assert dst_scheme == 'file://'
@@ -425,9 +456,12 @@ def _get_navigation_steps(dst_url, src_url):
 	while rel and rel != '.':
 		rel, current = split(rel)
 		if current == '..':
-			step = ('go up', '')
+			result_samedrive.insert(0, ('go up', ''))
 		else:
-			step = ('open', current)
-		result_samedrive.insert(0, step)
+			result_samedrive.insert(0, ('open', current))
+			current_path = os.path.join(src_path, rel, current)
+			if not showing_hidden_files and is_hidden(as_url(current_path)):
+				result_samedrive.insert(0, ('toggle hidden files', current))
+				showing_hidden_files = True
 	result.extend(result_samedrive)
 	return result

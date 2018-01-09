@@ -41,6 +41,15 @@ class GetNavigationStepsTest(TestCase):
 			[('open', 'D:'), ('open', '64Bit')],
 			_get_navigation_steps(as_url(r'D:\64Bit'), 'drives://')
 		)
+	def test_hidden_directory(self):
+		is_hidden = lambda url: True
+		dst_url = self._root
+		src_url = dirname(dst_url)
+		dir_name = basename(dst_url)
+		self.assertEqual(
+			[('toggle hidden files', dir_name), ('open', dir_name)],
+			_get_navigation_steps(dst_url, src_url, is_hidden, False)
+		)
 	def setUp(self):
 		super().setUp()
 		self._root = dirname(as_url(__file__))
