@@ -21,7 +21,7 @@ from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
 from fman.impl.theme import Theme
 from fman.impl.tutorial import TutorialController
-from fman.impl.tutorial.impl import TutorialImpl
+from fman.impl.tutorial.steps import TutorialImpl
 from fman.impl.updater import MacUpdater
 from fman.impl.util.qt import connect_once
 from fman.impl.util.settings import Settings
