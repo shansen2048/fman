@@ -147,7 +147,14 @@ class MotherFileSystem:
 					value = get_default(url)
 				except Exception as e:
 					if not cache:
-						del self._cache[url]
+						try:
+							del self._cache[url]
+						except KeyError:
+							# This can for instance happen when clear_cache(...)
+							# was called, or when another prop was
+							# (unsuccessfully) queried from another thread. In
+							# either case, it's fine that the cache was cleared.
+							pass
 					raise e from None
 				try:
 					value = CachedIterable(value)
