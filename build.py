@@ -72,9 +72,7 @@ def release():
 	if version.endswith(snapshot_suffix):
 		release_version = version[:-len(snapshot_suffix)]
 		print('Releasing version %s' % release_version)
-		next_version = _get_suggested_next_version(release_version)
-		next_version = input('Next version (default: %s): ' % next_version) \
-					   or next_version
+		next_version = _prompt_for_next_version(release_version)
 		_commit_version(
 			release_version, 'Set version number for release ' + release_version
 		)
@@ -114,6 +112,10 @@ def post_release():
 		cloudfront_items_to_invalidate.append('/%s/%s' % (version, item))
 	create_cloudfront_invalidation(cloudfront_items_to_invalidate)
 	git('checkout', 'master')
+
+def _prompt_for_next_version(release_version):
+	next_version = _get_suggested_next_version(release_version)
+	return input('Next version (default: %s): ' % next_version) or next_version
 
 def _get_suggested_next_version(version):
 	version_parts = version.split('.')
