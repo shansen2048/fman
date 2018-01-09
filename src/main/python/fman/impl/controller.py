@@ -23,9 +23,9 @@ class Controller:
 		pane_widget.set_controller(self)
 		pane = self._window.add_pane(pane_widget)
 		self._panes[pane_widget] = pane
-		pane_widget.path_changed.connect(self.on_path_changed)
+		pane_widget.location_changed.connect(self.on_location_changed)
 		self._plugin_support.on_pane_added(pane)
-	def on_path_changed(self, pane_widget):
+	def on_location_changed(self, pane_widget):
 		self._panes[pane_widget]._broadcast('on_path_changed')
 	def on_key_pressed(self, pane_widget, event):
 		pane = self._panes[pane_widget]

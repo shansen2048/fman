@@ -39,8 +39,7 @@ class Application(QApplication):
 
 class DirectoryPaneWidget(QWidget):
 
-	# TODO: Rename to location_changed
-	path_changed = pyqtSignal(QWidget)
+	location_changed = pyqtSignal(QWidget)
 
 	def __init__(self, fs, null_location, parent):
 		super().__init__(parent)
@@ -164,7 +163,7 @@ class DirectoryPaneWidget(QWidget):
 		if not self.get_file_under_cursor():
 			self.move_cursor_home()
 		self._file_view.resizeColumnsToContents()
-		self.path_changed.emit(self)
+		self.location_changed.emit(self)
 
 class MainWindow(QMainWindow):
 

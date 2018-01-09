@@ -249,7 +249,7 @@ class TutorialImpl(Tutorial):
 		step = steps[0]
 		step_paras = self._get_step_paras(step)
 		self._steps[self._curr_step_index] = TutorialStep(
-			'', step_paras, {'on': {'path_changed': self._navigate}}
+			'', step_paras, {'on': {'location_changed': self._navigate}}
 		)
 		if step[0] == 'open' and step[1] != '..':
 			toggle_url = fman.url.join(self._get_location(), step[1])
