@@ -58,7 +58,7 @@ class DragAndDropMixin(QAbstractTableModel):
 			return True
 		return False
 	def _get_drop_dest(self, index):
-		return self.url(index) if index.isValid() else self.location()
+		return self.url(index) if index.isValid() else self.get_location()
 
 class PreloadedRow(
 	namedtuple('PreloadedRow', ('url', 'is_dir', 'icon', 'columns'))
