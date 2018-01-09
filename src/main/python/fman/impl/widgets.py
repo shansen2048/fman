@@ -524,8 +524,8 @@ class Overlay(QFrame):
 			for button_label, action in buttons:
 				button = QPushButton(button_label, button_container)
 				button.clicked.connect(lambda *_, action=action: action())
-				# Prevent button from gaining Tab focus:
-				button.setFocusPolicy(Qt.ClickFocus)
+				# Prevent button from stealing focus from the directory pane:
+				button.setFocusPolicy(Qt.NoFocus)
 				button_layout.addWidget(button)
 			button_container.setLayout(button_layout)
 			layout.addWidget(button_container)
