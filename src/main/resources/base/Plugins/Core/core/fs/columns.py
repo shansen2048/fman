@@ -19,7 +19,10 @@ class Name(Column):
 		except ValueError:
 			return url
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.is_dir(url)
+		try:
+			is_dir = self._fs.is_dir(url)
+		except OSError:
+			is_dir = False
 		return is_dir ^ is_ascending, basename(url).lower()
 
 class Size(Column):
@@ -27,7 +30,11 @@ class Size(Column):
 		super().__init__()
 		self._fs = fs
 	def get_str(self, url):
-		if self._fs.is_dir(url):
+		try:
+			is_dir = self._fs.is_dir(url)
+		except OSError:
+			return ''
+		if is_dir:
 			return ''
 		try:
 			size_bytes = self._get_size(url)
@@ -44,7 +51,10 @@ class Size(Column):
 		base = 1024 ** unit_index
 		return unit % (size_bytes / base)
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.is_dir(url)
+		try:
+			is_dir = self._fs.is_dir(url)
+		except OSError:
+			is_dir = False
 		if is_dir:
 			ord_ = ord if is_ascending else lambda c: -ord(c)
 			minor = tuple(ord_(c) for c in basename(url).lower())
@@ -74,11 +84,14 @@ class Modified(Column):
 		time_format = time_format.replace('yyyy', 'yy')
 		return mtime_qt.toString(time_format)
 	def get_sort_value(self, url, is_ascending):
-		is_dir = self._fs.is_dir(url)
+		try:
+			is_dir = self._fs.is_dir(url)
+		except OSError:
+			is_dir = False
 		try:
 			mtime = self._get_mtime(url)
 		except OSError:
-			return None
+			mtime = None
 		return is_dir ^ is_ascending, mtime
 	def _get_mtime(self, url):
 		return self._fs.query(url, 'get_modified_datetime')

@@ -330,18 +330,21 @@ class FileSystemModel(DragAndDropMixin):
 			self.reload(location)
 		self._already_visited.add(location)
 	def _load_row(self, url, ignore=(PermissionError,)):
-		def get(getter, default=None):
-			try:
-				return getter(url)
-			except ignore:
-				return default
+		try:
+			is_dir = self._fs.is_dir(url)
+		except OSError:
+			is_dir = False
+		try:
+			icon = self._fs.icon(url)
+		except OSError:
+			icon = None
 		return PreloadedRow(
-			url, get(self._fs.is_dir, False), get(self._fs.icon),
+			url, is_dir, icon,
 			[
 				PreloadedColumn(
-					QVariant(get(column.get_str)),
-					get(lambda u: column.get_sort_value(u, True), 0),
-					get(lambda u: column.get_sort_value(u, False), 0)
+					QVariant(column.get_str(url)),
+					column.get_sort_value(url, True),
+					column.get_sort_value(url, False)
 				)
 				for column in self._columns
 			]
