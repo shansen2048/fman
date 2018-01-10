@@ -29,7 +29,10 @@ class Size(Column):
 	def get_str(self, url):
 		if self._fs.is_dir(url):
 			return ''
-		size_bytes = self._get_size(url)
+		try:
+			size_bytes = self._get_size(url)
+		except OSError:
+			return ''
 		if size_bytes is None:
 			return ''
 		units = ('%d B', '%d KB', '%.1f MB', '%.1f GB')
@@ -46,7 +49,10 @@ class Size(Column):
 			ord_ = ord if is_ascending else lambda c: -ord(c)
 			minor = tuple(ord_(c) for c in basename(url).lower())
 		else:
-			minor = self._get_size(url)
+			try:
+				minor = self._get_size(url)
+			except OSError:
+				minor = 0
 		return is_dir ^ is_ascending, minor
 	def _get_size(self, url):
 		return self._fs.query(url, 'get_size_bytes')
