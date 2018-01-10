@@ -4,7 +4,7 @@ from importlib import import_module
 from os import makedirs, readlink, symlink, remove
 from os.path import dirname, join, islink, isdir, basename
 from shutil import copy, copytree
-from subprocess import run, check_output
+from subprocess import run, check_output, PIPE
 from time import time
 
 import re
@@ -101,7 +101,11 @@ def upload_installer_to_aws(installer_name):
 	upload_to_s3(src_path, version_dest_path)
 
 def git(cmd, *args):
-	run(['git', cmd] + list(args), check=True)
+	completed_process = run(
+		['git', cmd] + list(args), check=True, stdout=PIPE,
+		universal_newlines=True
+	)
+	return completed_process.stdout
 
 def upload_to_s3(src_path, dest_path):
 	import boto3

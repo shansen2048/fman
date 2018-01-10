@@ -73,30 +73,53 @@ def release():
 		release_version = version[:-len(snapshot_suffix)]
 		print('Releasing version %s' % release_version)
 		next_version = _prompt_for_next_version(release_version)
+		revision_before = git('rev-parse', 'HEAD').rstrip()
+		settings_path = path('src/build/settings/base.json')
 		_commit_version(
-			release_version, 'Set version number for release ' + release_version
+			settings_path, release_version,
+			'Set version number for release ' + release_version
 		)
-		SETTINGS['version'] = release_version
-		publish()
-		release_tag = 'v' + release_version
-		git('tag', release_tag)
-		_commit_version(
-			next_version + snapshot_suffix,
-			'Bump version for next development iteration'
-		)
-		git('push', '-u', 'origin', 'master')
-		git('push', 'origin', release_tag)
-		git('checkout', release_tag)
-		print(
-			'\nDone. Run\n\n'
-			'    git pull\n'
-			'    git checkout %s\n'
-			'    python build.py release\n'
-			'    git checkout master\n\n'
-			'on the other OSs now, then come back here and do:\n\n'
-			'    python build.py post_release\n'
-			% release_tag
-		)
+		try:
+			SETTINGS['version'] = release_version
+			publish()
+			release_tag = 'v' + release_version
+			git('tag', release_tag)
+			try:
+				_commit_version(
+					settings_path, next_version + snapshot_suffix,
+					'Bump version for next development iteration'
+				)
+				git('push', '-u', 'origin', 'master')
+				try:
+					git('push', 'origin', release_tag)
+					try:
+						git('checkout', release_tag)
+						print(
+							'\nDone. Run\n\n'
+							'    git pull\n'
+							'    git checkout %s\n'
+							'    python build.py release\n'
+							'    git checkout master\n\n'
+							'on the other OSs now, then come back here and do:'
+							'\n\n'
+							'    python build.py post_release\n'
+							% release_tag
+						)
+					except:
+						git('push', '--delete', 'origin', release_tag)
+						raise
+				except:
+					git('revert', '--no-edit', revision_before + '..HEAD' )
+					git('push', '-u', 'origin', 'master')
+					revision_before = git('rev-parse', 'HEAD').rstrip()
+					raise
+			except:
+				git('tag', '-d', release_tag)
+				raise
+		except:
+			git('reset', revision_before)
+			_replace_in_json(settings_path, 'version', version)
+			raise
 	else:
 		publish()
 
@@ -122,10 +145,9 @@ def _get_suggested_next_version(version):
 	next_patch = str(int(version_parts[-1]) + 1)
 	return '.'.join(version_parts[:-1]) + '.' + next_patch
 
-def _commit_version(version, commit_message):
-	filter_path = path('src/build/settings/base.json')
-	_replace_in_json(filter_path, 'version', version)
-	git('add', filter_path)
+def _commit_version(settings_path, version, commit_message):
+	_replace_in_json(settings_path, 'version', version)
+	git('add', settings_path)
 	git('commit', '-m', commit_message)
 
 def _replace_in_json(json_path, key, value):
