@@ -102,14 +102,20 @@ class SessionManager:
 		callback = None
 		home_dir = as_url(expanduser('~'))
 		try:
-			if self._fs.is_dir(url):
+			def exists_and_is_dir(url_):
+				try:
+					return self._fs.is_dir(url_)
+				except FileNotFoundError:
+					return False
+			if exists_and_is_dir(url):
 				location = url
 			elif self._fs.exists(url):
 				location = dirname(url)
 				def callback(pane=pane, url=url):
 					pane.place_cursor_at(url)
 			else:
-				location = get_existing_pardir(url, self._fs.is_dir) or home_dir
+				location = get_existing_pardir(url, exists_and_is_dir) \
+						   or home_dir
 			pane.set_location(location, callback)
 		except Exception as exc:
 			msg = 'Could not load folder %s' % as_human_readable(url)
