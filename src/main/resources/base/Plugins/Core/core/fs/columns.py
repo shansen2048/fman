@@ -69,6 +69,10 @@ class Modified(Column):
 		return mtime_qt.toString(time_format)
 	def get_sort_value(self, url, is_ascending):
 		is_dir = self._fs.is_dir(url)
-		return is_dir ^ is_ascending, self._get_mtime(url)
+		try:
+			mtime = self._get_mtime(url)
+		except OSError:
+			return None
+		return is_dir ^ is_ascending, mtime
 	def _get_mtime(self, url):
 		return self._fs.query(url, 'get_modified_datetime')
