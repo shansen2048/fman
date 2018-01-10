@@ -1,4 +1,4 @@
-from fman.impl.util import Event, CachedIterable, filenotfounderror
+from fman.impl.util import Event, CachedIterator, filenotfounderror
 from fman.url import splitscheme, basename, dirname
 from io import UnsupportedOperation
 from functools import partial
@@ -157,7 +157,7 @@ class MotherFileSystem:
 							pass
 					raise e from None
 				try:
-					value = CachedIterable(value)
+					value = CachedIterator(value)
 				except TypeError as not_an_iterable:
 					pass
 				cache[prop] = value
@@ -194,7 +194,7 @@ class MotherFileSystem:
 		except KeyError:
 			pass
 		else:
-			parent_files.add(basename(url))
+			parent_files.append(basename(url))
 	def _lock(self, url, item):
 		return self._cache_locks.setdefault((url, item), Lock())
 

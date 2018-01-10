@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from fbs_runtime.system import is_windows
-from fman.impl.util import is_below_dir, CachedIterable
+from fman.impl.util import is_below_dir, CachedIterator
 from os.path import join
 from threading import Event
 from time import sleep
@@ -20,18 +20,18 @@ class IsBelowDirTest(TestCase):
 	def setUp(self):
 		self.root = r'C:\Dir' if is_windows() else '/Dir'
 
-class CachedIterableTest(TestCase):
+class CachedIteratorTest(TestCase):
 	def test_simple(self):
 		# For the sake of illustration, see what happens normally:
 		iterable = self._generate(1, 2, 3)
 		self.assertEqual([1, 2, 3], list(iterable))
 		self.assertEqual([], list(iterable))
 		# Now compare the above to what happens with CachedIterable:
-		iterable = CachedIterable(self._generate(1, 2, 3))
+		iterable = CachedIterator(self._generate(1, 2, 3))
 		self.assertEqual([1, 2, 3], list(iterable))
 		self.assertEqual([1, 2, 3], list(iterable))
 	def test_remove_after_cached(self):
-		iterable = CachedIterable(self._generate(1, 2, 3))
+		iterable = CachedIterator(self._generate(1, 2, 3))
 		iterator = iter(iterable)
 		self.assertEqual(1, next(iterator))
 		iterable.remove(1)
@@ -39,7 +39,7 @@ class CachedIterableTest(TestCase):
 		self.assertEqual(3, next(iterator))
 		self.assertEqual([2, 3], list(iterable))
 	def test_remove_before_cached(self):
-		iterable = CachedIterable(self._generate(1, 2, 3))
+		iterable = CachedIterator(self._generate(1, 2, 3))
 		iterator = iter(iterable)
 		self.assertEqual(1, next(iterator))
 		iterable.remove(2)
@@ -48,33 +48,33 @@ class CachedIterableTest(TestCase):
 			next(iterator)
 		self.assertEqual([1, 3], list(iterable))
 	def test_add_before_exhausted(self):
-		iterable = CachedIterable(self._generate(1, 2))
+		iterable = CachedIterator(self._generate(1, 2))
 		iterator = iter(iterable)
 		self.assertEqual(1, next(iterator))
-		iterable.add(3)
+		iterable.append(3)
 		self.assertEqual(2, next(iterator))
 		self.assertEqual(3, next(iterator))
 		self.assertEqual([1, 2, 3], list(iterable))
 		self.assertEqual([1, 2, 3], list(iterable))
 	def test_add_after_exhausted(self):
-		iterable = CachedIterable(self._generate(1, 2))
+		iterable = CachedIterator(self._generate(1, 2))
 		self.assertEqual([1, 2], list(iterable))
-		iterable.add(3)
+		iterable.append(3)
 		self.assertEqual([1, 2, 3], list(iterable))
 		self.assertEqual([1, 2, 3], list(iterable))
 	def test_add_duplicate(self):
-		iterable = CachedIterable(self._generate(1, 2))
-		iterable.add(2)
+		iterable = CachedIterator(self._generate(1, 2))
+		iterable.append(2)
 		self.assertEqual([1, 2], list(iterable))
 		self.assertEqual([1, 2], list(iterable))
 	def test_add_duplicate_after_exhausted(self):
-		iterable = CachedIterable(self._generate(1, 2))
+		iterable = CachedIterator(self._generate(1, 2))
 		self.assertEqual([1, 2], list(iterable))
-		iterable.add(2)
+		iterable.append(2)
 		self.assertEqual([1, 2], list(iterable))
 	def test_concurrent_read(self):
 		items = [1, 2]
-		iterable = CachedIterable(self._generate_slowly(*items))
+		iterable = CachedIterator(self._generate_slowly(*items))
 		thread_started = Event()
 		executor = ThreadPoolExecutor()
 		try:

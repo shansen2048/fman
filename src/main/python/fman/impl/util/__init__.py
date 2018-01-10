@@ -76,15 +76,17 @@ class Event:
 		for callback in self._callbacks:
 			callback(*args)
 
-class CachedIterable:
+class CachedIterator:
 
 	_DELETED = object()
 
 	def __init__(self, source):
 		"""
-		This constructor must(!) raise `TypeError` if source is not an iterable.
+		This constructor must(!) raise `TypeError` if source is not an iterator.
 		"""
-		self._source = iter(source)
+		if not hasattr(source, '__next__'):
+			raise TypeError('Not an iterator: %r' % source)
+		self._source = source
 		self._lock = Lock()
 		self._items = []
 		self._items_to_skip = []
@@ -96,7 +98,7 @@ class CachedIterable:
 			self._items_to_skip.append(item)
 		else:
 			self._items[item_index] = self._DELETED
-	def add(self, item):
+	def append(self, item):
 		# N.B.: Behaves like set#add(...), not like list#append(...)!
 		self._items_to_add.append(item)
 	def __iter__(self):
