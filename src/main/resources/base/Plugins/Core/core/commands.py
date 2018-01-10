@@ -1475,8 +1475,11 @@ class ListPlugins(DirectoryPaneCommand):
 			match = contains_chars(plugin_name.lower(), query.lower())
 			if match or not query:
 				plugin_json = os.path.join(plugin_dir, 'Plugin.json')
-				with open(plugin_json, 'r') as f:
-					ref = json.load(f).get('ref', '')
+				try:
+					with open(plugin_json, 'r') as f:
+						ref = json.load(f).get('ref', '')
+				except OSError:
+					ref = ''
 				is_sha = len(ref) == 40
 				if is_sha:
 					ref = ref[:8]
