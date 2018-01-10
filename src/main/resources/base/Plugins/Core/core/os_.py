@@ -1,30 +1,81 @@
 from core.util import strformat_dict_values
 from fman import load_json, show_alert, show_status_message, PLATFORM
+from shutil import which
 from subprocess import Popen, check_output
 
 import os
 
-def open_terminal_in_directory(dir_path):
-	gnome_default = {'args': ['gnome-terminal'], 'cwd': '{curr_dir}'}
-	kde_default = {'args': ['konsole'], 'cwd': '{curr_dir}'}
-	_run_app_from_setting('terminal', gnome_default, kde_default, dir_path)
+def is_arch():
+	try:
+		with open('/etc/issue', 'r') as f:
+			return f.read().startswith('Arch Linux ')
+	except FileNotFoundError:
+		return False
 
-def _run_app_from_setting(setting_name, gnome_default, kde_default, curr_dir):
+def get_popen_kwargs_for_opening(file_, with_):
+	args = [with_, file_]
+	if PLATFORM == 'Mac':
+		args = ['/usr/bin/open', '-a'] + args
+	return {'args': args}
+
+def open_terminal_in_directory(dir_path):
 	settings = load_json('Core Settings.json', default={})
-	app = settings.get(setting_name, {})
-	if not app:
-		if is_gnome_based():
-			app = gnome_default
-		elif is_kde_based():
-			app = kde_default
-	if not app:
-		show_alert(
-			'Could not determine the Popen(...) arguments for opening the '
-			'%s. Please configure the "%s" dictionary in "Core Settings.json". '
-			'You can use "{curr_dir}" as a placeholder for the current '
-			'directory.' % (setting_name.replace('_', ' '), setting_name)
-		)
-		return
+	app = settings.get('terminal', {})
+	if app:
+		_run_app_from_setting(app, dir_path)
+	else:
+		alternatives = [
+			'x-terminal-emulator', # Debian-based
+			'konsole'              # KDE
+		]
+		for alternative in alternatives:
+			binary = which(alternative)
+			if binary:
+				app = {'args': [binary], 'cwd': '{curr_dir}'}
+				_run_app_from_setting(app, dir_path)
+				break
+		else:
+			show_alert(
+				'Could not determine the Popen(...) arguments for opening the '
+				'terminal. Please configure the "terminal" dictionary in '
+				'"Core Settings.json" as explained '
+				'<a href="https://fman.io/docs/terminal?s=f">here</a>.'
+			)
+
+def open_native_file_manager(dir_path):
+	settings = load_json('Core Settings.json', default={})
+	app = settings.get('native_file_manager', {})
+	if app:
+		_run_app_from_setting(app, dir_path)
+	else:
+		xdg_open = which('xdg-open')
+		if xdg_open:
+			app = {'args': [xdg_open, '{curr_dir}']}
+			_run_app_from_setting(app, dir_path)
+			if _is_gnome_based():
+				try:
+					fpl = \
+						check_output(['dconf', 'read', _FOCUS_PREVENTION_LEVEL])
+				except FileNotFoundError as dconf_not_installed:
+					pass
+				else:
+					if fpl in (b'', b'1\n'):
+						show_status_message(
+							'Hint: If your OS\'s file manager opened in the '
+							'background, click '
+							'<a href="https://askubuntu.com/a/594301">here</a>.',
+							timeout_secs=10
+						)
+		else:
+			show_alert(
+				'Could not determine the Popen(...) arguments for opening the '
+				'native file manager. Please configure the '
+				'"native_file_manager" dictionary in "Core Settings.json" '
+				'similarly to what\'s explained '
+				'<a href="https://fman.io/docs/terminal?s=f">here</a>.'
+			)
+
+def _run_app_from_setting(app, curr_dir):
 	popen_kwargs = strformat_dict_values(app, {'curr_dir': curr_dir})
 	env_not_set = popen_kwargs.get('env', None) is None
 	if PLATFORM == 'Linux' and env_not_set and 'LD_LIBRARY_PATH' in os.environ:
@@ -35,47 +86,10 @@ def _run_app_from_setting(setting_name, gnome_default, kde_default, curr_dir):
 		popen_kwargs['env'] = env
 	Popen(**popen_kwargs)
 
-def get_popen_kwargs_for_opening(file_, with_):
-	args = [with_, file_]
-	if PLATFORM == 'Mac':
-		args = ['/usr/bin/open', '-a'] + args
-	return {'args': args}
 
-def is_gnome_based():
+def _is_gnome_based():
 	curr_desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
 	return curr_desktop in ('unity', 'gnome', 'x-cinnamon')
-
-def is_kde_based():
-	curr_desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()
-	if curr_desktop == 'kde':
-		return True
-	gdmsession = os.environ.get('GDMSESSION', '').lower()
-	return gdmsession.startswith('kde')
-
-def is_arch():
-	try:
-		with open('/etc/issue', 'r') as f:
-			return f.read().startswith('Arch Linux ')
-	except FileNotFoundError:
-		return False
-
-def open_native_file_manager(dir_path):
-	linux_default = {'args': ['xdg-open', '{curr_dir}']}
-	_run_app_from_setting(
-		'native_file_manager', linux_default, linux_default, dir_path
-	)
-	if is_gnome_based():
-		try:
-			fpl = check_output(['dconf', 'read', _FOCUS_PREVENTION_LEVEL])
-		except FileNotFoundError as dconf_not_installed:
-			pass
-		else:
-			if fpl in (b'', b'1\n'):
-				show_status_message(
-					'Hint: If your OS\'s file manager opened in the background,'
-					' click <a href="https://askubuntu.com/a/594301">here</a>.',
-					timeout_secs=10
-				)
 
 _FOCUS_PREVENTION_LEVEL = \
 	'/org/compiz/profiles/unity/plugins/core/focus-prevention-level'
