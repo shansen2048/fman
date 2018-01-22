@@ -77,15 +77,7 @@ def open_native_file_manager(dir_path):
 
 def _run_app_from_setting(app, curr_dir):
 	popen_kwargs = strformat_dict_values(app, {'curr_dir': curr_dir})
-	env_not_set = popen_kwargs.get('env', None) is None
-	if PLATFORM == 'Linux' and env_not_set and 'LD_LIBRARY_PATH' in os.environ:
-		env = os.environ.copy()
-		# PyInstaller sets LD_LIBRARY_PATH to /opt/fman.
-		# We do not want this to get inherited by child processes!
-		del env['LD_LIBRARY_PATH']
-		popen_kwargs['env'] = env
 	Popen(**popen_kwargs)
-
 
 def _is_gnome_based():
 	curr_desktop = os.environ.get('XDG_CURRENT_DESKTOP', '').lower()

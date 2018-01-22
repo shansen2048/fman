@@ -37,6 +37,7 @@ from PyQt5.QtWidgets import QStyleFactory, QFileIconProvider
 import fman
 import json
 import logging
+import os
 import sys
 
 def get_application_context():
@@ -347,6 +348,37 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 		self._updater = None
 	def init_logging(self):
 		logging.basicConfig(level=logging.CRITICAL)
+	def on_main_window_shown(self):
+		if PLATFORM == 'Linux':
+			"""
+			PyInstaller sets LD_LIBRARY_PATH to /opt/fman. Processes we spawn,
+			be it via Popen(...) or QDesktopServices.openUrl(...), inherit this
+			value. This leads to problems, especially when the app we launch is
+			based on Qt. The reason is that the OS then attempts to load our 
+			libraries, which are most likely incompatible with those of the app.
+			An example where this happens is VLC, which errors out with 'This 
+			application failed to start because it could not find or load the Qt
+			platform plugin "xcb"'. Plugin developers have also encountered this
+			unexpected behaviour when trying to launch apps.
+			
+			To fix the problem, we restore LD_LIBRARY_PATH to its original value
+			here. According to the docs [1], PyInstaller stores this value in a
+			separate environment variable.
+			
+			A drawback of unsetting the environment variable here is that
+			libraries from PyInstaller's search path cannot be loaded after this
+			method was called. In other words, we assume that all required
+			libraries have been loaded once we reach here. This assumption may
+			turn out to be wrong in the future.
+			
+			[1]: http://pyinstaller.readthedocs.io/en/stable/runtime-information.html#ld-library-path-libpath-considerations
+			"""
+			lp_orig = os.environ.pop('LD_LIBRARY_PATH_ORIG', None)
+			if lp_orig is not None:
+				os.environ['LD_LIBRARY_PATH'] = lp_orig
+			else:
+				os.environ.pop('LD_LIBRARY_PATH', None)
+		super().on_main_window_shown()
 	@cached_property
 	def updater(self):
 		if self._should_auto_update():
