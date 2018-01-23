@@ -1,4 +1,4 @@
-from fman.fs import FileSystem
+from fman.fs import FileSystem, cached
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman_unittest.impl.model import StubFileSystem
 from threading import Thread, Lock
@@ -152,6 +152,7 @@ class FileSystemCountingIsdirCalls(FileSystem):
 		super().__init__()
 		self.num_is_dir_calls = 0
 		self._num_is_dir_calls_lock = Lock()
+	@cached # prevents execution by multiple threads at the same time
 	def is_dir(self, _):
 		with self._num_is_dir_calls_lock:
 			self.num_is_dir_calls += 1
