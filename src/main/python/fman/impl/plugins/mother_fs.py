@@ -46,7 +46,7 @@ class MotherFileSystem:
 		child, path = self._split(url)
 		return getattr(child, fs_method_name)(path)
 	def is_dir(self, existing_url):
-		return self._query_cache(existing_url, 'is_dir')
+		return self.query(existing_url, 'is_dir')
 	def icon(self, url):
 		compute_icon = lambda: self._icon_provider.get_icon(url)
 		return self._query_cache(url, 'icon', compute_icon)
