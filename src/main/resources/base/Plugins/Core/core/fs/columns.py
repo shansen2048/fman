@@ -1,3 +1,4 @@
+from datetime import datetime
 from fman.fs import Column
 from math import log
 from os.path import basename
@@ -92,6 +93,6 @@ class Modified(Column):
 			mtime = self._get_mtime(url)
 		except OSError:
 			mtime = None
-		return is_dir ^ is_ascending, mtime
+		return is_dir ^ is_ascending, mtime or datetime.min
 	def _get_mtime(self, url):
 		return self._fs.query(url, 'get_modified_datetime')
