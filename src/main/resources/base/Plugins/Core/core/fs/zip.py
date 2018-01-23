@@ -53,7 +53,7 @@ class _7ZipFileSystem(FileSystem):
 	def iterdir(self, path):
 		path_in_zip = self._split(path)[1]
 		already_yielded = set()
-		for file_info in self._iter_infos_cached(path):
+		for file_info in self._iter_infos(path):
 			candidate = file_info.path
 			while candidate:
 				candidate_path = PurePosixPath(candidate)
@@ -168,7 +168,9 @@ class _7ZipFileSystem(FileSystem):
 	def _query_info_attr(self, path, attr, folder_default):
 		def compute_value():
 			path_in_zip = self._split(path)[1]
-			for info in self._iter_infos_cached(path):
+			if not path_in_zip:
+				return folder_default
+			for info in self._iter_infos(path):
 				if info.path == path_in_zip:
 					return getattr(info, attr)
 				return folder_default
@@ -237,9 +239,6 @@ class _7ZipFileSystem(FileSystem):
 			else:
 				return path[:split_point], path[split_point:].lstrip('/')
 		raise filenotfounderror(self.scheme + path) from None
-	def _iter_infos_cached(self, path):
-		compute_value = lambda: self._iter_infos(path)
-		return self.cache.query(path, '_iter_infos', compute_value)
 	def _iter_infos(self, path):
 		zip_path, path_in_zip = self._split(path)
 		self._raise_filenotfounderror_if_not_exists(zip_path)
