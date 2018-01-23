@@ -3,7 +3,7 @@ from core.util import filenotfounderror
 from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
-from fman.fs import FileSystem, Column
+from fman.fs import FileSystem, Column, cached
 from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from os import remove
@@ -38,9 +38,9 @@ class LocalFileSystem(FileSystem):
 		# Like Python's isdir(...) except raises FileNotFoundError if the file
 		# does not exist and OSError if there is another error.
 		return S_ISDIR(self.stat(existing_path).st_mode)
+	@cached
 	def stat(self, path):
-		get_stat = lambda: os.stat(path)
-		return self.cache.query(path, 'stat', get_stat)
+		return os.stat(path)
 	def get_size_bytes(self, path):
 		return self.stat(path).st_size
 	def get_modified_datetime(self, path):

@@ -1,5 +1,6 @@
 from fman.impl.fs import Cache
 from fman.impl.util.path import parent, resolve
+from functools import wraps
 from io import UnsupportedOperation
 from threading import Lock
 
@@ -114,6 +115,13 @@ class FileSystem:
 			if not path_callbacks:
 				del self._file_changed_callbacks[path]
 				self.unwatch(path)
+
+def cached(fs_method):
+	@wraps(fs_method)
+	def wrapper(self, path):
+		cache_key = fs_method.__name__
+		return self.cache.query(path, cache_key, lambda: fs_method(self, path))
+	return wrapper
 
 class Column:
 	def get_str(self, url):
