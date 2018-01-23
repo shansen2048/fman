@@ -242,7 +242,8 @@ class HandleExceptions:
 		if not exc_val:
 			return
 		if isinstance(exc_val, SystemExit):
-			self._error_handler.handle_system_exit(exc_val.code)
+			exc_code = 0 if exc_val.code is None else exc_val.code
+			self._error_handler.handle_system_exit(exc_code)
 		else:
 			self._error_handler.report(self._message, exc_val)
 		return True
