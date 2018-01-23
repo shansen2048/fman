@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from fman.impl.fs import CachedIterator
+from fman.impl.fs_cache import CachedIterator
 from threading import Event
 from time import sleep
 from unittest import TestCase

@@ -1,4 +1,4 @@
-from fman.impl.fs import Cache
+from fman.impl.fs_cache import Cache
 from fman.impl.util.path import parent, resolve
 from functools import wraps
 from io import UnsupportedOperation
