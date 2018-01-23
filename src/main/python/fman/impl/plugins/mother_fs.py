@@ -43,7 +43,8 @@ class MotherFileSystem:
 	def iterdir(self, url):
 		return self._query_cache(url, 'iterdir')
 	def query(self, url, fs_method_name):
-		return self._query_cache(url, fs_method_name)
+		child, path = self._split(url)
+		return getattr(child, fs_method_name)(path)
 	def is_dir(self, existing_url):
 		return self._query_cache(existing_url, 'is_dir')
 	def icon(self, url):
