@@ -1,9 +1,6 @@
-from fman.impl.util import Event, CachedIterator, filenotfounderror
+from fman.impl.util import Event, filenotfounderror
 from fman.url import splitscheme, basename, dirname
 from io import UnsupportedOperation
-from functools import partial
-from threading import Lock
-from weakref import WeakValueDictionary
 
 class MotherFileSystem:
 	def __init__(self, icon_provider):
@@ -17,16 +14,10 @@ class MotherFileSystem:
 		self._children_being_deleted = {}
 		self._icon_provider = icon_provider
 		self._columns = {}
-		self._cache = {}
-		self._cache_locks = WeakValueDictionary()
 	def add_child(self, scheme, instance):
 		self._children[scheme] = instance
 	def remove_child(self, scheme):
 		self._children_being_deleted[scheme] = self._children.pop(scheme)
-		self._cache = {
-			url: value for url, value in self._cache.items()
-			if not splitscheme(url)[0] == scheme
-		}
 		self.file_removed.trigger(scheme)
 		del self._children_being_deleted[scheme]
 	def register_column(self, column_name, column):
@@ -47,7 +38,8 @@ class MotherFileSystem:
 					  (fn_descr, e.args[0], available_columns)
 			raise KeyError(message) from None
 	def exists(self, url):
-		return self._query(url, 'exists')
+		child, path = self._split(url)
+		return child.exists(path)
 	def iterdir(self, url):
 		return self._query_cache(url, 'iterdir')
 	def query(self, url, fs_method_name):
@@ -55,7 +47,8 @@ class MotherFileSystem:
 	def is_dir(self, existing_url):
 		return self._query_cache(existing_url, 'is_dir')
 	def icon(self, url):
-		return self._query_cache(url, 'icon', self._icon_provider.get_icon)
+		compute_icon = lambda: self._icon_provider.get_icon(url)
+		return self._query_cache(url, 'icon', compute_icon)
 	def touch(self, url):
 		child, path = self._split(url)
 		with TriggerFileAdded(self, url):
@@ -129,42 +122,13 @@ class MotherFileSystem:
 				raise filenotfounderror(url)
 		child._remove_file_changed_callback(path, callback)
 	def clear_cache(self, url):
-		try:
-			del self._cache[url]
-		except KeyError:
-			pass
-	def _query_cache(self, url, prop, get_default=None):
-		if get_default is None:
-			get_default = partial(self._query, prop=prop)
-		# We exploit the fact that setdefault is an atomic operation to avoid
-		# having to lock the entire url in addition to (url, item).
-		cache = self._cache.setdefault(url, {})
-		with self._lock(url, prop):
-			try:
-				return cache[prop]
-			except KeyError:
-				try:
-					value = get_default(url)
-				except Exception as e:
-					if not cache:
-						try:
-							del self._cache[url]
-						except KeyError:
-							# This can for instance happen when clear_cache(...)
-							# was called, or when another prop was
-							# (unsuccessfully) queried from another thread. In
-							# either case, it's fine that the cache was cleared.
-							pass
-					raise e from None
-				try:
-					value = CachedIterator(value)
-				except TypeError as not_an_iterable:
-					pass
-				cache[prop] = value
-				return value
-	def _query(self, url, prop):
 		child, path = self._split(url)
-		return getattr(child, prop)(path)
+		child.cache.delete(path)
+	def _query_cache(self, url, prop, compute_value=None):
+		child, path = self._split(url)
+		if compute_value is None:
+			compute_value = lambda: getattr(child, prop)(path)
+		return child.cache.query(path, prop, compute_value)
 	def _split(self, url):
 		scheme, path = splitscheme(url)
 		try:
@@ -173,13 +137,11 @@ class MotherFileSystem:
 			raise filenotfounderror(url)
 		return child, path
 	def _remove(self, url):
-		self._cache = {
-			other_url: value for other_url, value in self._cache.items()
-			if other_url != url and not other_url.startswith(url + '/')
-		}
-		parent = dirname(url)
+		child, path = self._split(url)
+		child.cache.delete(path)
+		parent_path = splitscheme(dirname(url))[1]
 		try:
-			parent_files = self._cache[parent]['iterdir']
+			parent_files = child.cache.get(parent_path, 'iterdir')
 		except KeyError:
 			pass
 		else:
@@ -189,14 +151,13 @@ class MotherFileSystem:
 				pass
 	def _add_to_parent(self, url):
 		parent = dirname(url)
+		child, parent_path = self._split(parent)
 		try:
-			parent_files = self._cache[parent]['iterdir']
+			parent_files = child.cache.get(parent_path, 'iterdir')
 		except KeyError:
 			pass
 		else:
 			parent_files.append(basename(url))
-	def _lock(self, url, item):
-		return self._cache_locks.setdefault((url, item), Lock())
 
 class TriggerFileAdded:
 	def __init__(self, fs, url):

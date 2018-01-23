@@ -248,7 +248,6 @@ class FileSystemModel(DragAndDropMixin):
 					break
 				else:
 					file_url = join(location, file_name)
-					self._fs.clear_cache(file_url)
 					try:
 						rows.append(self._load_row(file_url))
 					except FileNotFoundError:

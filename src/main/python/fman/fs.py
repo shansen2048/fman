@@ -1,3 +1,4 @@
+from fman.impl.fs import Cache
 from fman.impl.util.path import parent, resolve
 from io import UnsupportedOperation
 from threading import Lock
@@ -43,6 +44,7 @@ class FileSystem:
 	scheme = ''
 
 	def __init__(self):
+		self.cache = Cache()
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
 	def get_default_columns(self, path):

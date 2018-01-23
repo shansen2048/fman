@@ -3,8 +3,7 @@ from core.os_ import is_arch
 from core.util import filenotfounderror
 from datetime import datetime
 from fman import PLATFORM, load_json
-from fman.fs import FileSystem, query
-from fman.impl.util.path import parent
+from fman.fs import FileSystem
 from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from os.path import join, dirname
@@ -29,15 +28,12 @@ class _7ZipFileSystem(FileSystem):
 
 	_7ZIP_WARNING = 1
 
-	def __init__(self, fs=fman.fs, suffixes=None, query_fn=None):
+	def __init__(self, fs=fman.fs, suffixes=None):
 		if suffixes is None:
 			suffixes = self._load_suffixes_from_json()
-		if query_fn is None:
-			query_fn = lambda path, attr: query(self.scheme + path, attr)
 		super().__init__()
 		self._fs = fs
 		self._suffixes = suffixes
-		self._query = query_fn
 	def _load_suffixes_from_json(self):
 		settings = load_json('Core Settings.json', default={})
 		archive_handlers = settings.get('archive_handlers', {})
@@ -55,9 +51,10 @@ class _7ZipFileSystem(FileSystem):
 				return super().resolve(path)
 		return as_url(path)
 	def iterdir(self, path):
-		zip_path, path_in_zip = self._split(path)
+		path_in_zip = self._split(path)[1]
 		already_yielded = set()
-		for candidate in self._iter_names(zip_path, path_in_zip):
+		for file_info in self._iter_infos_cached(path):
+			candidate = file_info.path
 			while candidate:
 				candidate_path = PurePosixPath(candidate)
 				parent = str(candidate_path.parent)
@@ -75,7 +72,7 @@ class _7ZipFileSystem(FileSystem):
 			if Path(zip_path).exists():
 				return True
 			raise filenotfounderror(existing_path)
-		result = self._query_info_attr(zip_path, path_in_zip, 'is_dir', True)
+		result = self._query_info_attr(existing_path, 'is_dir', True)
 		if result is not None:
 			return result
 		raise filenotfounderror(existing_path)
@@ -87,7 +84,7 @@ class _7ZipFileSystem(FileSystem):
 		if not path_in_zip:
 			return Path(zip_path).exists()
 		try:
-			next(iter(self._iter_infos_cached(zip_path, path_in_zip)))
+			next(iter(self._iter_infos(path)))
 		except (StopIteration, FileNotFoundError):
 			return False
 		return True
@@ -165,21 +162,17 @@ class _7ZipFileSystem(FileSystem):
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			self._run_7zip(['d', zip_path, path_in_zip])
 	def get_size_bytes(self, path):
-		zip_path, path_in_zip = self._split(path)
-		return self._query_info_attr(zip_path, path_in_zip, 'size_bytes', None)
+		return self._query_info_attr(path, 'size_bytes', None)
 	def get_modified_datetime(self, path):
-		zip_path, path_in_zip = self._split(path)
-		return self._query_info_attr(zip_path, path_in_zip, 'mtime', None)
-	def _query_info_attr(self, zip_path, path_in_zip, attr, folder_default):
-		parent_dir = parent(path_in_zip)
-		# Perhaps we already have the information in the parent's cache:
-		for info in self._iter_infos_cached(zip_path, parent_dir):
-			if info.path == path_in_zip:
-				return getattr(info, attr)
-		for info in self._iter_infos_cached(zip_path, path_in_zip):
-			if info.path == path_in_zip:
-				return getattr(info, attr)
-			return folder_default
+		return self._query_info_attr(path, 'mtime', None)
+	def _query_info_attr(self, path, attr, folder_default):
+		def compute_value():
+			path_in_zip = self._split(path)[1]
+			for info in self._iter_infos_cached(path):
+				if info.path == path_in_zip:
+					return getattr(info, attr)
+				return folder_default
+		return self.cache.query(path, attr, compute_value)
 	def _preserve_empty_parent(self, zip_path, path_in_zip):
 		# 7-Zip deletes empty directories that remain after an operation. For
 		# instance, when deleting the last file from a directory, or when moving
@@ -244,17 +237,9 @@ class _7ZipFileSystem(FileSystem):
 			else:
 				return path[:split_point], path[split_point:].lstrip('/')
 		raise filenotfounderror(self.scheme + path) from None
-	def _unsplit(self, zip_path, path_in_zip):
-		result = zip_path
-		if path_in_zip:
-			result += '/' + path_in_zip
-		return result
-	def _iter_names(self, zip_path, path_in_zip):
-		for file_info in self._iter_infos_cached(zip_path, path_in_zip):
-			yield file_info.path
-	def _iter_infos_cached(self, zip_path, path_in_zip):
-		path = self._unsplit(zip_path, path_in_zip)
-		return self._query(path, '_iter_infos')
+	def _iter_infos_cached(self, path):
+		compute_value = lambda: self._iter_infos(path)
+		return self.cache.query(path, '_iter_infos', compute_value)
 	def _iter_infos(self, path):
 		zip_path, path_in_zip = self._split(path)
 		self._raise_filenotfounderror_if_not_exists(zip_path)
@@ -276,6 +261,12 @@ class _7ZipFileSystem(FileSystem):
 			if not file_info:
 				raise filenotfounderror(self.scheme + path)
 			while file_info:
+				for field in file_info._fields:
+					if field != 'path':
+						self.cache.put(
+							zip_path + '/' + file_info.path, field,
+							getattr(file_info, field)
+						)
 				yield file_info
 				file_info = self._read_file_info(process.stdout)
 		finally:

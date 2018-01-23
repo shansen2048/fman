@@ -1,3 +1,4 @@
+from fman.fs import FileSystem
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman_unittest.impl.model import StubFileSystem
 from threading import Thread, Lock
@@ -77,7 +78,7 @@ class MotherFileSystemTest(TestCase):
 		t1.join()
 		t2.join()
 		self.assertEqual(1, fs.num_is_dir_calls)
-		self.assertEqual({}, mother_fs._cache_locks, 'Likely memory leak!')
+		self.assertEqual({}, fs.cache._locks, 'Likely memory leak!')
 	def test_permission_error(self):
 		fs = FileSystemRaisingError()
 		mother_fs = self._create_mother_fs(fs)
@@ -143,11 +144,12 @@ class MotherFileSystemTest(TestCase):
 		result.add_child(fs.scheme, fs)
 		return result
 
-class FileSystemCountingIsdirCalls:
+class FileSystemCountingIsdirCalls(FileSystem):
 
 	scheme = 'fscic://'
 
 	def __init__(self):
+		super().__init__()
 		self.num_is_dir_calls = 0
 		self._num_is_dir_calls_lock = Lock()
 	def is_dir(self, _):
@@ -157,7 +159,7 @@ class FileSystemCountingIsdirCalls:
 		sleep(.1)
 		return True
 
-class FileSystemRaisingError:
+class FileSystemRaisingError(FileSystem):
 
 	scheme = 'fsre://'
 

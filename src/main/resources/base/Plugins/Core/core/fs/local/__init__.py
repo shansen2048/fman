@@ -4,10 +4,10 @@ from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.fs import FileSystem, Column
-from fman.url import as_url, splitscheme, as_human_readable
+from fman.url import as_url, splitscheme
 from io import UnsupportedOperation
 from os import remove
-from os.path import getsize, getmtime, samefile, splitdrive
+from os.path import samefile, splitdrive
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import copytree, move, copyfile, copystat
@@ -37,11 +37,14 @@ class LocalFileSystem(FileSystem):
 	def is_dir(self, existing_path):
 		# Like Python's isdir(...) except raises FileNotFoundError if the file
 		# does not exist and OSError if there is another error.
-		return S_ISDIR(os.stat(existing_path).st_mode)
+		return S_ISDIR(self.stat(existing_path).st_mode)
+	def stat(self, path):
+		get_stat = lambda: os.stat(path)
+		return self.cache.query(path, 'stat', get_stat)
 	def get_size_bytes(self, path):
-		return getsize(path)
+		return self.stat(path).st_size
 	def get_modified_datetime(self, path):
-		return datetime.fromtimestamp(getmtime(path))
+		return datetime.fromtimestamp(self.stat(path).st_mtime)
 	def touch(self, path):
 		Path(path).touch()
 	def mkdir(self, path):
