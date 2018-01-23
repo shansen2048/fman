@@ -1,6 +1,7 @@
 from fman.impl.util import Event, filenotfounderror
 from fman.url import splitscheme, basename, dirname
 from io import UnsupportedOperation
+from threading import Lock
 
 class MotherFileSystem:
 	def __init__(self, icon_provider):
@@ -41,15 +42,22 @@ class MotherFileSystem:
 		child, path = self._split(url)
 		return child.exists(path)
 	def iterdir(self, url):
-		return self._query_cache(url, 'iterdir')
+		child, path = self._split(url)
+		def compute_value():
+			iterator = getattr(child, 'iterdir')(path)
+			if hasattr(iterator, '__next__'):
+				iterator = CachedIterator(iterator)
+			return iterator
+		return child.cache.query(path, 'iterdir', compute_value)
 	def query(self, url, fs_method_name):
 		child, path = self._split(url)
 		return getattr(child, fs_method_name)(path)
 	def is_dir(self, existing_url):
 		return self.query(existing_url, 'is_dir')
 	def icon(self, url):
+		child, path = self._split(url)
 		compute_icon = lambda: self._icon_provider.get_icon(url)
-		return self._query_cache(url, 'icon', compute_icon)
+		return child.cache.query(path, 'icon', compute_icon)
 	def touch(self, url):
 		child, path = self._split(url)
 		with TriggerFileAdded(self, url):
@@ -125,11 +133,6 @@ class MotherFileSystem:
 	def clear_cache(self, url):
 		child, path = self._split(url)
 		child.cache.delete(path)
-	def _query_cache(self, url, prop, compute_value=None):
-		child, path = self._split(url)
-		if compute_value is None:
-			compute_value = lambda: getattr(child, prop)(path)
-		return child.cache.query(path, prop, compute_value)
 	def _split(self, url):
 		scheme, path = splitscheme(url)
 		try:
@@ -172,3 +175,57 @@ class TriggerFileAdded:
 			self._fs._add_to_parent(self._url)
 			if not self._file_existed:
 				self._fs.file_added.trigger(self._url)
+
+class CachedIterator:
+
+	_DELETED = object()
+
+	def __init__(self, source):
+		self._source = source
+		self._lock = Lock()
+		self._items = []
+		self._items_to_skip = []
+		self._items_to_add = []
+	def remove(self, item):
+		try:
+			item_index = self._items.index(item)
+		except ValueError:
+			self._items_to_skip.append(item)
+		else:
+			self._items[item_index] = self._DELETED
+	def append(self, item):
+		# N.B.: Behaves like set#add(...), not like list#append(...)!
+		self._items_to_add.append(item)
+	def __iter__(self):
+		return _CachedIterator(self)
+	def get_next(self, pointer):
+		with self._lock:
+			for pointer in range(pointer, len(self._items)):
+				item = self._items[pointer]
+				if item is not self._DELETED:
+					return pointer + 1, item
+			return pointer + 1, self._generate_next()
+	def _generate_next(self):
+		while True:
+			try:
+				result = next(self._source)
+			except StopIteration:
+				for i, result in enumerate(self._items_to_add):
+					if result not in self._items:
+						self._items_to_add = self._items_to_add[i + 1:]
+						break
+				else:
+					raise
+			if self._items_to_skip and result == self._items_to_skip[0]:
+				self._items_to_skip.pop(0)
+			else:
+				self._items.append(result)
+				return result
+
+class _CachedIterator:
+	def __init__(self, parent):
+		self._parent = parent
+		self._pointer = 0
+	def __next__(self):
+		self._pointer, result = self._parent.get_next(self._pointer)
+		return result
