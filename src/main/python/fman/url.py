@@ -32,7 +32,7 @@ def dirname(url):
 
 def basename(url):
 	path = splitscheme(url)[1]
-	return PurePosixPath(path).name if path else ''
+	return PurePosixPath(path).name
 
 def join(url, *paths):
 	scheme, path = splitscheme(url)

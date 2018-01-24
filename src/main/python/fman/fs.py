@@ -2,6 +2,7 @@ from fman.impl.fs_cache import Cache
 from fman.impl.util.path import parent, resolve
 from functools import wraps
 from io import UnsupportedOperation
+from pathlib import PurePosixPath
 from threading import Lock
 
 def exists(url):
@@ -50,6 +51,11 @@ class FileSystem:
 		self._file_changed_callbacks_lock = Lock()
 	def get_default_columns(self, path):
 		return 'Name',
+	def name(self, path):
+		"""
+		Displayed by the Name column.
+		"""
+		return PurePosixPath(path).name
 	def iterdir(self, path):
 		message = self.__class__.__name__ + ' does not implement iterdir(...)'
 		raise NotImplementedError(message)

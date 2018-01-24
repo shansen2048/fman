@@ -1,30 +1,23 @@
 from datetime import datetime
 from fman.fs import Column
+from fman.url import basename
 from math import log
-from os.path import basename
 from PyQt5.QtCore import QLocale, QDateTime
 
 import fman.fs
-import re
 
 class Name(Column):
 	def __init__(self, fs=fman.fs):
 		super().__init__()
 		self._fs = fs
 	def get_str(self, url):
-		if re.match('/+', url):
-			return '/'
-		url = url.rstrip('/')
-		try:
-			return url[url.rindex('/')+1:]
-		except ValueError:
-			return url
+		return self._fs.query(url, 'name')
 	def get_sort_value(self, url, is_ascending):
 		try:
 			is_dir = self._fs.is_dir(url)
 		except OSError:
 			is_dir = False
-		return is_dir ^ is_ascending, basename(url).lower()
+		return is_dir ^ is_ascending, self.get_str(url).lower()
 
 class Size(Column):
 	def __init__(self, fs=fman.fs):
