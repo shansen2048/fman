@@ -43,7 +43,7 @@ class LocalFileSystem(FileSystem):
 		return os.stat(path)
 	def size_bytes(self, path):
 		return self.stat(path).st_size
-	def get_modified_datetime(self, path):
+	def modified_datetime(self, path):
 		return datetime.fromtimestamp(self.stat(path).st_mtime)
 	def touch(self, path):
 		Path(path).touch()

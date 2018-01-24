@@ -259,24 +259,24 @@ class ZipFileSystemTest(TestCase):
 	def test_size_bytes_nonexistent_path_in_zip(self):
 		with self.assertRaises(FileNotFoundError):
 			self._fs.size_bytes(self._path('nonexistent'))
-	def test_get_modified_datetime_file(self):
+	def test_modified_datetime_file(self):
 		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
-		mtime = self._fs.get_modified_datetime(self._path(file_path))
+		mtime = self._fs.modified_datetime(self._path(file_path))
 		# Compare by date only because the time depends on the system time zone:
 		self.assertEqual(date(2017, 11, 8), mtime.date())
-	def test_get_modified_datetime_dir(self):
+	def test_modified_datetime_dir(self):
 		dir_path = self._path('ZipFileTest/Directory/Subdirectory')
-		mtime = self._fs.get_modified_datetime(dir_path)
+		mtime = self._fs.modified_datetime(dir_path)
 		# Compare by date only because the time depends on the system time zone:
 		self.assertEqual(date(2017, 12, 13), mtime.date())
-	def test_get_modified_datetime_root(self):
-		self.assertIsNone(self._fs.get_modified_datetime(self._path('')))
-	def test_get_modified_datetime_nonexistent_zip(self):
+	def test_modified_datetime_root(self):
+		self.assertIsNone(self._fs.modified_datetime(self._path('')))
+	def test_modified_datetime_nonexistent_zip(self):
 		with self.assertRaises(FileNotFoundError):
-			self._fs.get_modified_datetime('nonexistent')
-	def test_get_modified_datetime_nonexistent_path_in_zip(self):
+			self._fs.modified_datetime('nonexistent')
+	def test_modified_datetime_nonexistent_path_in_zip(self):
 		with self.assertRaises(FileNotFoundError):
-			self._fs.get_modified_datetime(self._path('nonexistent'))
+			self._fs.modified_datetime(self._path('nonexistent'))
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
 		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))

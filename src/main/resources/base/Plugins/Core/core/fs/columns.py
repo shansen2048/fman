@@ -95,4 +95,4 @@ class Modified(Column):
 			mtime = None
 		return is_dir ^ is_ascending, mtime or datetime.min
 	def _get_mtime(self, url):
-		return self._fs.query(url, 'get_modified_datetime')
+		return self._fs.query(url, 'modified_datetime')

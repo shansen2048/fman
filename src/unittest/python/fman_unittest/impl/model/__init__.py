@@ -24,7 +24,7 @@ class StubFileSystem(FileSystem):
 		return item.get('is_dir', False)
 	def size_bytes(self, path):
 		return self._items[resolve(path)].get('size', 1)
-	def get_modified_datetime(self, path):
+	def modified_datetime(self, path):
 		return self._items[resolve(path)].get('mtime', 1473339041.0)
 	def touch(self, path):
 		self._items[resolve(path)] = {}
