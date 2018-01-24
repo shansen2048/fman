@@ -41,7 +41,7 @@ class LocalFileSystem(FileSystem):
 	@cached
 	def stat(self, path):
 		return os.stat(path)
-	def get_size_bytes(self, path):
+	def size_bytes(self, path):
 		return self.stat(path).st_size
 	def get_modified_datetime(self, path):
 		return datetime.fromtimestamp(self.stat(path).st_mtime)

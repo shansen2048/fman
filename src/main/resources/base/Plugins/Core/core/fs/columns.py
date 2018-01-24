@@ -66,7 +66,7 @@ class Size(Column):
 				minor = 0
 		return is_dir ^ is_ascending, minor
 	def _get_size(self, url):
-		return self._fs.query(url, 'get_size_bytes')
+		return self._fs.query(url, 'size_bytes')
 
 class Modified(Column):
 	def __init__(self, fs=fman.fs):

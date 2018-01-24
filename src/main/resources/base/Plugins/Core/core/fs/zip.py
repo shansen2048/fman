@@ -161,7 +161,7 @@ class _7ZipFileSystem(FileSystem):
 		zip_path, path_in_zip = self._split(path)
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			self._run_7zip(['d', zip_path, path_in_zip])
-	def get_size_bytes(self, path):
+	def size_bytes(self, path):
 		return self._query_info_attr(path, 'size_bytes', None)
 	def get_modified_datetime(self, path):
 		return self._query_info_attr(path, 'mtime', None)

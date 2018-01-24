@@ -242,23 +242,23 @@ class ZipFileSystemTest(TestCase):
 		self.test_move_file_between_archives(
 			self._fs.copy, self._get_from_dir_dict
 		)
-	def test_get_size_bytes_file(self):
+	def test_size_bytes_file(self):
 		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
 		file_contents = self._get_zip_contents(path_in_zip=file_path)
 		self.assertEqual(
-			len(file_contents), self._fs.get_size_bytes(self._path(file_path))
+			len(file_contents), self._fs.size_bytes(self._path(file_path))
 		)
-	def test_get_size_bytes_dir(self):
+	def test_size_bytes_dir(self):
 		dir_path = self._path('ZipFileTest/Directory/Subdirectory')
-		self.assertEqual(0, self._fs.get_size_bytes(dir_path))
-	def test_get_size_bytes_root(self):
-		self.assertIsNone(self._fs.get_size_bytes(self._path('')))
-	def test_get_size_bytes_nonexistent_zip(self):
+		self.assertEqual(0, self._fs.size_bytes(dir_path))
+	def test_size_bytes_root(self):
+		self.assertIsNone(self._fs.size_bytes(self._path('')))
+	def test_size_bytes_nonexistent_zip(self):
 		with self.assertRaises(FileNotFoundError):
-			self._fs.get_size_bytes('nonexistent')
-	def test_get_size_bytes_nonexistent_path_in_zip(self):
+			self._fs.size_bytes('nonexistent')
+	def test_size_bytes_nonexistent_path_in_zip(self):
 		with self.assertRaises(FileNotFoundError):
-			self._fs.get_size_bytes(self._path('nonexistent'))
+			self._fs.size_bytes(self._path('nonexistent'))
 	def test_get_modified_datetime_file(self):
 		file_path = 'ZipFileTest/Directory/Subdirectory/file 3.txt'
 		mtime = self._fs.get_modified_datetime(self._path(file_path))

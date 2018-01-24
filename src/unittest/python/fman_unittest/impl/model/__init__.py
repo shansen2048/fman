@@ -22,7 +22,7 @@ class StubFileSystem(FileSystem):
 		except KeyError:
 			raise filenotfounderror(existing_path)
 		return item.get('is_dir', False)
-	def get_size_bytes(self, path):
+	def size_bytes(self, path):
 		return self._items[resolve(path)].get('size', 1)
 	def get_modified_datetime(self, path):
 		return self._items[resolve(path)].get('mtime', 1473339041.0)
