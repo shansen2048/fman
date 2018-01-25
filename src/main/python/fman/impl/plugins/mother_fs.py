@@ -116,7 +116,11 @@ class MotherFileSystem:
 					raise
 				else:
 					# Maybe the destination FS can handle the operation:
-					dst_fs.copy(src_url, dst_url)
+					try:
+						dst_fs.copy(src_url, dst_url)
+					except Exception as e:
+						# Don't show previous UnsupportedOperation in traceback.
+						raise e from None
 	def add_file_changed_callback(self, url, callback):
 		child, path = self._split(url)
 		child._add_file_changed_callback(path, callback)
