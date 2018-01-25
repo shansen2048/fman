@@ -28,7 +28,7 @@ class LocalFileSystem(FileSystem):
 		super().__init__()
 		self._watcher = None
 	def get_default_columns(self, path):
-		return 'Name', 'Size', 'Modified'
+		return 'core.Name', 'core.Size', 'core.Modified'
 	def exists(self, path):
 		return Path(path).exists()
 	def iterdir(self, path):

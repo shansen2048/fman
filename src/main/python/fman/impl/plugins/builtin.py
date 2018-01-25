@@ -25,7 +25,7 @@ class NullFileSystem(FileSystem):
 	scheme = 'null://'
 
 	def get_default_columns(self, path):
-		return 'NullColumn',
+		return NullColumn.__module__ + '.' + NullColumn.__name__,
 	def iterdir(self, path):
 		return []
 	def is_dir(self, existing_path):

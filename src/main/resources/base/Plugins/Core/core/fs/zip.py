@@ -43,7 +43,7 @@ class _7ZipFileSystem(FileSystem):
 		)
 
 	def get_default_columns(self, path):
-		return 'Name', 'Size', 'Modified'
+		return 'core.Name', 'core.Size', 'core.Modified'
 	def resolve(self, path):
 		for suffix in self._suffixes:
 			if suffix in path.lower():

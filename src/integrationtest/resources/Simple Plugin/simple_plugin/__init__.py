@@ -38,4 +38,4 @@ class NoIterdirFileSystem(FileSystem):
 	scheme = 'noiterdir://'
 
 	def get_default_columns(self, path):
-		return 'TestColumn',
+		return 'simple_plugin.TestColumn',

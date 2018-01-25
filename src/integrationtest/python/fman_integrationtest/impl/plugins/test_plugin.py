@@ -90,7 +90,7 @@ class ExternalPluginTest(TestCase):
 		loaded_columns = self._mother_fs._columns
 		self.assertEqual(1, len(loaded_columns))
 		col_name, col_instance = next(iter(loaded_columns.items()))
-		self.assertEqual('TestColumn', col_name)
+		self.assertEqual('simple_plugin.TestColumn', col_name)
 		self.assertIsInstance(col_instance, TestColumn)
 	def test_unload(self):
 		self.test_load()

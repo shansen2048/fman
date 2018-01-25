@@ -2,7 +2,7 @@ from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
 from fman.fs import FileSystem, Column
 from fman.impl.util import listdir_absolute
 from glob import glob
-from importlib.machinery import SourceFileLoader
+from importlib import import_module
 from inspect import getmro
 from json import JSONDecodeError
 from os.path import join, isdir, basename, isfile
@@ -72,9 +72,11 @@ class Plugin:
 	def _unregister_file_system(self, cls):
 		self._mother_fs.remove_child(cls.scheme)
 	def _register_column(self, cls):
-		self._mother_fs.register_column(cls.__name__, cls())
+		self._mother_fs.register_column(self._get_qualified_name(cls), cls())
 	def _unregister_column(self, cls):
-		self._mother_fs.unregister_column(cls.__name__)
+		self._mother_fs.unregister_column(self._get_qualified_name(cls))
+	def _get_qualified_name(self, cls):
+		return cls.__module__ + '.' + cls.__name__
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -208,8 +210,7 @@ class ExternalPlugin(Plugin):
 			init = join(dir_, '__init__.py')
 			if isfile(init):
 				package_name = basename(dir_)
-				loader = SourceFileLoader(package_name, init)
-				yield loader.load_module()
+				yield import_module(package_name)
 	def _iterate_classes(self, module):
 		for cls in [getattr(module, name) for name in dir(module)]:
 			if inspect.isclass(cls):

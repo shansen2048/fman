@@ -1,4 +1,4 @@
-from core.fs import Name, Size, Modified
+from core import Name, Size, Modified
 from core.tests import StubFS
 from fman.url import as_url
 from fman_unittest.impl.model import StubFileSystem
