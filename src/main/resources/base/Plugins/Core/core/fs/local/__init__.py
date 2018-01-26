@@ -123,7 +123,7 @@ if PLATFORM == 'Windows':
 		scheme = 'drives://'
 
 		def get_default_columns(self, path):
-			return 'DriveName',
+			return DriveName.__module__ + '.' + DriveName.__name__,
 		def resolve(self, path):
 			if not path:
 				# Showing the list of all drives:
