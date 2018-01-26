@@ -136,7 +136,7 @@ class MotherFileSystem:
 		child._remove_file_changed_callback(path, callback)
 	def clear_cache(self, url):
 		child, path = self._split(url)
-		child.cache.delete(path)
+		child.cache.clear(path)
 	def _split(self, url):
 		scheme, path = splitscheme(url)
 		try:
@@ -146,7 +146,7 @@ class MotherFileSystem:
 		return child, path
 	def _remove(self, url):
 		child, path = self._split(url)
-		child.cache.delete(path)
+		child.cache.clear(path)
 		parent_path = splitscheme(dirname(url))[1]
 		try:
 			parent_files = child.cache.get(parent_path, 'iterdir')

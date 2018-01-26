@@ -17,7 +17,7 @@ class Cache:
 				result = compute_value()
 				self._items.setdefault(path, {})[attr] = result
 				return result
-	def delete(self, path):
+	def clear(self, path):
 		self._items = {
 			other_path: value for other_path, value in self._items.items()
 			if other_path != path and not other_path.startswith(path + '/')
