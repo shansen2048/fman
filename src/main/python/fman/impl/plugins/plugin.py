@@ -72,11 +72,9 @@ class Plugin:
 	def _unregister_file_system(self, cls):
 		self._mother_fs.remove_child(cls.scheme)
 	def _register_column(self, cls):
-		self._mother_fs.register_column(self._get_qualified_name(cls), cls())
+		self._mother_fs.register_column(get_qualified_name(cls), cls())
 	def _unregister_column(self, cls):
-		self._mother_fs.unregister_column(self._get_qualified_name(cls))
-	def _get_qualified_name(self, cls):
-		return cls.__module__ + '.' + cls.__name__
+		self._mother_fs.unregister_column(get_qualified_name(cls))
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -108,6 +106,9 @@ class Plugin:
 			return FileSystemWrapper(instance, self._error_handler)
 	def __str__(self):
 		return '<%s %r>' % (self.__class__.__name__, self.name)
+
+def get_qualified_name(cls):
+	return cls.__module__ + '.' + cls.__name__
 
 def _get_command_name(command_class):
 	try:

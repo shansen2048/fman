@@ -1638,7 +1638,8 @@ class SortByColumn(DirectoryPaneCommand):
 			self._remember_settings(path, column_index, ascending)
 	def _get_items(self, query):
 		result = [[] for _ in self._MATCHERS]
-		for col_index, col_name in enumerate(self.pane.get_columns()):
+		for col_index, col_qual_name in enumerate(self.pane.get_columns()):
+			col_name = col_qual_name.rsplit('.', 1)[1]
 			for i, matcher in enumerate(self._MATCHERS):
 				highlight = matcher(col_name.lower(), query.lower())
 				if highlight is not None:
