@@ -316,10 +316,7 @@ class CreateAndEditFile(OpenWithEditor):
 				file_is_dir = False
 			if not file_is_dir:
 				default_name = basename(file_under_cursor)
-		try:
-			selection_end = default_name.index('.')
-		except ValueError as not_found:
-			selection_end = None
+		selection_end = _find_extension_start(default_name)
 		file_name, ok = show_prompt(
 			'Enter file name to create/edit:', default_name,
 			selection_end=selection_end
@@ -337,6 +334,15 @@ class CreateAndEditFile(OpenWithEditor):
 					return
 			self.pane.place_cursor_at(file_to_edit)
 			super().__call__(file_to_edit)
+
+def _find_extension_start(file_name, start=0):
+	for dual_extension in ('.pkg.tar.xz', '.tar.xz', '.tar.gz'):
+		if file_name.endswith(dual_extension):
+			return len(file_name) - len(dual_extension)
+	try:
+		return file_name.rindex('.', start)
+	except ValueError as not_found:
+		return None
 
 class _TreeCommand(DirectoryPaneCommand):
 	def __call__(self, files=None, dest_dir=None):
@@ -459,10 +465,7 @@ def get_dest_suggestion(dst_url):
 		selection_start = offset
 	else:
 		selection_start = last_sep + 1
-	try:
-		selection_end = suggested_dst.index('.', selection_start)
-	except ValueError as no_dot:
-		selection_end = None
+	selection_end = _find_extension_start(suggested_dst, selection_start)
 	return suggested_dst, selection_start, selection_end
 
 def _get_opposite_pane(pane):
@@ -532,10 +535,7 @@ class Rename(DirectoryPaneCommand):
 				selection_end = None
 			else:
 				file_name = basename(file_under_cursor)
-				try:
-					selection_end = file_name.index('.')
-				except ValueError as no_dot:
-					selection_end = None
+				selection_end = _find_extension_start(file_name)
 			self.pane.edit_name(file_under_cursor, selection_end=selection_end)
 		else:
 			show_alert('No file is selected!')

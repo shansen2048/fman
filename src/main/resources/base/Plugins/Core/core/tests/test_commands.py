@@ -1,5 +1,5 @@
 from core.commands import SuggestLocations, History, Move, \
-	_from_human_readable, get_dest_suggestion
+	_from_human_readable, get_dest_suggestion, _find_extension_start
 from core.tests import StubUI
 from core.util import filenotfounderror
 from fman import OK, YES, NO, PLATFORM
@@ -9,6 +9,16 @@ from unittest import TestCase, skipIf
 
 import os
 import os.path
+
+class FindExtensionStartTest(TestCase):
+	def test_no_extension(self):
+		self.assertIsNone(_find_extension_start('File'))
+	def test_normal_extension(self):
+		self.assertEqual(4, _find_extension_start('test.zip'))
+	def test_tar_xz(self):
+		self.assertEqual(7, _find_extension_start('archive.tar.xz'))
+	def test_tar_gz(self):
+		self.assertEqual(7, _find_extension_start('archive.tar.gz'))
 
 class ConfirmTreeOperationTest(TestCase):
 
