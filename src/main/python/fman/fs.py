@@ -50,7 +50,7 @@ class FileSystem:
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
 	def get_default_columns(self, path):
-		return 'Name',
+		return 'core.Name',
 	def name(self, path):
 		"""
 		Displayed by the Name column.
