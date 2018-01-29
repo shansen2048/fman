@@ -30,7 +30,7 @@ class PluginTest(TestCase):
 		self._command_callback = StubCommandCallback()
 		key_bindings = KeyBindings()
 		self._mother_fs = MotherFileSystem(None)
-		self._window = Window()
+		self._window = Window(None)
 		theme = StubTheme()
 		font_db = StubFontDatabase()
 		self._plugin_support = PluginSupport(

@@ -17,5 +17,6 @@
 	{ "keys": ["Cmd+R"], "command": "reload" },
 	{ "keys": ["Cmd+F1"], "command": "sort_by_column", "args": {"column_index": 0}},
 	{ "keys": ["Cmd+F2"], "command": "sort_by_column", "args": {"column_index": 1}},
-	{ "keys": ["Cmd+F3"], "command": "sort_by_column", "args": {"column_index": 2}}
+	{ "keys": ["Cmd+F3"], "command": "sort_by_column", "args": {"column_index": 2}},
+	{ "keys": ["Cmd+M"], "command": "minimize" }
 ]

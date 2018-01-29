@@ -296,6 +296,9 @@ class MainWindow(QMainWindow):
 		return result
 	def get_panes(self):
 		return self._panes
+	@run_in_main_thread
+	def minimize(self):
+		self.setWindowState(Qt.WindowMinimized)
 	def showEvent(self, *args):
 		super().showEvent(*args)
 		# singleShot after 50 ms (not 0) ensures that the window is already

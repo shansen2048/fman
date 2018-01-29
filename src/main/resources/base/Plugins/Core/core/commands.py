@@ -1676,3 +1676,7 @@ class RememberSortSettings(DirectoryPaneListener):
 		except ValueError:
 			return
 		self.pane.set_sort_column(column_index, is_ascending)
+
+class Minimize(ApplicationCommand):
+	def __call__(self):
+		self.window.minimize()

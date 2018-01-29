@@ -127,10 +127,13 @@ class DirectoryPane:
 		return self._widget.hasFocus()
 
 class Window:
-	def __init__(self):
+	def __init__(self, widget):
+		self._widget = widget
 		self._panes = []
 	def get_panes(self):
 		return self._panes
+	def minimize(self):
+		self._widget.minimize()
 	def add_pane(self, pane_widget):
 		result = DirectoryPane(self, pane_widget)
 		self._panes.append(result)

@@ -338,7 +338,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return None
 	@cached_property
 	def window(self):
-		return Window()
+		return Window(self.main_window)
 	def _get_local_data_file(self, *rel_path):
 		return join(DATA_DIRECTORY, 'Local', *rel_path)
 
