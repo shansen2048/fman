@@ -19,7 +19,9 @@ from pathlib import PurePath, Path
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import rmtree
-from subprocess import Popen, DEVNULL, PIPE, CREATE_NEW_CONSOLE
+from subprocess import Popen, DEVNULL, PIPE
+if PLATFORM == 'Windows':
+	from subprocess import CREATE_NEW_CONSOLE
 from tempfile import TemporaryDirectory
 
 import fman
@@ -224,11 +226,14 @@ class OpenFile(DirectoryPaneCommand):
 				'DirectoryPaneListener#on_command(...).' % scheme
 			)
 			return
+		popen_kwargs = {
+			'cwd': os.path.dirname(path)
+		}
+		if PLATFORM == 'Windows':
+			# Give the user a command window when opening a .bat file:
+			popen_kwargs['creationflags'] = CREATE_NEW_CONSOLE
 		try:
-			Popen(
-				[path], close_fds=True, cwd=os.path.dirname(path),
-				creationflags=CREATE_NEW_CONSOLE
-			)
+			Popen([path], **popen_kwargs)
 		except (OSError, ValueError):
 			QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 	def is_visible(self):
