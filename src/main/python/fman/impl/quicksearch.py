@@ -67,9 +67,11 @@ class Quicksearch(QDialog):
 			index = self._items.currentIndex()
 			if index.isValid():
 				item = self._curr_items[index.row()]
-				completion = self._get_tab_completion(item.title)
-				if completion:
-					self._query.setText(completion)
+			else:
+				item = None
+			completion = self._get_tab_completion(self._query.text(), item)
+			if completion is not None:
+				self._query.setText(completion)
 				return True
 		if event.key() in (Key_Down, Key_Up, Key_PageDown, Key_PageUp) or \
 				is_mac() and event.key() in (Key_Home, Key_End):

@@ -812,11 +812,12 @@ class GoTo(DirectoryPaneCommand):
 				)
 			elif os.path.isdir(path):
 				self.pane.set_path(url)
-	def _get_tab_completion(self, curr_suggestion):
-		result = curr_suggestion
-		if not result.endswith(os.sep):
-			result += os.sep
-		return result
+	def _get_tab_completion(self, query, curr_item):
+		if curr_item:
+			result = curr_item.title
+			if not result.endswith(os.sep):
+				result += os.sep
+			return result
 	def _get_default_paths(self):
 		home_dir = expanduser('~')
 		result = list(self._get_nonhidden_subdirs(home_dir))
