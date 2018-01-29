@@ -19,7 +19,7 @@ from pathlib import PurePath, Path
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import rmtree
-from subprocess import Popen, DEVNULL, PIPE
+from subprocess import Popen, DEVNULL, PIPE, CREATE_NEW_CONSOLE
 from tempfile import TemporaryDirectory
 
 import fman
@@ -226,8 +226,8 @@ class OpenFile(DirectoryPaneCommand):
 			return
 		try:
 			Popen(
-				[path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL,
-				cwd=os.path.dirname(path)
+				[path], close_fds=True, cwd=os.path.dirname(path),
+				creationflags=CREATE_NEW_CONSOLE
 			)
 		except (OSError, ValueError):
 			QDesktopServices.openUrl(QUrl.fromLocalFile(path))
