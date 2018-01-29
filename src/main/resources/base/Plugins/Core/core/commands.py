@@ -224,15 +224,12 @@ class OpenFile(DirectoryPaneCommand):
 				'DirectoryPaneListener#on_command(...).' % scheme
 			)
 			return
-		if PLATFORM == 'Linux':
-			use_qt = False
-			try:
-				Popen([path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
-			except (OSError, ValueError):
-				use_qt = True
-		else:
-			use_qt = True
-		if use_qt:
+		try:
+			Popen(
+				[path], stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL,
+				cwd=os.path.dirname(path)
+			)
+		except (OSError, ValueError):
 			QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 	def is_visible(self):
 		return False
