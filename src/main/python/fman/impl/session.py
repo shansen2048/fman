@@ -112,7 +112,10 @@ class SessionManager:
 			elif self._fs.exists(url):
 				location = dirname(url)
 				def callback(pane=pane, url=url):
-					pane.place_cursor_at(url)
+					try:
+						pane.place_cursor_at(url)
+					except ValueError as file_disappeared:
+						pass
 			else:
 				location = get_existing_pardir(url, exists_and_is_dir) \
 						   or home_dir

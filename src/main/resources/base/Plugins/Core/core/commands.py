@@ -211,7 +211,10 @@ class OpenDirectory(DirectoryPaneCommand):
 				)
 		else:
 			def callback():
-				self.pane.place_cursor_at(url)
+				try:
+					self.pane.place_cursor_at(url)
+				except ValueError as file_disappeared:
+					pass
 			self.pane.set_path(dirname(url), callback=callback)
 	def is_visible(self):
 		return False
@@ -571,7 +574,10 @@ class RenameListener(DirectoryPaneListener):
 				message = 'Could not rename %s to %s.'
 			show_alert(message % (old_name, new_name))
 		else:
-			self.pane.place_cursor_at(new_url)
+			try:
+				self.pane.place_cursor_at(new_url)
+			except ValueError as file_disappeared:
+				pass
 
 class CreateDirectory(DirectoryPaneCommand):
 
@@ -587,7 +593,10 @@ class CreateDirectory(DirectoryPaneCommand):
 				mkdir(dir_url)
 			except FileExistsError:
 				show_alert("A file with this name already exists!")
-			self.pane.place_cursor_at(dir_url)
+			try:
+				self.pane.place_cursor_at(dir_url)
+			except ValueError as dir_disappeared:
+				pass
 
 class OpenTerminal(DirectoryPaneCommand):
 
@@ -808,10 +817,12 @@ class GoTo(DirectoryPaneCommand):
 				path = path.rstrip()
 			url = as_url(path)
 			if os.path.isfile(path):
-				self.pane.set_path(
-					dirname(url),
-					callback=lambda url=url: self.pane.place_cursor_at(url)
-				)
+				def callback():
+					try:
+						self.pane.place_cursor_at(url)
+					except ValueError as url_disappeared:
+						pass
+				self.pane.set_path(dirname(url), callback=callback)
 			elif os.path.isdir(path):
 				self.pane.set_path(url)
 	def _get_tab_completion(self, query, curr_item):
