@@ -18,7 +18,7 @@ class Quicksearch(QDialog):
 		item=0
 	):
 		if get_tab_completion is None:
-			get_tab_completion = lambda _: None
+			get_tab_completion = lambda q, i: None
 		super().__init__(parent, FramelessWindowHint)
 		self._app = app
 		self._theme = theme
