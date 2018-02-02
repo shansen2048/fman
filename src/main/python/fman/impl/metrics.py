@@ -157,13 +157,13 @@ class AsynchronousMetrics:
 		self._metrics = metrics
 		self._queue = Queue()
 		self._thread = Thread(target=self._work, daemon=True)
-	def initialize(self, *args, **kwargs):
-		self._queue.put(('initialize', args, kwargs))
+	def initialize(self):
+		self._queue.put(('initialize', (), {}))
 		self._thread.start()
-	def track(self, *args, **kwargs):
-		self._queue.put(('track', args, kwargs))
-	def update_user(self, *args, **kwargs):
-		self._queue.put(('update_user', args, kwargs))
+	def track(self, event, properties=None):
+		self._queue.put(('track', (event,), {'properties': properties}))
+	def update_user(self, **properties):
+		self._queue.put(('update_user', (), properties))
 	def disable(self):
 		self._metrics.disable()
 	def _work(self):
