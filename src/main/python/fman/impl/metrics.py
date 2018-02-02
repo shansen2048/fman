@@ -74,14 +74,6 @@ class Metrics:
 			self._backend.update_user(self._user, **properties)
 		except MetricsError:
 			pass
-	def disable(self):
-		self._enabled = False
-		try:
-			data = self._read_json()
-		except (ValueError, FileNotFoundError):
-			data = {}
-		data['enabled'] = False
-		self._write_json(data)
 	def _read_json(self):
 		with open(self._json_path, 'r') as f:
 			return json.load(f)
@@ -164,8 +156,6 @@ class AsynchronousMetrics:
 		self._queue.put(('track', (event,), {'properties': properties}))
 	def update_user(self, **properties):
 		self._queue.put(('update_user', (), properties))
-	def disable(self):
-		self._metrics.disable()
 	def _work(self):
 		while True:
 			method_name, args, kwargs = self._queue.get()
