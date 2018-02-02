@@ -57,6 +57,8 @@ class Metrics:
 			if version:
 				distribution += ' ' + version
 			self._super_properties['distribution'] = distribution
+	def get_user(self):
+		return self._user
 	def track(self, event, properties=None):
 		if not self._enabled:
 			return
@@ -149,9 +151,12 @@ class AsynchronousMetrics:
 		self._metrics = metrics
 		self._queue = Queue()
 		self._thread = Thread(target=self._work, daemon=True)
-	def initialize(self):
+	def initialize(self, callback=lambda: None):
 		self._queue.put(self._metrics.initialize)
+		self._queue.put(callback)
 		self._thread.start()
+	def get_user(self):
+		return self._metrics.get_user()
 	def track(self, event, properties=None):
 		self._queue.put(lambda: self._metrics.track(event, properties))
 	def update_user(self, **properties):

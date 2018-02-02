@@ -53,7 +53,9 @@ class DevelopmentApplicationContext(ApplicationContext):
 		self.init_logging()
 		fman.FMAN_VERSION = self.fman_version
 		self.excepthook.install()
-		self.metrics.initialize()
+		self.metrics.initialize(
+			callback=lambda: self.excepthook.set_user(self.metrics.get_user())
+		)
 		self.metrics.track('StartedFman')
 		# Ensure main_window is instantiated before plugin_support, or else
 		# plugin_support gets instantiated twice:

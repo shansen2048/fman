@@ -1,3 +1,4 @@
+from collections import namedtuple
 from fman.impl.util import is_below_dir
 from os.path import basename
 from traceback import extract_tb
@@ -13,6 +14,8 @@ class Excepthook:
 	def install(self):
 		sys.excepthook = self
 		self._enable_excepthook_for_threads()
+	def set_user(self, user):
+		pass
 	def __call__(self, exc_type, exc_value, exc_tb):
 		causing_plugin = self._get_plugin_causing_error(exc_tb)
 		if causing_plugin and basename(causing_plugin) != 'Core':
@@ -60,12 +63,18 @@ class RollbarExcepthook(Excepthook):
 		self._rollbar_token = rollbar_token
 		self._environment = environment
 		self._fman_version = fman_version
+		self._user = None
 	def install(self):
 		rollbar.init(
 			self._rollbar_token, self._environment,
 			code_version=self._fman_version
 		)
 		super().install()
+	def set_user(self, user):
+		self._user = user
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
 		super()._handle_nonplugin_error(exc_type, exc_value, exc_tb)
-		rollbar.report_exc_info((exc_type, exc_value, exc_tb))
+		request = RollbarRequest(self._user) if self._user else None
+		rollbar.report_exc_info((exc_type, exc_value, exc_tb), request)
+
+RollbarRequest = namedtuple('RollbarRequest', ('user_id',))
