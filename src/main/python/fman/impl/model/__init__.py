@@ -179,7 +179,6 @@ class FileSystemModel(DragAndDropMixin):
 				self._execute_async(self._load_rows, url, callback)
 			else:
 				self._load_rows(url, callback)
-		return QModelIndex()
 	@run_in_main_thread
 	def _prepare_new_location(self, url):
 		self._location = url
@@ -194,8 +193,6 @@ class FileSystemModel(DragAndDropMixin):
 			raise ValueError("Invalid index")
 		return self._rows[index.row()].url
 	def find(self, url):
-		if url == self._location:
-			return QModelIndex()
 		for rownum, row in enumerate(self._rows):
 			if row.url == url:
 				break
