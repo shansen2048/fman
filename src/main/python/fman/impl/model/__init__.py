@@ -328,7 +328,7 @@ class FileSystemModel(DragAndDropMixin):
 		if location in self._already_visited:
 			self.reload(location)
 		self._already_visited.add(location)
-	def _load_row(self, url, ignore=(PermissionError,)):
+	def _load_row(self, url):
 		try:
 			is_dir = self._fs.is_dir(url)
 		except OSError:
