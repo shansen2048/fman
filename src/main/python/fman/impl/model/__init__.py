@@ -443,7 +443,11 @@ class FileSystemModel(DragAndDropMixin):
 		)
 		self._rows = \
 			self._rows[:first_rownum] + to_insert + self._rows[first_rownum:]
+		self._check_no_duplicate_rows()
 		self.endInsertRows()
+	def _check_no_duplicate_rows(self):
+		assert len({r.url for r in self._rows}) == len(self._rows), \
+			"Invariant violated: Duplicate rows."
 	def _get_rows_to_insert(self, rows):
 		result = []
 		for row in rows:
@@ -454,6 +458,7 @@ class FileSystemModel(DragAndDropMixin):
 		return result
 	def _update_rows(self, rows, first_rownum):
 		self._rows[first_rownum : first_rownum + len(rows)] = rows
+		self._check_no_duplicate_rows()
 		top_left = self.index(first_rownum, 0)
 		bottom_right = \
 			self.index(first_rownum + len(rows) - 1, self.columnCount() - 1)
@@ -473,6 +478,7 @@ class FileSystemModel(DragAndDropMixin):
 		self._rows = self._rows[:cut_start] + self._rows[cut_end:]
 		self._rows = \
 			self._rows[:insert_start] + rows + self._rows[insert_start:]
+		self._check_no_duplicate_rows()
 		self.endMoveRows()
 	@classmethod
 	def _get_move_destination(cls, cut_start, cut_end, insert_start):
