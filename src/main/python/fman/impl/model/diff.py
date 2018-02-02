@@ -9,7 +9,11 @@ class ComputeDiff:
 		self._new_rows = new_rows
 		self._key_fn = key_fn
 		self._old_keys = list(map(key_fn, old_rows))
+		if len(self._old_keys) != len(set(self._old_keys)):
+			raise ValueError('Duplicate rows are not supported')
 		self._new_keys = list(map(key_fn, new_rows))
+		if len(self._new_keys) != len(set(self._new_keys)):
+			raise ValueError('Duplicate rows are not supported')
 		self._result = []
 	def __call__(self):
 		for i in range(len(self._old_keys) - 1, -1, -1):
