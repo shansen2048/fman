@@ -302,6 +302,9 @@ class DevelopmentApplicationContext(ApplicationContext):
 				data = json.load(f)
 		except (IOError, ValueError):
 			data = {}
+		if not isinstance(data, dict):
+			# Malformed User.json file:
+			data = {}
 		email = data.get('email', '')
 		key = data.get('key', '')
 		return User(email, key)
