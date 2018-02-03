@@ -2,7 +2,7 @@ from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
 from fman.fs import FileSystem, Column
 from fman.impl.util import listdir_absolute
 from glob import glob
-from importlib import import_module
+from importlib.machinery import SourceFileLoader
 from inspect import getmro
 from json import JSONDecodeError
 from os.path import join, isdir, basename, isfile
@@ -211,7 +211,8 @@ class ExternalPlugin(Plugin):
 			init = join(dir_, '__init__.py')
 			if isfile(init):
 				package_name = basename(dir_)
-				yield import_module(package_name)
+				loader = SourceFileLoader(package_name, init)
+				yield loader.load_module()
 	def _iterate_classes(self, module):
 		for cls in [getattr(module, name) for name in dir(module)]:
 			if inspect.isclass(cls):
