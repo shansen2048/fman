@@ -408,16 +408,16 @@ def set_selection(qlineedit, selection_start, selection_end=None):
 		selection_len = selection_end - selection_start
 		qlineedit.setSelection(cursor_pos, selection_len)
 
-def _get_ideal_column_widths(widths, min_widths, available_width):
+def _get_ideal_column_widths(curr_widths, min_widths, available_width):
 	if not min_widths:
 		raise ValueError(repr(min_widths))
-	if len(widths) != len(min_widths):
-		widths = [0] * len(min_widths)
-	result = list(widths)
-	width = sum(widths)
+	if len(curr_widths) != len(min_widths):
+		curr_widths = [0] * len(min_widths)
+	result = list(curr_widths)
+	width = sum(curr_widths)
 	min_width = sum(min_widths)
 	truncated_columns = [
-		c for c, (w, m_w) in enumerate(zip(widths, min_widths))
+		c for c, (w, m_w) in enumerate(zip(curr_widths, min_widths))
 		if w < m_w
 	]
 	if truncated_columns:
