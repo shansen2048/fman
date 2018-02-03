@@ -349,7 +349,11 @@ class FileListView(
 	def _get_column_widths(self):
 		return [self.columnWidth(i) for i in range(self._num_columns)]
 	def _get_min_col_widths(self):
-		return [self.sizeHintForColumn(c) for c in range(self._num_columns)]
+		header = self.horizontalHeader()
+		return [
+			max(self.sizeHintForColumn(c), header.sectionSizeHint(c))
+			for c in range(self._num_columns)
+		]
 	def _apply_column_widths(self, widths):
 		for col, width in enumerate(widths):
 			self.setColumnWidth(col, width)
