@@ -307,8 +307,7 @@ class FileListView(
 			super().keyPressEvent(event)
 	def resizeEvent(self, event):
 		super().resizeEvent(event)
-		if self._old_col_widths:
-			self._resize_cols_to_contents(self._old_col_widths)
+		self._resize_cols_to_contents(self._old_col_widths)
 		self._old_col_widths = self._get_column_widths()
 	def resizeColumnsToContents(self):
 		self._resize_cols_to_contents()
@@ -410,10 +409,10 @@ def set_selection(qlineedit, selection_start, selection_end=None):
 		qlineedit.setSelection(cursor_pos, selection_len)
 
 def _get_ideal_column_widths(widths, min_widths, available_width):
+	if not min_widths:
+		raise ValueError(repr(min_widths))
 	if len(widths) != len(min_widths):
-		raise ValueError('len(%r) != len(%r)!' % (widths, min_widths))
-	if not widths:
-		return []
+		widths = [0] * len(min_widths)
 	result = list(widths)
 	width = sum(widths)
 	min_width = sum(min_widths)
