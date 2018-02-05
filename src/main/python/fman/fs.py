@@ -56,9 +56,6 @@ class FileSystem:
 		Displayed by the Name column.
 		"""
 		return PurePosixPath(path).name
-	def iterdir(self, path):
-		message = self.__class__.__name__ + ' does not implement iterdir(...)'
-		raise NotImplementedError(message)
 	def is_dir(self, existing_path):
 		"""
 		N.B.: Should raise FileNotFoundError if the given path does not exist.

@@ -1,13 +1,5 @@
 from os.path import exists
 
-class StubErrorHandler:
-	def __init__(self):
-		self.error_messages = []
-		self.exceptions = []
-	def report(self, message, exc=None):
-		self.error_messages.append(message)
-		self.exceptions.append(exc)
-
 class StubCommandCallback:
 	def before_command(self, command_name):
 		pass

@@ -103,7 +103,9 @@ class Plugin:
 				'Could not instantiate file system %r.' % fs_cls.__name__
 			)
 		else:
-			return FileSystemWrapper(instance, self._error_handler)
+			return FileSystemWrapper(
+				instance, self._mother_fs, self._error_handler
+			)
 	def __str__(self):
 		return '<%s %r>' % (self.__class__.__name__, self.name)
 
@@ -237,6 +239,7 @@ class Wrapper:
 
 class HandleExceptions:
 	def __init__(self, error_handler, message):
+		self.exception = None
 		self._error_handler = error_handler
 		self._message = message
 	def __enter__(self):
@@ -244,6 +247,7 @@ class HandleExceptions:
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		if not exc_val:
 			return
+		self.exception = exc_val
 		if isinstance(exc_val, SystemExit):
 			exc_code = 0 if exc_val.code is None else exc_val.code
 			self._error_handler.handle_system_exit(exc_code)
@@ -300,7 +304,48 @@ class ListenerWrapper(Wrapper):
 			listener_method(*args)
 
 class FileSystemWrapper(Wrapper):
-	def __init__(self, file_system, error_handler):
+	def __init__(self, file_system, mother_fs, error_handler):
 		super().__init__(file_system, 'FileSystem', error_handler)
+		self._mother_fs = mother_fs
+	def get_default_columns(self, path):
+		result_on_error = 'core.Name',
+		with self._handle_exceptions() as cm:
+			result = self._wrapped.get_default_columns(path)
+		if cm.exception:
+			return result_on_error
+		available_columns = self._mother_fs.get_registered_column_names()
+		for col_name in result:
+			if col_name not in available_columns:
+				self._error_handler.report(
+					"Error: %s.get_default_columns(...) returned a column "
+					"that does not exist: %r. Should have been one of: %s." % (
+						self._class_name, col_name,
+						', '.join(map(repr, available_columns))
+					)
+				)
+				return result_on_error
+		return result
+	def iterdir(self, path):
+		try:
+			iterdir = self._wrapped.iterdir
+		except AttributeError:
+			self._error_handler.report(
+				"Error: FileSystem %r does not implement iterdir(...)." %
+				self._class_name,
+				exc=False
+			)
+			return []
+		with self._handle_exceptions() as cm:
+			result = iterdir(path)
+		if cm.exception:
+			return []
+		if not hasattr(result, '__iter__'):
+			self._error_handler.report(
+				"Error: %s.iterdir(...) returned %r instead of an iterable "
+				"such as ['a.txt', 'b.jpg']." % (self._class_name, result),
+				exc=False
+			)
+			return []
+		return result
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)

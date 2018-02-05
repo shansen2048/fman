@@ -6,8 +6,9 @@ from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.plugins.plugin import Plugin
 from fman_integrationtest import get_resource
-from fman_integrationtest.impl.plugins import StubErrorHandler, \
-	StubCommandCallback, StubTheme, StubFontDatabase
+from fman_integrationtest.impl.plugins import StubCommandCallback, StubTheme, \
+	StubFontDatabase
+from fman_unittest.impl.plugins import StubErrorHandler
 from os.path import join
 from unittest import TestCase
 

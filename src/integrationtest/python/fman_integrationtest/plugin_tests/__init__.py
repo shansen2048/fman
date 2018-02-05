@@ -4,8 +4,9 @@ from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman_integrationtest import get_resource
-from fman_integrationtest.impl.plugins import StubErrorHandler, \
-	StubCommandCallback, StubTheme, StubFontDatabase, StubDirectoryPaneWidget
+from fman_integrationtest.impl.plugins import StubCommandCallback, StubTheme, \
+	StubFontDatabase, StubDirectoryPaneWidget
+from fman_unittest.impl.plugins import StubErrorHandler
 from os import mkdir
 from os.path import join
 from shutil import rmtree, copytree

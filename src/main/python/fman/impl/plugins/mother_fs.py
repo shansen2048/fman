@@ -25,6 +25,8 @@ class MotherFileSystem:
 		self._columns[column_name] = column
 	def unregister_column(self, column_name):
 		del self._columns[column_name]
+	def get_registered_column_names(self):
+		return list(self._columns)
 	def get_columns(self, url):
 		child, path = self._split(url)
 		child_get_cols = child.get_default_columns
