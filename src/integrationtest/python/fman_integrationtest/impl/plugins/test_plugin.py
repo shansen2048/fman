@@ -92,7 +92,7 @@ class ExternalPluginTest(TestCase):
 		self.assertEqual(1, len(loaded_columns))
 		col_name, col_instance = next(iter(loaded_columns.items()))
 		self.assertEqual('simple_plugin.TestColumn', col_name)
-		self.assertIsInstance(col_instance, TestColumn)
+		self.assertIsInstance(col_instance.unwrap(), TestColumn)
 	def test_unload(self):
 		self.test_load()
 		self._plugin.unload()
