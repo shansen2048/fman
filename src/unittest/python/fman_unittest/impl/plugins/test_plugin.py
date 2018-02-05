@@ -33,7 +33,7 @@ class FileSystemWrapperTest(TestCase):
 			scheme = 'noiterdir://'
 
 		wrapper = self._wrap(IterdirNotImplemented)
-		self.assertEqual([], wrapper.iterdir(''))
+		self.assertEqual([], list(wrapper.iterdir('')))
 		self._expect_error(
 			"Error: FileSystem 'IterdirNotImplemented' does not implement "
 			"iterdir(...)."
@@ -50,6 +50,14 @@ class FileSystemWrapperTest(TestCase):
 			"Error: FS.iterdir(...) returned 2 instead of an iterable such "
 			"as ['a.txt', 'b.jpg']."
 		)
+	def test_iterdir_non_string(self):
+		def iterdir(_):
+			yield from range(5)
+		self._test_iterdir_error(
+			iterdir,
+			"Error: FS.iterdir(...) yielded 0 instead of a string such as "
+			"'file.txt'."
+		)
 	def test_get_default_columns_nonexistent(self):
 		self._test_get_default_columns_error(
 			lambda _: ('Name',),
@@ -63,7 +71,7 @@ class FileSystemWrapperTest(TestCase):
 			def iterdir(self, path):
 				return iterdir(path)
 		wrapper = self._wrap(FS)
-		self.assertEqual([], wrapper.iterdir(''))
+		self.assertEqual([], list(wrapper.iterdir('')))
 		self._expect_error(expected_error)
 	def _test_get_default_columns_error(self, get_default_cols, expected_error):
 		class FS(FileSystem):

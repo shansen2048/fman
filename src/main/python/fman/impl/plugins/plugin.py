@@ -345,19 +345,33 @@ class FileSystemWrapper(Wrapper):
 				self._class_name,
 				exc=False
 			)
-			return []
-		with self._handle_exceptions() as cm:
-			result = iterdir(path)
-		if cm.exception:
-			return []
-		if not hasattr(result, '__iter__'):
-			self._error_handler.report(
-				"Error: %s.iterdir(...) returned %r instead of an iterable "
-				"such as ['a.txt', 'b.jpg']." % (self._class_name, result),
-				exc=False
-			)
-			return []
-		return result
+		else:
+			with self._handle_exceptions() as cm:
+				result = iterdir(path)
+			if not cm.exception:
+				try:
+					iterable = iter(result)
+				except TypeError:
+					self._error_handler.report(
+						"Error: %s.iterdir(...) returned %r instead of an "
+						"iterable such as ['a.txt', 'b.jpg']." %
+						(self._class_name, result),
+						exc=False
+					)
+				else:
+					showed_error = False
+					for item in iterable:
+						if isinstance(item, str):
+							yield item
+						else:
+							if not showed_error:
+								self._error_handler.report(
+									"Error: %s.iterdir(...) yielded %r instead "
+									"of a string such as 'file.txt'." % (
+										self._class_name, item),
+										exc=False
+									)
+								showed_error = True
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)
 
