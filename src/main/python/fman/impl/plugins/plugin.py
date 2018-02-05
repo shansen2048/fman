@@ -72,7 +72,9 @@ class Plugin:
 	def _unregister_file_system(self, cls):
 		self._mother_fs.remove_child(cls.scheme)
 	def _register_column(self, cls):
-		self._mother_fs.register_column(get_qualified_name(cls), cls())
+		instance = self._instantiate_column(cls)
+		if instance:
+			self._mother_fs.register_column(get_qualified_name(cls), instance)
 	def _unregister_column(self, cls):
 		self._mother_fs.unregister_column(get_qualified_name(cls))
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
@@ -106,6 +108,15 @@ class Plugin:
 			return FileSystemWrapper(
 				instance, self._mother_fs, self._error_handler
 			)
+	def _instantiate_column(self, col_cls):
+		try:
+			instance = col_cls()
+		except Exception:
+			self._error_handler.report(
+				'Could not instantiate Column %r.' % col_cls.__name__
+			)
+		else:
+			return ColumnWrapper(instance, self._error_handler)
 	def __str__(self):
 		return '<%s %r>' % (self.__class__.__name__, self.name)
 
@@ -347,5 +358,17 @@ class FileSystemWrapper(Wrapper):
 			)
 			return []
 		return result
+	def __getattr__(self, item):
+		return getattr(self._wrapped, item)
+
+class ColumnWrapper(Wrapper):
+	def __init__(self, wrapped, error_handler):
+		super().__init__(wrapped, 'Column', error_handler)
+	def get_str(self, url):
+		with self._handle_exceptions():
+			return self._wrapped.get_str(url)
+	def get_sort_value(self, url, is_ascending):
+		with self._handle_exceptions():
+			return self._wrapped.get_sort_value(url, is_ascending)
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)
