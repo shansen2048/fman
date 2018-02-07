@@ -4,6 +4,7 @@ RUN apt-get update && \
     apt-get upgrade -y
 
 ADD install_python35.sh /tmp
+ADD python3.5_3.5.3-1.dsc /tmp
 
 WORKDIR /tmp
 
