@@ -4,7 +4,7 @@ sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
 
 from build_impl import git, create_cloudfront_invalidation
 from fbs import path, activate_profile, SETTINGS
-from fbs.builtin_commands import clean
+from fbs.builtin_commands import clean, installer
 from fbs.cmdline import command
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
 from os import listdir, makedirs
@@ -21,7 +21,7 @@ if is_windows():
 	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
 		add_installer_manifest, upload
 elif is_mac():
-	from build_impl.mac import app, sign_app, dmg, sign_dmg, upload, \
+	from build_impl.mac import app, sign_app, sign_installer, upload, \
 		create_autoupdate_files
 elif is_linux():
 	if is_ubuntu():
@@ -43,8 +43,8 @@ def publish():
 	elif is_mac():
 		app()
 		sign_app()
-		dmg()
-		sign_dmg()
+		installer()
+		sign_installer()
 		create_autoupdate_files()
 		upload()
 	elif is_linux():

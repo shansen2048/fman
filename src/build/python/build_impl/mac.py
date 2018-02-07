@@ -36,15 +36,7 @@ def sign_app():
 	], check=True)
 
 @command
-def dmg():
-	run([
-		path('bin/mac/yoursway-create-dmg/create-dmg'), '--volname', 'fman',
-		'--app-drop-link', '0', '10', '--icon', 'fman', '200', '10',
-		 path('target/fman.dmg'), path('${freeze_dir}')
-	], check=True)
-
-@command
-def sign_dmg():
+def sign_installer():
 	run([
 		'codesign', '--verbose',
 		'-s', "Developer ID Application: Michael Herrmann",

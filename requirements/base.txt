@@ -1,4 +1,4 @@
-fbs==0.0.6
+fbs==0.0.8
 PyInstaller==3.3
 rollbar==0.13.11
 ordered-set==2.0.1
