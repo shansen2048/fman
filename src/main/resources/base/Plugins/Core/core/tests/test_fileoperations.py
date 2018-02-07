@@ -241,6 +241,11 @@ class FileTreeOperationAT:
 		self._perform_on(src_file, src_dir=None)
 		self._expect_files({'test.txt'})
 		self._assert_file_contents_equal(join(self.dest, 'test.txt'), '1234')
+	def test_overwrite_directory_file_in_subdir(self):
+		self._touch(join(self.src, 'dir1', 'dir2', 'test.txt'))
+		self._makedirs(join(self.dest, 'dir1'))
+		self._perform_on(join(self.src, 'dir1'))
+		self._expect_files({'test.txt'}, in_dir=join(self.dest, 'dir1', 'dir2'))
 	def setUp(self):
 		super().setUp()
 		self._fs = StubFS()
@@ -401,3 +406,6 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def test_drag_and_drop(self):
 		super().test_drag_and_drop()
 		self.assertNotIn('test.txt', self._fs.iterdir(self.src))
+	def test_overwrite_directory_file_in_subdir(self):
+		super().test_overwrite_directory_file_in_subdir()
+		self.assertNotIn('dir1', self._fs.iterdir(self.src))

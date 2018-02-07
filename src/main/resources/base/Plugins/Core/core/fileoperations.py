@@ -45,15 +45,17 @@ class FileTreeOperation:
 					if self._fs.samefile(src, dest):
 						return True
 					else:
-						for file_url in self._walk(src):
-							dst = self._get_dest_url(file_url)
-							try:
-								if not self.perform_on_file(file_url, dst):
-									return False
-							except (OSError, IOError) as e:
-								return \
-									self._handle_exception(file_url, is_last, e)
-						self.postprocess_directory(src)
+						for top_dir, _, files in self._walk_bottom_up(src):
+							for file_url in files:
+								dst = self._get_dest_url(file_url)
+								try:
+									if not self.perform_on_file(file_url, dst):
+										return False
+								except (OSError, IOError) as e:
+									return self._handle_exception(
+										file_url, is_last, e
+									)
+							self.postprocess_directory(top_dir)
 				else:
 					self._perform_on_dir_dest_doesnt_exist(src, dest)
 			else:
@@ -62,7 +64,7 @@ class FileTreeOperation:
 		except (OSError, IOError) as e:
 			return self._handle_exception(src, is_last, e)
 		return True
-	def _walk(self, url):
+	def _walk_bottom_up(self, url):
 		dirs = []
 		nondirs = []
 		for file_name in self._fs.iterdir(url):
@@ -73,11 +75,10 @@ class FileTreeOperation:
 				is_dir = False
 			if is_dir:
 				dirs.append(file_url)
+				yield from self._walk_bottom_up(file_url)
 			else:
 				nondirs.append(file_url)
-		yield from nondirs
-		for dir_ in dirs:
-			yield from self._walk(join(url, dir_))
+		yield url, dirs, nondirs
 	def _handle_exception(self, file_url, is_last, exc):
 		if exc.strerror:
 			cause = exc.strerror[0].lower() + exc.strerror[1:]
