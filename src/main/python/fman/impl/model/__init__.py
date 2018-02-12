@@ -368,24 +368,33 @@ class FileSystemModel(DragAndDropMixin):
 			self._on_rows_loaded([row])
 	def _on_file_moved(self, old_url, new_url):
 		assert not is_in_main_thread()
-		if not self._is_in_root(old_url) and not self._is_in_root(new_url):
-			return
-		try:
-			row = self._load_row(new_url)
-		except FileNotFoundError:
-			return
-		self._on_row_loaded_for_move(row, old_url)
+		if self._is_in_root(new_url):
+			try:
+				# It's important that we only attempt to load the row if it is
+				# in the current root. The reason for this is that if the new
+				# URL has a different scheme://, we might be loading the columns
+				# from the current scheme for the new one, which may not support
+				# them.
+				row = self._load_row(new_url)
+			except FileNotFoundError:
+				row = None
+		else:
+			row = None
+		self._on_row_moved(old_url, row)
 	@run_in_main_thread
-	def _on_row_loaded_for_move(self, row, old_url):
-		# We don't just remove the old row and add the new one because this
-		# destroys the cursor state.
+	def _on_row_moved(self, old_url, row=None):
+		"""
+		We don't just remove the old row and add the new one because this
+		destroys the cursor state.
+		"""
+		is_in_root = False if row is None else self._is_in_root(row.url)
 		try:
 			rownum = self.find(old_url).row()
 		except ValueError:
-			if self._is_in_root(row.url):
+			if is_in_root:
 				self._on_rows_loaded([row])
 		else:
-			if self._is_in_root(row.url):
+			if is_in_root:
 				self._update_rows([row], rownum)
 			else:
 				self._remove_rows(rownum)
