@@ -21,8 +21,29 @@ class Name(Column):
 			is_dir = self._fs.is_dir(url)
 		except OSError:
 			is_dir = False
-		return is_dir ^ is_ascending, \
-			   re.split(r'(\d+)', self.get_str(url).lower())
+		major = is_dir ^ is_ascending
+		minor = re.split(r'(\d+)', self.get_str(url).lower())
+		is_int, is_str = 0, 1
+		# re.split(...) gives a list whose first element is '' if the pattern
+		# already matched at the beginning of the string. This guarantees us
+		# that the integers in the string are always at odd indices in the list:
+		for i in range(1, len(minor), 2):
+			# Ideally, we'd just want `int(minor[i])` here. But this leads to
+			# TypeErrors when the element is compared to another one that is a
+			# string (`2 < "foo"`). So we return a tuple whose first element
+			# indicates that this is an int:
+			minor[i] = (is_int, int(minor[i]))
+		for i in range(0, len(minor), 2):
+			# Here, we return a tuple whose first element indicates that this is
+			# not an int:
+			minor[i] = (is_str, minor[i])
+		# Clean up the result of re.split(...) for strings starting with digits:
+		if minor[0] == (is_str, ''):
+			minor = minor[1:]
+		# Clean up the result of re.split(...) for strings ending with digits:
+		if minor[-1] == (is_str, ''):
+			minor = minor[:-1]
+		return major, minor
 
 # Define here so get_default_columns(...) can reference it as core.Size:
 class Size(Column):

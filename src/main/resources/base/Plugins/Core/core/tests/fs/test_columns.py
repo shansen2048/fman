@@ -51,6 +51,11 @@ class NameTest(ColumnTest, TestCase):
 
 	def test_less(self):
 		self.assert_is_less('a', 'b')
+	def test_less_numbers(self):
+		self.assert_is_less('foo 2.txt', 'foo 10.txt')
+		self.assert_is_less('2 foo.txt', '10 foo.txt')
+		self.assert_is_less('2', '10')
+		self.assert_is_less('2', 'a1.txt')
 	def test_greater(self):
 		self.assert_is_greater('b', 'a')
 	def test_upper_case(self):
