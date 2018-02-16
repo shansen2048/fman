@@ -7,6 +7,7 @@ from math import log
 from PyQt5.QtCore import QLocale, QDateTime
 
 import fman.fs
+import re
 
 # Define here so get_default_columns(...) can reference it as core.Name:
 class Name(Column):
@@ -20,7 +21,8 @@ class Name(Column):
 			is_dir = self._fs.is_dir(url)
 		except OSError:
 			is_dir = False
-		return is_dir ^ is_ascending, self.get_str(url).lower()
+		return is_dir ^ is_ascending, \
+			   re.split(r'(\d+)', self.get_str(url).lower())
 
 # Define here so get_default_columns(...) can reference it as core.Size:
 class Size(Column):
