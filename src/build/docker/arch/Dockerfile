@@ -19,7 +19,7 @@ ADD .bashrc /root/.bashrc
 
 RUN pacman -S --noconfirm python-pyqt5 p7zip
 
-RUN pacman -S --noconfirm ruby && \
+RUN pacman -S --noconfirm ruby ruby-rdoc && \
     # Avoid error "cannot load such file -- ubygems":
     sed -i.bak "s/ -rubygems//g" ~/.bashrc && \
     source ~/.bashrc && \
