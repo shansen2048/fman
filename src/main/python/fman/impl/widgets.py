@@ -26,6 +26,7 @@ class Application(QApplication):
 		# Ensure all other windows are closed as well when the main window
 		# is closed. (This in particular closes windows opened by plugins.)
 		main_window.closed.connect(self.quit)
+	@run_in_main_thread
 	def exit(self, returnCode=0):
 		if self._main_window is not None:
 			self._main_window.close()
