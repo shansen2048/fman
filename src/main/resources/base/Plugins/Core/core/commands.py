@@ -221,22 +221,32 @@ class OpenDirectory(DirectoryPaneCommand):
 
 class OpenFile(DirectoryPaneCommand):
 	def __call__(self, url):
-		scheme, path = splitscheme(url)
-		if scheme != 'file://':
+		if splitscheme(url)[0] != 'file://':
 			show_alert(
 				'Opening files from %s is not supported. If you are a plugin '
 				'developer, you can implement this with '
 				'DirectoryPaneListener#on_command(...).' % scheme
 			)
 			return
-		popen_kwargs = {
-			'cwd': os.path.dirname(path)
+		# Use as_human_readable(...) instead of the result from splitscheme(...)
+		# above to get backslashes on Windows:
+		path = as_human_readable(url)
+		cwd = os.path.dirname(path)
+		kwargs = {
+			'cwd': cwd
 		}
 		if PLATFORM == 'Windows':
-			# Give the user a command window when opening a .bat file:
-			popen_kwargs['creationflags'] = CREATE_NEW_CONSOLE
+			file_name = os.path.basename(path)
+			pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
+			if any(file_name.lower().endswith(ext.lower()) for ext in pathext):
+				args = [path]
+			else:
+				kwargs['shell'] = True
+				args = ['start', '', '/D', cwd, file_name]
+		else:
+			args = [path]
 		try:
-			Popen([path], **popen_kwargs)
+			Popen(args, **kwargs)
 		except (OSError, ValueError):
 			QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 	def is_visible(self):
