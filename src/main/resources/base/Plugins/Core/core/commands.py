@@ -523,7 +523,7 @@ class DragAndDropListener(DirectoryPaneListener):
 	def _get_command(self, file_urls, dest_dir, is_copy_not_move):
 		schemes = set(splitscheme(url)[0] for url in file_urls)
 		src_scheme = next(iter(schemes)) if len(schemes) == 1 else ''
-		dest_scheme = splitscheme(dest_dir)
+		dest_scheme = splitscheme(dest_dir)[0]
 		if src_scheme != dest_scheme:
 			# The default value for `is_copy_not_move` is False. But consider
 			# the case where the user drags a file from a Zip archive to the
