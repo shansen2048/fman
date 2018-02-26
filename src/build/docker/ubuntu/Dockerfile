@@ -3,13 +3,12 @@ FROM ubuntu:14.04
 RUN apt-get update && \
     apt-get upgrade -y
 
-ADD install_python35.sh /tmp
-ADD python3.5_3.5.3-1.dsc /tmp
+RUN DEBIAN_FRONTEND=noninteractive apt-get install software-properties-common -y && \
+    add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && \
+    apt-get install python3.6 python3.6-dev python3.6-venv -y
 
 WORKDIR /tmp
-
-RUN ./install_python35.sh
-ENV LD_LIBRARY_PATH /usr/local/lib
 
 ADD id_rsa /root/.ssh/id_rsa
 RUN chmod 600 /root/.ssh/id_rsa
@@ -28,6 +27,9 @@ RUN apt-get install ruby ruby-dev build-essential -y && \
 
 # Required for Python dependency pgi:
 RUN apt-get install gobject-introspection libgtk-3-0 -y
+
+# Add missing file libGL.so.1 for PyQt5.QtGui:
+RUN apt-get install libgl1-mesa-glx -y
 
 # Required for our use of reprepro:
 RUN apt-get install reprepro expect -y
