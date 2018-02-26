@@ -1,5 +1,5 @@
 fbs==0.0.8
-PyInstaller==3.3
+PyInstaller==3.3.1
 rollbar==0.13.11
 ordered-set==2.0.1
 rsa==3.4.2
