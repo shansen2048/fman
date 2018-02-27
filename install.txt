@@ -1,3 +1,22 @@
+Mac:
+====
+brew update
+brew install openssl
+brew install pyenv
+git clone https://github.com/yyuu/pyenv-virtualenv.git ~/.pyenv/plugins/pyenv-virtualenv
+
+# Add to .bashrc:
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+
+PYTHON_CONFIGURE_OPTS="--enable-shared" CFLAGS="-I$(brew --prefix openssl)/include -I$(xcrun --show-sdk-path)/usr/include" LDFLAGS="-L$(brew --prefix openssl)/lib" pyenv install 3.5.4
+
+# Then, in ~/dev/fman:
+pyenv virtualenv 3.5.4 venv
+pyenv activate venv
+
 NSIS:
 =====
 Install version 2.51 on Windows.
