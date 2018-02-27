@@ -6,7 +6,7 @@ RUN apt-get update && \
 RUN DEBIAN_FRONTEND=noninteractive apt-get install software-properties-common -y && \
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get update && \
-    apt-get install python3.6 python3.6-dev python3.6-venv -y
+    apt-get install python3.5 python3.5-dev python3.5-venv -y
 
 WORKDIR /tmp
 

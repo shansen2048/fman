@@ -199,7 +199,7 @@ def ubuntu_docker_image():
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/ubuntu', build_dir, path('cache/ubuntu'))
 	ubuntu(['/bin/bash', '-c',
-		'python3.6 -m venv venv && '
+		'python3.5 -m venv venv && '
 		'source venv/bin/activate && '
 		'pip install -r requirements/ubuntu.txt'
 	])
