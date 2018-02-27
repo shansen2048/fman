@@ -19,5 +19,6 @@
 	{ "keys": ["Cmd+F2"], "command": "sort_by_column", "args": {"column_index": 1}},
 	{ "keys": ["Cmd+F3"], "command": "sort_by_column", "args": {"column_index": 2}},
 	{ "keys": ["Cmd+M"], "command": "minimize" },
-	{ "keys": ["Cmd+Q"], "command": "quit" }
+	{ "keys": ["Cmd+Q"], "command": "quit" },
+  	{ "keys": ["Cmd+Up"], "command": "go_up" }
 ]
