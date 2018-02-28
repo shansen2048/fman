@@ -128,6 +128,14 @@ def create_cloudfront_invalidation(items):
 		}
 	)
 
+def record_release_on_server():
+	import requests
+	response = requests.post(SETTINGS['record_release_url'], {
+		'secret': SETTINGS['server_api_secret'],
+		'version': SETTINGS['version']
+	})
+	response.raise_for_status()
+
 def _get_aws_credentials():
 	return {
 		'aws_access_key_id': SETTINGS['aws_access_key_id'],

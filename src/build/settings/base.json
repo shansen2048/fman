@@ -14,6 +14,8 @@
 	"environment": "local",
 	"server_url": "http://127.0.0.1:8000",
 	"appcast_url": "${server_url}/updates/Appcast.xml",
+	"record_release_url": "${server_url}/api/record-release/",
+	"server_api_secret": "k92XhhhmOf8rD7QJ",
 	"info_plist_extra": "<key>NSAppTransportSecurity</key>\n\t<dict>\n\t\t<key>NSAllowsArbitraryLoads</key>\n\t\t<true/>\n\t</dict>",
 	"local_media_dir": "../fman.io/media",
 	"server_media_dir": "/home/fman/src/media",

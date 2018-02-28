@@ -2,7 +2,8 @@ from os.path import dirname, join
 import sys
 sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
 
-from build_impl import git, create_cloudfront_invalidation
+from build_impl import git, create_cloudfront_invalidation, \
+	record_release_on_server
 from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean, installer
 from fbs.cmdline import command
@@ -134,6 +135,7 @@ def post_release():
 		cloudfront_items_to_invalidate.append('/' + item)
 		cloudfront_items_to_invalidate.append('/%s/%s' % (version, item))
 	create_cloudfront_invalidation(cloudfront_items_to_invalidate)
+	record_release_on_server()
 	git('checkout', 'master')
 
 def _prompt_for_next_version(release_version):
