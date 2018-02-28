@@ -128,6 +128,7 @@ snapshot_suffix = '-SNAPSHOT'
 
 @command
 def post_release():
+	activate_profile('release')
 	version = SETTINGS['version']
 	assert not version.endswith(snapshot_suffix)
 	cloudfront_items_to_invalidate = []
