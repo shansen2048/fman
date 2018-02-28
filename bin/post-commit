@@ -3,7 +3,7 @@
 # Abort on any error:
 set -e
 
-URL=https://fman.io/record-commit/
+URL=https://fman.io/api/record-commit/
 
 message_tmp_file=`mktemp`
 git log --pretty=format:%B -n1 > ${message_tmp_file}
