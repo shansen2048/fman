@@ -1209,10 +1209,11 @@ class Quit(ApplicationCommand):
 		sys.exit(0)
 
 class InstallLicenseKey(DirectoryPaneCommand):
-	def __call__(self):
+	def __call__(self, url=''):
 		curr_dir_url = self.pane.get_path()
-		license_key = join(curr_dir_url, 'User.json')
-		if not exists(license_key):
+		if not url:
+			url = join(curr_dir_url, 'User.json')
+		if not exists(url):
 			if splitscheme(curr_dir_url)[0] == 'file://':
 				dir_path = as_human_readable(curr_dir_url)
 			else:
@@ -1222,12 +1223,24 @@ class InstallLicenseKey(DirectoryPaneCommand):
 			)
 			if not file_path:
 				return
-			license_key = as_url(file_path)
-		copy(license_key, join(as_url(DATA_DIRECTORY), 'Local', 'User.json'))
+			url = as_url(file_path)
+		copy(url, join(as_url(DATA_DIRECTORY), 'Local', 'User.json'))
 		show_alert(
 			"Thank you! Please restart fman to complete the registration. You "
 			"should no longer see the annoying popup when it starts."
 		)
+
+class LicenseKeyOpenListener(DirectoryPaneListener):
+	def on_command(self, command_name, args):
+		if command_name == 'open_file':
+			url = args['url']
+			if basename(url) == 'User.json':
+				choice = show_alert(
+					'User.json appears to be an fman license key file. Do you '
+					'want to install it?', YES | NO, YES
+				)
+				if choice & YES:
+					return 'install_license_key', {'url': url}
 
 class ZenOfFman(ApplicationCommand):
 	def __call__(self):
