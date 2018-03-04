@@ -1723,3 +1723,9 @@ class LocationBarListener(DirectoryPaneListener):
 		if splitscheme(url)[0] == 'file://':
 			path = as_human_readable(url)
 			self.pane.run_command('go_to', {'query': path})
+			ctrl = 'Cmd' if PLATFORM == 'Mac' else 'Ctrl'
+			show_status_message(
+				'Hint: To open GoTo, press %s+P. To copy the current path, '
+				'press Backspace followed by F11.' % ctrl,
+				timeout_secs=10
+			)
