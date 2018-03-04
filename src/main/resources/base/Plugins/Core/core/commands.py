@@ -1210,21 +1210,20 @@ class Quit(ApplicationCommand):
 
 class InstallLicenseKey(DirectoryPaneCommand):
 	def __call__(self):
-		scheme, curr_dirpath = splitscheme(self.pane.get_path())
-		if scheme != 'file://':
-			show_alert(
-				'Sorry, please copy User.json to your local file system first.'
+		curr_dir_url = self.pane.get_path()
+		license_key = join(curr_dir_url, 'User.json')
+		if not exists(license_key):
+			if splitscheme(curr_dir_url)[0] == 'file://':
+				dir_path = as_human_readable(curr_dir_url)
+			else:
+				dir_path = os.path.expanduser('~')
+			file_path = show_file_open_dialog(
+				'Select User.json', dir_path, 'User.json'
 			)
-			return
-		license_key = os.path.join(curr_dirpath, 'User.json')
-		if not os.path.exists(license_key):
-			show_alert(
-				'Could not find license key file "User.json" in the current '
-				'directory %s.' % curr_dirpath
-			)
-			return
-		destination_directory = os.path.join(DATA_DIRECTORY, 'Local')
-		shutil.copy(license_key, destination_directory)
+			if not file_path:
+				return
+			license_key = as_url(file_path)
+		copy(license_key, join(as_url(DATA_DIRECTORY), 'Local', 'User.json'))
 		show_alert(
 			"Thank you! Please restart fman to complete the registration. You "
 			"should no longer see the annoying popup when it starts."
