@@ -636,6 +636,13 @@ class CopyPathsToClipboard(DirectoryPaneCommand):
 		files = '\n'.join(to_copy)
 		clipboard.clear()
 		clipboard.set_text(files)
+		num = len(to_copy)
+		if num == 1:
+			status_msg = 'Copied "%s" to clipboard.' % to_copy[0]
+		else:
+			status_msg = 'Copied "%s" and %d other path%s to clipboard.' \
+						 % (to_copy[0], num - 1, 's' if num > 2 else '')
+		show_status_message(status_msg, timeout_secs=2)
 
 class CopyToClipboard(DirectoryPaneCommand):
 	def __call__(self):
