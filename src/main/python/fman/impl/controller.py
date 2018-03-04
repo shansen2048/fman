@@ -24,9 +24,13 @@ class Controller:
 		pane = self._window.add_pane(pane_widget)
 		self._panes[pane_widget] = pane
 		pane_widget.location_changed.connect(self.on_location_changed)
+		pane_widget.location_bar_clicked.connect(self.on_location_bar_clicked)
 		self._plugin_support.on_pane_added(pane)
 	def on_location_changed(self, pane_widget):
 		self._panes[pane_widget]._broadcast('on_path_changed')
+	def on_location_bar_clicked(self, pane_widget):
+		self._metrics.track('ClickedLocationBar')
+		self._panes[pane_widget]._broadcast('on_location_bar_clicked')
 	def on_key_pressed(self, pane_widget, event):
 		pane = self._panes[pane_widget]
 		key_event = QtKeyEvent(event.key(), event.modifiers())

@@ -806,7 +806,7 @@ def _get_user():
 		return os.path.basename(expanduser('~'))
 
 class GoTo(DirectoryPaneCommand):
-	def __call__(self):
+	def __call__(self, query=''):
 		# TODO: Rename to Visited Locations.json?
 		visited_paths = load_json('Visited Paths.json', default={})
 		if not visited_paths:
@@ -814,7 +814,7 @@ class GoTo(DirectoryPaneCommand):
 				path: 0 for path in self._get_default_paths()
 			})
 		get_items = SuggestLocations(visited_paths)
-		result = show_quicksearch(get_items, self._get_tab_completion)
+		result = show_quicksearch(get_items, self._get_tab_completion, query)
 		if result:
 			query, suggested_dir = result
 			path = ''
@@ -1704,3 +1704,10 @@ class RememberSortSettings(DirectoryPaneListener):
 class Minimize(ApplicationCommand):
 	def __call__(self):
 		self.window.minimize()
+
+class LocationBarListener(DirectoryPaneListener):
+	def on_location_bar_clicked(self):
+		url = self.pane.get_path()
+		if splitscheme(url)[0] == 'file://':
+			path = as_human_readable(url)
+			self.pane.run_command('go_to', {'query': path})

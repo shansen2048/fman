@@ -42,6 +42,7 @@ class Application(QApplication):
 class DirectoryPaneWidget(QWidget):
 
 	location_changed = pyqtSignal(QWidget)
+	location_bar_clicked = pyqtSignal(QWidget)
 
 	def __init__(self, fs, null_location, parent):
 		super().__init__(parent)
@@ -62,6 +63,9 @@ class DirectoryPaneWidget(QWidget):
 		self._controller = None
 		self._model.location_changed.connect(self._on_location_changed)
 		self._model.location_loaded.connect(self._on_location_loaded)
+		self._location_bar.clicked.connect(
+			lambda: self.location_bar_clicked.emit(self)
+		)
 	def set_controller(self, controller):
 		self._controller = controller
 	@run_in_main_thread

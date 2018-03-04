@@ -305,6 +305,8 @@ class ListenerWrapper(Wrapper):
 	def on_command(self, command, args):
 		with self._handle_exceptions():
 			return self._wrapped.on_command(command, args)
+	def on_location_bar_clicked(self, *args):
+		self._notify_listener('on_location_bar_clicked', *args)
 	def _notify_listener(self, *args):
 		Thread(
 			target=self._notify_listener_in_thread, args=args, daemon=True

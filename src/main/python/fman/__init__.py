@@ -169,6 +169,8 @@ class DirectoryPaneListener:
 		pass
 	def on_command(self, command_name, args):
 		pass
+	def on_location_bar_clicked(self):
+		pass
 
 def load_json(name, default=None, save_on_quit=False):
 	return _get_plugin_support().load_json(name, default, save_on_quit)
