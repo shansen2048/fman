@@ -245,14 +245,12 @@ class _7ZipFileSystem(FileSystem):
 		args = ['l', '-ba', '-slt', zip_path]
 		if path_in_zip:
 			args.append(path_in_zip)
-		# Make 7-Zip only list direct children of the given directory. This
-		# _hugely_ improves performance. Unfortunately, it comes at the cost of
-		# not working for "malformed" archives, which do not contain separate
-		# entries for intermediate directories. (Eg. if you have a/b in an
-		# archive, "good" implementations write an entry for "a/" and an entry
-		# for "a/b" into the archive's table of contents. In theory, the "a/"
-		# entry is optional. Our current implementation requires it.
-		exclude = (path_in_zip + '/' if path_in_zip else '') + '*/*'
+		# We can hugely improve performance by making 7-Zip exclude children of
+		# the given directory. Unfortunately, this has a drawback: If you have
+		# a/b.txt in an archive but no separate entry for a/, then excluding */*
+		# filters out a/. We thus exclude */*/*. This works for all directories
+		# that contain at least one file.
+		exclude = (path_in_zip + '/' if path_in_zip else '') + '*/*/*'
 		args.append('-x!' + exclude)
 		process = self._start_7zip(args)
 		try:

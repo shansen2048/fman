@@ -251,7 +251,7 @@ class ZipFileSystemTest(TestCase):
 		)
 	def test_size_bytes_dir(self):
 		dir_path = self._path('ZipFileTest/Directory/Subdirectory')
-		self.assertEqual(0, self._fs.size_bytes(dir_path))
+		self.assertIn(self._fs.size_bytes(dir_path), (0, None))
 	def test_size_bytes_root(self):
 		self.assertIsNone(self._fs.size_bytes(self._path('')))
 	def test_size_bytes_nonexistent_zip(self):
@@ -266,10 +266,10 @@ class ZipFileSystemTest(TestCase):
 		# Compare by date only because the time depends on the system time zone:
 		self.assertEqual(date(2017, 11, 8), mtime.date())
 	def test_modified_datetime_dir(self):
-		dir_path = self._path('ZipFileTest/Directory/Subdirectory')
+		dir_path = self._path('ZipFileTest/Empty directory')
 		mtime = self._fs.modified_datetime(dir_path)
 		# Compare by date only because the time depends on the system time zone:
-		self.assertEqual(date(2017, 12, 13), mtime.date())
+		self.assertEqual(date(2017, 11, 8), mtime.date())
 	def test_modified_datetime_root(self):
 		self.assertIsNone(self._fs.modified_datetime(self._path('')))
 	def test_modified_datetime_nonexistent_zip(self):
