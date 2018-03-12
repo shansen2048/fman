@@ -281,6 +281,8 @@ class _7ZipFileSystem(FileSystem):
 			si.wShowWindow = SW_HIDE
 			extra_kwargs['startupinfo'] = si
 			env = {}
+			# Force an output encoding that works with universal_newlines:
+			args = ['-sccWIN'] + args
 		else:
 			# According to the README in its source code distribution, p7zip can
 			# only handle unicode file names properly if the environment is
