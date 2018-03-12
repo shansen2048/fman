@@ -280,11 +280,20 @@ class _7ZipFileSystem(FileSystem):
 			si.dwFlags = STARTF_USESHOWWINDOW
 			si.wShowWindow = SW_HIDE
 			extra_kwargs['startupinfo'] = si
+			env = {}
+		else:
+			# According to the README in its source code distribution, p7zip can
+			# only handle unicode file names properly if the environment is
+			# UTF-8:
+			env = {
+				'LANG': 'en_US.UTF-8'
+			}
 		return Popen(
 			[_7ZIP_BINARY] + args,
 			stdout=PIPE, stderr=DEVNULL, cwd=cwd, universal_newlines=True,
-			# Prevent potential interferences from  environment variables:
-			env={},
+			# We use our own env to prevent potential interferences with the
+			# user's environment variables:
+			env=env,
 			**extra_kwargs
 		)
 	def _close_7zip(self, process, terminate=False):

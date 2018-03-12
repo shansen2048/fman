@@ -1,5 +1,5 @@
 from errno import ENOENT
-from core.fs.zip import ZipFileSystem
+from core.fs.zip import ZipFileSystem, SevenZipFileSystem
 from core.tests import StubFS
 from datetime import date
 from fman.url import as_url, join, as_human_readable, splitscheme
@@ -341,3 +341,11 @@ class ZipFileSystemTest(TestCase):
 	def tearDown(self):
 		self._tmp_dir.cleanup()
 		super().tearDown()
+
+class SevenZipFileSystemTest(TestCase):
+	def test_unicode_filename(self):
+		archive = \
+			splitscheme(as_url(get_resource('SevenZipFileSystemTest.7z')))[1]
+		self.assertEqual(['ça va.txt'], list(self._fs.iterdir(archive)))
+	def setUp(self):
+		self._fs = SevenZipFileSystem(StubFS(), {'.7z'})
