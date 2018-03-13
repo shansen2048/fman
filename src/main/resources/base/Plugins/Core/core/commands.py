@@ -220,7 +220,8 @@ class OpenDirectory(DirectoryPaneCommand):
 
 class OpenFile(DirectoryPaneCommand):
 	def __call__(self, url):
-		if splitscheme(url)[0] != 'file://':
+		scheme = splitscheme(url)[0]
+		if scheme != 'file://':
 			show_alert(
 				'Opening files from %s is not supported. If you are a plugin '
 				'developer, you can implement this with '
