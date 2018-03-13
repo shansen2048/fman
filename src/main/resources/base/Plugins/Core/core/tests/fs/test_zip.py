@@ -8,6 +8,7 @@ from os import listdir
 from pathlib import Path
 from shutil import copyfile
 from tempfile import TemporaryDirectory
+from unicodedata import normalize
 from unittest import TestCase
 from zipfile import ZipFile
 
@@ -280,7 +281,16 @@ class ZipFileSystemTest(TestCase):
 			self._fs.modified_datetime(self._path('nonexistent'))
 	def _expect_iterdir_result(self, path_in_zip, expected_contents):
 		full_path = self._path(path_in_zip)
-		self.assertEqual(expected_contents, set(self._fs.iterdir(full_path)))
+		# Consider ç: It can be encoded in Unicode as "latin small letter c
+		# with cedilla" (U+00E7) but also as a c followed by "combining
+		# cedilla" (U+0327). This source file uses the former, but on Mac,
+		# the file system gives us the latter. To accommodate this, we normalize
+		# Unicode strings first:
+		norm_unicode = lambda strs: set(normalize('NFC', s) for s in strs)
+		self.assertEqual(
+			norm_unicode(expected_contents),
+			norm_unicode(self._fs.iterdir(full_path))
+		)
 	def _url(self, path_in_zip):
 		return as_url(self._path(path_in_zip), 'zip://')
 	def _path(self, path_in_zip):
