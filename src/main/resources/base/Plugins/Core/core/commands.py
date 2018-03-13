@@ -642,7 +642,7 @@ class CopyPathsToClipboard(DirectoryPaneCommand):
 		else:
 			status_msg = 'Copied "%s" and %d other path%s to clipboard.' \
 						 % (to_copy[0], num - 1, 's' if num > 2 else '')
-		show_status_message(status_msg, timeout_secs=2)
+		show_status_message(status_msg, timeout_secs=3)
 
 class CopyToClipboard(DirectoryPaneCommand):
 	def __call__(self):
@@ -1731,7 +1731,7 @@ class LocationBarListener(DirectoryPaneListener):
 			self.pane.run_command('go_to', {'query': path})
 			ctrl = 'Cmd' if PLATFORM == 'Mac' else 'Ctrl'
 			show_status_message(
-				'Hint: To open GoTo, press %s+P. To copy the current path, '
-				'press Backspace followed by F11.' % ctrl,
-				timeout_secs=10
+				'Hint: You can also press %s+P to open GoTo. If you merely '
+				'want to copy the current path, close GoTo, then press '
+				'Backspace followed by F11.' % ctrl, timeout_secs=15
 			)
