@@ -34,4 +34,7 @@ RUN apt-get install libgl1-mesa-glx -y
 # Required for our use of reprepro:
 RUN apt-get install reprepro expect -y
 
+RUN locale-gen en_US.UTF-8
+ADD .bashrc /root/.bashrc
+
 WORKDIR /root/dev/fman
