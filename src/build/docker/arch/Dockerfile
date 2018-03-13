@@ -15,6 +15,10 @@ RUN pacman -S --noconfirm reflector && \
 ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
 RUN gpgconf --kill gpg-agent
 
+# Support locale en_US.UTF-8. This is then activated in .bashrc.
+RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen && \
+    locale-gen
+
 ADD .bashrc /root/.bashrc
 
 RUN pacman -S --noconfirm python-pyqt5 p7zip
