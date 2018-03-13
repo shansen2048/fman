@@ -130,7 +130,7 @@ class DirectoryPaneWidget(QWidget):
 		return self.parentWidget().parentWidget()
 	def get_columns(self):
 		return [
-			get_qualified_name(col.__class__)
+			get_qualified_name(col.unwrap().__class__)
 			for col in self._model.get_columns()
 		]
 	@run_in_main_thread
