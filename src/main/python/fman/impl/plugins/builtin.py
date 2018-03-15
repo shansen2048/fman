@@ -1,24 +1,43 @@
-from fman import ApplicationCommand
+from fman import DirectoryPaneCommand
 from fman.fs import FileSystem, Column
 from fman.impl.plugins.plugin import Plugin, get_qualified_name
 from fman.impl.util import filenotfounderror
 
 class BuiltinPlugin(Plugin):
-	def __init__(self, tutorial_controller, *super_args):
+	def __init__(
+		self, tour_controller, tutorial_factory, cleanupguide_factory,
+		*super_args
+	):
 		super().__init__(*super_args)
-		self._register_application_command(Tutorial, tutorial_controller)
+
+		# We need to define the command classes here so we get access to the
+		# scoped variables tour_controller, *_factory. Creating a factory via
+		# lambda: ... would not work because fman's current implementation of
+		# commands requires them to be actual classes, not lambdas.
+
+		class Tutorial(TourCommand):
+			def __init__(self, pane):
+				super().__init__(pane, tour_controller, tutorial_factory)
+
+		class CleanupGuide(TourCommand):
+			def __init__(self, pane):
+				super().__init__(pane, tour_controller, cleanupguide_factory)
+
+		self._register_directory_pane_command(Tutorial)
+		self._register_directory_pane_command(CleanupGuide)
 		self._register_file_system(NullFileSystem)
 		self._register_column(NullColumn)
 	@property
 	def name(self):
 		return 'Builtin'
 
-class Tutorial(ApplicationCommand):
-	def __init__(self, window, tutorial_controller):
-		super().__init__(window)
-		self._tutorial_controller = tutorial_controller
+class TourCommand(DirectoryPaneCommand):
+	def __init__(self, pane, controller, tour_factory):
+		super().__init__(pane)
+		self._controller = controller
+		self._tour_factory = tour_factory
 	def __call__(self):
-		self._tutorial_controller.start()
+		self._controller.start(self._tour_factory(self.pane))
 
 class NullFileSystem(FileSystem):
 

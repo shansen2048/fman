@@ -1,6 +1,6 @@
 from fbs_runtime.system import is_mac, is_windows
 from fman import load_json
-from fman.impl.tutorial import Tutorial, TutorialStep
+from fman.impl.onboarding import Tour, TourStep
 from fman.impl.util import is_below_dir
 from fman.impl.util.path import add_backslash_to_drive_if_missing
 from fman.impl.util.qt import connect_once
@@ -15,7 +15,7 @@ from time import time
 import fman.url
 import os.path
 
-class TutorialImpl(Tutorial):
+class Tutorial(Tour):
 	def __init__(self, *args, **kwargs):
 		if is_mac():
 			self._cmd_p = 'Cmd+P'
@@ -30,7 +30,7 @@ class TutorialImpl(Tutorial):
 				self._native_fm = 'your native file manager'
 			self._delete_key = 'Delete'
 			self._cmd_shift_p = 'Ctrl+Shift+P'
-		super().__init__(*args, **kwargs)
+		super().__init__('Tutorial', *args, **kwargs)
 		self._dst_url = self._src_url = self._start_time = self._time_taken \
 			= None
 		self._encouragements = [
@@ -40,7 +40,7 @@ class TutorialImpl(Tutorial):
 		self._last_step = ''
 	def _get_steps(self):
 		return [
-			TutorialStep(
+			TourStep(
 				'Welcome to fman!',
 				[
 					"Would you like to take a quick tour of the most useful "
@@ -49,7 +49,7 @@ class TutorialImpl(Tutorial):
 				],
 				buttons=[('No', self.reject), ('Yes', self._next_step)]
 			),
-			TutorialStep(
+			TourStep(
 				'Awesome!',
 				[
 					'We need an example. Please click the button below to '
@@ -59,8 +59,8 @@ class TutorialImpl(Tutorial):
 				],
 				buttons=[('Select a folder', self._pick_folder)]
 			),
-			TutorialStep('', []),
-			TutorialStep(
+			TourStep('', []),
+			TourStep(
 				"",
 				[
 					"Very well done! You opened your *%s* folder in *%.2f* "
@@ -70,7 +70,7 @@ class TutorialImpl(Tutorial):
 				],
 				buttons=[('Reset', self._reset)]
 			),
-			TutorialStep(
+			TourStep(
 				"",
 				[
 					"We will now use a feature that makes fman unique among "
@@ -79,11 +79,11 @@ class TutorialImpl(Tutorial):
 				],
 				{
 					'before': {
-						'GoTo': self._after_quicksearch_shown(self._before_goto)
+						'GoTo': self._after_dialog_shown(self._before_goto)
 					}
 				}
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"GoTo lets you quickly jump to directories.",
@@ -95,8 +95,8 @@ class TutorialImpl(Tutorial):
 					}
 				}
 			),
-			TutorialStep('', [], buttons=[('Continue', self._next_step)]),
-			TutorialStep(
+			TourStep('', [], buttons=[('Continue', self._next_step)]),
+			TourStep(
 				'',
 				[
 					"A limitation of *GoTo* is that it sometimes doesn't "
@@ -107,7 +107,7 @@ class TutorialImpl(Tutorial):
 					('Okay!', self._next_step)
 				]
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"If you ever need a special feature from %s, you can fall "
@@ -120,7 +120,7 @@ class TutorialImpl(Tutorial):
 					}
 				}
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"Well done! fman opened " + self._native_fm +
@@ -133,7 +133,7 @@ class TutorialImpl(Tutorial):
 					('No', self._next_step), ('Yes', self._skip_steps(3))
 				]
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"Dual-pane file managers make it especially easy to copy "
@@ -143,7 +143,7 @@ class TutorialImpl(Tutorial):
 					('No', self._skip_steps(1)), ('Yes', self._next_step)
 				]
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"Okay! Press *Tab* to move from one side to the other. "
@@ -154,7 +154,7 @@ class TutorialImpl(Tutorial):
 				],
 				buttons=[('Continue', self._skip_steps(1))]
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"No problem. In that case, all you need to know for now is "
@@ -163,7 +163,7 @@ class TutorialImpl(Tutorial):
 				],
 				buttons=[('Continue', self._next_step)]
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"Dual-pane file managers rely heavily on keyboard "
@@ -175,11 +175,11 @@ class TutorialImpl(Tutorial):
 				{
 					'before': {
 						'CommandPalette':
-							self._after_quicksearch_shown(self._next_step)
+							self._after_dialog_shown(self._next_step)
 					}
 				}
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"Well done! Note how the Command Palette shows fman's "
@@ -194,7 +194,7 @@ class TutorialImpl(Tutorial):
 					}
 				}
 			),
-			TutorialStep(
+			TourStep(
 				'',
 				[
 					"Perfect! The files were selected. Here's a little "
@@ -208,7 +208,7 @@ class TutorialImpl(Tutorial):
 					}
 				}
 			),
-			TutorialStep(
+			TourStep(
 				'Great Work!',
 				[
 					"You've completed the tutorial. Remember:",
@@ -282,8 +282,7 @@ class TutorialImpl(Tutorial):
 		actions = {'on': {'location_changed': self._navigate}}
 		if instruction == 'toggle hidden files':
 			actions['after'] = {'ToggleHiddenFiles': self._navigate}
-		self._steps[self._curr_step_index] = \
-			TutorialStep('', paragraphs, actions)
+		self._steps[self._curr_step_index] = TourStep('', paragraphs, actions)
 		if instruction == 'open' and path != '..':
 			toggle_url = fman.url.join(self._get_location(), path)
 			self._pane_widget.toggle_selection(toggle_url)
@@ -373,10 +372,6 @@ class TutorialImpl(Tutorial):
 		return _get_navigation_steps(
 			dst_url, src_url, _is_hidden, showing_hidden_files
 		)
-	def _format_next_step_paragraph(self, *values):
-		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
-		for i, value in enumerate(values):
-			step_paras[i] %= value
 	def _reset(self):
 		self._set_location(self._src_url)
 		self._next_step()
@@ -416,8 +411,6 @@ class TutorialImpl(Tutorial):
 	def _after_native_fm(self):
 		self._format_next_step_paragraph(basename(self._get_location()))
 		self._next_step()
-	def _skip_steps(self, num_steps):
-		return lambda: self._next_step(num_steps + 1)
 	def _get_location(self):
 		return self._pane_widget.get_location()
 	def _set_location(self, url):

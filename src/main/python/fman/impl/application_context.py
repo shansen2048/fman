@@ -20,8 +20,9 @@ from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.session import SessionManager
 from fman.impl.theme import Theme
-from fman.impl.tutorial import TutorialController
-from fman.impl.tutorial.steps import TutorialImpl
+from fman.impl.onboarding import TourController
+from fman.impl.onboarding.cleanup_guide import CleanupGuide
+from fman.impl.onboarding.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
 from fman.impl.util.qt import connect_once
 from fman.impl.util.settings import Settings
@@ -180,7 +181,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 	@cached_property
 	def builtin_plugin(self):
 		return BuiltinPlugin(
-			self.tutorial_controller, self.plugin_error_handler,
+			self.tour_controller, self.tutorial_factory,
+			self.cleanupguide_factory, self.plugin_error_handler,
 			self.command_callback, self.key_bindings, self.mother_fs,
 			self.window
 		)
@@ -216,10 +218,19 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def splash_screen(self):
 		return SplashScreen(self.main_window, self.app)
 	@cached_property
-	def tutorial_controller(self):
-		return TutorialController(
-			TutorialImpl,
-			(self.main_window, self.app, self.command_callback, self.metrics)
+	def tour_controller(self):
+		return TourController()
+	@cached_property
+	def tutorial_factory(self):
+		return lambda pane: Tutorial(
+			self.main_window, pane, self.app, self.command_callback,
+			self.metrics
+		)
+	@cached_property
+	def cleanupguide_factory(self):
+		return lambda pane: CleanupGuide(
+			self.main_window, pane, self.app, self.command_callback,
+			self.metrics
 		)
 	@cached_property
 	def plugin_support(self):

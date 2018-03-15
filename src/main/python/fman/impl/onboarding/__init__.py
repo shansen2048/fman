@@ -5,20 +5,20 @@ from fman.impl.util.qt.thread import run_in_main_thread
 
 import re
 
-class TutorialController:
-	def __init__(self, tutorial_class, args):
-		self._tutorial_class = tutorial_class
-		self._args = args
-		self._tutorial = None
-	def start(self):
-		if self._tutorial:
-			self._tutorial.close()
-		self._tutorial = self._tutorial_class(*self._args)
-		self._tutorial.start()
+class TourController:
+	def __init__(self):
+		self._tour = None
+	def start(self, tour):
+		if self._tour:
+			self._tour.close()
+		self._tour = tour
+		self._tour.start()
 
-class Tutorial:
-	def __init__(self, main_window, app, command_callback, metrics):
+class Tour:
+	def __init__(self, name, main_window, pane, app, command_callback, metrics):
+		self._name = name
 		self._main_window = main_window
+		self._pane = pane
 		self._app = app
 		self._command_callback = command_callback
 		self._metrics = metrics
@@ -29,15 +29,15 @@ class Tutorial:
 		raise NotImplementedError()
 	@property
 	def _pane_widget(self):
-		return self._main_window.get_panes()[0]
+		return self._pane._widget
 	def start(self):
 		self._curr_step_index = -1
 		self._next_step()
 	def reject(self):
-		self._metrics.track('AbortedTutorial', {'step': self._curr_step_index})
+		self._track('AbortedTour', step=self._curr_step_index)
 		self.close()
 	def complete(self):
-		self._metrics.track('CompletedTutorial')
+		self._track('CompletedTour', step=self._curr_step_index)
 		self.close()
 	def close(self):
 		if not self._curr_step:
@@ -50,10 +50,14 @@ class Tutorial:
 		self._curr_step_index += delta
 		self._track_current_step()
 		self._show_current_screen()
+	def _format_next_step_paragraph(self, *values):
+		step_paras = self._steps[self._curr_step_index + 1]._paragraphs
+		for i, value in enumerate(values):
+			step_paras[i] %= value
+	def _skip_steps(self, num_steps):
+		return lambda: self._next_step(num_steps + 1)
 	def _track_current_step(self):
-		self._metrics.track(
-			'StartedTutorialStep', {'step': self._curr_step_index}
-		)
+		self._track('StartedTourStep', step=self._curr_step_index)
 	def _show_current_screen(self):
 		if self._curr_step:
 			self.close()
@@ -71,27 +75,23 @@ class Tutorial:
 		self._pane_widget.location_changed.disconnect(
 			self._curr_step.on_location_changed
 		)
-	def _after_quicksearch_shown(self, callback):
-		return AfterQuicksearchShown(self._main_window, callback)
+	def _after_dialog_shown(self, callback):
+		return AfterDialogShown(self._main_window, callback)
+	def _track(self, event, **kwargs):
+		kwargs['tour'] = self._name
+		self._metrics.track(event, kwargs)
 
-class AfterQuicksearchShown:
+class AfterDialogShown:
 	def __init__(self, main_window, callback):
 		self._main_window = main_window
 		self._callback = callback
-		self._quicksearch = None
 	@run_in_main_thread
 	def __call__(self):
-		connect_once(
-			self._main_window.before_quicksearch, self._before_quicksearch
-		)
-	def _before_quicksearch(self, quicksearch):
-		self._quicksearch = quicksearch
-		quicksearch.shown.connect(self._on_quicksearch_shown)
-	def _on_quicksearch_shown(self):
-		self._quicksearch.shown.disconnect(self._on_quicksearch_shown)
-		self._callback()
+		connect_once(self._main_window.before_dialog, self._before_dialog)
+	def _before_dialog(self, dialog):
+		connect_once(dialog.shown, self._callback)
 
-class TutorialStep:
+class TourStep:
 	def __init__(self, title, paragraphs, command_actions=None, buttons=None):
 		self._title = title
 		self._paragraphs = paragraphs

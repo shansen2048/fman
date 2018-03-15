@@ -179,7 +179,7 @@ class MainWindow(QMainWindow):
 	pane_added = pyqtSignal(DirectoryPaneWidget)
 	shown = pyqtSignal()
 	closed = pyqtSignal()
-	before_quicksearch = pyqtSignal(Quicksearch)
+	before_dialog = pyqtSignal(QDialog)
 
 	def __init__(self, app, help_menu_actions, theme, fs, null_location):
 		super().__init__()
@@ -266,21 +266,23 @@ class MainWindow(QMainWindow):
 	def show_quicksearch(
 		self, get_items, get_tab_completion=None, query='', item=0
 	):
-		self._dialog = Quicksearch(
+		dialog = Quicksearch(
 			self, self._app, self._theme, get_items, get_tab_completion, query,
 			item
 		)
-		self.before_quicksearch.emit(self._dialog)
-		result = self.exec_dialog(self._dialog)
-		self._dialog = None
+		result = self.exec_dialog(dialog)
 		return result
 	@run_in_main_thread
 	def exec_dialog(self, dialog):
+		self._dialog = dialog
+		self.before_dialog.emit(dialog)
 		dialog.moveToThread(self._app.thread())
 		dialog.setParent(self)
 		if is_mac():
 			disable_window_animations_mac(dialog)
-		return dialog.exec()
+		result = dialog.exec()
+		self._dialog = None
+		return result
 	@run_in_main_thread
 	def show_status_message(self, text, timeout_secs=None):
 		self._status_bar_text.setText(text)
@@ -345,12 +347,18 @@ class MainWindow(QMainWindow):
 		return False
 
 class MessageBox(QMessageBox):
+
+	shown = pyqtSignal()
+
 	def __init__(self, parent, allow_escape=True):
 		super().__init__(parent)
 		self._allow_escape = allow_escape
 	def keyPressEvent(self, event):
 		if self._allow_escape or event.key() != Key_Escape:
 			super().keyPressEvent(event)
+	def showEvent(self, event):
+		super().showEvent(event)
+		self.shown.emit()
 
 class Prompt(QInputDialog):
 	"""
@@ -378,6 +386,9 @@ class Prompt(QInputDialog):
 	twice: First with the cursor at the end and then with the cursor / selection
 	at the correct position. This sets `hscroll` to the required value.
 	"""
+
+	shown = pyqtSignal()
+
 	def __init__(
 		self, parent, title, text, default='', selection_start=0,
 		selection_end=None
@@ -416,6 +427,9 @@ class Prompt(QInputDialog):
 		elif self._is_second_paint:
 			self._is_second_paint = False
 			self._set_cursor_and_selection()
+	def showEvent(self, event):
+		super().showEvent(event)
+		self.shown.emit()
 	def _set_cursor_and_selection(self):
 		line_edit = self._get_line_edit()
 		set_selection(line_edit, self._selection_start, self._selection_end)
