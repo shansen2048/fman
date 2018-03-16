@@ -81,7 +81,9 @@ class DevelopmentApplicationContext(ApplicationContext):
 				)
 		else:
 			if self.session_manager.is_first_run:
-				self.tutorial_controller.start()
+				pane = self.plugin_support.get_panes()[0]
+				tutorial = self.tutorial_factory(pane)
+				self.tour_controller.start(tutorial)
 			else:
 				self.splash_screen.exec()
 	def on_main_window_close(self):

@@ -50,6 +50,8 @@ class PluginSupport:
 		for plugin in self._plugins:
 			plugin.on_pane_added(pane)
 		self._panes.append(pane)
+	def get_panes(self):
+		return self._panes
 	def get_application_commands(self):
 		result = set()
 		for plugin in self._plugins:
