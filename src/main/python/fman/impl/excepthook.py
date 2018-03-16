@@ -1,5 +1,6 @@
 from collections import namedtuple
-from fman.impl.util import is_below_dir
+from fbs_runtime.application_context import cached_property
+from fman.impl.util import is_below_dir, os_
 from os.path import basename
 from traceback import extract_tb
 
@@ -75,6 +76,15 @@ class RollbarExcepthook(Excepthook):
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
 		super()._handle_nonplugin_error(exc_type, exc_value, exc_tb)
 		request = RollbarRequest(self._user) if self._user else None
-		rollbar.report_exc_info((exc_type, exc_value, exc_tb), request)
+		rollbar.report_exc_info(
+			(exc_type, exc_value, exc_tb), request, self._extra_data
+		)
+	@cached_property
+	def _extra_data(self):
+		return {
+			'os': os_.name(),
+			'version': os_.version(),
+			'distribution': os_.distribution()
+		}
 
 RollbarRequest = namedtuple('RollbarRequest', ('user_id',))
