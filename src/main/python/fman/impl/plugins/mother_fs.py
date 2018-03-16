@@ -183,49 +183,49 @@ class TriggerFileAdded:
 				self._fs.file_added.trigger(self._url)
 
 class CachedIterator:
-
-	_DELETED = object()
-
+	class Item:
+		def __init__(self, value):
+			self.value = value
+			self.is_deleted = False
 	def __init__(self, source):
 		self._source = source
 		self._lock = Lock()
 		self._items = []
-		self._items_to_skip = []
-		self._items_to_add = []
-	def remove(self, item):
-		try:
-			item_index = self._items.index(item)
-		except ValueError:
-			self._items_to_skip.append(item)
-		else:
-			self._items[item_index] = self._DELETED
-	def append(self, item):
+		self._values_to_skip = []
+		self._values_to_add = []
+	def remove(self, value):
+		for item in self._items:
+			if item.value == value:
+				item.is_deleted = True
+				return
+		self._values_to_skip.append(value)
+	def append(self, value):
 		# N.B.: Behaves like set#add(...), not like list#append(...)!
-		self._items_to_add.append(item)
+		self._values_to_add.append(value)
 	def __iter__(self):
 		return _CachedIterator(self)
 	def get_next(self, pointer):
 		with self._lock:
 			for pointer in range(pointer, len(self._items)):
 				item = self._items[pointer]
-				if item is not self._DELETED:
-					return pointer + 1, item
+				if not item.is_deleted:
+					return pointer + 1, item.value
 			return pointer + 1, self._generate_next()
 	def _generate_next(self):
 		while True:
 			try:
 				result = next(self._source)
 			except StopIteration:
-				for i, result in enumerate(self._items_to_add):
-					if result not in self._items:
-						self._items_to_add = self._items_to_add[i + 1:]
+				for i, result in enumerate(self._values_to_add):
+					if not any(result == item.value for item in self._items):
+						self._values_to_add = self._values_to_add[i + 1:]
 						break
 				else:
 					raise
-			if self._items_to_skip and result == self._items_to_skip[0]:
-				self._items_to_skip.pop(0)
+			if self._values_to_skip and result == self._values_to_skip[0]:
+				self._values_to_skip.pop(0)
 			else:
-				self._items.append(result)
+				self._items.append(self.Item(result))
 				return result
 
 class _CachedIterator:

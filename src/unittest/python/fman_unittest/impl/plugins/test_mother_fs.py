@@ -238,6 +238,19 @@ class CachedIteratorTest(TestCase):
 				self.assertEqual(items, future.result())
 		finally:
 			executor.shutdown()
+	def test_add_remove(self):
+		"""
+		Suppose each next(...) call below is in one thread and .remove(...) and
+		.append(...) are in another. This test ensures that the next(...) thread
+		never receives duplicate values.
+		"""
+		iterable = CachedIterator(self._generate(1))
+		iterator = iter(iterable)
+		self.assertEqual(1, next(iterator))
+		iterable.remove(1)
+		iterable.append(1)
+		with self.assertRaises(StopIteration, msg='Should not return 1 again.'):
+			next(iterator)
 	def _generate(self, *args):
 		yield from args
 	def _generate_slowly(self, *args):
