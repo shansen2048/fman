@@ -82,9 +82,11 @@ class RollbarExcepthook(Excepthook):
 	@cached_property
 	def _extra_data(self):
 		return {
-			'os': os_.name(),
-			'version': os_.version(),
-			'distribution': os_.distribution()
+			'os': {
+				'name': os_.name(),
+				'version': os_.version(),
+				'distribution': os_.distribution()
+			}
 		}
 
 RollbarRequest = namedtuple('RollbarRequest', ('user_id',))
