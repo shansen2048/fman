@@ -15,6 +15,14 @@ class GetExistingPardirTest(TestCase):
 		self._expect(pardir, subdir, {pardir})
 	def test_no_result(self):
 		self.assertIsNone(get_existing_pardir('dropbox://', lambda _: False))
+	def test_nonexistent(self):
+		def is_dir(url):
+			if url == 'dropbox://Work':
+				return True
+			raise FileNotFoundError(url)
+		self.assertEqual(
+			'dropbox://Work', get_existing_pardir('dropbox://Work/fman', is_dir)
+		)
 	def _expect(self, expected_result, dir_, dirs):
 		is_dir = lambda url: url in dirs
 		self.assertEqual(expected_result, get_existing_pardir(dir_, is_dir))

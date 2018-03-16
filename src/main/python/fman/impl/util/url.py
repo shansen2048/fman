@@ -8,7 +8,7 @@ def get_existing_pardir(url, is_dir):
 			if is_dir(candidate):
 				return candidate
 		except FileNotFoundError:
-			return None
+			pass
 
 def is_pardir(pardir, subdir):
 	# N.B.: Every directory is a "pardir" of itself.
