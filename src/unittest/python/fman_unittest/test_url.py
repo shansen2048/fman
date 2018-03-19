@@ -1,6 +1,6 @@
 from fbs_runtime.system import is_windows
 from fman.url import as_url, dirname, relpath, as_human_readable
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 class AsFileUrlTest(TestCase):
 	def test_does_not_escape_space(self):
@@ -10,9 +10,12 @@ class AsFileUrlTest(TestCase):
 			self.assertEqual('file:///a b', as_url('/a b'))
 	def test_root(self):
 		if is_windows():
-			self.assertEqual('file://C:/', as_url('C:\\'))
+			self.assertEqual('file://C:', as_url('C:\\'))
 		else:
 			self.assertEqual('file:///', as_url('/'))
+	@skipIf(not is_windows(), 'Skipping Windows-only test')
+	def test_network_share(self):
+		self.assertEqual('file:////HERRWIN7/Users', as_url(r'\\HERRWIN7\Users'))
 
 class AsHumanReadableTest(TestCase):
 	def test_normal_file_url(self):

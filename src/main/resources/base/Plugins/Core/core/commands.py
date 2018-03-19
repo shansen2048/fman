@@ -20,8 +20,6 @@ from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from shutil import rmtree
 from subprocess import Popen, DEVNULL, PIPE
-if PLATFORM == 'Windows':
-	from subprocess import CREATE_NEW_CONSOLE
 from tempfile import TemporaryDirectory
 
 import fman
@@ -502,9 +500,9 @@ def _from_human_readable(path_or_url, dest_dir, src_dir):
 	return path_or_url
 
 def _split(url):
-	scheme, path = splitscheme(url)
-	head, tail = os.path.split(path)
-	return scheme + head, tail
+	if url.endswith('/'):
+		return url, ''
+	return tuple(url.rsplit('/', 1))
 
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):

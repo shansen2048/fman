@@ -1,8 +1,10 @@
+from fbs_runtime.system import is_windows
 from fman.impl.util.path import parent
 from pathlib import PurePath, PurePosixPath
 from urllib.request import url2pathname
 
 import posixpath
+import re
 
 def splitscheme(url):
 	separator = '://'
@@ -18,12 +20,17 @@ def as_url(local_file_path, scheme='file://'):
 	# code base would get unnecessarily complicated if it had to escape URL
 	# characters like %20 all the time. So we do not escape URLs and return
 	# "file:///a b" instead:
-	return scheme + PurePath(local_file_path).as_posix()
+	result = scheme + PurePath(local_file_path).as_posix()
+	# On Windows, PurePath(\\server\folder).as_posix() ends with a slash.
+	# Get rid of it:
+	return re.sub(r'([^/])/$', r'\1', result)
 
 def as_human_readable(url):
 	scheme, path = splitscheme(url)
 	if scheme != 'file://':
 		return url
+	if is_windows() and re.fullmatch('[A-Z]:', path):
+		return path + '\\'
 	return url2pathname(path)
 
 def dirname(url):
