@@ -1049,11 +1049,7 @@ class SuggestLocations:
 				path += '\\'
 		if isabs(path):
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
-			try:
-				path_isdir = self.fs.isdir(path)
-			except OSError:
-				path_isdir = False
-			if path_isdir:
+			if self._is_existing_dir(path):
 				try:
 					dir_ = self.fs.resolve(path)
 				except OSError:
@@ -1061,11 +1057,7 @@ class SuggestLocations:
 				return [dir_] + get_subdirs(dir_)
 			else:
 				parent_path = os.path.dirname(path)
-				try:
-					parent_isdir = self.fs.isdir(parent_path)
-				except OSError:
-					parent_isdir = False
-				if parent_isdir:
+				if self._is_existing_dir(parent_path):
 					try:
 						parent = self.fs.resolve(parent_path)
 					except OSError:
@@ -1082,6 +1074,11 @@ class SuggestLocations:
 		return sorted(dirs, key=lambda dir_: (
 			-self.visited_paths.get(dir_, 0), len(dir_), dir_.lower()
 		))
+	def _is_existing_dir(self, path):
+		try:
+			return self.fs.isdir(path)
+		except OSError:
+			return False
 	def _filter_matching(self, dirs, query):
 		use_tilde = \
 			not query.startswith(os.path.dirname(self.fs.expanduser('~')))
