@@ -1038,15 +1038,7 @@ class SuggestLocations:
 		items = self._filter_matching(possible_dirs, query)
 		return self._remove_nonexistent(items)
 	def _gather_dirs(self, query):
-		path = normpath(self.fs.expanduser(query))
-		if PLATFORM == 'Windows':
-			# Windows completely ignores trailing spaces in directory names at
-			# all times. Make our implementation reflect this:
-			path = path.rstrip(' ')
-			# Handle the case where the user has entered a drive such as 'E:'
-			# without the trailing backslash:
-			if re.match(r'^[A-Z]:$', path):
-				path += '\\'
+		path = self._normalize_query(query)
 		if isabs(path):
 			get_subdirs = lambda dir_: self._sort(self._gather_subdirs(dir_))
 			if self._is_existing_dir(path):
@@ -1070,6 +1062,17 @@ class SuggestLocations:
 			fs_folders = islice(self.fs.find_folders_starting_with(query), 100)
 			result.update(self._sort(fs_folders)[:10])
 		return self._sort(result)
+	def _normalize_query(self, query):
+		result = normpath(self.fs.expanduser(query))
+		if PLATFORM == 'Windows':
+			# Windows completely ignores trailing spaces in directory names at
+			# all times. Make our implementation reflect this:
+			result = result.rstrip(' ')
+			# Handle the case where the user has entered a drive such as 'E:'
+			# without the trailing backslash:
+			if re.match(r'^[A-Z]:$', result):
+				result += '\\'
+		return result
 	def _sort(self, dirs):
 		return sorted(dirs, key=lambda dir_: (
 			-self.visited_paths.get(dir_, 0), len(dir_), dir_.lower()
