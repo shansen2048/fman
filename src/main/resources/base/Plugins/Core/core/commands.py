@@ -1059,8 +1059,8 @@ class SuggestLocations:
 		if len(query) > 2:
 			"""Compensate for directories not yet in self.visited_paths:"""
 			fs_folders = islice(self.fs.find_folders_starting_with(query), 100)
-			result.update(self._sort(fs_folders)[:10])
-		return self._sort(result)
+			result.update(self._sorted(fs_folders)[:10])
+		return self._sorted(result)
 	def _normalize_query(self, query):
 		result = normpath(self.fs.expanduser(query))
 		if PLATFORM == 'Windows':
@@ -1072,7 +1072,7 @@ class SuggestLocations:
 			if re.match(r'^[A-Z]:$', result):
 				result += '\\'
 		return result
-	def _sort(self, dirs):
+	def _sorted(self, dirs):
 		return sorted(dirs, key=lambda dir_: (
 			-self.visited_paths.get(dir_, 0), len(dir_), dir_.lower()
 		))
@@ -1119,7 +1119,7 @@ class SuggestLocations:
 						result.append(file_path)
 				except OSError:
 					pass
-		return self._sort(result)
+		return self._sorted(result)
 	def _unexpand_user(self, path):
 		return unexpand_user(path, self.fs.expanduser)
 
