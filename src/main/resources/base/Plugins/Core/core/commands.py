@@ -952,17 +952,7 @@ class SuggestLocations:
 		def expanduser(self, path):
 			return expanduser(path)
 		def listdir(self, path):
-			try:
-				return os.listdir(path)
-			except PermissionError:
-				if PLATFORM == 'Windows' and self._is_documents_and_settings(
-					path):
-					# Python can't listdir("C:\Documents and Settings"). In
-					# fact, no Windows program can. But "C:\{DaS}\<Username>"
-					# does work, and displays "C:\Users\<Username>". For
-					# consistency, treat DaS like a symlink to \Users:
-					return os.listdir(splitdrive(path)[0] + r'\Users')
-				raise
+			return os.listdir(path)
 		def resolve(self, path):
 			return str(Path(path).resolve())
 		def samefile(self, f1, f2):
@@ -1022,9 +1012,6 @@ class SuggestLocations:
 							yield value
 				except (adodbapi.Error, com_error):
 					pass
-		def _is_documents_and_settings(self, path):
-			return splitdrive(normpath(path))[1].lower() == \
-				   '\\documents and settings'
 
 	def __init__(self, visited_paths, file_system=None):
 		if file_system is None:
