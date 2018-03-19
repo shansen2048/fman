@@ -501,14 +501,10 @@ def _from_human_readable(path_or_url, dest_dir, src_dir):
 
 def _split(url):
 	scheme, tail = splitscheme(url)
-	match = re.match('/+', tail)
-	if match:
-		head, tail = tail[:match.end()], tail[match.end():]
-		if '/' in tail:
-			h2, tail = tail.rsplit('/', 1)
-			head += h2
-	else:
-		head = ''
+	head, tail = re.match('(/*)(.*?)$', tail).groups()
+	if '/' in tail:
+		h2, tail = tail.rsplit('/', 1)
+		head += h2
 	return scheme + head, tail
 
 class Copy(_TreeCommand):
