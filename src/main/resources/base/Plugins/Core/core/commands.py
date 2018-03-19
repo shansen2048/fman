@@ -500,9 +500,16 @@ def _from_human_readable(path_or_url, dest_dir, src_dir):
 	return path_or_url
 
 def _split(url):
-	if url.endswith('/'):
-		return url, ''
-	return tuple(url.rsplit('/', 1))
+	scheme, tail = splitscheme(url)
+	match = re.match('/+', tail)
+	if match:
+		head, tail = tail[:match.end()], tail[match.end():]
+		if '/' in tail:
+			h2, tail = tail.rsplit('/', 1)
+			head += h2
+	else:
+		head = ''
+	return scheme + head, tail
 
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
