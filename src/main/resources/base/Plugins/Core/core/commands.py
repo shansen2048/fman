@@ -815,13 +815,7 @@ def _get_user():
 
 class GoTo(DirectoryPaneCommand):
 	def __call__(self, query=''):
-		# TODO: Rename to Visited Locations.json?
-		visited_paths = load_json('Visited Paths.json', default={})
-		if not visited_paths:
-			visited_paths.update({
-				path: 0 for path in self._get_default_paths()
-			})
-		get_items = SuggestLocations(visited_paths)
+		get_items = SuggestLocations(self._get_visited_paths())
 		result = show_quicksearch(get_items, self._get_tab_completion, query)
 		if result:
 			query, suggested_dir = result
@@ -849,6 +843,14 @@ class GoTo(DirectoryPaneCommand):
 			if not result.endswith(os.sep):
 				result += os.sep
 			return result
+	def _get_visited_paths(self):
+		# TODO: Rename to Visited Locations.json?
+		result = load_json('Visited Paths.json', default={})
+		if not result:
+			result.update({
+				path: 0 for path in self._get_default_paths()
+			})
+		return result
 	def _get_default_paths(self):
 		home_dir = expanduser('~')
 		result = list(self._get_nonhidden_subdirs(home_dir))
