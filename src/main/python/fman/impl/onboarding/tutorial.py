@@ -7,7 +7,7 @@ from fman.impl.util.qt import connect_once
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
-	split, normpath
+	normpath, dirname
 from PyQt5.QtCore import QFileInfo
 from PyQt5.QtWidgets import QFileDialog
 from time import time
@@ -234,6 +234,12 @@ class Tutorial(Tour):
 		# On Windows, QFileDialog.getExistingDirectory(...) returns paths with
 		# forward slashes instead of backslashes. Fix this:
 		dir_path = normpath(dir_path)
+		if dir_path.startswith(r'\\'):
+			# When the user picks a network folder,
+			# QFileDialog.getExistingDirectory(...) returns the server component
+			# in lower-case: \\server\Folder. fman and Windows Explorer however
+			# display server names in upper case: \\SERVER\Folder. Mirror this:
+			dir_path = _upper_server(dir_path)
 		self._dst_url = as_url(dir_path)
 		self._src_url = self._get_src_url(dir_path)
 		self._curr_step_index += 1
@@ -297,20 +303,30 @@ class Tutorial(Tour):
 			)
 		encouragement = self._get_encouragement() if self._last_step else ''
 		if instruction == 'show drives':
-			result.append(
-				"First, we need to switch to your *%s* drive. Please press "
-				"*Alt+F1* to see an overview of your drives." %
-				splitdrive(as_human_readable(self._dst_url))[0]
-			)
+			drive = splitdrive(as_human_readable(self._dst_url))[0]
+			if drive.startswith(r'\\'): # Network share
+				result.append(
+					"First, we need to switch to the overview of your drives. "
+					"Please press *Alt+F1* to do this."
+				)
+			else:
+				result.append(
+					"First, we need to switch to your *%s* drive. Please press "
+					"*Alt+F1* to see an overview of your drives." % drive
+				)
 		elif instruction == 'open':
 			if splitscheme(self._get_location())[0] == 'drives://':
-				folder_type = 'drive'
+				from core.fs.local.windows.drives import DrivesFileSystem
+				if path == DrivesFileSystem.NETWORK:
+					folder = '*%s*' % DrivesFileSystem.NETWORK
+				else:
+					folder = '*%s* drive' % path
 			else:
-				folder_type = 'folder'
+				folder = '*%s* folder' % path
 			result.append(
 				encouragement +
-				"Please%s open your *%s* %s, in one of the following "
-				"ways:" % (' now' if self._last_step else '', path, folder_type)
+				"Please%s open your %s, in one of the following ways:"
+				% (' now' if self._last_step else '', folder)
 			)
 			result.append(
 				"* Type its name or use *Arrow Up/Down* to select it. "
@@ -426,35 +442,68 @@ def _is_hidden(url):
 def _get_navigation_steps(
 	dst_url, src_url, is_hidden=lambda url: False, showing_hidden_files=True
 ):
-	result = []
-	dst_scheme, dst_path = splitscheme(dst_url)
-	assert dst_scheme == 'file://'
-	src_scheme, src_path = splitscheme(src_url)
+	if splitscheme(dst_url)[0] != 'file://':
+		raise ValueError(dst_url)
+	def continue_from(src_url, showing_hidden_files=showing_hidden_files):
+		return _get_navigation_steps(
+			dst_url, src_url, is_hidden, showing_hidden_files
+		)
+	dst_path = as_human_readable(dst_url)
+	src_scheme = splitscheme(src_url)[0]
+	if src_scheme == 'file://':
+		src_path = as_human_readable(src_url)
+	else:
+		src_path = splitscheme(src_url)[1]
 	dst_drive = splitdrive(dst_path)[0]
-	dst_drive_path = (dst_drive + '\\') if is_windows() else '/'
+	dst_is_unc = dst_drive.startswith(r'\\')
+	dst_drive_path = \
+		(dst_drive + ('' if dst_is_unc else '\\')) if is_windows() else '/'
 	if src_scheme == 'drives://':
-		result.append(('open', dst_drive))
-		src_path = dst_drive_path
-	elif src_scheme != 'file://':
-		result.append(('go to', dst_drive_path))
-		src_path = dst_drive_path
+		if dst_is_unc:
+			from core.fs.local.windows.drives import DrivesFileSystem
+			return [('open', DrivesFileSystem.NETWORK)] + \
+				   continue_from('network://')
+		return [('open', dst_drive)] + continue_from(as_url(dst_drive_path))
+	if src_scheme == 'network://':
+		if dst_is_unc:
+			unc_parts = dst_drive[2:].split('\\')
+			server = unc_parts[0]
+			assert server == server.upper(), server
+			if not src_path:
+				return [('open', server)] + continue_from('network://' + server)
+			src_server = src_path.split('/')[0]
+			if src_server != server:
+				return [('go up', '')] + \
+					   continue_from(fman.url.dirname(src_url))
+			return [('open', unc_parts[1])] + \
+				   continue_from(as_url(r'\\' + '\\'.join(unc_parts[:2])))
+		return [('show drives', '')] + continue_from('drives://')
+	if src_scheme != 'file://':
+		return [('go to', dst_drive_path)] +\
+			   continue_from(as_url(dst_drive_path))
 	src_path = realpath(src_path)
 	src_drive = splitdrive(src_path)[0]
 	if dst_drive != src_drive:
-		result.append(('show drives', ''))
-		result.append(('open', dst_drive))
-		src_path = realpath(dst_drive)
-	result_samedrive = []
+		return [('show drives', '')] + continue_from('drives://')
 	rel = relpath(dst_path, src_path)
-	while rel and rel != '.':
-		rel, current = split(rel)
-		if current == '..':
-			result_samedrive.insert(0, ('go up', ''))
-		else:
-			result_samedrive.insert(0, ('open', current))
-			current_path = os.path.join(src_path, rel, current)
-			if not showing_hidden_files and is_hidden(as_url(current_path)):
-				result_samedrive.insert(0, ('toggle hidden files', current))
-				showing_hidden_files = True
-	result.extend(result_samedrive)
-	return result
+	if rel and rel != '.':
+		nxt = rel.split(os.sep)[0]
+		if nxt == '..':
+			return [('go up', '')] + continue_from(as_url(dirname(src_path)))
+		nxt_url = as_url(os.path.join(src_path, nxt))
+		if not showing_hidden_files and is_hidden(nxt_url):
+			return [('toggle hidden files', nxt)] + \
+				   continue_from(src_url, showing_hidden_files=True)
+		return [('open', nxt)] + continue_from(nxt_url)
+	return []
+
+def _upper_server(unc_path):
+	"""
+	\\server\Folder -> \\SERVER\Folder
+	"""
+	assert unc_path.startswith(r'\\'), unc_path
+	try:
+		i = unc_path.index('\\', 2)
+	except ValueError:
+		return unc_path.upper()
+	return unc_path[:i].upper() + unc_path[i:]

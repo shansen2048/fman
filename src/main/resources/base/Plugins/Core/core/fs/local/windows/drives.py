@@ -11,7 +11,7 @@ class DrivesFileSystem(FileSystem):
 
 	scheme = 'drives://'
 
-	NETWORK = 'Network'
+	NETWORK = 'Network...'
 
 	def get_default_columns(self, path):
 		return DriveName.__module__ + '.' + DriveName.__name__,
@@ -64,7 +64,7 @@ class DriveName(Column):
 		return result
 	def get_sort_value(self, url, is_ascending):
 		path = splitscheme(url)[1]
-		# Always show "Network" at the bottom/top:
+		# Always show "Network..." at the bottom/top:
 		return path == DrivesFileSystem.NETWORK, self.get_str(url).lower()
 	def _get_volume_name(self, volume_path):
 		kernel32 = windll.kernel32

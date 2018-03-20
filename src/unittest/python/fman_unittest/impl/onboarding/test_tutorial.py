@@ -9,13 +9,14 @@ class GetNavigationStepsTest(TestCase):
 		self.assertEqual([], _get_navigation_steps(self._root, self._root))
 	def test_sub_dir(self):
 		self.assertEqual(
-			[('open', basename(self._root))],
-			_get_navigation_steps(self._root, dirname(self._root))
+			[('open', basename(dirname(self._root))),
+			 ('open', basename(self._root))],
+			_get_navigation_steps(self._root, dirname(dirname(self._root)))
 		)
 	def test_go_up(self):
 		self.assertEqual(
-			[('go up', '')],
-			_get_navigation_steps(dirname(self._root), self._root)
+			[('go up', ''), ('open', 'util')],
+			_get_navigation_steps(join(dirname(self._root), 'util'), self._root)
 		)
 	def test_wrong_scheme(self):
 		if is_windows():
@@ -41,6 +42,26 @@ class GetNavigationStepsTest(TestCase):
 			[('open', 'D:'), ('open', '64Bit')],
 			_get_navigation_steps(as_url(r'D:\64Bit'), 'drives://')
 		)
+	@skipIf(not is_windows(), 'Skipping Windows-only test')
+	def test_network_share(self):
+		from core.fs.local.windows.drives import DrivesFileSystem
+		self.assertEqual(
+			[('show drives', ''), ('open', DrivesFileSystem.NETWORK),
+			 ('open', 'SERVER'), ('open', 'Folder')],
+			_get_navigation_steps(
+				as_url(r'\\SERVER\Folder'), as_url(r'C:\Users\Michael')
+			)
+		)
+		self.assertEqual(
+			[('open', 'SERVER'), ('open', 'Folder')],
+			_get_navigation_steps(as_url(r'\\SERVER\Folder'), 'network://')
+		)
+		# Say the user accidentally opened the wrong server:
+		self.assertEqual(
+			[('go up', ''), ('open', 'B'), ('open', 'Folder')],
+			_get_navigation_steps(as_url(r'\\B\Folder'), 'network://A')
+		)
+
 	def test_hidden_directory(self):
 		is_hidden = lambda url: True
 		dst_url = self._root
