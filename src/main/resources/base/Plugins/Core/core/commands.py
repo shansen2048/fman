@@ -825,24 +825,24 @@ class GoTo(DirectoryPaneCommand):
 		result = show_quicksearch(get_items, self._get_tab_completion, query)
 		if result:
 			query, suggested_dir = result
-			path = ''
-			if suggested_dir:
-				path = expanduser(suggested_dir)
-			if not os.path.isdir(path):
-				path = expanduser(query)
-			if not os.path.exists(path):
-				# Maybe the user copy-pasted and there's some extra whitespace:
-				path = path.rstrip()
+			path = suggested_dir or expanduser(query.rstrip())
 			url = as_url(path)
-			if os.path.isfile(path):
-				def callback():
-					try:
-						self.pane.place_cursor_at(url)
-					except ValueError as url_disappeared:
-						pass
-				self.pane.set_path(dirname(url), callback=callback)
-			elif os.path.isdir(path):
-				self.pane.set_path(url)
+			try:
+				isdir = is_dir(url)
+			except OSError:
+				# This for instance happens when the URL does not exist.
+				pass
+			else:
+				if isdir:
+					self.pane.set_path(url)
+				else:
+					# Exists and is a file.
+					def callback():
+						try:
+							self.pane.place_cursor_at(url)
+						except ValueError as url_disappeared:
+							pass
+					self.pane.set_path(dirname(url), callback=callback)
 	def _get_tab_completion(self, query, curr_item):
 		if curr_item:
 			result = curr_item.title
