@@ -7,6 +7,7 @@ from fman.impl.util.url import get_existing_pardir
 from fman.url import as_url, dirname, as_human_readable
 from os import getcwd
 from os.path import expanduser
+from pathlib import Path
 from threading import Thread
 
 import concurrent
@@ -137,9 +138,12 @@ class SessionManager:
 				# Some research showed that 1) is surprisingly common. But there
 				# was no indication that it was caused by a bug in fman itself.
 				# Maybe the users modified the source code of the Core plugin in
-				# such a way that the file:// system failed to load. Either way,
-				# there's not a lot we can do at this point:
-				_LOG.exception('Could not open home directory.')
+				# such a way that the file:// system failed to load.
+				root = as_url(Path(sys.executable).anchor)
+				try:
+					pane.set_location(root)
+				except Exception:
+					_LOG.exception('Could not open %s.', root)
 		if col_widths:
 			try:
 				pane.set_column_widths(col_widths)
