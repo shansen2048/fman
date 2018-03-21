@@ -261,8 +261,28 @@ class DragAndDropMixin(QTableView):
 		event.setDropAction(action)
 		super().dropEvent(event)
 
+class UniformRowHeights(QTableView):
+	"""
+	Performance improvement.
+	"""
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._row_height = None
+	def sizeHintForRow(self, *args, **kwargs):
+		if self._row_height is None:
+			self._row_height = super().sizeHintForRow(*args, **kwargs)
+		return self._row_height
+	def paintEvent(self, event):
+		"""
+		Reset the cached value for each paint event, just to make sure we're
+		not missing any changes, eg. when the style sheet changes(?)
+		"""
+		self._row_height = None
+		super().paintEvent(event)
+
 class FileListView(
-	SingleRowModeMixin, MovementWithoutUpdatingSelectionMixin, DragAndDropMixin
+	SingleRowModeMixin, MovementWithoutUpdatingSelectionMixin, DragAndDropMixin,
+	UniformRowHeights
 ):
 	def __init__(self, parent):
 		super().__init__(parent)
