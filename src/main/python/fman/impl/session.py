@@ -95,7 +95,12 @@ class SessionManager:
 			try:
 				path = make_absolute(paths_on_command_line[i], getcwd())
 			except IndexError:
-				path = pane_info.get('location', expanduser('~'))
+				# Note that pane_info['location'] may be None if the pane hadn't
+				# yet received a location the last time fman was closed. This
+				# likely happens when an error occurs during startup.
+				# To cope with this, we use the line below instead of
+				#     pane_info.get('location', expanduser('~')).
+				path = pane_info.get('location') or expanduser('~')
 			url = path if '://' in path else as_url(path)
 			yield pane, url, pane_info.get('col_widths')
 	def _init_pane(self, pane, url, col_widths=None):
