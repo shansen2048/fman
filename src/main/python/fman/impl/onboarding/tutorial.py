@@ -234,11 +234,21 @@ class Tutorial(Tour):
 		# On Windows, QFileDialog.getExistingDirectory(...) returns paths with
 		# forward slashes instead of backslashes. Fix this:
 		dir_path = normpath(dir_path)
+		# fman (currently) resolves paths before entering them: When you open
+		# a/, which is a symlink to b/, then fman's location becomes b/. If our
+		# implementation tried to guide the user to a/, it could never succeed
+		# because b/ will always be reached instead. To fix this, we use
+		# realpath(...) to resolve symlinks. This has the drawback that the user
+		# chose a/ but will be asked to open b/. It is likely that fman's
+		# implementation will eventually not resolve symlinks when opening
+		# locations. Once that happens, we can also forgo resolving here:
+		dir_path = realpath(dir_path)
 		if dir_path.startswith(r'\\'):
 			# When the user picks a network folder,
 			# QFileDialog.getExistingDirectory(...) returns the server component
-			# in lower-case: \\server\Folder. fman and Windows Explorer however
-			# display server names in upper case: \\SERVER\Folder. Mirror this:
+			# in lower-case: \\server\Folder. realpath(...) above doesn't change
+			# this. fman and Windows Explorer however display server names in
+			# upper case: \\SERVER\Folder. Mirror this:
 			dir_path = _upper_server(dir_path)
 		self._dst_url = as_url(dir_path)
 		self._src_url = self._get_src_url(dir_path)
@@ -481,7 +491,6 @@ def _get_navigation_steps(
 	if src_scheme != 'file://':
 		return [('go to', dst_drive_path)] +\
 			   continue_from(as_url(dst_drive_path))
-	src_path = realpath(src_path)
 	src_drive = splitdrive(src_path)[0]
 	if dst_drive != src_drive:
 		return [('show drives', '')] + continue_from('drives://')
