@@ -170,7 +170,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 					'Command Palette', 'Ctrl+Shift+P',
 					directory_pane_command('command_palette')
 				),
-				('Tutorial', '', app_command('tutorial'))
+				('Tutorial', '', directory_pane_command('tutorial'))
 			]
 		else:
 			return []
