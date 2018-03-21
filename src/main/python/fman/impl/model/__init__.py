@@ -268,6 +268,7 @@ class FileSystemModel(DragAndDropMixin):
 				self._insert_rows, self._move_rows, self._update_rows,
 				self._remove_rows
 			)
+		self._check_no_duplicate_rows()
 		if is_debug():
 			assert self._rows == rows, \
 				'Applying diff did not yield expected result.\n\n' \
@@ -349,6 +350,7 @@ class FileSystemModel(DragAndDropMixin):
 	def _on_rows_loaded(self, rows, for_location=None):
 		if for_location is None or for_location == self._location:
 			self._insert_rows(rows)
+			self._check_no_duplicate_rows()
 	def _on_location_loaded(self, location):
 		assert is_in_main_thread()
 		if location == self._location:
@@ -396,6 +398,7 @@ class FileSystemModel(DragAndDropMixin):
 		else:
 			if is_in_root:
 				self._update_rows([row], rownum)
+				self._check_no_duplicate_rows()
 			else:
 				self._remove_rows(rownum)
 	@run_in_main_thread
@@ -434,6 +437,7 @@ class FileSystemModel(DragAndDropMixin):
 			pass
 		else:
 			self._update_rows([row], index.row())
+			self._check_no_duplicate_rows()
 	def _insert_rows(self, rows, first_rownum=-1):
 		if first_rownum == -1:
 			first_rownum = len(self._rows)
@@ -452,7 +456,6 @@ class FileSystemModel(DragAndDropMixin):
 		)
 		self._rows = \
 			self._rows[:first_rownum] + to_insert + self._rows[first_rownum:]
-		self._check_no_duplicate_rows()
 		self.endInsertRows()
 	def _check_no_duplicate_rows(self):
 		assert len({r.url for r in self._rows}) == len(self._rows), \
@@ -467,7 +470,6 @@ class FileSystemModel(DragAndDropMixin):
 		return result
 	def _update_rows(self, rows, first_rownum):
 		self._rows[first_rownum : first_rownum + len(rows)] = rows
-		self._check_no_duplicate_rows()
 		top_left = self.index(first_rownum, 0)
 		bottom_right = \
 			self.index(first_rownum + len(rows) - 1, self.columnCount() - 1)
@@ -487,7 +489,6 @@ class FileSystemModel(DragAndDropMixin):
 		self._rows = self._rows[:cut_start] + self._rows[cut_end:]
 		self._rows = \
 			self._rows[:insert_start] + rows + self._rows[insert_start:]
-		self._check_no_duplicate_rows()
 		self.endMoveRows()
 	@classmethod
 	def _get_move_destination(cls, cut_start, cut_end, insert_start):
