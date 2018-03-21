@@ -123,7 +123,18 @@ class SessionManager:
 		except Exception as exc:
 			msg = 'Could not load folder %s' % as_human_readable(url)
 			self._error_handler.report(msg, exc)
-			pane.set_location(home_dir)
+			try:
+				pane.set_location(home_dir)
+			except FileNotFoundError:
+				# This can happen for two reasons:
+				#  1) The file:// system isn't loaded.
+				#  2) The home directory doesn't exist.
+				# Some research showed that 1) is surprisingly common. But there
+				# was no indication that it was caused by a bug in fman itself.
+				# Maybe the users modified the source code of the Core plugin in
+				# such a way that the file:// system failed to load. Either way,
+				# there's not a lot we can do at this point:
+				_LOG.exception('Could not open home directory.')
 		if col_widths:
 			try:
 				pane.set_column_widths(col_widths)
