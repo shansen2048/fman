@@ -45,7 +45,7 @@ class NonexistentShortcutHandler:
 				'Go to the parent directory ("%s")' % dir_name
 			))
 		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
-		if is_right_pane and is_dir(file_under_cursor):
+		if is_right_pane and self._is_existing_dir(file_under_cursor):
 			options.append((
 				'Open in left pane',
 				'Open "%s" in the left pane' % basename(file_under_cursor)
@@ -99,7 +99,7 @@ class NonexistentShortcutHandler:
 		options = []
 		is_left_pane = pane.window.get_panes().index(pane) == 0
 		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
-		if is_dir(file_under_cursor):
+		if self._is_existing_dir(file_under_cursor):
 			dir_name = basename(file_under_cursor)
 			options.append((
 				'Open directory', 'Open the directory "%s"' % dir_name
@@ -147,6 +147,11 @@ class NonexistentShortcutHandler:
 		else:
 			assert choice == 'Other'
 			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
+	def _is_existing_dir(self, url):
+		try:
+			return is_dir(url)
+		except OSError:
+			return False
 	def _should_show_suggestions(self, dialog_id):
 		return not self._settings.get(dialog_id, {}).get('suppress', False)
 	def _get_previous_folder_in_history(self, pane):
