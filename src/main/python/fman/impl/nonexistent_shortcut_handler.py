@@ -3,7 +3,8 @@ from fman import show_alert, YES, NO, run_application_command
 from fman.fs import is_dir
 from fman.impl.html_style import highlight
 from fman.impl.util.qt import Key_Up
-from os.path import dirname, basename, splitdrive
+from os.path import dirname, basename
+from pathlib import PurePath
 from PyQt5.QtCore import QEvent, QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QDialog, QLabel, QVBoxLayout, QRadioButton, \
@@ -38,8 +39,7 @@ class NonexistentShortcutHandler:
 		parent_directory = dirname(pane.get_path())
 		if parent_directory != pane.get_path():
 			dir_name = basename(parent_directory) \
-					   or splitdrive(parent_directory)[0]\
-					   or '/'
+					   or PurePath(parent_directory).anchor
 			options.append((
 				'Go to parent directory',
 				'Go to the parent directory ("%s")' % dir_name

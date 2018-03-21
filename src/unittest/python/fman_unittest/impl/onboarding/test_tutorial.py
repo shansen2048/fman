@@ -1,7 +1,7 @@
 from fbs_runtime.system import is_windows
 from fman.impl.onboarding.tutorial import _get_navigation_steps
 from fman.url import as_url, basename, dirname, as_human_readable, join
-from os.path import splitdrive
+from pathlib import PurePath
 from unittest import skipIf, TestCase
 
 class GetNavigationStepsTest(TestCase):
@@ -20,7 +20,7 @@ class GetNavigationStepsTest(TestCase):
 		)
 	def test_wrong_scheme(self):
 		if is_windows():
-			root_drive = splitdrive(as_human_readable(self._root))[0] + '\\'
+			root_drive = PurePath(as_human_readable(self._root)).anchor
 		else:
 			root_drive = '/'
 

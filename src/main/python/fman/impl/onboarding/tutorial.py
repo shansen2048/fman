@@ -2,12 +2,12 @@ from fbs_runtime.system import is_mac, is_windows
 from fman import load_json
 from fman.impl.onboarding import Tour, TourStep
 from fman.impl.util import is_below_dir
-from fman.impl.util.path import add_backslash_to_drive_if_missing
 from fman.impl.util.qt import connect_once
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
 	normpath, dirname
+from pathlib import PurePath
 from PyQt5.QtCore import QFileInfo
 from PyQt5.QtWidgets import QFileDialog
 from time import time
@@ -380,14 +380,12 @@ class Tutorial(Tour):
 		if is_below_dir(dst_path, home):
 			if steps_from(home_url) >= 3:
 				return home_url
-		drive = splitdrive(dst_path)[0] or '/'
-		drive_url = as_url(add_backslash_to_drive_if_missing(drive))
+		drive_url = as_url(PurePath(dst_path).anchor)
 		if steps_from(drive_url) > 0:
 			return drive_url
 		if steps_from(home_url) > 0:
 			return home_url
-		home_drive = splitdrive(home)[0] or '/'
-		return as_url(add_backslash_to_drive_if_missing(home_drive))
+		return as_url(PurePath(home).anchor)
 	def _get_navigation_steps(self, dst_url, src_url):
 		try:
 			pane_info = load_json('Panes.json', default=[])[0]

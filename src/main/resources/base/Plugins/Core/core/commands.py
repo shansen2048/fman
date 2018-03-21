@@ -13,8 +13,7 @@ from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 from getpass import getuser
 from io import UnsupportedOperation
 from itertools import chain, islice
-from os.path import splitdrive, basename, normpath, expanduser, isabs, pardir, \
-	islink
+from os.path import basename, normpath, expanduser, isabs, pardir, islink
 from pathlib import PurePath, Path
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
@@ -303,7 +302,7 @@ class OpenWithEditor(DirectoryPaneCommand):
 			if not os.path.exists(result):
 				result = _get_program_files_x86()
 			if not os.path.exists(result):
-				result = splitdrive(sys.executable)[0] + '\\'
+				result = PurePath(sys.executable).anchor
 			return result
 		elif PLATFORM == 'Linux':
 			return '/usr/bin'
