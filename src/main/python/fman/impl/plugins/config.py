@@ -1,5 +1,6 @@
 from os import makedirs, getpid, unlink, replace
 from os.path import dirname, splitext, join
+from threading import RLock
 
 import json
 
@@ -9,53 +10,60 @@ class Config:
 		self._plugin_dirs = []
 		self._cache = {}
 		self._save_on_quit = set()
+		self._lock = RLock()
 	def add_dir(self, dir_path):
-		self._plugin_dirs.append(dir_path)
-		self._reload_cache()
+		with self._lock:
+			self._plugin_dirs.append(dir_path)
+			self._reload_cache()
 	def remove_dir(self, dir_path):
-		self._plugin_dirs.remove(dir_path)
-		self._reload_cache()
+		with self._lock:
+			self._plugin_dirs.remove(dir_path)
+			self._reload_cache()
 	def load_json(self, json_name, default=None, save_on_quit=False):
-		if json_name in self._cache:
-			result = self._cache[json_name]
-		else:
-			result = load_json(self.locate(json_name))
-			if result is None:
-				result = default
-			if result is not None:
-				self._cache[json_name] = result
-		if save_on_quit and result is not None:
-			self._save_on_quit.add(json_name)
-		return result
+		with self._lock:
+			if json_name in self._cache:
+				result = self._cache[json_name]
+			else:
+				result = load_json(self.locate(json_name))
+				if result is None:
+					result = default
+				if result is not None:
+					self._cache[json_name] = result
+			if save_on_quit and result is not None:
+				self._save_on_quit.add(json_name)
+			return result
 	def save_json(self, json_name, value=None):
-		if value is None:
-			value = self._cache[json_name]
-		locations = self.locate(json_name)
-		write_differential_json(value, locations[:-1], locations[-1])
-		self._cache[json_name] = value
+		with self._lock:
+			if value is None:
+				value = self._cache[json_name]
+			locations = self.locate(json_name)
+			write_differential_json(value, locations[:-1], locations[-1])
+			self._cache[json_name] = value
 	def locate(self, file_name, in_dir=None):
-		base, ext = splitext(file_name)
-		platform_specific_name = '%s (%s)%s' % (base, self._platform, ext)
-		result = []
-		dirs_to_search = [in_dir] if in_dir else self._plugin_dirs
-		for dir_ in dirs_to_search:
-			result.append(join(dir_, file_name))
-			result.append(join(dir_, platform_specific_name))
-		return result
+		with self._lock:
+			base, ext = splitext(file_name)
+			platform_specific_name = '%s (%s)%s' % (base, self._platform, ext)
+			result = []
+			dirs_to_search = [in_dir] if in_dir else self._plugin_dirs
+			for dir_ in dirs_to_search:
+				result.append(join(dir_, file_name))
+				result.append(join(dir_, platform_specific_name))
+			return result
 	def on_quit(self):
-		for json_name in self._save_on_quit:
-			try:
-				self.save_json(json_name)
-			except ValueError as error_computing_delta:
-				# This can happen for a variety of reasons. One example: When
-				# multiple instances of fman are open and another instance has
-				# already written to the same json file, then the delta
-				# computation may fail with a ValueError. Ignore this so we can
-				# at least save the other files in _save_on_quit:
-				continue
-			except OSError:
-				# Not much we can do. Try the other JSONs at least:
-				continue
+		with self._lock:
+			for json_name in self._save_on_quit:
+				try:
+					self.save_json(json_name)
+				except ValueError as error_computing_delta:
+					# This can happen for a variety of reasons. One example: When
+					# multiple instances of fman are open and another instance has
+					# already written to the same json file, then the delta
+					# computation may fail with a ValueError. Ignore this so we can
+					# at least save the other files in _save_on_quit:
+					continue
+				except OSError:
+					# Not much we can do. Try the other JSONs at least:
+					continue
 	def _reload_cache(self):
 		old_cache = self._cache
 		self._cache = {}
@@ -73,16 +81,6 @@ class Config:
 				self._cache[json_name] = new
 			elif json_name in self._save_on_quit:
 				self._cache[json_name] = old
-		self._check_integrity()
-	def _check_integrity(self):
-		"""
-		We spuriously get KeyErrors in on_quit because a json_name is in
-		_save_on_quit but not in _cache. This method aims to expose when the
-		inconsistent state is introduced.
-		"""
-		for json_name in self._save_on_quit:
-			if json_name not in self._cache:
-				raise AssertionError('%r is not in cache' % json_name)
 
 def load_json(paths):
 	result = None
