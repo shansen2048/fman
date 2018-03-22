@@ -258,12 +258,7 @@ class _7ZipFileSystem(FileSystem):
 			if path_in_zip and not file_info:
 				raise filenotfounderror(self.scheme + path)
 			while file_info:
-				for field in file_info._fields:
-					if field != 'path':
-						self.cache.put(
-							zip_path + '/' + file_info.path, field,
-							getattr(file_info, field)
-						)
+				self._put_in_cache(zip_path, file_info)
 				yield file_info
 				file_info = self._read_file_info(process.stdout)
 		finally:
@@ -335,6 +330,13 @@ class _7ZipFileSystem(FileSystem):
 				is_dir = is_dir or attributes.startswith('D')
 		if path:
 			return _FileInfo(path, is_dir, size, mtime)
+	def _put_in_cache(self, zip_path, file_info):
+		for field in file_info._fields:
+			if field != 'path':
+				self.cache.put(
+					zip_path + '/' + file_info.path, field,
+					getattr(file_info, field)
+				)
 
 class ZipFileSystem(_7ZipFileSystem):
 	scheme = 'zip://'
