@@ -267,7 +267,7 @@ class _7ZipFileSystem(FileSystem):
 				yield file_info
 				file_info = self._read_file_info(process.stdout)
 		finally:
-			self._close_7zip(process, terminate=True)
+			self._close_7zip(process, kill=True)
 	def _raise_filenotfounderror_if_not_exists(self, zip_path):
 		os.stat(zip_path)
 	def _start_7zip(self, args, cwd=None):
@@ -296,10 +296,10 @@ class _7ZipFileSystem(FileSystem):
 			env=env,
 			**extra_kwargs
 		)
-	def _close_7zip(self, process, terminate=False):
+	def _close_7zip(self, process, kill=False):
 		try:
-			if terminate:
-				process.terminate()
+			if kill:
+				process.kill()
 				process.wait()
 			else:
 				exit_code = process.wait()
