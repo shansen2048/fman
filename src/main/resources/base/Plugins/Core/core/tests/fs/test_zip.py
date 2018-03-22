@@ -43,7 +43,10 @@ class ZipFileSystemTest(TestCase):
 					zip_file.write(__file__, file_relpath)
 				for level in range(depth):
 					dir_path = self._path('/'.join(['dir'] * level), zip_path)
-					self.assertEqual(['dir'], self._listdir(dir_path))
+					self.assertEqual(
+						['dir'], self._listdir(dir_path),
+						'Failed at nesting level ' + file_relpath
+					)
 	def test_iterdir_nonexistent_zip(self):
 		with self.assertRaises(FileNotFoundError):
 			self._listdir('nonexistent.zip')
