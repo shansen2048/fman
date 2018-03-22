@@ -245,28 +245,24 @@ class _7ZipFileSystem(FileSystem):
 		args = ['l', '-ba', '-slt', zip_path]
 		if path_in_zip:
 			args.append(path_in_zip)
-		yielded = set()
-		while True:
-			process = self._start_7zip(args)
-			try:
-				for file_info in _loop(self._read_file_info, process.stdout):
-					if file_info.path in yielded:
-						continue
-					self._put_in_cache(zip_path, file_info)
-					yield file_info
-					yielded.add(file_info.path)
-					rel = PurePosixPath(file_info.path).relative_to(path_in_zip)
-					parts = rel.parts
-					if len(parts) > 1:
-						exclude = PurePosixPath(path_in_zip, parts[0])
-						args.append('-x!%s/*' % exclude)
-						break
-				else:
-					break
-			finally:
-				self._close_7zip(process, kill=True)
-		if path_in_zip and not yielded:
-			raise filenotfounderror(self.scheme + path)
+		# We can hugely improve performance by making 7-Zip exclude children of
+		# the given directory. Unfortunately, this has a drawback: If you have
+		# a/b.txt in an archive but no separate entry for a/, then excluding */*
+		# filters out a/. We thus exclude */*/*/*. This works for all folders
+		# that contain at least one subdirectory with a file.
+		exclude = (path_in_zip + '/' if path_in_zip else '') + '*/*/*/*'
+		args.append('-x!' + exclude)
+		process = self._start_7zip(args)
+		try:
+			file_info = self._read_file_info(process.stdout)
+			if path_in_zip and not file_info:
+				raise filenotfounderror(self.scheme + path)
+			while file_info:
+				self._put_in_cache(zip_path, file_info)
+				yield file_info
+				file_info = self._read_file_info(process.stdout)
+		finally:
+			self._close_7zip(process, kill=True)
 	def _raise_filenotfounderror_if_not_exists(self, zip_path):
 		os.stat(zip_path)
 	def _start_7zip(self, args, cwd=None):
@@ -341,13 +337,6 @@ class _7ZipFileSystem(FileSystem):
 					zip_path + '/' + file_info.path, field,
 					getattr(file_info, field)
 				)
-
-def _loop(f, *args, **kwargs):
-	while True:
-		result = f(*args, **kwargs)
-		if not result:
-			break
-		yield result
 
 class ZipFileSystem(_7ZipFileSystem):
 	scheme = 'zip://'

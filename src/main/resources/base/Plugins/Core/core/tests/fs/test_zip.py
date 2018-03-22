@@ -37,7 +37,7 @@ class ZipFileSystemTest(TestCase):
 	def test_iterdir_sparse_zip(self):
 		with TemporaryDirectory() as tmp_dir:
 			zip_path = os.path.join(tmp_dir, 'test.zip')
-			for depth in range(5):
+			for depth in range(3):
 				file_relpath = os.path.join(*(['dir'] * depth + ['file.txt']))
 				with ZipFile(zip_path, 'w') as zip_file:
 					zip_file.write(__file__, file_relpath)
