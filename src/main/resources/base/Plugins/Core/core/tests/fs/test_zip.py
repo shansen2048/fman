@@ -29,12 +29,19 @@ class ZipFileSystemTest(TestCase):
 			'ZipFileTest/Directory/Subdirectory', {'file 3.txt'}
 		)
 		self._expect_iterdir_result('ZipFileTest/Empty directory', set())
+	def test_iterdir_empty_zip(self):
+		with TemporaryDirectory() as zip_container:
+			zip_path = os.path.join(zip_container, 'test.zip')
+			self._create_empty_zip(zip_path)
+			self.assertEqual([], self._listdir(self._path('', zip_path)))
 	def test_iterdir_nonexistent_zip(self):
 		with self.assertRaises(FileNotFoundError):
-			list(self._fs.iterdir('nonexistent.zip'))
+			self._listdir('nonexistent.zip')
 	def test_iterdir_nonexistent_path_in_zip(self):
 		with self.assertRaises(FileNotFoundError):
-			list(self._fs.iterdir(self._path('nonexistent')))
+			self._listdir(self._path('nonexistent'))
+	def _listdir(self, zip_urlpath):
+		return list(self._fs.iterdir(zip_urlpath))
 	def test_is_dir(self):
 		for dir_ in self._dirs_in_zip:
 			self.assertTrue(self._fs.is_dir(self._path(dir_)), dir_)
@@ -293,8 +300,10 @@ class ZipFileSystemTest(TestCase):
 		)
 	def _url(self, path_in_zip):
 		return as_url(self._path(path_in_zip), 'zip://')
-	def _path(self, path_in_zip):
-		return self._zip.replace(os.sep, '/') + \
+	def _path(self, path_in_zip, zip_path=None):
+		if zip_path is None:
+			zip_path = self._zip
+		return zip_path.replace(os.sep, '/') + \
 			   ('/' if path_in_zip else '') + \
 			   path_in_zip
 	def _get_zip_contents(self, zip_path=None, path_in_zip=None):

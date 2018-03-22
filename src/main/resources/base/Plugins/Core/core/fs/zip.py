@@ -255,7 +255,7 @@ class _7ZipFileSystem(FileSystem):
 		process = self._start_7zip(args)
 		try:
 			file_info = self._read_file_info(process.stdout)
-			if not file_info:
+			if path_in_zip and not file_info:
 				raise filenotfounderror(self.scheme + path)
 			while file_info:
 				for field in file_info._fields:
