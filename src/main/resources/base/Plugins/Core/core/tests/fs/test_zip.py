@@ -34,6 +34,16 @@ class ZipFileSystemTest(TestCase):
 			zip_path = os.path.join(zip_container, 'test.zip')
 			self._create_empty_zip(zip_path)
 			self.assertEqual([], self._listdir(self._path('', zip_path)))
+	def test_iterdir_sparse_zip(self):
+		with TemporaryDirectory() as tmp_dir:
+			zip_path = os.path.join(tmp_dir, 'test.zip')
+			for depth in range(5):
+				file_relpath = os.path.join(*(['dir'] * depth + ['file.txt']))
+				with ZipFile(zip_path, 'w') as zip_file:
+					zip_file.write(__file__, file_relpath)
+				for level in range(depth):
+					dir_path = self._path('/'.join(['dir'] * level), zip_path)
+					self.assertEqual(['dir'], self._listdir(dir_path))
 	def test_iterdir_nonexistent_zip(self):
 		with self.assertRaises(FileNotFoundError):
 			self._listdir('nonexistent.zip')
