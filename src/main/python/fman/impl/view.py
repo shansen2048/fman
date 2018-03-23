@@ -268,9 +268,9 @@ class UniformRowHeights(QTableView):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._row_height = None
-	def sizeHintForRow(self, *args, **kwargs):
+	def sizeHintForRow(self, row):
 		if self._row_height is None:
-			self._row_height = super().sizeHintForRow(*args, **kwargs)
+			self._row_height = super().sizeHintForRow(row)
 		return self._row_height
 	def paintEvent(self, event):
 		"""
