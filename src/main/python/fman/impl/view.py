@@ -313,9 +313,7 @@ class ResizeColumnsToContents(QTableView):
 		scrollbar = self.verticalScrollBar()
 		if scrollbar.isVisible():
 			return scrollbar.width()
-		# This assumes that all rows have the same height:
-		required_height = self.horizontalHeader().height() + \
-						  self.rowHeight(0) * self.model().rowCount()
+		required_height = self.viewportSizeHint().height()
 		will_scrollbar_be_visible = required_height > self.height()
 		if will_scrollbar_be_visible:
 			# This for instance happens when fman is just starting up. In this
