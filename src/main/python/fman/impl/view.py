@@ -280,63 +280,18 @@ class UniformRowHeights(QTableView):
 		self._row_height = None
 		super().paintEvent(event)
 
-class FileListView(
-	SingleRowModeMixin, MovementWithoutUpdatingSelectionMixin, DragAndDropMixin,
-	UniformRowHeights
-):
+class ResizeColumnsToContents(QTableView):
 	def __init__(self, parent):
 		super().__init__(parent)
-		self.key_press_event_filter = lambda source, event: False
-		self.setShowGrid(False)
-		self.setSortingEnabled(True)
-		self.setAttribute(WA_MacShowFocusRect, 0)
-		self.horizontalHeader().setStretchLastSection(True)
-		self.horizontalHeader().setHighlightSections(False)
-		self.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
-		self.setWordWrap(False)
-		self.setTabKeyNavigation(False)
-		# Double click should not open editor:
-		self.setEditTriggers(self.NoEditTriggers)
-		self._init_vertical_header()
-		self._delegate = FileListItemDelegate()
-		self.add_delegate(self._delegate)
-		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 		self.horizontalHeader().sectionResized.connect(self._on_col_resized)
 		self._old_col_widths = None
 		self._handle_col_resize = True
-	def get_selected_files(self):
-		indexes = self.selectionModel().selectedRows(column=0)
-		return [self._get_url(index) for index in indexes]
-	def get_file_under_cursor(self):
-		index = self.currentIndex()
-		if index.isValid():
-			return self._get_url(index)
-	def place_cursor_at(self, file_url):
-		self.setCurrentIndex(self._get_index(file_url))
-	def toggle_selection(self, file_url):
-		self.selectionModel().select(
-			self._get_index(file_url), QISM.Toggle | QISM.Rows
-		)
-	def edit_name(self, file_url, selection_start=0, selection_end=None):
-		def on_editor_shown(editor):
-			set_selection(editor, selection_start, selection_end)
-		connect_once(self._delegate.editor_shown, on_editor_shown)
-		self.edit(self._get_index(file_url))
-	def keyPressEvent(self, event):
-		if event.key() in (Key_Return, Key_Enter) \
-			and self.state() == self.EditingState:
-			# When we're editing - ie. renaming a file - and the user presses
-			# Enter, we don't want that key stroke to propagate because it's
-			# already "handled" by the editor closing. So "ignore" the event:
-			return
-		if not self.key_press_event_filter(self, event):
-			super().keyPressEvent(event)
+	def resizeColumnsToContents(self):
+		self._resize_cols_to_contents()
 	def resizeEvent(self, event):
 		super().resizeEvent(event)
 		self._resize_cols_to_contents(self._old_col_widths)
 		self._old_col_widths = self._get_column_widths()
-	def resizeColumnsToContents(self):
-		self._resize_cols_to_contents()
 	def setModel(self, model):
 		old_model = self.model()
 		if old_model:
@@ -402,6 +357,55 @@ class FileListView(
 			self._apply_column_widths(new_widths)
 		finally:
 			self._handle_col_resize = True
+
+class FileListView(
+	SingleRowModeMixin, MovementWithoutUpdatingSelectionMixin, DragAndDropMixin,
+	UniformRowHeights, ResizeColumnsToContents
+):
+	def __init__(self, parent):
+		super().__init__(parent)
+		self.key_press_event_filter = lambda source, event: False
+		self.setShowGrid(False)
+		self.setSortingEnabled(True)
+		self.setAttribute(WA_MacShowFocusRect, 0)
+		self.horizontalHeader().setStretchLastSection(True)
+		self.horizontalHeader().setHighlightSections(False)
+		self.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
+		self.setWordWrap(False)
+		self.setTabKeyNavigation(False)
+		# Double click should not open editor:
+		self.setEditTriggers(self.NoEditTriggers)
+		self._init_vertical_header()
+		self._delegate = FileListItemDelegate()
+		self.add_delegate(self._delegate)
+		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+	def get_selected_files(self):
+		indexes = self.selectionModel().selectedRows(column=0)
+		return [self._get_url(index) for index in indexes]
+	def get_file_under_cursor(self):
+		index = self.currentIndex()
+		if index.isValid():
+			return self._get_url(index)
+	def place_cursor_at(self, file_url):
+		self.setCurrentIndex(self._get_index(file_url))
+	def toggle_selection(self, file_url):
+		self.selectionModel().select(
+			self._get_index(file_url), QISM.Toggle | QISM.Rows
+		)
+	def edit_name(self, file_url, selection_start=0, selection_end=None):
+		def on_editor_shown(editor):
+			set_selection(editor, selection_start, selection_end)
+		connect_once(self._delegate.editor_shown, on_editor_shown)
+		self.edit(self._get_index(file_url))
+	def keyPressEvent(self, event):
+		if event.key() in (Key_Return, Key_Enter) \
+			and self.state() == self.EditingState:
+			# When we're editing - ie. renaming a file - and the user presses
+			# Enter, we don't want that key stroke to propagate because it's
+			# already "handled" by the editor closing. So "ignore" the event:
+			return
+		if not self.key_press_event_filter(self, event):
+			super().keyPressEvent(event)
 	def _init_vertical_header(self):
 		# The vertical header is what would in Excel be displayed as the row
 		# numbers 0, 1, ... to the left of the table. Qt displays it by default.
