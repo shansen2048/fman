@@ -1,6 +1,6 @@
 from fbs_runtime.system import is_windows, is_mac
 from fman import OK
-from fman.impl.model import FileSystemModel, SortedFileSystemModel
+from fman.impl.model import SortedFileSystemModel
 from fman.impl.plugins.plugin import get_qualified_name
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
