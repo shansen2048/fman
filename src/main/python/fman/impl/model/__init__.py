@@ -553,11 +553,16 @@ class FileWatcher:
 		self._watched_files = []
 
 class SortedFileSystemModel(QSortFilterProxyModel):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, parent, fs, null_location):
+		super().__init__(parent)
 		self.filters = []
+		self.setSourceModel(FileSystemModel(fs, null_location))
 	def set_location(self, url, callback=None):
 		self.sourceModel().set_location(url, callback)
+	def get_location(self):
+		return self.sourceModel().get_location()
+	def get_columns(self):
+		return self.sourceModel().get_columns()
 	def reload(self):
 		self.sourceModel().reload()
 	def lessThan(self, left, right):
@@ -576,3 +581,17 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		return True
 	def add_filter(self, filter_):
 		self.filters.append(filter_)
+	@property
+	def file_renamed(self):
+		return self.sourceModel().file_renamed
+	@property
+	def files_dropped(self):
+		return self.sourceModel().files_dropped
+	@property
+	def location_changed(self):
+		return self.sourceModel().location_changed
+	@property
+	def location_loaded(self):
+		return self.sourceModel().location_loaded
+	def url(self, index):
+		return self.sourceModel().url(self.mapToSource(index))

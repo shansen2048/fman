@@ -47,14 +47,12 @@ class DirectoryPaneWidget(QWidget):
 	def __init__(self, fs, null_location, parent):
 		super().__init__(parent)
 		self._location_bar = LocationBar(self)
-		self._model = FileSystemModel(fs, null_location)
+		self._model = SortedFileSystemModel(self, fs, null_location)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
-		self._model_sorted = SortedFileSystemModel(self)
-		self._model_sorted.setSourceModel(self._model)
-		self._model_sorted.sort(0, AscendingOrder)
+		self._model.sort(0, AscendingOrder)
 		self._file_view = FileListView(self)
-		self._file_view.setModel(self._model_sorted)
+		self._file_view.setModel(self._model)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
 		self._file_view.key_press_event_filter = self._on_key_pressed
 		self.setLayout(Layout(self._location_bar, self._file_view))
@@ -109,10 +107,10 @@ class DirectoryPaneWidget(QWidget):
 		return self._model.get_location()
 	@run_in_main_thread
 	def set_location(self, url, callback=None):
-		self._model_sorted.set_location(url, callback)
+		self._model.set_location(url, callback)
 		self.set_sort_column(0, True)
 	def reload(self):
-		self._model_sorted.reload()
+		self._model.reload()
 	@run_in_main_thread
 	def place_cursor_at(self, file_url):
 		self._file_view.place_cursor_at(file_url)
@@ -121,10 +119,10 @@ class DirectoryPaneWidget(QWidget):
 		self._file_view.edit_name(file_url, selection_start, selection_end)
 	@run_in_main_thread
 	def add_filter(self, filter_):
-		self._model_sorted.add_filter(filter_)
+		self._model.add_filter(filter_)
 	@run_in_main_thread
 	def invalidate_filters(self):
-		self._model_sorted.invalidateFilter()
+		self._model.invalidateFilter()
 	@property
 	def window(self):
 		return self.parentWidget().parentWidget()
@@ -148,7 +146,7 @@ class DirectoryPaneWidget(QWidget):
 		return [self._file_view.columnWidth(i) for i in (0, 1)]
 	@run_in_main_thread
 	def set_column_widths(self, column_widths):
-		num_columns = self._model_sorted.columnCount()
+		num_columns = self._model.columnCount()
 		if len(column_widths) != num_columns:
 			raise ValueError(
 				'Wrong number of columns: len(%r) != %d'
@@ -157,9 +155,7 @@ class DirectoryPaneWidget(QWidget):
 		for i, width in enumerate(column_widths):
 			self._file_view.setColumnWidth(i, width)
 	def _on_doubleclicked(self, index):
-		self._controller.on_doubleclicked(
-			self, self._model.url(self._model_sorted.mapToSource(index))
-		)
+		self._controller.on_doubleclicked(self, self._model.url(index))
 	def _on_key_pressed(self, file_view, event):
 		return self._controller.on_key_pressed(self, event)
 	def _on_file_renamed(self, *args):
