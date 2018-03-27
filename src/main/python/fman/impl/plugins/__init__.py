@@ -5,26 +5,16 @@ SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
 	def __init__(
-		self, error_handler, command_callback, key_bindings, mother_fs, window,
-		config, theme, font_database, builtin_plugin=None
+		self, plugin_factory, key_bindings, config, builtin_plugin=None
 	):
-		self._error_handler = error_handler
-		self._command_callback = command_callback
+		self._plugin_factory = plugin_factory
 		self._key_bindings = key_bindings
-		self._mother_fs = mother_fs
-		self._window = window
 		self._config = config
-		self._theme = theme
-		self._font_database = font_database
 		self._builtin_plugin = builtin_plugin
 		self._external_plugins = {}
 		self._panes = []
 	def load_plugin(self, plugin_dir):
-		plugin = ExternalPlugin(
-			plugin_dir, self._config, self._theme, self._font_database,
-			self._error_handler, self._command_callback, self._key_bindings,
-			self._mother_fs, self._window
-		)
+		plugin = self._plugin_factory(plugin_dir)
 		success = plugin.load()
 		if success:
 			self._external_plugins[plugin_dir] = plugin
@@ -83,6 +73,26 @@ class PluginSupport:
 		if self._builtin_plugin is not None:
 			yield self._builtin_plugin
 		yield from self._external_plugins.values()
+
+class PluginFactory:
+	def __init__(
+		self, config, theme, font_database, error_handler, command_callback,
+		key_bindings, mother_fs, window
+	):
+		self._config = config
+		self._theme = theme
+		self._font_database = font_database
+		self._error_handler = error_handler
+		self._command_callback = command_callback
+		self._key_bindings = key_bindings
+		self._mother_fs = mother_fs
+		self._window = window
+	def __call__(self, plugin_dir):
+		return ExternalPlugin(
+			plugin_dir, self._config, self._theme, self._font_database,
+			self._error_handler, self._command_callback, self._key_bindings,
+			self._mother_fs, self._window
+		)
 
 class CommandCallback:
 	def __init__(self, metrics):

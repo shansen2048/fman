@@ -1,5 +1,5 @@
 from fman import PLATFORM, Window, DirectoryPane
-from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME
+from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, PluginFactory
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
@@ -34,10 +34,12 @@ class PluginTest(TestCase):
 		self._window = Window(None)
 		theme = StubTheme()
 		font_db = StubFontDatabase()
-		self._plugin_support = PluginSupport(
-			self._error_handler, self._command_callback, key_bindings,
-			self._mother_fs, self._window, config, theme, font_db
+		plugin_factory = PluginFactory(
+			config, theme, font_db, self._error_handler, self._command_callback,
+			key_bindings, self._mother_fs, self._window
 		)
+		self._plugin_support = \
+			PluginSupport(plugin_factory, key_bindings, config)
 		self._plugin_support.load_plugin(self._shipped_plugin)
 		self._plugin_support.load_plugin(self._thirdparty_plugin)
 		self._plugin_support.load_plugin(self._settings_plugin)
