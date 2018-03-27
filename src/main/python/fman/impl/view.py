@@ -2,6 +2,7 @@ from fbs_runtime.system import is_mac
 from fman.impl.util.qt import WA_MacShowFocusRect, ClickFocus, Key_Home, \
 	Key_End, ShiftModifier, ControlModifier, AltModifier, MoveAction, \
 	NoButton, CopyAction, Key_Return, Key_Enter, ToolTipRole, connect_once
+from math import ceil
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	QItemSelectionModel, pyqtSignal
 from PyQt5.QtGui import QPen
@@ -290,8 +291,21 @@ class ResizeColumnsToContents(QTableView):
 		self._resize_cols_to_contents()
 	def resizeEvent(self, event):
 		super().resizeEvent(event)
+		self._tune_resizeContentsPrecision()
 		self._resize_cols_to_contents(self._old_col_widths)
 		self._old_col_widths = self._get_column_widths()
+	def _tune_resizeContentsPrecision(self):
+		"""
+		Performance improvement: We call sizeHintForColumn(...). By default,
+		this considers 1000 rows. So what Qt does is that it "loads" the 1000
+		rows and then computes their size. This can be expensive. We therefore
+		reduce 1000 to the number of rows that are actually visible (typically
+		~50).
+		"""
+		if self.model().rowCount():
+			content_height = self.height() - self.horizontalHeader().height()
+			num_rows_visible = ceil(content_height / self.sizeHintForRow(0))
+			self.horizontalHeader().setResizeContentsPrecision(num_rows_visible)
 	def setModel(self, model):
 		old_model = self.model()
 		if old_model:
