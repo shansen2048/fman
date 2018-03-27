@@ -1658,39 +1658,44 @@ class SortByColumn(DirectoryPaneCommand):
 	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
 
 	def __call__(self, column_index=None):
+		columns = self.pane.get_columns()
 		if column_index is None:
 			curr_sort_col = self.pane.get_sort_column()[0]
-			result = show_quicksearch(self._get_items, item=curr_sort_col)
+			curr_sort_col_index = columns.index(curr_sort_col)
+			result = show_quicksearch(
+				lambda q: self._get_items(columns, q), item=curr_sort_col_index
+			)
 			if result:
-				column_index = result[1]
+				column_index = columns.index(result[1])
 		if column_index is not None:
+			column = columns[column_index]
 			sort_column, sort_column_is_ascending = self.pane.get_sort_column()
-			if column_index == sort_column:
+			if column == sort_column:
 				ascending = not sort_column_is_ascending
 			else:
 				ascending = True
-			self.pane.set_sort_column(column_index, ascending)
+			self.pane.set_sort_column(column, ascending)
 			path = self.pane.get_path()
-			self._remember_settings(path, column_index, ascending)
-	def _get_items(self, query):
+			self._remember_settings(path, column, ascending)
+	def _get_items(self, columns, query):
 		result = [[] for _ in self._MATCHERS]
-		for col_index, col_qual_name in enumerate(self.pane.get_columns()):
+		for col_qual_name in columns:
 			col_name = col_qual_name.rsplit('.', 1)[1]
 			for i, matcher in enumerate(self._MATCHERS):
 				highlight = matcher(col_name.lower(), query.lower())
 				if highlight is not None:
-					item = QuicksearchItem(col_index, col_name, highlight)
+					item = QuicksearchItem(col_qual_name, col_name, highlight)
 					result[i].append(item)
 					break
 		return chain.from_iterable(result)
-	def _remember_settings(self, path, column_index, is_ascending):
+	def _remember_settings(self, path, column, is_ascending):
 		settings = load_json('Sort Settings.json', default={})
-		default = (0, True)
-		if (column_index, is_ascending) == default:
+		default = (self.pane.get_columns()[0], True)
+		if (column, is_ascending) == default:
 			settings.pop(path, None)
 		else:
 			settings[path] = {
-				'column': self.pane.get_columns()[column_index],
+				'column': column,
 				'is_ascending': is_ascending
 			}
 		save_json('Sort Settings.json')
@@ -1702,13 +1707,8 @@ class RememberSortSettings(DirectoryPaneListener):
 			data = settings[self.pane.get_path()]
 		except KeyError:
 			return
-		column, is_ascending = data['column'], data['is_ascending']
-		all_columns = self.pane.get_columns()
-		try:
-			column_index = all_columns.index(column)
-		except ValueError:
-			return
-		self.pane.set_sort_column(column_index, is_ascending)
+		remembered_col, remembered_asc = data['column'], data['is_ascending']
+		self.pane.set_sort_column(remembered_col, remembered_asc)
 
 class Minimize(ApplicationCommand):
 	def __call__(self):
