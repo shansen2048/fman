@@ -143,10 +143,12 @@ class Window:
 		return self._panes
 	def minimize(self):
 		self._widget.minimize()
-	def add_pane(self, pane_widget):
-		result = DirectoryPane(self, pane_widget)
-		self._panes.append(result)
-		return result
+	def add_pane(self):
+		pane_widget = self._widget.add_pane()
+		pane = DirectoryPane(self, pane_widget)
+		self._panes.append(pane)
+		_get_controller().register_pane(pane_widget, pane)
+		return pane
 
 class DirectoryPaneCommand:
 	def __init__(self, pane):
@@ -247,6 +249,9 @@ def unload_plugin(plugin_path):
 
 def _get_plugin_support():
 	return _get_app_ctxt().plugin_support
+
+def _get_controller():
+	return _get_app_ctxt().controller
 
 def _get_ui():
 	return _get_app_ctxt().main_window

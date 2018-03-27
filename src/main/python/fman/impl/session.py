@@ -31,10 +31,11 @@ class SessionManager:
 	@property
 	def was_licensed_on_last_run(self):
 		return self._settings.get('is_licensed', False)
-	def show_main_window(self, main_window):
+	def show_main_window(self, window):
+		main_window = window._widget
 		self._restore_window_geometry(main_window)
 		pane_infos = self._settings.get('panes', [{}] * self.DEFAULT_NUM_PANES)
-		panes = [main_window.add_pane() for _ in range(len(pane_infos))]
+		panes = [window.add_pane() for _ in range(len(pane_infos))]
 		self._show_startup_messages(main_window)
 		is_first_run = not self._settings
 		if is_first_run:
@@ -125,12 +126,12 @@ class SessionManager:
 			else:
 				location = get_existing_pardir(url, exists_and_is_dir) \
 						   or home_dir
-			pane.set_location(location, callback)
+			pane.set_path(location, callback)
 		except Exception as exc:
 			msg = 'Could not load folder %s' % as_human_readable(url)
 			self._error_handler.report(msg, exc)
 			try:
-				pane.set_location(home_dir)
+				pane.set_path(home_dir)
 			except FileNotFoundError:
 				# This can happen for two reasons:
 				#  1) The file:// system isn't loaded.
@@ -141,12 +142,12 @@ class SessionManager:
 				# such a way that the file:// system failed to load.
 				root = as_url(Path(sys.executable).anchor)
 				try:
-					pane.set_location(root)
+					pane.set_path(root)
 				except Exception:
 					_LOG.exception('Could not open %s.', root)
 		if col_widths:
 			try:
-				pane.set_column_widths(col_widths)
+				pane._widget.set_column_widths(col_widths)
 			except ValueError:
 				# This for instance happens when the old and new numbers of
 				# columns don't match (eg. 2 columns before, 3 now).

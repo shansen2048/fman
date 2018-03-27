@@ -63,7 +63,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 		_ = self.main_window
 		for plugin_dir in self.plugin_dirs:
 			self.plugin_support.load_plugin(plugin_dir)
-		self.session_manager.show_main_window(self.main_window)
+		self.session_manager.show_main_window(self.window)
 		return self.app.exec_()
 	def init_logging(self):
 		logging.basicConfig()
@@ -137,6 +137,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 				self.app, self.help_menu_actions, self.theme, self.mother_fs,
 				NullFileSystem.scheme
 			)
+			# Resolve the cyclic dependency main_window <-> controller
+			self._main_window.set_controller(self.controller)
 			self._main_window.setWindowTitle(self._get_main_window_title())
 			self._main_window.setPalette(self.main_window_palette)
 			connect_once(self._main_window.shown, self.on_main_window_shown)
@@ -146,7 +148,6 @@ class DevelopmentApplicationContext(ApplicationContext):
 					self.main_window
 				)
 			)
-			self._main_window.pane_added.connect(self.controller.on_pane_added)
 			self._main_window.closed.connect(self.on_main_window_close)
 			self.app.set_main_window(self._main_window)
 		return self._main_window
@@ -253,8 +254,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 	@cached_property
 	def controller(self):
 		return Controller(
-			self.window, self.plugin_support,
-			self.nonexistent_shortcut_handler, self.metrics
+			self.plugin_support, self.nonexistent_shortcut_handler, self.metrics
 		)
 	@cached_property
 	def nonexistent_shortcut_handler(self):

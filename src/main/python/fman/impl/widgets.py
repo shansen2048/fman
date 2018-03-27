@@ -44,7 +44,7 @@ class DirectoryPaneWidget(QWidget):
 	location_changed = pyqtSignal(QWidget)
 	location_bar_clicked = pyqtSignal(QWidget)
 
-	def __init__(self, fs, null_location, parent):
+	def __init__(self, fs, null_location, parent, controller):
 		super().__init__(parent)
 		self._location_bar = LocationBar(self)
 		self._model = SortedFileSystemModel(self, fs, null_location)
@@ -58,14 +58,12 @@ class DirectoryPaneWidget(QWidget):
 		self.setLayout(Layout(self._location_bar, self._file_view))
 		self._location_bar.setFocusProxy(self._file_view)
 		self.setFocusProxy(self._file_view)
-		self._controller = None
+		self._controller = controller
 		self._model.location_changed.connect(self._on_location_changed)
 		self._model.location_loaded.connect(self._on_location_loaded)
 		self._location_bar.clicked.connect(
 			lambda: self.location_bar_clicked.emit(self)
 		)
-	def set_controller(self, controller):
-		self._controller = controller
 	@run_in_main_thread
 	def move_cursor_up(self, toggle_selection=False):
 		self._file_view.move_cursor_up(toggle_selection)
@@ -174,13 +172,13 @@ class DirectoryPaneWidget(QWidget):
 
 class MainWindow(QMainWindow):
 
-	pane_added = pyqtSignal(DirectoryPaneWidget)
 	shown = pyqtSignal()
 	closed = pyqtSignal()
 	before_dialog = pyqtSignal(QDialog)
 
 	def __init__(self, app, help_menu_actions, theme, fs, null_location):
 		super().__init__()
+		self._controller = None
 		self._app = app
 		self._theme = theme
 		self._fs = fs
@@ -199,6 +197,8 @@ class MainWindow(QMainWindow):
 		self._timer.setSingleShot(True)
 		self._dialog = None
 		self._init_help_menu(help_menu_actions)
+	def set_controller(self, controller):
+		self._controller = controller
 	def _init_help_menu(self, help_menu_actions):
 		if not help_menu_actions:
 			return
@@ -293,11 +293,11 @@ class MainWindow(QMainWindow):
 		self.show_status_message('Ready.')
 	@run_in_main_thread
 	def add_pane(self):
-		result = \
-			DirectoryPaneWidget(self._fs, self._null_location, self._splitter)
+		result = DirectoryPaneWidget(
+			self._fs, self._null_location, self._splitter, self._controller
+		)
 		self._panes.append(result)
 		self._splitter.addWidget(result)
-		self.pane_added.emit(result)
 		return result
 	def get_panes(self):
 		return self._panes

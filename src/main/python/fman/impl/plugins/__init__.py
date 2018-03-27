@@ -36,7 +36,7 @@ class PluginSupport:
 		self._config.save_json(name, value)
 	def get_sanitized_key_bindings(self):
 		return self._key_bindings.get_sanitized_bindings()
-	def on_pane_added(self, pane):
+	def register_pane(self, pane):
 		for plugin in self._plugins:
 			plugin.on_pane_added(pane)
 		self._panes.append(pane)

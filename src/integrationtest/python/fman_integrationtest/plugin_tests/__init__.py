@@ -47,8 +47,8 @@ class PluginTest(TestCase):
 		self._left_pane = DirectoryPane(self._window, left_pane)
 		right_pane = StubDirectoryPaneWidget(self._mother_fs)
 		self._right_pane = DirectoryPane(self._window, right_pane)
-		self._plugin_support.on_pane_added(self._left_pane)
-		self._plugin_support.on_pane_added(self._right_pane)
+		self._plugin_support.register_pane(self._left_pane)
+		self._plugin_support.register_pane(self._right_pane)
 	def tearDown(self):
 		rmtree(self._shipped_plugins)
 		rmtree(self._thirdparty_plugins)
