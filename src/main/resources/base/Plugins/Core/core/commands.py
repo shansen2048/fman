@@ -1701,14 +1701,14 @@ class SortByColumn(DirectoryPaneCommand):
 		save_json('Sort Settings.json')
 
 class RememberSortSettings(DirectoryPaneListener):
-	def on_path_changed(self):
+	def before_location_change(self, url, sort_column='', ascending=True):
 		settings = load_json('Sort Settings.json', default={})
 		try:
-			data = settings[self.pane.get_path()]
+			data = settings[url]
 		except KeyError:
 			return
 		remembered_col, remembered_asc = data['column'], data['is_ascending']
-		self.pane.set_sort_column(remembered_col, remembered_asc)
+		return url, remembered_col, remembered_asc
 
 class Minimize(ApplicationCommand):
 	def __call__(self):

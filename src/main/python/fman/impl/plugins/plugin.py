@@ -305,6 +305,9 @@ class ListenerWrapper(Wrapper):
 	def on_command(self, command, args):
 		with self._handle_exceptions():
 			return self._wrapped.on_command(command, args)
+	def before_location_change(self, *args):
+		with self._handle_exceptions():
+			return self._wrapped.before_location_change(*args)
 	def on_location_bar_clicked(self, *args):
 		self._notify_listener('on_location_bar_clicked', *args)
 	def _notify_listener(self, *args):

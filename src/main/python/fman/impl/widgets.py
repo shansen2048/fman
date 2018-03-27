@@ -106,9 +106,9 @@ class DirectoryPaneWidget(QWidget):
 	def get_location(self):
 		return self._model.get_location()
 	@run_in_main_thread
-	def set_location(self, url, callback=None):
+	def set_location(self, url, sort_column='', ascending=True, callback=None):
 		self._model.set_location(url, callback)
-		self.set_sort_column(0, True)
+		self.set_sort_column(sort_column or self.get_columns()[0], ascending)
 	def reload(self):
 		self._model.reload()
 	@run_in_main_thread
@@ -132,15 +132,17 @@ class DirectoryPaneWidget(QWidget):
 			for col in self._model.get_columns()
 		]
 	@run_in_main_thread
-	def set_sort_column(self, column_index, ascending=True):
+	def set_sort_column(self, column, ascending=True):
+		column_index = self.get_columns().index(column)
 		order = Qt.AscendingOrder if ascending else Qt.DescendingOrder
 		self._file_view.sortByColumn(column_index, order)
 	@run_in_main_thread
 	def get_sort_column(self):
 		header = self._file_view.horizontalHeader()
 		column_index = header.sortIndicatorSection()
-		is_ascending = header.sortIndicatorOrder() == Qt.AscendingOrder
-		return column_index, is_ascending
+		column = self.get_columns()[column_index]
+		ascending = header.sortIndicatorOrder() == Qt.AscendingOrder
+		return column, ascending
 	@run_in_main_thread
 	def get_column_widths(self):
 		return [self._file_view.columnWidth(i) for i in (0, 1)]

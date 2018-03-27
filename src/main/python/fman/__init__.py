@@ -104,7 +104,16 @@ class DirectoryPane:
 		return self._widget.get_location()
 	# TODO: Rename to set_location(...)
 	def set_path(self, dir_url, callback=None):
-		self._widget.set_location(dir_url, callback)
+		args = dir_url, '', True
+		while True:
+			for listener in self._listeners:
+				rewritten = listener.before_location_change(*args)
+				if rewritten and rewritten != args:
+					args = rewritten
+					break
+			else:
+				break
+		self._widget.set_location(args[0], args[1], args[2], callback)
 	def reload(self):
 		self._widget.reload()
 	def edit_name(self, file_url, selection_start=0, selection_end=None):
@@ -120,11 +129,9 @@ class DirectoryPane:
 	def get_columns(self):
 		return self._widget.get_columns()
 	def set_sort_column(self, column, ascending=True):
-		column_index = self.get_columns().index(column)
-		self._widget.set_sort_column(column_index, ascending)
+		self._widget.set_sort_column(column, ascending)
 	def get_sort_column(self):
-		column_index, ascending = self._widget.get_sort_column()
-		return self.get_columns()[column_index], ascending
+		return self._widget.get_sort_column()
 	def _has_focus(self):
 		return self._widget.hasFocus()
 
@@ -166,6 +173,8 @@ class DirectoryPaneListener:
 		pass
 	# TODO: Rename to on_location_changed()
 	def on_path_changed(self):
+		pass
+	def before_location_change(self, url, sort_column='', ascending=True):
 		pass
 	def on_files_dropped(self, file_urls, dest_dir, is_copy_not_move):
 		pass
