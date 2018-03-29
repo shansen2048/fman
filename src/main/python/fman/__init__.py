@@ -173,7 +173,7 @@ class DirectoryPaneListener:
 		pass
 	def on_name_edited(self, file_url, new_name):
 		pass
-	# TODO: Rename to on_location_changed()
+	# TODO: Rename to after_location_change()
 	def on_path_changed(self):
 		pass
 	def before_location_change(self, url, sort_column='', ascending=True):
