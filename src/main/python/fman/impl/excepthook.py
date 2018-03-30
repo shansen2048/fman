@@ -26,7 +26,8 @@ class Excepthook:
 			)
 		else:
 			if not isinstance(exc_value, SystemExit):
-				enriched_tb = self._add_missing_frames(exc_tb)
+				enriched_tb = \
+					self._add_missing_frames(exc_tb) if exc_tb else exc_tb
 				self._handle_nonplugin_error(exc_type, exc_value, enriched_tb)
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
 		# Normally, we would like to use sys.__excepthook__ here. But it doesn't
