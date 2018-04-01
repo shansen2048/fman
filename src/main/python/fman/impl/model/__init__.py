@@ -551,3 +551,5 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		return self.sourceModel().location_loaded
 	def url(self, index):
 		return self.sourceModel().url(self.mapToSource(index))
+	def find(self, url):
+		return self.mapFromSource(self.sourceModel().find(url))

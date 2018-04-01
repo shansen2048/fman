@@ -126,22 +126,22 @@ class FileListView(
 		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
-		return [self._get_url(index) for index in indexes]
+		return [self.model().url(index) for index in indexes]
 	def get_file_under_cursor(self):
 		index = self.currentIndex()
 		if index.isValid():
-			return self._get_url(index)
+			return self.model().url(index)
 	def place_cursor_at(self, file_url):
-		self.setCurrentIndex(self._get_index(file_url))
+		self.setCurrentIndex(self.model().find(file_url))
 	def toggle_selection(self, file_url):
 		self.selectionModel().select(
-			self._get_index(file_url), QISM.Toggle | QISM.Rows
+			self.model().find(file_url), QISM.Toggle | QISM.Rows
 		)
 	def edit_name(self, file_url, selection_start=0, selection_end=None):
 		def on_editor_shown(editor):
 			set_selection(editor, selection_start, selection_end)
 		connect_once(self._delegate.editor_shown, on_editor_shown)
-		self.edit(self._get_index(file_url))
+		self.edit(self.model().find(file_url))
 	def keyPressEvent(self, event):
 		if event.key() in (Key_Return, Key_Enter) \
 			and self.state() == self.EditingState:
@@ -160,12 +160,6 @@ class FileListView(
 		vertical_header.setStyleSheet("QHeaderView::section { padding: 0px; }")
 		vertical_header.setMinimumSectionSize(0)
 		vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-	def _get_index(self, file_url):
-		model = self.model()
-		return model.mapFromSource(model.sourceModel().find(file_url))
-	def _get_url(self, index):
-		model = self.model()
-		return model.sourceModel().url(model.mapToSource(index))
 
 def set_selection(qlineedit, selection_start, selection_end=None):
 	"""
