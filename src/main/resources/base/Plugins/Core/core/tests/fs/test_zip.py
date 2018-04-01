@@ -3,7 +3,6 @@ from core.fs.zip import ZipFileSystem
 from core.tests import StubFS
 from datetime import date
 from fman.url import as_url, join, as_human_readable, splitscheme
-from fman_integrationtest import get_resource
 from os import listdir
 from pathlib import Path
 from shutil import copyfile
@@ -359,7 +358,7 @@ class ZipFileSystemTest(TestCase):
 		self._fs = ZipFileSystem(StubFS(), {'.zip'})
 		self._tmp_dir = TemporaryDirectory()
 		self._zip = copyfile(
-			get_resource('ZipFileSystemTest.zip'),
+			os.path.join(os.path.dirname(__file__), 'ZipFileSystemTest.zip'),
 			os.path.join(self._tmp_dir.name, 'ZipFileSystemTest.zip')
 		)
 		self._dirs_in_zip = (
