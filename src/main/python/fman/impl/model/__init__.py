@@ -511,7 +511,7 @@ class FileWatcher:
 class SortedFileSystemModel(QSortFilterProxyModel):
 	def __init__(self, parent, fs, null_location):
 		super().__init__(parent)
-		self.filters = []
+		self._filters = []
 		self.setSourceModel(FileSystemModel(fs, null_location))
 	def set_location(self, url, callback=None):
 		self.sourceModel().set_location(url, callback)
@@ -531,12 +531,12 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
 		url = source.url(source.index(source_row, 0, source_parent))
-		for filter_ in self.filters:
+		for filter_ in self._filters:
 			if not filter_(url):
 				return False
 		return True
 	def add_filter(self, filter_):
-		self.filters.append(filter_)
+		self._filters.append(filter_)
 	@property
 	def file_renamed(self):
 		return self.sourceModel().file_renamed
