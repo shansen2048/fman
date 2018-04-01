@@ -1,64 +1,20 @@
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
+from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.util import is_debug
 from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
 	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
-	ItemIsDropEnabled, CopyAction, MoveAction, IgnoreAction, DecorationRole, \
-	ToolTipRole, as_qurl, from_qurl
+	ItemIsDropEnabled, DecorationRole, ToolTipRole
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.impl.util.url import get_existing_pardir, is_pardir
 from fman.url import dirname, join
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, QVariant, \
-	QMimeData, QAbstractTableModel, QModelIndex, Qt
+	QModelIndex, Qt
 from time import time
 
-import sip
 import sys
 
-class DragAndDropMixin(QAbstractTableModel):
-
-	files_dropped = pyqtSignal(list, str, bool)
-
-	def supportedDropActions(self):
-		return MoveAction | CopyAction | IgnoreAction
-	def canDropMimeData(self, data, action, row, column, parent):
-		if not action & self.supportedDropActions():
-			return False
-		if not data.hasUrls():
-			return False
-		dest_dir = self._get_drop_dest(parent)
-		is_in_dest_dir = lambda url: dirname(from_qurl(url)) == dest_dir
-		return not all(map(is_in_dest_dir, data.urls()))
-	def mimeTypes(self):
-		"""
-		List the MIME types used by our drag and drop implementation.
-		"""
-		return ['text/uri-list']
-	def mimeData(self, indexes):
-		result = QMimeData()
-		result.setUrls([as_qurl(self.url(index)) for index in indexes])
-		# The Qt documentation (http://doc.qt.io/qt-5/dnd.html) states that the
-		# QMimeData should not be deleted, because the target of the drag and
-		# drop operation takes ownership of it. We must therefore tell SIP not
-		# to garbage-collect `result` once this method returns. Without this
-		# instruction, we get a horrible crash because Qt tries to access an
-		# object that has already been gc'ed:
-		sip.transferto(result, None)
-		return result
-	def dropMimeData(self, data, action, row, column, parent):
-		if action == IgnoreAction:
-			return True
-		if not data.hasUrls():
-			return False
-		urls = [from_qurl(qurl) for qurl in data.urls()]
-		dest = self._get_drop_dest(parent)
-		if action in (MoveAction, CopyAction):
-			self.files_dropped.emit(urls, dest, action == CopyAction)
-			return True
-		return False
-	def _get_drop_dest(self, index):
-		return self.url(index) if index.isValid() else self.get_location()
 
 class PreloadedRow(
 	namedtuple('PreloadedRow', ('url', 'is_dir', 'icon', 'columns'))
@@ -94,7 +50,7 @@ class PreloadedRow(
 PreloadedColumn = \
 	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
 
-class FileSystemModel(DragAndDropMixin):
+class FileSystemModel(DragAndDrop):
 
 	file_renamed = pyqtSignal(str, str)
 	location_changed = pyqtSignal(str)
