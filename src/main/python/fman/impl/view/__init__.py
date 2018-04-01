@@ -33,10 +33,12 @@ class ResizeColumnsToContents(QTableView):
 		reduce 1000 to the number of rows that are actually visible (typically
 		~50).
 		"""
-		if self.model().rowCount():
-			content_height = self.height() - self.horizontalHeader().height()
-			num_rows_visible = ceil(content_height / self.sizeHintForRow(0))
-			self.horizontalHeader().setResizeContentsPrecision(num_rows_visible)
+		num_rows_visible = self._get_num_visible_rows()
+		self.horizontalHeader().setResizeContentsPrecision(num_rows_visible)
+	def _get_num_visible_rows(self):
+		content_height = self.height() - self.horizontalHeader().height()
+		# Assumes all rows have the same height:
+		return ceil(content_height / self.sizeHintForRow(0))
 	def setModel(self, model):
 		old_model = self.model()
 		if old_model:
