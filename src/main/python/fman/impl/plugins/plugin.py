@@ -74,9 +74,9 @@ class Plugin:
 	def _register_column(self, cls):
 		instance = self._instantiate_column(cls)
 		if instance:
-			self._mother_fs.register_column(get_qualified_name(cls), instance)
+			self._mother_fs.register_column(cls.get_qualified_name(), instance)
 	def _unregister_column(self, cls):
-		self._mother_fs.unregister_column(get_qualified_name(cls))
+		self._mother_fs.unregister_column(cls.get_qualified_name())
 	def _instantiate_command(self, cmd_class, *args, **kwargs):
 		try:
 			command = cmd_class(*args, **kwargs)
@@ -119,9 +119,6 @@ class Plugin:
 			return ColumnWrapper(instance, self._error_handler)
 	def __str__(self):
 		return '<%s %r>' % (self.__class__.__name__, self.name)
-
-def get_qualified_name(cls):
-	return cls.__module__ + '.' + cls.__name__
 
 def _get_command_name(command_class):
 	try:

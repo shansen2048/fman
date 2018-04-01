@@ -1,7 +1,6 @@
 from fbs_runtime.system import is_windows, is_mac
 from fman import OK
 from fman.impl.model import SortedFileSystemModel
-from fman.impl.plugins.plugin import get_qualified_name
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
 	AscendingOrder
@@ -127,8 +126,7 @@ class DirectoryPaneWidget(QWidget):
 		return self.parentWidget().parentWidget()
 	def get_columns(self):
 		return [
-			get_qualified_name(col.unwrap().__class__)
-			for col in self._model.get_columns()
+			column.get_qualified_name() for column in self._model.get_columns()
 		]
 	@run_in_main_thread
 	def set_sort_column(self, column, ascending=True):

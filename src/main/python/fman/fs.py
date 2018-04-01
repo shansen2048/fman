@@ -127,6 +127,9 @@ def cached(fs_method):
 	return wrapper
 
 class Column:
+	@classmethod
+	def get_qualified_name(cls): # For internal use
+		return cls.__module__ + '.' + cls.__name__
 	def get_str(self, url):
 		raise NotImplementedError()
 	def get_sort_value(self, url, is_ascending):

@@ -1,6 +1,6 @@
 from fman import DirectoryPaneCommand
 from fman.fs import FileSystem, Column
-from fman.impl.plugins.plugin import Plugin, get_qualified_name
+from fman.impl.plugins.plugin import Plugin
 from fman.impl.util import filenotfounderror
 
 class BuiltinPlugin(Plugin):
@@ -44,7 +44,7 @@ class NullFileSystem(FileSystem):
 	scheme = 'null://'
 
 	def get_default_columns(self, path):
-		return get_qualified_name(NullColumn),
+		return NullColumn.get_qualified_name(),
 	def iterdir(self, path):
 		return []
 	def is_dir(self, existing_path):
