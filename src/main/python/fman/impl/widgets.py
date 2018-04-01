@@ -6,7 +6,8 @@ from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
 	AscendingOrder
 from fman.impl.util.qt.thread import run_in_main_thread
-from fman.impl.view import FileListView, Layout, LocationBar, set_selection
+from fman.impl.view.location_bar import LocationBar
+from fman.impl.view import FileListView, Layout, set_selection
 from fman.url import as_human_readable
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
 from PyQt5.QtGui import QKeySequence
