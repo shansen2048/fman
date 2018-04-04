@@ -7,6 +7,7 @@ from fman.impl.util.qt import connect_once, DisplayRole, DecorationRole
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import splitscheme
 from fman_unittest.impl.model import StubFileSystem
+from PyQt5.QtCore import Qt
 from threading import Event
 
 import sys
@@ -19,6 +20,7 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		self._model.set_location('stub://', callback=loaded.set)
 		self.assertEqual('stub://', self._model.get_location())
 		loaded.wait()
+		self._expect_column_headers(['Name', 'Size'])
 		self._expect_data([('dir', ''), ('file', '13 B')])
 		self._expect_data(
 			[(self._folder_icon, None), (self._file_icon, None)],
@@ -50,6 +52,12 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 				model.data(model.index(row, col), role)
 				for col in range(self._model.columnCount())
 			))
+		self.assertEqual(expected, actual)
+	def _expect_column_headers(self, expected):
+		actual = [
+			self._model.headerData(column, Qt.Horizontal)
+			for column in range(self._model.columnCount())
+		]
 		self.assertEqual(expected, actual)
 	@contextmanager
 	def _wait_until_loaded(self):
