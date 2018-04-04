@@ -55,7 +55,7 @@ class FileSystemModel(DragAndDrop):
 	location_changed = pyqtSignal(str)
 	location_loaded = pyqtSignal(str)
 
-	def __init__(self, fs, null_location):
+	def __init__(self, fs, location):
 		super().__init__()
 		self._fs = fs
 		self._location = None # until we call set_location(...) below
@@ -66,7 +66,7 @@ class FileSystemModel(DragAndDrop):
 		self._columns = ()
 		self._file_watcher = FileWatcher(fs, self._on_file_changed)
 		self._connect_signals()
-		self.set_location(null_location)
+		self.set_location(location)
 	def _connect_signals(self):
 		"""
 		Consider the example where the user creates a directory. This is done
