@@ -5,8 +5,8 @@
 	"freeze_dir": "target/${app_name}",
 	"test_dirs": [
 		"src/unittest/python",
-		"src/integrationtest/python",
-		"src/main/resources/base/Plugins/Core"
+		"src/main/resources/base/Plugins/Core",
+		"src/integrationtest/python"
 	],
 	"mac_bundle_identifier": "io.fman.fman",
 	"arch_pkg": "target/fman.pkg.tar.xz",

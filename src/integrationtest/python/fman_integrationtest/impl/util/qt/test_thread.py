@@ -1,25 +1,8 @@
 from fman.impl.util.qt.thread import run_in_thread, Executor
 from PyQt5.QtCore import QThread
-from PyQt5.QtCore import QCoreApplication, pyqtSignal, Qt
 from threading import get_ident
-from unittest import TestCase
 
-class QtIT(TestCase):
-	def run(self, result=None):
-		self.app = Application([])
-		self.app.running.connect(self._run_in_app, Qt.QueuedConnection)
-		self.app.running.emit(result)
-		self.app.exec_()
-	def _run_in_app(self, result):
-		try:
-			super().run(result)
-		finally:
-			self.app.exit()
-
-class Application(QCoreApplication):
-	running = pyqtSignal(object)
-
-class RunInThreadIT(QtIT):
+class RunInThreadAT: # Instantiated in fman_integrationtest.test_qt
 	def test_same_thread(self):
 		@run_in_thread(QThread.currentThread)
 		def f():

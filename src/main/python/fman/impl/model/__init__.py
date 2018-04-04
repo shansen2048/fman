@@ -15,7 +15,6 @@ from time import time
 
 import sys
 
-
 class PreloadedRow(
 	namedtuple('PreloadedRow', ('url', 'is_dir', 'icon', 'columns'))
 ):
@@ -59,7 +58,6 @@ class FileSystemModel(DragAndDrop):
 	def __init__(self, fs, null_location):
 		super().__init__()
 		self._fs = fs
-		self._null_location = null_location
 		self._location = None # until we call set_location(...) below
 		self._allow_reload = False
 		self._already_visited = set()
@@ -359,16 +357,12 @@ class FileSystemModel(DragAndDrop):
 				self._remove_rows(rownum)
 	@run_in_main_thread
 	def _on_file_removed(self, url):
-		if is_pardir(url, self._location):
-			existing_pardir = get_existing_pardir(url, self._fs.is_dir)
-			self.set_location(existing_pardir or self._null_location)
+		try:
+			rownum = self.find(url).row()
+		except ValueError:
+			pass
 		else:
-			try:
-				rownum = self.find(url).row()
-			except ValueError:
-				pass
-			else:
-				self._remove_rows(rownum)
+			self._remove_rows(rownum)
 	def _on_file_changed(self, url):
 		assert is_in_main_thread()
 		if url == self._location:
@@ -511,8 +505,11 @@ class FileWatcher:
 class SortedFileSystemModel(QSortFilterProxyModel):
 	def __init__(self, parent, fs, null_location):
 		super().__init__(parent)
+		self._fs = fs
+		self._null_location = null_location
 		self._filters = []
 		self.setSourceModel(FileSystemModel(fs, null_location))
+		self._fs.file_removed.add_callback(self._on_file_removed)
 	def set_location(self, url, callback=None):
 		self.sourceModel().set_location(url, callback)
 	def get_location(self):
@@ -553,3 +550,8 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		return self.sourceModel().url(self.mapToSource(index))
 	def find(self, url):
 		return self.mapFromSource(self.sourceModel().find(url))
+	@run_in_main_thread
+	def _on_file_removed(self, url):
+		if is_pardir(url, self.get_location()):
+			existing_pardir = get_existing_pardir(url, self._fs.is_dir)
+			self.set_location(existing_pardir or self._null_location)

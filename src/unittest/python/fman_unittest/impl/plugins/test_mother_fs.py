@@ -30,6 +30,7 @@ class MotherFileSystemTest(TestCase):
 		self.assertFalse(mother_fs.exists('stub://a/b'))
 	def test_delete_removes_children(self):
 		fs = StubFileSystem({
+			'': {'is_dir': True, 'files': ['a']},
 			'a': {
 				'is_dir': True, 'files': ['b']
 			},

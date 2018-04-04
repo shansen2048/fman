@@ -1,16 +1,19 @@
 from fman.fs import FileSystem
 from fman.impl.util import filenotfounderror
 from fman.impl.util.path import resolve
-from fman.url import splitscheme
+from fman.url import splitscheme, basename, dirname
 from io import UnsupportedOperation
 
 class StubFileSystem(FileSystem):
 
 	scheme = 'stub://'
 
-	def __init__(self, items):
+	def __init__(self, items, default_columns=('core.Name',)):
 		super().__init__()
 		self._items = items
+		self._default_columns = default_columns
+	def get_default_columns(self, path):
+		return self._default_columns
 	def exists(self, path):
 		return resolve(path) in self._items
 	def iterdir(self, path):
@@ -42,3 +45,6 @@ class StubFileSystem(FileSystem):
 			other_path: value for other_path, value in self._items.items()
 			if other_path != path and not other_path.startswith(path)
 		}
+		url = self.scheme + path
+		parent, file_ = splitscheme(dirname(url))[1], basename(url)
+		self._items[parent]['files'].remove(file_)
