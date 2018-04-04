@@ -55,7 +55,7 @@ class FileSystemModel(DragAndDrop):
 	location_changed = pyqtSignal(str)
 	location_loaded = pyqtSignal(str)
 
-	def __init__(self, fs, location):
+	def __init__(self, fs, location, columns):
 		super().__init__()
 		self._fs = fs
 		self._location = None # until we call set_location(...) below
@@ -63,10 +63,10 @@ class FileSystemModel(DragAndDrop):
 		self._already_visited = set()
 		self._rows = []
 		self._executor = ThreadPoolExecutor()
-		self._columns = ()
+		self._columns = () # until we call set_location(...) below
 		self._file_watcher = FileWatcher(fs, self._on_file_changed)
 		self._connect_signals()
-		self.set_location(location)
+		self.set_location(location, columns)
 	def _connect_signals(self):
 		"""
 		Consider the example where the user creates a directory. This is done
@@ -120,7 +120,7 @@ class FileSystemModel(DragAndDrop):
 		return self._columns
 	def get_location(self):
 		return self._location
-	def set_location(self, url, callback=None):
+	def set_location(self, url, columns, callback=None):
 		if callback is None:
 			callback = lambda: None
 		url = self._fs.resolve(url)
@@ -128,19 +128,19 @@ class FileSystemModel(DragAndDrop):
 			callback()
 		else:
 			self._file_watcher.clear()
-			self._prepare_new_location(url)
+			self._prepare_new_location(url, columns)
 			if is_in_main_thread():
 				self._execute_async(self._load_rows, url, callback)
 			else:
 				self._load_rows(url, callback)
 	@run_in_main_thread
-	def _prepare_new_location(self, url):
+	def _prepare_new_location(self, url, columns):
 		self._location = url
 		self._allow_reload = False
 		self.location_changed.emit(url)
 		self.beginResetModel()
 		self._rows = []
-		self._columns = self._fs.get_columns(url)
+		self._columns = columns
 		self.endResetModel()
 	def url(self, index):
 		if not self._index_is_valid(index):
@@ -508,10 +508,12 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		self._fs = fs
 		self._null_location = null_location
 		self._filters = []
-		self.setSourceModel(FileSystemModel(fs, null_location))
+		null_columns = self._fs.get_columns(null_location)
+		self.setSourceModel(FileSystemModel(fs, null_location, null_columns))
 		self._fs.file_removed.add_callback(self._on_file_removed)
 	def set_location(self, url, callback=None):
-		self.sourceModel().set_location(url, callback)
+		columns = self._fs.get_columns(url)
+		self.sourceModel().set_location(url, columns, callback)
 	def get_location(self):
 		return self.sourceModel().get_location()
 	def get_columns(self):

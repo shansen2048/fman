@@ -15,12 +15,16 @@ import sys
 class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 	def test_location_after_init(self):
 		self.assertEqual('null://', self._model.get_location())
+		self.assertEqual((self._null_column,), self._model.get_columns())
 	def test_set_location(self):
 		loaded = Event()
 		self._model.set_location('stub://', callback=loaded.set)
 		self.assertEqual('stub://', self._model.get_location())
 		loaded.wait()
 		self._expect_column_headers(['Name', 'Size'])
+		self.assertEqual(
+			(self._name_column, self._size_column), self._model.get_columns()
+		)
 		self._expect_data([('dir', ''), ('file', '13 B')])
 		self._expect_data(
 			[(self._folder_icon, None), (self._file_icon, None)],
@@ -85,12 +89,15 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		self._file_icon = file_icon
 		self._fs = MotherFileSystem(StubIconProvider(files))
 		self._fs.add_child('null://', NullFileSystem())
-		self._register_column(NullColumn())
+		self._null_column = NullColumn()
+		self._register_column(self._null_column)
 		stubfs = \
 			StubFileSystem(files, default_columns=('core.Name', 'core.Size'))
 		self._fs.add_child('stub://', stubfs)
-		self._register_column(Name(self._fs))
-		self._register_column(Size(self._fs))
+		self._name_column = Name(self._fs)
+		self._register_column(self._name_column)
+		self._size_column = Size(self._fs)
+		self._register_column(self._size_column)
 		self._model = self.run_in_app(
 			SortedFileSystemModel, None, self._fs, 'null://'
 		)
