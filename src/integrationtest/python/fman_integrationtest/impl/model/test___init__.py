@@ -18,8 +18,6 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		self._model.set_location('stub://', callback=loaded.set)
 		self.assertEqual('stub://', self._model.get_location())
 		loaded.wait()
-		self.assertEqual(2, self._model.rowCount())
-		self.assertEqual(2, self._model.columnCount())
 		self._expect_data([('dir', ''), ('file', '13 B')])
 	def test_remove_current_dir(self):
 		self._set_location('stub://dir')
@@ -36,6 +34,10 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		self._model.set_location(location, callback=loaded.set)
 		loaded.wait()
 	def _expect_data(self, expected):
+		self.assertEqual(len(expected), self._model.rowCount())
+		self.assertEqual(
+			len(expected[0]) if expected else 0, self._model.columnCount()
+		)
 		m = self._model
 		actual = [
 			tuple(m.data(m.index(row, col)) for col in range(m.columnCount()))
