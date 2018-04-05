@@ -36,8 +36,8 @@ class Executor:
 	def _about_to_quit(self):
 		self._app_is_about_to_quit = True
 		for task in self._pending_tasks:
-			task.has_run.set()
 			task.set_exception(SystemExit())
+			task.has_run.set()
 	def run_in_thread(self, thread, f, args, kwargs):
 		if QThread.currentThread() == thread:
 			return f(*args, **kwargs)

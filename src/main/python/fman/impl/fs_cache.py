@@ -28,7 +28,9 @@ class Cache:
 				return value
 	def clear(self, path):
 		with self._write_lock:
+			# Deal with the case where path is empty:
+			prefix = path + ('/' if path else '')
 			self._items = {
 				other_path: value for other_path, value in self._items.items()
-				if other_path != path and not other_path.startswith(path + '/')
+				if other_path != path and not other_path.startswith(prefix)
 			}

@@ -47,8 +47,8 @@ class _QtApp:
 	def start(cls):
 		qInstallMessageHandler(cls._qt_message_handler)
 		started = Event()
-		executor = ThreadPoolExecutor()
-		executor.submit(cls._start_app, started.set)
+		cls._executor = ThreadPoolExecutor(max_workers=1)
+		cls._executor.submit(cls._start_app, started.set)
 		started.wait()
 	@classmethod
 	def run(cls, f, *args, **kwargs):
@@ -56,6 +56,7 @@ class _QtApp:
 	@classmethod
 	def shutdown(cls):
 		cls.run(cls._app.exit)
+		cls._executor.shutdown(wait=True)
 	@classmethod
 	def _start_app(cls, callback):
 		cls._app = _Application([])
@@ -71,6 +72,7 @@ class _QtApp:
 		# print():
 		print(msg)
 	_app = None
+	_executor = None
 
 class _Application(QCoreApplication):
 	running = pyqtSignal()

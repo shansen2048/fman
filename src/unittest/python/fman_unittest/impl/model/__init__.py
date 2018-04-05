@@ -1,4 +1,4 @@
-from fman.fs import FileSystem
+from fman.fs import FileSystem, cached
 from fman.impl.util import filenotfounderror
 from fman.impl.util.path import resolve
 from fman.url import splitscheme, basename, dirname
@@ -18,6 +18,7 @@ class StubFileSystem(FileSystem):
 		return resolve(path) in self._items
 	def iterdir(self, path):
 		return list(self._items[resolve(path)].get('files', []))
+	@cached # Mirror a typical implementation
 	def is_dir(self, existing_path):
 		path_resolved = resolve(existing_path)
 		try:
@@ -25,8 +26,10 @@ class StubFileSystem(FileSystem):
 		except KeyError:
 			raise filenotfounderror(existing_path)
 		return item.get('is_dir', False)
+	@cached # Mirror a typical implementation
 	def size_bytes(self, path):
 		return self._items[resolve(path)].get('size', 1)
+	@cached # Mirror a typical implementation
 	def modified_datetime(self, path):
 		return self._items[resolve(path)].get('mtime', 1473339041.0)
 	def touch(self, path):

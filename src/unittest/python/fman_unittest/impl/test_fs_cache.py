@@ -25,6 +25,13 @@ class CacheTest(TestCase):
 		self.cache.clear(path)
 		with self.assertRaises(KeyError):
 			self.cache.get(path, attr)
+	def test_clear_empty_path(self):
+		path = 'C:/Users/michael/a and b.txt'
+		attr = 'size_bytes'
+		self.cache.put(path, attr, 19)
+		self.cache.clear('')
+		with self.assertRaises(KeyError):
+			self.cache.get(path, attr)
 	def test_query_locks(self):
 		calls = []
 		def compute_value():
