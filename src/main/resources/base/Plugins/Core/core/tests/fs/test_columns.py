@@ -26,11 +26,9 @@ class ColumnTest:
 		})
 		self._column = self.column_class(StubFS(file_system))
 	def assert_is_less(self, left, right, is_ascending=True):
-		self.assertLess(
-			self._get_sort_value(left, is_ascending),
-			self._get_sort_value(right, is_ascending),
-			"%s is not < %s" % (left, right)
-		)
+		left_val = self._get_sort_value(left, is_ascending)
+		right_val = self._get_sort_value(right, is_ascending)
+		self.assertLess(left_val, right_val)
 	def assert_is_greater(self, left, right, is_ascending=True):
 		self.assertGreater(
 			self._get_sort_value(left, is_ascending),
@@ -56,6 +54,7 @@ class NameTest(ColumnTest, TestCase):
 		self.assert_is_less('2 foo.txt', '10 foo.txt')
 		self.assert_is_less('2', '10')
 		self.assert_is_less('2', 'a1.txt')
+		self.assert_is_less('file.txt', 'file1.txt')
 	def test_greater(self):
 		self.assert_is_greater('b', 'a')
 	def test_upper_case(self):

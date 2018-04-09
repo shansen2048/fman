@@ -22,7 +22,8 @@ class Name(Column):
 		except OSError:
 			is_dir = False
 		major = is_dir ^ is_ascending
-		minor = re.split(r'(\d+)', self.get_str(url).lower())
+		str_ = self.get_str(url).lower()
+		minor = re.split(r'(\d+)', str_)
 		is_int, is_str = 0, 1
 		# re.split(...) gives a list whose first element is '' if the pattern
 		# already matched at the beginning of the string. This guarantees us
@@ -43,7 +44,7 @@ class Name(Column):
 		# Clean up the result of re.split(...) for strings ending with digits:
 		if minor[-1] == (is_str, ''):
 			minor = minor[:-1]
-		return major, minor
+		return major, len(str_), minor
 
 # Define here so get_default_columns(...) can reference it as core.Size:
 class Size(Column):
