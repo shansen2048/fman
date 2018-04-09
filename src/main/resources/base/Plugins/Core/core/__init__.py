@@ -23,28 +23,17 @@ class Name(Column):
 			is_dir = False
 		major = is_dir ^ is_ascending
 		str_ = self.get_str(url).lower()
-		minor = re.split(r'(\d+)', str_)
-		is_int, is_str = 0, 1
-		# re.split(...) gives a list whose first element is '' if the pattern
-		# already matched at the beginning of the string. This guarantees us
-		# that the integers in the string are always at odd indices in the list:
-		for i in range(1, len(minor), 2):
-			# Ideally, we'd just want `int(minor[i])` here. But this leads to
-			# TypeErrors when the element is compared to another one that is a
-			# string (`2 < "foo"`). So we return a tuple whose first element
-			# indicates that this is an int:
-			minor[i] = (is_int, int(minor[i]))
-		for i in range(0, len(minor), 2):
-			# Here, we return a tuple whose first element indicates that this is
-			# not an int:
-			minor[i] = (is_str, minor[i])
-		# Clean up the result of re.split(...) for strings starting with digits:
-		if minor[0] == (is_str, ''):
-			minor = minor[1:]
-		# Clean up the result of re.split(...) for strings ending with digits:
-		if minor[-1] == (is_str, ''):
-			minor = minor[:-1]
-		return major, len(str_), minor
+		minor = ''
+		while str_:
+			match = re.search(r'\d+', str_)
+			if match:
+				minor += str_[:match.start()]
+				minor += '%06d' % int(match.group(0))
+				str_ = str_[match.end():]
+			else:
+				minor += str_
+				break
+		return major, minor
 
 # Define here so get_default_columns(...) can reference it as core.Size:
 class Size(Column):
