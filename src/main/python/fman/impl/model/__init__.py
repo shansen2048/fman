@@ -1,12 +1,9 @@
-from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.file_watcher import FileWatcher
-from fman.impl.util import is_debug
-from fman.impl.util.qt import ItemIsEnabled, ItemIsEditable, ItemIsSelectable, \
-	EditRole, AscendingOrder, DisplayRole, ItemIsDragEnabled, \
-	ItemIsDropEnabled, DecorationRole, ToolTipRole
+from fman.impl.model.table import TableModel, Cell, Row
+from fman.impl.util.qt import EditRole, AscendingOrder
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.impl.util.url import get_existing_pardir, is_pardir
 from fman.url import dirname, join
@@ -16,53 +13,18 @@ from PyQt5.QtGui import QIcon, QPixmap
 
 import sys
 
-class PreloadedRow(namedtuple('PreloadedRow',
-	('url', 'is_dir', 'icon', 'columns', 'is_loaded')
-)):
-	"""
-	The sole purpose of this subclass is to exclude .icon from == comparisons.
-	The reason for this is that QFileIconProvider returns objects that don't
-	compare equal even if they are equal. This is a problem particularly on
-	Windows. For when we reload a directory, QFileIconProvider returns "new"
-	icon values so our implementation must assume that all files in the
-	directory have changed (when most likely they haven't).
-
-	An earlier implementation used QIcon#cacheKey() in an attempt to solve the
-	above problem. In theory, #cacheKey() is precisely meant to help with this.
-	But in reality, especially on Windows, the problem remains (loading the icon
-	of a file with QFileIconProvider twice gives two QIcon instances that look
-	the same but have different cacheKey's).
-	"""
-
-	def _get_attrs_for_eq(self):
-		# Note how .icon is not contained in this tuple:
-		return self.url, self.is_dir, self.columns, self.is_loaded
-	def __eq__(self, other):
-		try:
-			return self._get_attrs_for_eq() == other._get_attrs_for_eq()
-		except AttributeError:
-			return False
-	def __ne__(self, other):
-		return not self.__eq__(other)
-	def __hash__(self):
-		return hash(self._get_attrs_for_eq())
-
-PreloadedColumn = \
-	namedtuple('PreloadedColumn', ('str', 'sort_value_asc', 'sort_value_desc'))
-
-class FileSystemModel(DragAndDrop):
+class FileSystemModel(TableModel, DragAndDrop):
 
 	file_renamed = pyqtSignal(str, str)
 	location_loaded = pyqtSignal(str)
 
 	def __init__(self, fs, location, columns):
-		super().__init__()
+		super().__init__([column.display_name for column in columns])
 		self._fs = fs
 		self._location = location
 		self._columns = columns
 		self._sort_order = 0, True
 		self._allow_reload = False
-		self._rows = []
 		self._file_watcher = FileWatcher(fs, self._on_file_changed)
 		self._executor = ThreadPoolExecutor(max_workers=1)
 		self._shutdown_requested = False
@@ -106,8 +68,8 @@ class FileSystemModel(DragAndDrop):
 			return missing
 		new_rows = []
 		for row in self._rows:
-			columns = []
-			for i, column in enumerate(row.columns):
+			cells = []
+			for i, column in enumerate(row.cells):
 				if i == column_index:
 					if ascending:
 						col_val_asc = values[row.url]
@@ -118,11 +80,11 @@ class FileSystemModel(DragAndDrop):
 				else:
 					col_val_asc = column.sort_value_asc
 					col_val_desc = column.sort_value_desc
-				columns.append(PreloadedColumn(
+				cells.append(Cell(
 					column.str, col_val_asc, col_val_desc
 				))
-			new_rows.append(PreloadedRow(
-				row.url, row.is_dir, row.icon, columns, row.is_loaded
+			new_rows.append(File(
+				row.url, row.icon, row.is_dir, cells, row.is_loaded
 			))
 		self._on_reloaded(new_rows)
 	def load_rows(self, rows, callback=None):
@@ -158,34 +120,6 @@ class FileSystemModel(DragAndDrop):
 		self._fs.file_added.add_callback(self._on_file_added)
 		self._fs.file_moved.add_callback(self._on_file_moved)
 		self._fs.file_removed.add_callback(self._on_file_removed)
-	def rowCount(self, parent=QModelIndex()):
-		if parent.isValid():
-			# According to the Qt docs for QAbstractItemModel#rowCount(...):
-			# "When implementing a table based model, columnCount() should
-			#  return 0 when the parent is valid."
-			return 0
-		return len(self._rows)
-	def columnCount(self, parent=QModelIndex()):
-		if parent.isValid():
-			# According to the Qt docs for QAbstractItemModel#columnCount(...):
-			# "When implementing a table based model, columnCount() should
-			#  return 0 when the parent is valid."
-			return 0
-		return len(self._columns)
-	def data(self, index, role=DisplayRole):
-		if self._index_is_valid(index):
-			if role in (DisplayRole, EditRole):
-				return self._rows[index.row()].columns[index.column()].str
-			elif role == DecorationRole and index.column() == 0:
-				return self._rows[index.row()].icon
-			elif role == ToolTipRole and index.column() == 0:
-				return super(FileSystemModel, self).data(index, DisplayRole)
-		return QVariant()
-	def headerData(self, section, orientation, role=DisplayRole):
-		if orientation == Qt.Horizontal and role == DisplayRole \
-			and 0 <= section < self.columnCount():
-			return QVariant(self._columns[section].display_name)
-		return QVariant()
 	def get_columns(self):
 		return self._columns
 	def get_location(self):
@@ -201,21 +135,6 @@ class FileSystemModel(DragAndDrop):
 		else:
 			raise ValueError('%r is not in list' % url)
 		return self.index(rownum, 0, QModelIndex())
-	def flags(self, index):
-		if index == QModelIndex():
-			# The index representing our current location:
-			return ItemIsDropEnabled
-		# Need to set ItemIsEnabled - in particular for the last column - to
-		# make keyboard shortcut "End" work. When we press this shortcut in a
-		# QTableView, Qt jumps to the last column of the last row. But only if
-		# this cell is enabled. If it isn't enabled, Qt simply does nothing.
-		# So we set the cell to enabled.
-		result = ItemIsSelectable | ItemIsEnabled
-		if index.column() == 0:
-			result |= ItemIsEditable | ItemIsDragEnabled
-			if self._rows[index.row()].is_dir:
-				result |= ItemIsDropEnabled
-		return result
 	def setData(self, index, value, role):
 		if role == EditRole:
 			self.file_renamed.emit(self.url(index), value)
@@ -267,31 +186,11 @@ class FileSystemModel(DragAndDrop):
 	def _on_reloaded(self, rows):
 		if self._shutdown_requested:
 			return
-		diff = ComputeDiff(self._rows, rows, key_fn=lambda row: row.url)()
-		if is_debug():
-			rows_before = list(self._rows)
-		for entry in diff:
-			entry.apply(
-				self._insert_rows, self._move_rows, self._update_rows,
-				self._remove_rows
-			)
+		self.set_rows(rows)
 		self._check_no_duplicate_rows()
-		if is_debug():
-			assert self._rows == rows, \
-				'Applying diff did not yield expected result.\n\n' \
-				'Old rows:\n%r\n\n' \
-				'New rows:\n%r\n\n' \
-				'Diff:\n%r\n\n' \
-				'Result of applying diff to old rows:\n%r' % \
-				(rows_before, rows, diff, self._rows)
 	def get_sort_value(self, row, column, is_ascending):
-		col = self._rows[row].columns[column]
+		col = self._rows[row].cells[column]
 		return col.sort_value_asc if is_ascending else col.sort_value_desc
-	def _index_is_valid(self, index):
-		if not index.isValid() or index.model() != self:
-			return False
-		return 0 <= index.row() < self.rowCount() and \
-			   0 <= index.column() < self.columnCount()
 	def _init_rows(self, sort_col_index, ascending, callback):
 		assert not is_in_main_thread()
 		if self._shutdown_requested:
@@ -326,7 +225,7 @@ class FileSystemModel(DragAndDrop):
 		callback()
 		self._on_location_loaded()
 	def _init_row(self, url, sort_col_index, ascending):
-		columns = []
+		cells = []
 		for i, column in enumerate(self._columns):
 			# Load the first column because it is used as an
 			# "anchor" when the user types in arbitrary characters:
@@ -342,20 +241,18 @@ class FileSystemModel(DragAndDrop):
 					sort_val_asc = sort_value
 				else:
 					sort_val_desc = sort_value
-			columns.append(
-				PreloadedColumn(str_, sort_val_asc, sort_val_desc)
-			)
-		return PreloadedRow(url, False, _get_empty_icon(), columns, False)
+			cells.append(Cell(str_, sort_val_asc, sort_val_desc))
+		return File(url, _get_empty_icon(), False, cells, False)
 	def _load_row(self, url):
 		try:
 			is_dir = self._fs.is_dir(url)
 		except OSError:
 			is_dir = False
 		icon = self._fs.icon(url) or _get_empty_icon()
-		return PreloadedRow(
-			url, is_dir, icon,
+		return File(
+			url, icon, is_dir,
 			[
-				PreloadedColumn(
+				Cell(
 					column.get_str(url),
 					column.get_sort_value(url, True),
 					column.get_sort_value(url, False)
@@ -366,7 +263,7 @@ class FileSystemModel(DragAndDrop):
 		)
 	@run_in_main_thread
 	def _on_rows_inited(self, rows):
-		self._insert_rows(rows)
+		self.insert_rows(rows)
 		self._check_no_duplicate_rows()
 	def _on_location_loaded(self):
 		if self._shutdown_requested:
@@ -420,10 +317,10 @@ class FileSystemModel(DragAndDrop):
 				self._on_rows_inited([row])
 		else:
 			if is_in_root:
-				self._update_rows([row], rownum)
+				self.update_rows([row], rownum)
 				self._check_no_duplicate_rows()
 			else:
-				self._remove_rows(rownum)
+				self.remove_rows(rownum)
 	@run_in_main_thread
 	def _on_file_removed(self, url):
 		try:
@@ -431,7 +328,7 @@ class FileSystemModel(DragAndDrop):
 		except ValueError:
 			pass
 		else:
-			self._remove_rows(rownum)
+			self.remove_rows(rownum)
 	def _on_file_changed(self, url):
 		assert is_in_main_thread()
 		if url == self._location:
@@ -455,68 +352,11 @@ class FileSystemModel(DragAndDrop):
 		except ValueError:
 			pass
 		else:
-			self._update_rows([row], index.row())
+			self.update_rows([row], index.row())
 			self._check_no_duplicate_rows()
-	def _insert_rows(self, rows, first_rownum=-1):
-		if first_rownum == -1:
-			first_rownum = len(self._rows)
-		# Consider: The user creates C:\foo.txt. We are notified of this twice:
-		#  1) _on_file_added("C:\foo.txt")
-		#  2) _on_file_changed("C:\")
-		# Both of these call _insert_rows(...). However, we do not know which
-		# one will be called first. Because of this, we need to check in both
-		# cases whether the file has already been added. The easiest place to do
-		# this is here:
-		to_insert = self._get_rows_to_insert(rows)
-		if not to_insert:
-			return
-		self.beginInsertRows(
-			QModelIndex(), first_rownum, first_rownum + len(to_insert) - 1
-		)
-		self._rows = \
-			self._rows[:first_rownum] + to_insert + self._rows[first_rownum:]
-		self.endInsertRows()
 	def _check_no_duplicate_rows(self):
 		assert len({r.url for r in self._rows}) == len(self._rows), \
 			"Invariant violated: Duplicate rows."
-	def _get_rows_to_insert(self, rows):
-		result = []
-		for row in rows:
-			try:
-				self.find(row.url)
-			except ValueError:
-				result.append(row)
-		return result
-	def _update_rows(self, rows, first_rownum):
-		self._rows[first_rownum : first_rownum + len(rows)] = rows
-		top_left = self.index(first_rownum, 0)
-		bottom_right = \
-			self.index(first_rownum + len(rows) - 1, self.columnCount() - 1)
-		self.dataChanged.emit(top_left, bottom_right)
-	def _remove_rows(self, start, end=-1):
-		if end == -1:
-			end = start + 1
-		self.beginRemoveRows(QModelIndex(), start, end - 1)
-		del self._rows[start:end]
-		self.endRemoveRows()
-	def _move_rows(self, cut_start, cut_end, insert_start):
-		dst_row = self._get_move_destination(cut_start, cut_end, insert_start)
-		assert self.beginMoveRows(
-			QModelIndex(), cut_start, cut_end - 1, QModelIndex(), dst_row
-		)
-		rows = self._rows[cut_start:cut_end]
-		self._rows = self._rows[:cut_start] + self._rows[cut_end:]
-		self._rows = \
-			self._rows[:insert_start] + rows + self._rows[insert_start:]
-		self.endMoveRows()
-	@classmethod
-	def _get_move_destination(cls, cut_start, cut_end, insert_start):
-		if cut_start == insert_start:
-			raise ValueError(
-				'Not a move operation (%d, %d)' % (cut_start, cut_end)
-			)
-		num_rows = cut_end - cut_start
-		return insert_start + (num_rows if cut_start < insert_start else 0)
 	def _execute_async(self, fn, *args, **kwargs):
 		future = self._executor.submit(fn, *args, **kwargs)
 		future.add_done_callback(self._handle_async_exc)
@@ -648,9 +488,6 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		return True
 	def add_filter(self, filter_):
 		self._filters.append(filter_)
-	@property
-	def files_dropped(self):
-		return self.sourceModel().files_dropped
 	def url(self, index):
 		return self.sourceModel().url(self.mapToSource(index))
 	def find(self, url):
@@ -679,6 +516,17 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		self.files_dropped.emit(urls, dest, is_copy)
 	def __str__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self._location)
+
+class File(Row):
+	def __init__(self, url, icon, is_dir, cells, is_loaded):
+		super().__init__(url, icon, is_dir, cells)
+		self.is_loaded = is_loaded
+	@property
+	def url(self):
+		return self.key
+	@property
+	def is_dir(self):
+		return self.drop_enabled
 
 @run_in_main_thread
 def _get_empty_icon(size=128):
