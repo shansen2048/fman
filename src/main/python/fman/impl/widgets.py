@@ -50,7 +50,6 @@ class DirectoryPaneWidget(QWidget):
 		self._model = SortedFileSystemModel(self, fs, null_location)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
-		self._model.sort(0, AscendingOrder)
 		self._file_view = FileListView(self)
 		self._file_view.setModel(self._model)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
@@ -104,8 +103,7 @@ class DirectoryPaneWidget(QWidget):
 	def get_location(self):
 		return self._model.get_location()
 	def set_location(self, url, sort_column='', ascending=True, callback=None):
-		self._model.set_location(url, callback)
-		self.set_sort_column(sort_column or self.get_columns()[0], ascending)
+		self._model.set_location(url, sort_column, ascending, callback)
 	def reload(self):
 		self._model.reload()
 	@run_in_main_thread

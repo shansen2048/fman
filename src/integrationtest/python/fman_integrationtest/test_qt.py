@@ -21,8 +21,8 @@ from fman.impl.util.qt.thread import run_in_thread
 from fman_integrationtest.impl.model.test___init__ import \
 	SortedFileSystemModelAT
 from fman_integrationtest.impl.util.qt.test_thread import RunInThreadAT
-from PyQt5.QtCore import QCoreApplication, pyqtSignal, Qt, \
-	qInstallMessageHandler
+from PyQt5.QtCore import pyqtSignal, Qt, qInstallMessageHandler
+from PyQt5.QtWidgets import QApplication
 from threading import Event
 from unittest import TestCase
 
@@ -74,5 +74,8 @@ class _QtApp:
 	_app = None
 	_executor = None
 
-class _Application(QCoreApplication):
+# It is tempting to use the more "basic" QCoreApplication here instead of
+# QApplication. But this produces segmentation faults when we try to instantiate
+# QPixmaps. So use the more "complete" QApplication:
+class _Application(QApplication):
 	running = pyqtSignal()

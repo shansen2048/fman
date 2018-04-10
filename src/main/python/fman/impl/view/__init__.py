@@ -48,12 +48,29 @@ class ResizeColumnsToContents(QTableView):
 	def _on_model_reset(self):
 		self._old_col_widths = None
 	def _resize_cols_to_contents(self, curr_widths=None):
+		if self._get_rows_visible_but_not_loaded():
+			return
 		if curr_widths is None:
 			curr_widths = self._get_column_widths()
 		min_widths = self._get_min_col_widths()
 		width = self._get_width_excl_scrollbar()
 		ideal_widths = _get_ideal_column_widths(curr_widths, min_widths, width)
 		self._apply_column_widths(ideal_widths)
+	def _get_rows_visible_but_not_loaded(self):
+		model = self.model()
+		return [
+			i for i in self._get_visible_row_range()
+			if not model.row_is_loaded(i)
+		]
+	def _get_visible_row_range(self):
+		header = self.verticalHeader()
+		start = header.logicalIndexAt(0)
+		if start == -1:
+			start = 0
+		stop = header.logicalIndexAt(header.viewport().height()) + 1
+		if stop == 0:
+			stop = self.model().rowCount()
+		return range(start, stop)
 	def _get_width_excl_scrollbar(self):
 		return self.width() - self._get_vertical_scrollbar_width()
 	def _get_vertical_scrollbar_width(self):
@@ -124,6 +141,7 @@ class FileListView(
 		self._delegate = FileListItemDelegate()
 		self.add_delegate(self._delegate)
 		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		self._urls_being_loaded = []
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		return [self.model().url(index) for index in indexes]
@@ -151,6 +169,48 @@ class FileListView(
 			return
 		if not self.key_press_event_filter(self, event):
 			super().keyPressEvent(event)
+	def setModel(self, model):
+		old_model = self.model()
+		if old_model:
+			old_model.sort_order_changed.disconnect(self._on_sort_order_changed)
+		super().setModel(model)
+		model.sort_order_changed.connect(self._on_sort_order_changed)
+	def _on_sort_order_changed(self, column, order):
+		self.sortByColumn(column, order)
+	def paintEvent(self, event):
+		missing_rows, missing_urls = self._get_rows_to_load()
+		if missing_rows:
+			self._urls_being_loaded.extend(missing_urls)
+			def callback(location=self.model().get_location()):
+				self._on_rows_loaded(location, missing_urls)
+			self.model().load_rows(missing_rows, callback=callback)
+		super().paintEvent(event)
+	def _get_rows_to_load(self):
+		rows = self._get_rows_visible_but_not_loaded()
+		urls = [
+			self.model().url(self.model().index(row, 0))
+			for row in rows
+		]
+		for url in self._urls_being_loaded:
+			try:
+				i = urls.index(url)
+			except ValueError:
+				continue
+			del rows[i]
+			del urls[i]
+		return rows, urls
+	def _on_rows_loaded(self, location, urls):
+		if location != self.model().get_location():
+			return
+		for url in urls:
+			try:
+				self._urls_being_loaded.remove(url)
+			except ValueError:
+				pass
+		self.update()
+	def _on_model_reset(self):
+		self._urls_being_loaded = []
+		super()._on_model_reset()
 	def _init_vertical_header(self):
 		# The vertical header is what would in Excel be displayed as the row
 		# numbers 0, 1, ... to the left of the table. Qt displays it by default.
