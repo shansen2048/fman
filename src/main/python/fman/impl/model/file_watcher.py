@@ -1,37 +1,49 @@
-from fman.impl.util.qt.thread import run_in_main_thread
+from fman.url import dirname
+from threading import Lock
 
 class FileWatcher:
-	"""
-	Say we're at ~/Downloads and the user presses Backspace to go up to ~.
-	Here's what typically happens:
-	 1) we "unwatch" ~/Downloads
-	 2) we load and display the files in ~
-	 3) we "watch" ~.
-
-	Now consider what happens if the user presses Backspace *before* ~/Downloads
-	was fully loaded, ie. we're still at step 2) above. In this case, we are
-	not yet "watching" ~/Downloads but are already executing step 1), which is
-	to "unwatch" it. This produces an error.
-
-	The purpose of this helper class is to solve the above problem. It remembers
-	which paths are actually being watched and offers a #clear() method that
-	unwatches precisely those paths. This way, only paths that were actually
-	watched are ever "unwatched".
-	"""
-	def __init__(self, fs, callback):
+	def __init__(self, fs, model):
 		self._fs = fs
-		self._callback = callback
-		self._watched_files = []
-	# Run in main thread to synchronize access and also because some FS watchers
-	# may need to be run in the main thread (eg. LocalFileSystem).
-	@run_in_main_thread
-	def watch(self, url):
-		self._fs.add_file_changed_callback(url, self._callback)
-		self._watched_files.append(url)
-	# Run in main thread to synchronize access and also because some FS watchers
-	# may need to be run in the main thread (eg. LocalFileSystem).
-	@run_in_main_thread
-	def clear(self):
-		for url in self._watched_files:
-			self._fs.remove_file_changed_callback(url, self._callback)
-		self._watched_files = []
+		self._model = model
+		self._lock = Lock()
+	def start(self):
+		with self._lock:
+			self._fs.file_added.add_callback(self._on_file_added)
+			self._fs.file_moved.add_callback(self._on_file_moved)
+			self._fs.file_removed.add_callback(self._on_file_removed)
+			self._fs.add_file_changed_callback(
+				self._model.get_location(), self._on_file_changed
+			)
+	def shutdown(self):
+		with self._lock:
+			try:
+				self._fs.remove_file_changed_callback(
+					self._model.get_location(), self._on_file_changed
+				)
+				self._fs.file_removed.remove_callback(self._on_file_removed)
+				self._fs.file_moved.remove_callback(self._on_file_moved)
+				self._fs.file_added.remove_callback(self._on_file_added)
+			except ValueError:
+				pass
+	def _on_file_added(self, url):
+		if self._is_in_root(url):
+			self._model.reload_files([url])
+	def _on_file_moved(self, old_url, new_url):
+		to_load = []
+		if self._is_in_root(old_url):
+			to_load.append(old_url)
+		if self._is_in_root(new_url):
+			to_load.append(new_url)
+		if to_load:
+			self._model.reload_files(to_load)
+	def _on_file_removed(self, url):
+		if self._is_in_root(url):
+			self._model.reload_files([url])
+	def _on_file_changed(self, url):
+		if url == self._model.get_location():
+			# The common case
+			self._model.reload()
+		elif self._is_in_root(url):
+			self._model.reload_files([url])
+	def _is_in_root(self, url):
+		return dirname(url) == self._model.get_location()

@@ -4,6 +4,7 @@ from datetime import datetime
 from errno import ENOENT
 from fman import PLATFORM
 from fman.fs import FileSystem, cached
+from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import as_url, splitscheme, as_human_readable
 from io import UnsupportedOperation
 from os import remove
@@ -95,8 +96,10 @@ class LocalFileSystem(FileSystem):
 		else:
 			copyfile(src_path, dst_path, follow_symlinks=False)
 			copystat(src_path, dst_path, follow_symlinks=False)
+	@run_in_main_thread
 	def watch(self, path):
 		self._get_watcher().addPath(self._url_to_os_path(path))
+	@run_in_main_thread
 	def unwatch(self, path):
 		self._get_watcher().removePath(self._url_to_os_path(path))
 	def _get_watcher(self):

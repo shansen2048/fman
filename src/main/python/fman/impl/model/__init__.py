@@ -6,78 +6,18 @@ from fman.impl.model.table import TableModel, Cell, Row
 from fman.impl.util.qt import AscendingOrder, connect_once
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.impl.util.url import get_existing_pardir, is_pardir
-from fman.url import dirname
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
 class FileSystemModel(BaseModel):
 	def __init__(self, fs, location, columns, sort_column=0, ascending=True):
 		super().__init__(fs, location, columns, sort_column, ascending)
-		self._file_watcher = FileWatcher(fs, self._on_file_changed)
+		self._file_watcher = FileWatcher(fs, self)
 	def start(self, callback):
-		connect_once(self.location_loaded, lambda _: self._watch_fs())
+		connect_once(self.location_loaded, lambda _: self._file_watcher.start())
 		super().start(callback)
-	def _watch_fs(self):
-		"""
-		Consider the example where the user creates a directory. This is done
-		by a command from a separate thread via the following steps:
-
-			1. file system -> create directory
-			2. pane -> place cursor at new directory
-
-		The second step must be executed *after* the file system has created the
-		directory and the file system model has been updated to include the new
-		folder.
-
-		To accommodate the above, we process file system events *synchronously*
-		in the worker threads that trigger them. On the other hand, the thread
-		safety of this class works by only performing changing operations in the
-		main thread. To synchronize the two ends, we use @run_in_main_thread.
-		"""
-		self._fs.file_added.add_callback(self._on_file_added)
-		self._fs.file_moved.add_callback(self._on_file_moved)
-		self._fs.file_removed.add_callback(self._on_file_removed)
-		try:
-			self._file_watcher.watch(self._location)
-		except FileNotFoundError:
-			# Looks like our location was deleted. Trust the rest of the
-			# implementation to handle this:
-			pass
 	def shutdown(self):
-		self._unwatch_fs()
+		self._file_watcher.shutdown()
 		super().shutdown()
-	def _unwatch_fs(self):
-		self._file_watcher.clear()
-		try:
-			self._fs.file_removed.remove_callback(self._on_file_removed)
-			self._fs.file_moved.remove_callback(self._on_file_moved)
-			self._fs.file_added.remove_callback(self._on_file_added)
-		except ValueError:
-			pass
-	def _on_file_added(self, url):
-		assert not is_in_main_thread()
-		if self._is_in_root(url):
-			self.reload_files([url])
-	def _on_file_moved(self, old_url, new_url):
-		assert not is_in_main_thread()
-		to_load = []
-		if self._is_in_root(old_url):
-			to_load.append(old_url)
-		if self._is_in_root(new_url):
-			to_load.append(new_url)
-		if to_load:
-			self.reload_files(to_load)
-	def _on_file_removed(self, url):
-		if self._is_in_root(url):
-			self.reload_files([url])
-	def _on_file_changed(self, url):
-		assert is_in_main_thread()
-		if url == self._location:
-			# The common case
-			self.reload()
-		elif self._is_in_root(url):
-			self.reload_files([url])
-	def _is_in_root(self, url):
-		return dirname(url) == self._location
 	def __str__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self._location)
 

@@ -113,7 +113,11 @@ class FileSystem:
 				self.watch(path)
 	def _remove_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
-			path_callbacks = self._file_changed_callbacks[path]
+			try:
+				path_callbacks = self._file_changed_callbacks[path]
+			except KeyError:
+				raise ValueError('file_changed callback is not registered') \
+				      from None
 			path_callbacks.remove(callback)
 			if not path_callbacks:
 				del self._file_changed_callbacks[path]
