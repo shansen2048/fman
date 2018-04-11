@@ -44,10 +44,12 @@ class StubFileSystem(FileSystem):
 		self._items[resolve(dst_path)] = self._items.pop(resolve(src_path))
 	def delete(self, path):
 		path = resolve(path)
-		self._items = {
+		new_items = {
 			other_path: value for other_path, value in self._items.items()
 			if other_path != path and not other_path.startswith(path)
 		}
+		self._items.clear()
+		self._items.update(new_items)
 		url = self.scheme + path
 		parent, file_ = splitscheme(dirname(url))[1], basename(url)
 		self._items[parent]['files'].remove(file_)

@@ -3,6 +3,7 @@ from core import Name, Size
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.plugins.builtin import NullFileSystem, NullColumn
 from fman.impl.plugins.mother_fs import MotherFileSystem
+from fman.impl.util import filenotfounderror
 from fman.impl.util.qt import connect_once, DisplayRole, DecorationRole
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import splitscheme
@@ -30,10 +31,10 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		self.assertEqual(
 			(self._name_column, self._size_column), self._model.get_columns()
 		)
-		# Should load at least the first column:
-		first_column = [row[0] for row in self._get_data()]
 		self.assertEqual(
-			['dir'] + [str(i) for i in range(self._NUM_FILES)], first_column
+			['dir'] + [str(i) for i in range(self._NUM_FILES)],
+			self._get_first_column(),
+			'Should load at least the first column'
 		)
 		self.assertTrue(self._model.sourceModel().sort_col_is_loaded(0, True))
 		self._load_visible_rows()
@@ -72,13 +73,10 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		self._files['0']['size'] = 87
 		self._set_location('stub://')
 		self._load_visible_rows()
-		end_time = time() + (self._timeout or sys.float_info.max)
-		while time() < end_time:
-			if self._get_data()[:2] == [('dir', ''), ('0', '87 B')]:
-				break
-			sleep(.1)
-		else:
-			self.fail("Model failed to reload.")
+		self._wait_until(
+			lambda: self._get_data()[:2] == [('dir', ''), ('0', '87 B')],
+			'Model failed to reload'
+		)
 	def test_sort(self):
 		self.test_set_location()
 		sorted_ = Event()
@@ -89,8 +87,7 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 			(str(i) for i in range(self._NUM_FILES)),
 			key=lambda fname: self._files[fname]['size']
 		)
-		first_column = [row[0] for row in self._get_data()]
-		self.assertEqual(expected_files_sort_order, first_column)
+		self.assertEqual(expected_files_sort_order, self._get_first_column())
 		self._load_visible_rows()
 		self.assertEqual(
 			[
@@ -98,6 +95,64 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 				for fname in expected_files_sort_order[1:self._NUM_VISIBLE_ROWS]
 			],
 			self._get_data()[1:self._NUM_VISIBLE_ROWS]
+		)
+	def test_file_added(self):
+		self.test_set_location()
+		self._files['new'] = {
+			'is_dir': False,
+			'size': 2,
+			'icon': self._file_icon
+		}
+		self._files['']['files'].append('new')
+		self._fs.file_added.trigger('stub://new')
+		self._wait_until(
+			lambda: 'new' in [r[0] for r in self._get_data()],
+			'Did not pick up externally added file'
+		)
+	def test_file_removed(self):
+		self.test_set_location()
+		self._stubfs.delete('0')
+		self._fs.file_removed.trigger('stub://0')
+		self._wait_until(
+			lambda: '0' not in [r[0] for r in self._get_data()],
+			'Did not pick up external removal of file'
+		)
+	def test_root_directory_changed(self):
+		self.test_set_location()
+		# "Delete" all files:
+		self._files.clear()
+		self._files.update({
+			'': {'is_dir': True, 'files': ['dir'], 'icon': self._folder_icon},
+			'dir': {'is_dir': True, 'files': [], 'icon': self._folder_icon}
+		})
+		self._stubfs.notify_file_changed('')
+		self._wait_until(
+			lambda: self._get_data() == [('dir', '')],
+			'Did not pick up external update of root directory'
+		)
+	def test_file_renamed(self):
+		self.test_set_location()
+		self._stubfs.move('stub://0', 'stub://a')
+		self._fs.file_moved.trigger('stub://0', 'stub://a')
+		def rename_noticed():
+			first_column = self._get_first_column()
+			return 'a' in first_column and '0' not in first_column
+		self._wait_until(rename_noticed, 'Did not pick up renaming of file')
+	def test_file_moved_in(self):
+		self.test_set_location()
+		self._stubfs.move('stub://dir/subdir', 'stub://subdir')
+		self._fs.file_moved.trigger('stub://dir/subdir', 'stub://subdir')
+		self._wait_until(
+			lambda: 'subdir' in self._get_first_column(),
+			'Did not pick up move of directory'
+		)
+	def test_file_moved_out(self):
+		self.test_set_location()
+		self._stubfs.move('stub://0', 'stub://dir/0')
+		self._fs.file_moved.trigger('stub://0', 'stub://dir/0')
+		self._wait_until(
+			lambda: not '0' in self._get_first_column(),
+			'Did not pick up move of file into subdirectory'
 		)
 	def _set_location(self, location):
 		loaded = Event()
@@ -111,6 +166,8 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 				for col in range(self._model.columnCount())
 			))
 		return result
+	def _get_first_column(self):
+		return [row[0] for row in self._get_data()]
 	def _index(self, row, column=0):
 		return self._model.index(row, column)
 	def _expect_column_headers(self, expected):
@@ -155,10 +212,10 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		self._fs.add_child('null://', NullFileSystem())
 		self._null_column = NullColumn()
 		self._register_column(self._null_column)
-		stubfs = StubFileSystem(
+		self._stubfs = StubFileSystem(
 			self._files, default_columns=('core.Name', 'core.Size')
 		)
-		self._fs.add_child('stub://', stubfs)
+		self._fs.add_child('stub://', self._stubfs)
 		self._name_column = Name(self._fs)
 		self._register_column(self._name_column)
 		self._size_column = Size(self._fs)
@@ -172,6 +229,16 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		super().tearDown()
 	def _register_column(self, instance):
 		self._fs.register_column(instance.get_qualified_name(), instance)
+	def _wait_until(self, condition, message):
+		end_time = time() + (self._timeout or sys.float_info.max)
+		while time() < end_time:
+			if condition():
+				break
+			if self._get_data()[:2] == [('dir', ''), ('0', '87 B')]:
+				break
+			sleep(.1)
+		else:
+			self.fail(message)
 
 def _is_debugger_attached():
 	return bool(sys.gettrace())
@@ -181,4 +248,7 @@ class StubIconProvider:
 		self._files = files
 	def get_icon(self, url):
 		path = splitscheme(url)[1]
-		return self._files[path].get('icon', None)
+		try:
+			return self._files[path].get('icon', None)
+		except KeyError:
+			raise filenotfounderror(url)

@@ -249,6 +249,8 @@ class BaseModel(TableModel, DragAndDrop):
 		return super().setData(index, value, role)
 	@asynch(priority=5)
 	def reload_files(self, urls, callback=None):
+		for url in urls:
+			self._fs.clear_cache(url)
 		self._load_files(urls, callback)
 	def shutdown(self):
 		self._shutdown = True
