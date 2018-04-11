@@ -3,7 +3,7 @@ from fman.impl.model.table import TableModel, Cell, Row
 from fman.impl.model.worker import Worker
 from fman.impl.util.qt import EditRole
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
-from fman.url import join
+from fman.url import join, dirname
 from functools import wraps
 from PyQt5.QtCore import QModelIndex, pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QPixmap
@@ -248,10 +248,24 @@ class BaseModel(TableModel, DragAndDrop):
 			return True
 		return super().setData(index, value, role)
 	@asynch(priority=5)
-	def reload_files(self, urls, callback=None):
-		for url in urls:
-			self._fs.clear_cache(url)
-		self._load_files(urls, callback)
+	def notify_file_added(self, url):
+		assert dirname(url) == self._location
+		self._load_files([url])
+	@asynch(priority=5)
+	def notify_file_changed(self, url):
+		assert dirname(url) == self._location
+		self._fs.clear_cache(url)
+		self._load_files([url])
+	@asynch(priority=5)
+	def notify_file_renamed(self, old_url, new_url):
+		assert dirname(old_url) == dirname(new_url) == self._location
+		self._fs.clear_cache(old_url)
+		self._load_files([old_url, new_url])
+	@asynch(priority=5)
+	def notify_file_removed(self, url):
+		assert dirname(url) == self._location
+		self._fs.clear_cache(url)
+		self._load_files([url])
 	def shutdown(self):
 		self._shutdown = True
 		self._worker.shutdown()

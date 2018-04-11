@@ -27,23 +27,25 @@ class FileWatcher:
 				pass
 	def _on_file_added(self, url):
 		if self._is_in_root(url):
-			self._model.reload_files([url])
+			self._model.notify_file_added(url)
 	def _on_file_moved(self, old_url, new_url):
-		to_load = []
+		new_is_in_root = self._is_in_root(new_url)
 		if self._is_in_root(old_url):
-			to_load.append(old_url)
-		if self._is_in_root(new_url):
-			to_load.append(new_url)
-		if to_load:
-			self._model.reload_files(to_load)
+			if new_is_in_root:
+				self._model.notify_file_renamed(old_url, new_url)
+			else:
+				self._model.notify_file_removed(old_url)
+		else:
+			if new_is_in_root:
+				self._model.notify_file_added(new_url)
 	def _on_file_removed(self, url):
 		if self._is_in_root(url):
-			self._model.reload_files([url])
+			self._model.notify_file_removed(url)
 	def _on_file_changed(self, url):
 		if url == self._model.get_location():
 			# The common case
 			self._model.reload()
 		elif self._is_in_root(url):
-			self._model.reload_files([url])
+			self._model.notify_file_changed(url)
 	def _is_in_root(self, url):
 		return dirname(url) == self._model.get_location()
