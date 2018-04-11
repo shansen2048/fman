@@ -92,9 +92,12 @@ class BaseModel(TableModel, DragAndDrop):
 		self._update_rows()
 	def _update_rows(self):
 		# TODO: Add filtering
-		sort_column = self._columns[self._sort_column]
 		def key_fn(row):
-			return sort_column.get_sort_value(row.url, self._sort_ascending)
+			cell = row.cells[self._sort_column]
+			if self._sort_ascending:
+				return cell.sort_value_asc
+			else:
+				return cell.sort_value_desc
 		new_rows = sorted(self._files.values(), key=key_fn)
 		self.set_rows(new_rows)
 	def row_is_loaded(self, rownum):
