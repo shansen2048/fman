@@ -1,5 +1,5 @@
 from collections import namedtuple
-from fman.impl.model import ComputeDiff
+from fman.impl.model.diff import ComputeDiff
 from fman.impl.util.qt import DisplayRole, EditRole, DecorationRole, \
 	ToolTipRole, ItemIsDropEnabled, ItemIsSelectable, ItemIsEnabled, \
 	ItemIsEditable, ItemIsDragEnabled
