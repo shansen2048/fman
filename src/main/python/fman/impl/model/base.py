@@ -1,7 +1,8 @@
 from fman.impl.model.drag_and_drop import DragAndDrop
+from fman.impl.model.file_watcher import FileWatcher
 from fman.impl.model.table import TableModel, Cell, Row
 from fman.impl.model.worker import Worker
-from fman.impl.util.qt import EditRole
+from fman.impl.util.qt import EditRole, connect_once
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.url import join, dirname
 from functools import wraps
@@ -30,9 +31,11 @@ class BaseModel(TableModel, DragAndDrop):
 		self._sort_column = sort_column
 		self._sort_ascending = ascending
 		self._files = {}
+		self._file_watcher = FileWatcher(fs, self)
 		self._worker = Worker()
 		self._shutdown = False
 	def start(self, callback):
+		connect_once(self.location_loaded, lambda _: self._file_watcher.start())
 		self._worker.start()
 		self._init(self._sort_column, self._sort_ascending, callback)
 	@asynch(priority=1)
@@ -268,6 +271,7 @@ class BaseModel(TableModel, DragAndDrop):
 		self._load_files([url])
 	def shutdown(self):
 		self._shutdown = True
+		self._file_watcher.shutdown()
 		self._worker.shutdown()
 
 _NOT_LOADED = object()

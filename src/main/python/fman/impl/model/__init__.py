@@ -3,23 +3,10 @@ from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.file_watcher import FileWatcher
 from fman.impl.model.table import TableModel, Cell, Row
-from fman.impl.util.qt import AscendingOrder, connect_once
+from fman.impl.util.qt import AscendingOrder
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.impl.util.url import get_existing_pardir, is_pardir
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
-
-class FileSystemModel(BaseModel):
-	def __init__(self, fs, location, columns, sort_column=0, ascending=True):
-		super().__init__(fs, location, columns, sort_column, ascending)
-		self._file_watcher = FileWatcher(fs, self)
-	def start(self, callback):
-		connect_once(self.location_loaded, lambda _: self._file_watcher.start())
-		super().start(callback)
-	def shutdown(self):
-		self._file_watcher.shutdown()
-		super().shutdown()
-	def __str__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self._location)
 
 class SortedFileSystemModel(QSortFilterProxyModel):
 
@@ -65,9 +52,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		old_model = self.sourceModel()
 		if old_model:
 			self._disconnect_signals(old_model)
-		new_model = FileSystemModel(
-			self._fs, url, columns, sort_col_index, ascending
-		)
+		new_model = BaseModel(self._fs, url, columns, sort_col_index, ascending)
 		self.setSourceModel(new_model)
 		# At this point, we're "loaded" with an empty source model. Before we
 		# actually start loading, set the sort column to ensure that this proxy
