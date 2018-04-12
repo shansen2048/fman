@@ -1,9 +1,11 @@
 from fman.impl.fs_cache import Cache
-from fman.impl.util.path import parent, resolve
+from fman.impl.util.path import parent
 from functools import wraps
 from io import UnsupportedOperation
 from pathlib import PurePosixPath
 from threading import Lock
+
+import fman.impl.util.path
 
 def exists(url):
 	return _get_mother_fs().exists(url)
@@ -41,6 +43,9 @@ def iterdir(url):
 def query(url, fs_method_name):
 	return _get_mother_fs().query(url, fs_method_name)
 
+def resolve(url):
+	return _get_mother_fs().resolve(url)
+
 class FileSystem:
 
 	scheme = ''
@@ -69,7 +74,7 @@ class FileSystem:
 			return False
 		return True
 	def resolve(self, path):
-		return self.scheme + resolve(path)
+		return self.scheme + fman.impl.util.path.resolve(path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):

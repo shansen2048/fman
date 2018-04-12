@@ -7,7 +7,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
 from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
-	samefile, copy, iterdir
+	samefile, copy, iterdir, resolve
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 	dirname
 from getpass import getuser
@@ -217,6 +217,7 @@ class OpenDirectory(DirectoryPaneCommand):
 
 class OpenFile(DirectoryPaneCommand):
 	def __call__(self, url):
+		url = resolve(url)
 		scheme = splitscheme(url)[0]
 		if scheme != 'file://':
 			show_alert(
@@ -261,6 +262,7 @@ class OpenWithEditor(DirectoryPaneCommand):
 	def __call__(self, url=None):
 		if url is None:
 			url = self.pane.get_file_under_cursor()
+		url = resolve(url)
 		if not url:
 			show_alert('No file is selected!')
 			return
