@@ -98,9 +98,9 @@ class BaseModel(SortedTableModel, DragAndDrop):
 	def load_rows(self, rownums, callback=None):
 		assert is_in_main_thread()
 		urls = [self._rows[i].url for i in rownums]
-		self._load_files_asap(urls, callback)
+		self._load_files_async(urls, callback)
 	@asynch(priority=2)
-	def _load_files_asap(self, urls, callback=None):
+	def _load_files_async(self, urls, callback=None):
 		self._load_files(urls, callback)
 	def _load_files(self, urls, callback=None):
 		files = []
