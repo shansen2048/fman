@@ -29,6 +29,8 @@ class SortedTableModel(TableModel):
 		self._rows = new_rows
 		self.layoutChanged.emit([], self.VerticalSortHint)
 	def _sorted(self, rows):
-		return sorted(rows, key=self._sort_key, reverse=not self._sort_ascending)
+		return sorted(
+			rows, key=self._sort_key, reverse=not self._sort_ascending
+		)
 	def _sort_key(self, row):
 		return self.get_sort_value(row, self._sort_column, self._sort_ascending)
