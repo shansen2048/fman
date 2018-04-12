@@ -1,7 +1,10 @@
 from fman.impl.model.table import TableModel
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 class SortedTableModel(TableModel):
+
+	sort_order_changed = pyqtSignal(int, int)
+
 	def __init__(self, column_headers, sort_column=0, ascending=True):
 		super().__init__(column_headers)
 		self._sort_column = sort_column
@@ -28,6 +31,7 @@ class SortedTableModel(TableModel):
 					break
 		self._rows = new_rows
 		self.layoutChanged.emit([], self.VerticalSortHint)
+		self.sort_order_changed.emit(column, order)
 	def _sorted(self, rows):
 		return sorted(
 			rows, key=self._sort_key, reverse=not self._sort_ascending

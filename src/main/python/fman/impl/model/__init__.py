@@ -91,12 +91,8 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		sort = lambda: self.sourceModel().sort(column, order)
 		if source.sort_col_is_loaded(column, ascending):
 			sort()
-			self.sort_order_changed.emit(*sort_order)
 		else:
-			def callback():
-				run_in_main_thread(sort)()
-				self.sort_order_changed.emit(*sort_order)
-			source.load_sort_col(column, ascending, callback)
+			source.load_sort_col(column, ascending, run_in_main_thread(sort))
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
 		url = source.url(source.index(source_row, 0, source_parent))
@@ -120,17 +116,21 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		model.location_loaded.connect(self._emit_location_loaded)
 		model.file_renamed.connect(self._emit_file_renamed)
 		model.files_dropped.connect(self._emit_files_dropped)
+		model.sort_order_changed.connect(self._emit_sort_order_changed)
 	def _disconnect_signals(self, model):
 		# Would prefer signal.disconnect(self.signal.emit) here. But PyQt
 		# doesn't support it. So we need Python wrappers "_emit_...":
 		model.location_loaded.disconnect(self._emit_location_loaded)
 		model.file_renamed.disconnect(self._emit_file_renamed)
 		model.files_dropped.disconnect(self._emit_files_dropped)
+		model.sort_order_changed.disconnect(self._emit_sort_order_changed)
 	def _emit_location_loaded(self, location):
 		self.location_loaded.emit(location)
 	def _emit_file_renamed(self, old, new):
 		self.file_renamed.emit(old, new)
 	def _emit_files_dropped(self, urls, dest, is_copy):
 		self.files_dropped.emit(urls, dest, is_copy)
+	def _emit_sort_order_changed(self, column, order):
+		self.sort_order_changed.emit(column, order)
 	def __str__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self._location)
