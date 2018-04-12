@@ -1,6 +1,6 @@
 from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.file_watcher import FileWatcher
-from fman.impl.model.sorted_table import SortedTableModel
+from fman.impl.model.sorted_table import SortFilterTableModel
 from fman.impl.model.table import Cell, Row
 from fman.impl.model.worker import Worker
 from fman.impl.util.qt import EditRole, connect_once
@@ -19,7 +19,7 @@ def asynch(priority):
 		return result
 	return decorator
 
-class BaseModel(SortedTableModel, DragAndDrop):
+class BaseModel(SortFilterTableModel, DragAndDrop):
 
 	location_loaded = pyqtSignal(str)
 	file_renamed = pyqtSignal(str, str)

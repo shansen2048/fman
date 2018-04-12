@@ -1,7 +1,7 @@
 from fman.impl.model.table import TableModel
 from PyQt5.QtCore import Qt, pyqtSignal
 
-class SortedTableModel(TableModel):
+class SortFilterTableModel(TableModel):
 
 	sort_order_changed = pyqtSignal(int, int)
 
@@ -11,10 +11,19 @@ class SortedTableModel(TableModel):
 		self._sort_ascending = ascending
 		self._filters = []
 	def get_rows(self):
+		"""
+		Implement to give this class the unfiltered, unsorted rows.
+		"""
 		raise NotImplementedError()
 	def get_sort_value(self, row, column, ascending):
+		"""
+		Return the sort value for the given row. N.B.: row is a Row, not int.
+		"""
 		raise NotImplementedError()
 	def update(self):
+		"""
+		Call this after any change in the output of #get_rows().
+		"""
 		self.set_rows(self._sorted(self._filter(self.get_rows())))
 	def _sorted(self, rows):
 		return sorted(
