@@ -1,6 +1,7 @@
 from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.file_watcher import FileWatcher
-from fman.impl.model.table import TableModel, Cell, Row
+from fman.impl.model.sorted_table import SortedTableModel
+from fman.impl.model.table import Cell, Row
 from fman.impl.model.worker import Worker
 from fman.impl.util.qt import EditRole, connect_once
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
@@ -18,18 +19,17 @@ def asynch(priority):
 		return result
 	return decorator
 
-class BaseModel(TableModel, DragAndDrop):
+class BaseModel(SortedTableModel, DragAndDrop):
 
 	location_loaded = pyqtSignal(str)
 	file_renamed = pyqtSignal(str, str)
 
 	def __init__(self, fs, location, columns, sort_column=0, ascending=True):
-		super().__init__([column.display_name for column in columns])
+		column_headers = [column.display_name for column in columns]
+		super().__init__(column_headers, sort_column, ascending)
 		self._fs = fs
 		self._location = location
 		self._columns = columns
-		self._sort_column = sort_column
-		self._sort_ascending = ascending
 		self._files = {}
 		self._file_watcher = FileWatcher(fs, self)
 		self._worker = Worker()
@@ -92,14 +92,7 @@ class BaseModel(TableModel, DragAndDrop):
 		self._update_rows()
 	def _update_rows(self):
 		# TODO: Add filtering
-		def key_fn(row):
-			cell = row.cells[self._sort_column]
-			if self._sort_ascending:
-				return cell.sort_value_asc
-			else:
-				return cell.sort_value_desc
-		new_rows = sorted(self._files.values(), key=key_fn)
-		self.set_rows(new_rows)
+		self.set_rows(self._files.values())
 	def row_is_loaded(self, rownum):
 		return self._rows[rownum].is_loaded
 	def load_rows(self, rownums, callback=None):
@@ -159,8 +152,8 @@ class BaseModel(TableModel, DragAndDrop):
 		self._update_rows()
 	def sort_col_is_loaded(self, column, ascending):
 		return all(
-			self.get_sort_value(i, column, ascending) != _NOT_LOADED
-			for i in range(self.rowCount())
+			self.get_sort_value(row, column, ascending) != _NOT_LOADED
+			for row in self._rows
 		)
 	@asynch(priority=3)
 	def load_sort_col(self, column_index, ascending, callback):
@@ -246,7 +239,7 @@ class BaseModel(TableModel, DragAndDrop):
 			raise ValueError('%r is not in list' % url)
 		return self.index(rownum, 0)
 	def get_sort_value(self, row, column, ascending):
-		cell = self._rows[row].cells[column]
+		cell = row.cells[column]
 		return cell.sort_value_asc if ascending else cell.sort_value_desc
 	def setData(self, index, value, role):
 		if role == EditRole:

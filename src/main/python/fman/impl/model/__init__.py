@@ -3,7 +3,6 @@ from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.file_watcher import FileWatcher
 from fman.impl.model.table import TableModel, Cell, Row
-from fman.impl.util.qt import AscendingOrder
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.impl.util.url import get_existing_pardir, is_pardir
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
@@ -89,8 +88,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		source = self.sourceModel()
 		ascending = order == Qt.AscendingOrder
 		source._sort_order = column, ascending
-		super_sort = super().sort
-		sort = lambda: super_sort(*sort_order)
+		sort = lambda: self.sourceModel().sort(column, order)
 		if source.sort_col_is_loaded(column, ascending):
 			sort()
 			self.sort_order_changed.emit(*sort_order)
@@ -99,12 +97,6 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 				run_in_main_thread(sort)()
 				self.sort_order_changed.emit(*sort_order)
 			source.load_sort_col(column, ascending, callback)
-	def lessThan(self, left, right):
-		source = self.sourceModel()
-		is_ascending = self.sortOrder() == AscendingOrder
-		def get_sort_value(l_r):
-			return source.get_sort_value(l_r.row(), l_r.column(), is_ascending)
-		return get_sort_value(left) < get_sort_value(right)
 	def filterAcceptsRow(self, source_row, source_parent):
 		source = self.sourceModel()
 		url = source.url(source.index(source_row, 0, source_parent))
