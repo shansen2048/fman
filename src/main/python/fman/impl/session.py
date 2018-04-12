@@ -1,8 +1,6 @@
 from base64 import b64encode, b64decode
 from concurrent.futures import ThreadPoolExecutor
-from fman.impl.util import parse_version
 from fman.impl.util.path import make_absolute
-from fman.impl.util.qt import connect_once
 from fman.impl.util.url import get_existing_pardir
 from fman.url import as_url, dirname, as_human_readable
 from os import getcwd
@@ -64,18 +62,6 @@ class SessionManager:
 				'Updated to v%s. <a href="https://fman.io/changelog?s=f">' \
 				'Changelog</a>' % self._fman_version
 		main_window.show_status_message(status_message)
-		# TODO: Remove this migration after Jan 2018:
-		if previous_version and parse_version(previous_version) < (0, 7, 0):
-			def on_main_window_shown():
-				main_window.show_alert(
-					'Sorry to bother. fman was updated to version %s. This '
-					'adds support for Zip archives (yay!). But it also breaks '
-					'some plugins. If you use plugins, you may have to '
-					'update or remove them. For more information, please see '
-					'<a href="https://fman.io/blog/zip-support-in-fman?s=f">'
-					'here</a>.' % self._fman_version
-				)
-			connect_once(main_window.shown, on_main_window_shown)
 	def _get_startup_message(self):
 		previous_version = self._settings.get('fman_version', None)
 		if not previous_version or previous_version == self._fman_version:
