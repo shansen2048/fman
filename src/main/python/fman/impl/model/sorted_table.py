@@ -9,10 +9,21 @@ class SortedTableModel(TableModel):
 		super().__init__(column_headers)
 		self._sort_column = sort_column
 		self._sort_ascending = ascending
+		self._filters = []
+	def get_rows(self):
+		raise NotImplementedError()
 	def get_sort_value(self, row, column, ascending):
 		raise NotImplementedError()
-	def set_rows(self, rows):
-		super().set_rows(self._sorted(rows))
+	def update(self):
+		self.set_rows(self._sorted(self._filter(self.get_rows())))
+	def _sorted(self, rows):
+		return sorted(
+			rows, key=self._sort_key, reverse=not self._sort_ascending
+		)
+	def _sort_key(self, row):
+		return self.get_sort_value(row, self._sort_column, self._sort_ascending)
+	def _filter(self, rows):
+		return filter(lambda row: all(f(row.key) for f in self._filters), rows)
 	def sort(self, column, order=Qt.AscendingOrder):
 		ascending = order == Qt. AscendingOrder
 		if (column, ascending) == (self._sort_column, self._sort_ascending):
@@ -32,9 +43,5 @@ class SortedTableModel(TableModel):
 		self._rows = new_rows
 		self.layoutChanged.emit([], self.VerticalSortHint)
 		self.sort_order_changed.emit(column, order)
-	def _sorted(self, rows):
-		return sorted(
-			rows, key=self._sort_key, reverse=not self._sort_ascending
-		)
-	def _sort_key(self, row):
-		return self.get_sort_value(row, self._sort_column, self._sort_ascending)
+	def add_filter(self, filter_):
+		self._filters.append(filter_)

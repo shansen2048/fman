@@ -52,6 +52,8 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		if old_model:
 			self._disconnect_signals(old_model)
 		new_model = BaseModel(self._fs, url, columns, sort_col_index, ascending)
+		for filter_ in self._filters:
+			new_model.add_filter(filter_)
 		self.setSourceModel(new_model)
 		# At this point, we're "loaded" with an empty source model. Before we
 		# actually start loading, set the sort column to ensure that this proxy
@@ -93,15 +95,11 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 			sort()
 		else:
 			source.load_sort_col(column, ascending, run_in_main_thread(sort))
-	def filterAcceptsRow(self, source_row, source_parent):
-		source = self.sourceModel()
-		url = source.url(source.index(source_row, 0, source_parent))
-		for filter_ in self._filters:
-			if not filter_(url):
-				return False
-		return True
 	def add_filter(self, filter_):
+		self.sourceModel().add_filter(filter_)
 		self._filters.append(filter_)
+	def invalidate_filters(self):
+		self.sourceModel().update()
 	def url(self, index):
 		return self.sourceModel().url(self.mapToSource(index))
 	def find(self, url):

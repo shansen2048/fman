@@ -89,10 +89,7 @@ class BaseModel(SortedTableModel, DragAndDrop):
 		}
 		self._sort_column = sort_column
 		self._sort_ascending = ascending
-		self._update_rows()
-	def _update_rows(self):
-		# TODO: Add filtering
-		self.set_rows(self._files.values())
+		self.update()
 	def row_is_loaded(self, rownum):
 		return self._rows[rownum].is_loaded
 	def load_rows(self, rownums, callback=None):
@@ -149,7 +146,7 @@ class BaseModel(SortedTableModel, DragAndDrop):
 				pass
 		for file_ in files:
 			self._files[file_.url] = file_
-		self._update_rows()
+		self.update()
 	def sort_col_is_loaded(self, column, ascending):
 		return all(
 			self.get_sort_value(row, column, ascending) != _NOT_LOADED
@@ -238,6 +235,8 @@ class BaseModel(SortedTableModel, DragAndDrop):
 		else:
 			raise ValueError('%r is not in list' % url)
 		return self.index(rownum, 0)
+	def get_rows(self):
+		return self._files.values()
 	def get_sort_value(self, row, column, ascending):
 		cell = row.cells[column]
 		return cell.sort_value_asc if ascending else cell.sort_value_desc
