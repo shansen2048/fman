@@ -239,7 +239,10 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		return self._files.values()
 	def get_sort_value(self, row, column, ascending):
 		cell = row.cells[column]
-		return cell.sort_value_asc if ascending else cell.sort_value_desc
+		result = cell.sort_value_asc if ascending else cell.sort_value_desc
+		if result is _NOT_LOADED:
+			raise RuntimeError('Sort value is not loaded')
+		return result
 	def setData(self, index, value, role):
 		if role == EditRole:
 			self.file_renamed.emit(self.url(index), value)
