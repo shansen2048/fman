@@ -598,7 +598,12 @@ class CreateDirectory(DirectoryPaneCommand):
 	)
 
 	def __call__(self):
-		name, ok = show_prompt("New folder (directory)")
+		file_under_cursor = self.pane.get_file_under_cursor()
+		if file_under_cursor:
+			default = basename(file_under_cursor).split('.', 1)[0]
+		else:
+			default = ''
+		name, ok = show_prompt("New folder (directory)", default)
 		if ok and name:
 			dir_url = join(self.pane.get_path(), name)
 			try:
