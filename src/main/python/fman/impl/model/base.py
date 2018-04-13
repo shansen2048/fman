@@ -221,6 +221,8 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			assert self._shutdown
 			return
 		self._set_files(files)
+		# We may have found new files that now still need to be loaded:
+		self._load_remaining_files()
 	def get_columns(self):
 		return self._columns
 	def get_location(self):
