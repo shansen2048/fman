@@ -9,6 +9,7 @@ from fman.url import join, dirname
 from functools import wraps
 from PyQt5.QtCore import QModelIndex, pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QPixmap
+from time import time
 
 def asynch(priority):
 	def decorator(f):
@@ -81,6 +82,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		# change the cursor position.
 		callback()
 		self.location_loaded.emit(self._location)
+		self._load_remaining_files()
 	def _init_file(self, url):
 		# Load the first column because it is used as an "anchor" when the user
 		# types in arbitrary characters:
@@ -266,6 +268,28 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		assert dirname(url) == self._location
 		self._fs.clear_cache(url)
 		self._load_files([url])
+	@asynch(priority=6)
+	def _load_remaining_files(self, batch_timeout=.2):
+		end_time = time() + batch_timeout
+		files = []
+		disappeared = []
+		all_loaded = False
+		for row in self._rows:
+			if self._shutdown:
+				return
+			if time() > end_time:
+				break
+			if row.is_loaded:
+				continue
+			try:
+				files.append(self._load_file(row.url))
+			except FileNotFoundError:
+				disappeared.append(row.url)
+		else:
+			all_loaded = True
+		self._record_files(files, disappeared)
+		if not all_loaded:
+			self._load_remaining_files()
 	def shutdown(self):
 		self._shutdown = True
 		self._file_watcher.shutdown()
