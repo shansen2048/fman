@@ -36,9 +36,13 @@ class ResizeColumnsToContents(QTableView):
 		num_rows_visible = self._get_num_visible_rows()
 		self.horizontalHeader().setResizeContentsPrecision(num_rows_visible)
 	def _get_num_visible_rows(self):
+		row_height = self.sizeHintForRow(0)
+		if row_height == -1:
+			# This for instance happens when the model has 0 rows.
+			return 0
 		content_height = self.height() - self.horizontalHeader().height()
 		# Assumes all rows have the same height:
-		return ceil(content_height / self.sizeHintForRow(0))
+		return ceil(content_height / row_height)
 	def setModel(self, model):
 		old_model = self.model()
 		if old_model:
