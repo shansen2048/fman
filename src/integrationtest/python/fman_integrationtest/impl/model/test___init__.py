@@ -26,7 +26,7 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		inited = Event()
 		self._model.set_location('stub://', callback=inited.set)
 		self.assertEqual('stub://', self._model.get_location())
-		inited.wait(self._timeout)
+		self._wait_for(inited)
 		self._expect_column_headers(['Name', 'Size'])
 		self.assertEqual(
 			(self._name_column, self._size_column), self._model.get_columns()
@@ -36,7 +36,6 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 			self._get_first_column(),
 			'Should load at least the first column'
 		)
-		self.assertTrue(self._model.sourceModel().sort_col_is_loaded(0, True))
 		self._load_visible_rows()
 		rows = self._get_data()[:self._NUM_VISIBLE_ROWS]
 		icons = self._get_data(DecorationRole)[:self._NUM_VISIBLE_ROWS]
@@ -56,15 +55,15 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		loaded = Event()
 		load_rows = run_in_main_thread(self._model.load_rows)
 		load_rows(range(self._NUM_VISIBLE_ROWS), callback=loaded.set)
-		loaded.wait(self._timeout)
+		self._wait_for(loaded)
 	def test_remove_current_dir(self):
 		self._set_location('stub://dir')
-		with self._wait_until_loaded():
+		with self._wait_for_signal(self._model.location_loaded):
 			self._fs.delete('stub://dir')
 		self.assertEqual('stub://', self._model.get_location())
 	def test_remove_root(self):
 		self._set_location('stub://dir')
-		with self._wait_until_loaded():
+		with self._wait_for_signal(self._model.location_loaded):
 			self._fs.remove_child('stub://')
 		self.assertEqual('null://', self._model.get_location())
 	def test_reloads(self):
@@ -79,10 +78,8 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		)
 	def test_sort(self):
 		self.test_set_location()
-		sorted_ = Event()
-		connect_once(self._model.sort_order_changed, lambda *_: sorted_.set())
-		run_in_main_thread(self._model.sort)(1)
-		sorted_.wait(self._timeout)
+		with self._wait_for_signal(self._model.sort_order_changed):
+			run_in_main_thread(self._model.sort)(1)
 		expected_files_sort_order = ['dir'] + sorted(
 			(str(i) for i in range(self._NUM_FILES)),
 			key=lambda fname: self._files[fname]['size']
@@ -157,7 +154,7 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 	def _set_location(self, location):
 		loaded = Event()
 		self._model.set_location(location, callback=loaded.set)
-		loaded.wait(self._timeout)
+		self._wait_for(loaded)
 	def _get_data(self, role=DisplayRole):
 		result = []
 		for row in range(self._model.rowCount()):
@@ -176,17 +173,6 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 			for column in range(self._model.columnCount())
 		]
 		self.assertEqual(expected, actual)
-	@contextmanager
-	def _wait_until_loaded(self):
-		loaded = Event()
-		run_in_main_thread(connect_once)(
-			self._model.location_loaded, lambda _: loaded.set()
-		)
-		yield
-		if not loaded.wait(timeout=self._timeout):
-			self.fail(
-				'Timeout expired while waiting for location to be loaded.'
-			)
 	def setUp(self):
 		super().setUp()
 		# N.B.: Normally we should have QIcon instances here. But they don't
@@ -229,6 +215,15 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		super().tearDown()
 	def _register_column(self, instance):
 		self._fs.register_column(instance.get_qualified_name(), instance)
+	@contextmanager
+	def _wait_for_signal(self, signal):
+		occurred = Event()
+		run_in_main_thread(connect_once)(signal, lambda *_: occurred.set())
+		yield
+		self._wait_for(occurred)
+	def _wait_for(self, event):
+		if not event.wait(self._timeout):
+			self.fail('Event was not set after timeout')
 	def _wait_until(self, condition, message):
 		end_time = time() + (self._timeout or sys.float_info.max)
 		while time() < end_time:

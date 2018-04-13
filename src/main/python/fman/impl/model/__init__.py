@@ -3,7 +3,7 @@ from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.file_watcher import FileWatcher
 from fman.impl.model.table import TableModel, Cell, Row
-from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
+from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.util.url import get_existing_pardir, is_pardir
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
@@ -21,7 +21,6 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		self._null_location = null_location
 		self._filters = []
 		self._already_visited = set()
-		self._sort_order = None, Qt.AscendingOrder
 		self.set_location(null_location)
 		self._fs.file_removed.add_callback(self._on_file_removed)
 	def set_location(self, url, sort_column='', ascending=True, callback=None):
@@ -82,19 +81,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 	def reload(self):
 		self.sourceModel().reload()
 	def sort(self, column, order=Qt.AscendingOrder):
-		assert is_in_main_thread()
-		sort_order = column, order
-		if sort_order == self._sort_order:
-			return
-		self._sort_order = sort_order
-		source = self.sourceModel()
-		ascending = order == Qt.AscendingOrder
-		source._sort_order = column, ascending
-		sort = lambda: self.sourceModel().sort(column, order)
-		if source.sort_col_is_loaded(column, ascending):
-			sort()
-		else:
-			source.load_sort_col(column, ascending, run_in_main_thread(sort))
+		self.sourceModel().sort(column, order)
 	def add_filter(self, filter_):
 		self.sourceModel().add_filter(filter_)
 		self._filters.append(filter_)

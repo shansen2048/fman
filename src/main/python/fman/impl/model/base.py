@@ -21,6 +21,21 @@ def asynch(priority):
 
 class BaseModel(SortFilterTableModel, DragAndDrop):
 
+	"""
+	The thread safety of this class works as follows: There is one (and only
+	one) worker thread that loads / computes row values in the background. Every
+	changing operation is performed by it. Because there is only one thread,
+	this prevents concurrent writes.
+
+	When the worker loads / computes new data, it creates copies of the data in
+	memory. Once the entire new data is loaded, @run_in_main_thread is used to
+	atomically commit it to the model. This ensures that the view (which also
+	runs in the main thread) does not read data that is only partially complete.
+
+	The worker's operations are encapsulated in @asynch methods below. Each of
+	these operations represents an atomic update of data.
+	"""
+
 	location_loaded = pyqtSignal(str)
 	file_renamed = pyqtSignal(str, str)
 
@@ -37,9 +52,9 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 	def start(self, callback):
 		connect_once(self.location_loaded, lambda _: self._file_watcher.start())
 		self._worker.start()
-		self._init(self._sort_column, self._sort_ascending, callback)
+		self._init(callback)
 	@asynch(priority=1)
-	def _init(self, sort_column, ascending, callback):
+	def _init(self, callback):
 		files = []
 		file_names = iter(self._fs.iterdir(self._location))
 		while not self._shutdown:
@@ -50,7 +65,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			else:
 				url = join(self._location, file_name)
 				try:
-					file_ = self._init_file(url, sort_column, ascending)
+					file_ = self._init_file(url)
 				except OSError:
 					continue
 				files.append(file_)
@@ -58,7 +73,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			assert self._shutdown
 			return
 		if files:
-			self._set_files(files, sort_column, ascending)
+			self._set_files(files)
 		# Invoke the callback before emitting location_loaded. The reason is
 		# that the default location_loaded handler places the cursor - if is has
 		# not been placed yet. If the callback does place it, ugly "flickering"
@@ -66,29 +81,32 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		# change the cursor position.
 		callback()
 		self.location_loaded.emit(self._location)
-	def _init_file(self, url, sort_column, ascending):
-		cells = []
+	def _init_file(self, url):
+		# Load the first column because it is used as an "anchor" when the user
+		# types in arbitrary characters:
+		cells = self._load_cells(url, [0])
+		return File(url, _get_empty_icon(), False, cells, False)
+	def _load_cells(self, url, strs_to_load=None):
+		if strs_to_load is None:
+			strs_to_load = range(len(self._columns))
+		result = []
 		for i, column in enumerate(self._columns):
-			# Load the first column because it is used as an "anchor" when the
-			# user types in arbitrary characters:
-			str_ = column.get_str(url) if i == 0 else ''
+			str_ = column.get_str(url) if i in strs_to_load else ''
 			# Load the current sort value:
 			sort_val_asc = sort_val_desc = _NOT_LOADED
-			if i == sort_column:
-				sort_value = column.get_sort_value(url, ascending)
-				if ascending:
+			if i == self._sort_column:
+				sort_value = column.get_sort_value(url, self._sort_ascending)
+				if self._sort_ascending:
 					sort_val_asc = sort_value
 				else:
 					sort_val_desc = sort_value
-			cells.append(Cell(str_, sort_val_asc, sort_val_desc))
-		return File(url, _get_empty_icon(), False, cells, False)
+			result.append(Cell(str_, sort_val_asc, sort_val_desc))
+		return result
 	@run_in_main_thread
-	def _set_files(self, rows, sort_column, ascending):
+	def _set_files(self, rows):
 		self._files = {
 			row.url: row for row in rows
 		}
-		self._sort_column = sort_column
-		self._sort_ascending = ascending
 		self.update()
 	def row_is_loaded(self, rownum):
 		return self._rows[rownum].is_loaded
@@ -118,19 +136,8 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		except OSError:
 			is_dir = False
 		icon = self._fs.icon(url) or _get_empty_icon()
-		return File(
-			url, icon, is_dir,
-			[
-				Cell(
-					column.get_str(url),
-					# TODO: Don't load sort values.
-					column.get_sort_value(url, True),
-					column.get_sort_value(url, False)
-				)
-				for column in self._columns
-			],
-			True
-		)
+		cells = self._load_cells(url)
+		return File(url, icon, is_dir, cells, True)
 	@run_in_main_thread
 	def _record_files(self, files, disappeared=None):
 		"""
@@ -147,52 +154,44 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		for file_ in files:
 			self._files[file_.url] = file_
 		self.update()
-	def sort_col_is_loaded(self, column, ascending):
-		return all(
-			self.get_sort_value(row, column, ascending) != _NOT_LOADED
-			for row in self._rows
-		)
 	@asynch(priority=3)
-	def load_sort_col(self, column_index, ascending, callback):
-		column = self._columns[column_index]
-		loaded = {}
-		while True:
-			to_load = self._on_sort_col_loaded(column_index, ascending, loaded)
-			if not to_load:
-				break
-			for url in to_load:
-				if self._shutdown:
-					return
-				loaded[url] = column.get_sort_value(url, ascending)
-		callback()
-	@run_in_main_thread
-	def _on_sort_col_loaded(self, column_index, ascending, values):
-		missing = [row.url for row in self._rows if row.url not in values]
-		if missing:
-			return missing
-		files_new = []
-		for row in self._rows:
-			cells = []
-			for i, column in enumerate(row.cells):
-				if i == column_index:
-					if ascending:
-						col_val_asc = values[row.url]
-						col_val_desc = column.sort_value_desc
-					else:
-						col_val_asc = column.sort_value_asc
-						col_val_desc = values[row.url]
+	def sort(self, column, order=Qt.AscendingOrder):
+		ascending = order == Qt.AscendingOrder
+		for i, row in enumerate(self._rows):
+			if not self._sort_value_is_loaded(row, column, ascending):
+				new_row = self._load_sort_value(row, column, ascending)
+				# Here, we violate the constraint that data only be changed in
+				# the main thread. But! The data we are changing here is not
+				# "visible" outside this class. So it's OK.
+				self._rows[i] = new_row
+				self._files[row.url] = new_row
+		run_in_main_thread(super().sort)(column, order)
+	def _sort_value_is_loaded(self, row, column, ascending):
+		try:
+			self.get_sort_value(row, column, ascending)
+		except RuntimeError:
+			return False
+		return True
+	def _load_sort_value(self, row, sort_column, ascending):
+		cells = []
+		for i, cell in enumerate(row.cells):
+			if i == sort_column:
+				sort_value = self._columns[sort_column].get_sort_value(
+					row.url, ascending
+				)
+				if ascending:
+					col_val_asc = sort_value
+					col_val_desc = cell.sort_value_desc
 				else:
-					col_val_asc = column.sort_value_asc
-					col_val_desc = column.sort_value_desc
-				cells.append(Cell(column.str, col_val_asc, col_val_desc))
-			files_new.append(File(
-				row.url, row.icon, row.is_dir, cells, row.is_loaded
-			))
-		self._record_files(files_new)
+					col_val_asc = cell.sort_value_asc
+					col_val_desc = sort_value
+			else:
+				col_val_asc = cell.sort_value_asc
+				col_val_desc = cell.sort_value_desc
+			cells.append(Cell(cell.str, col_val_asc, col_val_desc))
+		return File(row.url, row.icon, row.is_dir, cells, row.is_loaded)
 	@asynch(priority=4)
 	def reload(self):
-		f = lambda: (dict(self._files), self._sort_column, self._sort_ascending)
-		files_before, sort_column, ascending = run_in_main_thread(f)()
 		self._fs.clear_cache(self._location)
 		files = []
 		file_names = iter(self._fs.iterdir(self._location))
@@ -205,21 +204,21 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 				url = join(self._location, file_name)
 				try:
 					try:
-						file_before = files_before[url]
+						file_before = self._files[url]
 					except KeyError:
-						file_ = self._init_file(url, sort_column, ascending)
+						file_ = self._init_file(url)
 					else:
 						if file_before.is_loaded:
 							file_ = self._load_file(url)
 						else:
-							file_ = self._init_file(url, sort_column, ascending)
+							file_ = self._init_file(url)
 				except FileNotFoundError:
 					continue
 				files.append(file_)
 		else:
 			assert self._shutdown
 			return
-		self._set_files(files, sort_column, ascending)
+		self._set_files(files)
 	def get_columns(self):
 		return self._columns
 	def get_location(self):
