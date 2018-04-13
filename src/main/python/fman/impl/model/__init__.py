@@ -54,14 +54,6 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		for filter_ in self._filters:
 			new_model.add_filter(filter_)
 		self.setSourceModel(new_model)
-		# At this point, we're "loaded" with an empty source model. Before we
-		# actually start loading, set the sort column to ensure that this proxy
-		# model doesn't accidentally query the wrong sort value as rows are
-		# being inserted.
-		self.sort(
-			sort_col_index,
-			Qt.AscendingOrder if ascending else Qt.DescendingOrder
-		)
 		self._connect_signals(new_model)
 		new_model.start(callback)
 		self._already_visited.add(url)
