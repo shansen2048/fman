@@ -110,4 +110,4 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 	def _emit_sort_order_changed(self, column, order):
 		self.sort_order_changed.emit(column, order)
 	def __str__(self):
-		return '<%s: %s>' % (self.__class__.__name__, self._location)
+		return '<%s: %s>' % (self.__class__.__name__, self.get_location())
