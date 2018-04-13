@@ -27,18 +27,18 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		if callback is None:
 			callback = lambda: None
 		url = self._fs.resolve(url)
-		columns = self._fs.get_columns(url)
-		if sort_column:
-			column_names = [col.get_qualified_name() for col in columns]
-			sort_col_index = column_names.index(sort_column)
-		else:
-			sort_col_index = 0
 		old_model = self.sourceModel()
 		if old_model:
 			if url == old_model.get_location():
 				callback()
 				return
 			old_model.shutdown()
+		columns = self._fs.get_columns(url)
+		if sort_column:
+			column_names = [col.get_qualified_name() for col in columns]
+			sort_col_index = column_names.index(sort_column)
+		else:
+			sort_col_index = 0
 		if url in self._already_visited:
 			orig_callback = callback
 			def callback():
