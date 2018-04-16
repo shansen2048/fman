@@ -1,3 +1,4 @@
+from core.util import is_parent
 from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
 from fman.url import basename, join, dirname, splitscheme, relpath, \
 	as_human_readable
@@ -27,6 +28,8 @@ class FileTreeOperation:
 		raise NotImplementedError()
 	def _perform_on_file(self, src, dest):
 		raise NotImplementedError()
+	def _perform_on_samefile(self, src, dest):
+		raise NotImplementedError()
 	def __call__(self):
 		for i, src in enumerate(self._files):
 			is_last = i == len(self._files) - 1
@@ -36,26 +39,30 @@ class FileTreeOperation:
 	def _call_on_file(self, src, is_last):
 		self._report_processing_of_file(src)
 		dest = self._get_dest_url(src)
-		if dest == src or dest.startswith(src + '/'):
+		if is_parent(src, dest, self._fs):
+			if src != dest:
+				try:
+					is_samefile = self._fs.samefile(src, dest)
+				except OSError:
+					is_samefile = False
+				if is_samefile and self._perform_on_samefile(src, dest):
+					return True
 			self._show_self_warning()
 			return True
 		try:
 			if self._fs.is_dir(src):
 				if self._fs.exists(dest):
-					if self._fs.samefile(src, dest):
-						return True
-					else:
-						for top_dir, _, files in self._walk_bottom_up(src):
-							for file_url in files:
-								dst = self._get_dest_url(file_url)
-								try:
-									if not self.perform_on_file(file_url, dst):
-										return False
-								except (OSError, IOError) as e:
-									return self._handle_exception(
-										file_url, is_last, e
-									)
-							self.postprocess_directory(top_dir)
+					for top_dir, _, files in self._walk_bottom_up(src):
+						for file_url in files:
+							dst = self._get_dest_url(file_url)
+							try:
+								if not self.perform_on_file(file_url, dst):
+									return False
+							except (OSError, IOError) as e:
+								return self._handle_exception(
+									file_url, is_last, e
+								)
+						self.postprocess_directory(top_dir)
 				else:
 					self._perform_on_dir_dest_doesnt_exist(src, dest)
 			else:
@@ -163,6 +170,9 @@ class CopyFiles(FileTreeOperation):
 		self._fs.copy(src, dest)
 	def _perform_on_file(self, src, dest):
 		self._fs.copy(src, dest)
+	def _perform_on_samefile(self, src, dest):
+		# Can never copy to the same file.
+		return False
 
 class MoveFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
@@ -183,3 +193,9 @@ class MoveFiles(FileTreeOperation):
 		self._fs.move(src, dest)
 	def _perform_on_file(self, src, dest):
 		self._fs.move(src, dest)
+	def _perform_on_samefile(self, src, dest):
+		# May be able to move to the same file on case insensitive file systems.
+		# Consider a/ and A/: They are the "same" file yet it does make sense to
+		# rename one to the other.
+		self._fs.move(src, dest)
+		return True

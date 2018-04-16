@@ -2,7 +2,7 @@ from core.fileoperations import CopyFiles, MoveFiles
 from core.github import find_repos, GitHubRepo
 from core.os_ import open_terminal_in_directory, open_native_file_manager, \
 	get_popen_kwargs_for_opening
-from core.util import strformat_dict_values, listdir_absolute
+from core.util import strformat_dict_values, listdir_absolute, is_parent
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
@@ -428,7 +428,7 @@ class _TreeCommand(DirectoryPaneCommand):
 		else:
 			files_descr = '%d files' % len(files)
 			suggested_dst = as_human_readable(dest_dir)
-		message = '%s %s to' % (cls.__name__, files_descr)
+		message = '%s %s to' % (cls._verb().capitalize(), files_descr)
 		dest, ok = ui.show_prompt(
 			message, suggested_dst, selection_start, selection_end
 		)
@@ -441,6 +441,16 @@ class _TreeCommand(DirectoryPaneCommand):
 					ui.show_alert('Could not read from %s (%s)' % (dest, e))
 					return
 				if dest_is_dir:
+					if len(files) == 1 and fs.samefile(dest_url, files[0]):
+						# This happens when renaming a/ -> A/ on
+						# case-insensitive file systems.
+						return _split(dest_url)
+					for file_ in files:
+						if is_parent(file_, dest_url, fs):
+							ui.show_alert(
+								'You cannot %s a file to itself!' % cls._verb()
+							)
+							return
 					return dest_url, None
 				else:
 					if len(files) == 1:
@@ -448,7 +458,7 @@ class _TreeCommand(DirectoryPaneCommand):
 					else:
 						ui.show_alert(
 							'You cannot %s multiple files to a single file!' %
-							cls.__name__.lower()
+							cls._verb()
 						)
 			else:
 				if len(files) == 1:
@@ -457,11 +467,14 @@ class _TreeCommand(DirectoryPaneCommand):
 					choice = ui.show_alert(
 						'%s does not exist. Do you want to create it '
 						'as a directory and %s the files there?' %
-						(as_human_readable(dest_url), cls.__name__.lower()),
+						(as_human_readable(dest_url), cls._verb()),
 						YES | NO, YES
 					)
 					if choice & YES:
 						return dest_url, None
+	@classmethod
+	def _verb(cls):
+		return cls.__name__.lower()
 
 def get_dest_suggestion(dst_url):
 	scheme = splitscheme(dst_url)[0]
