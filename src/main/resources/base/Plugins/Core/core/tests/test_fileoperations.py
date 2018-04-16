@@ -371,6 +371,15 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def test_move_to_self(self):
 		external_file = super().test_move_to_self()
 		self.assertFalse(exists(external_file))
+	@skipIf(PLATFORM == 'Linux', 'Case-insensitive file systems only')
+	def test_rename_directory_case(self):
+		container = join(self.dest, 'container')
+		directory = join(container, 'a')
+		self._makedirs(directory)
+		self._perform_on(
+			directory, src_dir=container, dest_dir=container, dest_name='A'
+		)
+		self._expect_files({'A'}, in_dir=container)
 	def test_external_file(self):
 		external_file = super().test_external_file()
 		self.assertFalse(exists(external_file))

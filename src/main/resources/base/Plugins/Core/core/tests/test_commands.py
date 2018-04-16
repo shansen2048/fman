@@ -23,18 +23,36 @@ class FindExtensionStartTest(TestCase):
 class ConfirmTreeOperationTest(TestCase):
 
 	class FileSystem:
-		def __init__(self, files):
+		def __init__(self, files, case_sensitive=PLATFORM == 'Linux'):
 			self._files = files
+			self._case_sensitive = case_sensitive
 
 		def exists(self, url):
-			return url in self._files
+			try:
+				self._get(url)
+			except KeyError:
+				return False
+			return True
 
 		def is_dir(self, url):
 			try:
-				file_info = self._files[url]
+				file_info = self._get(url)
 			except KeyError:
 				raise filenotfounderror(url) from None
 			return file_info['is_dir']
+
+		def samefile(self, url1, url2):
+			if not self._case_sensitive:
+				url1 = url1.lower()
+				url2 = url2.lower()
+			return url1 == url2
+
+		def _get(self, url):
+			dict_ = self._files
+			if not self._case_sensitive:
+				dict_ = {k.lower(): v for k, v in self._files.items()}
+				url = url.lower()
+			return dict_[url]
 
 	def test_no_files(self):
 		self._expect_alert(('No file is selected!',), answer=OK)
@@ -53,6 +71,12 @@ class ConfirmTreeOperationTest(TestCase):
 			('Move "a" to', dest_path, 0, None), (dest_path, True)
 		)
 		self._check([self._a], (self._dest, None))
+	def test_rename_dir_to_uppercase(self):
+		dest_path = as_human_readable(self._src)
+		self._expect_prompt(
+			('Move "a" to', dest_path, 0, None), ('A', True)
+		)
+		self._check([self._a], (self._src, 'A'), dest_dir=self._src)
 	def test_two_files(self):
 		dest_path = as_human_readable(self._dest)
 		self._expect_prompt(
@@ -89,6 +113,13 @@ class ConfirmTreeOperationTest(TestCase):
 			('You cannot move multiple files to a single file!',), answer=OK
 		)
 		self._check([self._a_txt, self._b_txt], None)
+	def test_multiple_into_self(self):
+		dest_path = as_human_readable(self._a)
+		self._expect_prompt(
+			('Move 2 files to', dest_path, 0, None), (dest_path, True)
+		)
+		self._expect_alert(('You cannot move a file to itself!',), answer=OK)
+		self._check([self._a_txt, self._a], None, dest_dir=self._a)
 	def test_renamed_destination(self):
 		dest_path = as_human_readable(join(self._dest, 'a.txt'))
 		sel_start = dest_path.rindex(os.sep) + 1
