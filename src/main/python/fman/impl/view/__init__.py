@@ -68,10 +68,14 @@ class ResizeColumnsToContents(QTableView):
 		]
 	def _get_visible_row_range(self):
 		header = self.verticalHeader()
-		start = header.logicalIndexAt(0)
+		# We can use QHeaderView#visualIndexAt(...) because we (currently) don't
+		# have hidden rows. This is roughly twice as fast as
+		# QHeaderView#logicalIndexAt(...) and saves a few hundred ms.
+		index_at = lambda y: header.visualIndexAt(y)
+		start = index_at(0)
 		if start == -1:
 			start = 0
-		stop = header.logicalIndexAt(header.viewport().height()) + 1
+		stop = index_at(header.viewport().height()) + 1
 		if stop == 0:
 			stop = self.model().rowCount()
 		return range(start, stop)
