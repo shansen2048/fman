@@ -16,18 +16,20 @@ class TableModel:
 		self._column_headers = column_headers
 		self._rows = []
 	def rowCount(self, parent=QModelIndex()):
-		if parent.isValid():
-			# According to the Qt docs for QAbstractItemModel#rowCount(...):
-			# "When implementing a table based model, columnCount() should
-			#  return 0 when the parent is valid."
-			return 0
+		# According to the Qt docs for QAbstractItemModel#rowCount(...):
+		#  > When implementing a table based model, rowCount() should
+		#  > return 0 when the parent is valid.
+		# So in theory, we should check parent.isValid() here. But because this
+		# is a 2d-table, `parent` will never be anything but an invalid index.
+		# So we forego this check to save ~100ms in performance.
 		return len(self._rows)
 	def columnCount(self, parent=QModelIndex()):
-		if parent.isValid():
-			# According to the Qt docs for QAbstractItemModel#columnCount(...):
-			# "When implementing a table based model, columnCount() should
-			#  return 0 when the parent is valid."
-			return 0
+		# According to the Qt docs for QAbstractItemModel#columnCount(...):
+		#  > When implementing a table based model, columnCount() should
+		#  > return 0 when the parent is valid.
+		# So in theory, we should check parent.isValid() here. But because this
+		# is a 2d-table, `parent` will never be anything but an invalid index.
+		# So we forego this check to save ~100ms in performance.
 		return len(self._column_headers)
 	def data(self, index, role=DisplayRole):
 		if self._index_is_valid(index):
