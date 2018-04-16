@@ -12,7 +12,7 @@ from PyQt5.QtGui import QPen, QPainter
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QHeaderView, QToolTip
 
-class ResizeColumnsToContents(QTableView):
+class ResizeColumnsToContents(UniformRowHeights):
 	def __init__(self, parent):
 		super().__init__(parent)
 		self.horizontalHeader().sectionResized.connect(self._on_col_resized)
@@ -22,21 +22,18 @@ class ResizeColumnsToContents(QTableView):
 		self._resize_cols_to_contents()
 	def resizeEvent(self, event):
 		super().resizeEvent(event)
-		self._tune_resizeContentsPrecision()
+		num_rows_visible = self._get_num_visible_rows()
+		self.model().set_num_rows_to_preload(num_rows_visible)
+		# Performance improvement: We call sizeHintForColumn(...). By default,
+		# this considers 1000 rows. So what Qt does is that it "loads" the 1000
+		# rows and then computes their size. This can be expensive. We therefore
+		# reduce 1000 to the number of rows that are actually visible (typically
+		# ~50).
+		self.horizontalHeader().setResizeContentsPrecision(num_rows_visible)
 		self._resize_cols_to_contents(self._old_col_widths)
 		self._old_col_widths = self._get_column_widths()
-	def _tune_resizeContentsPrecision(self):
-		"""
-		Performance improvement: We call sizeHintForColumn(...). By default,
-		this considers 1000 rows. So what Qt does is that it "loads" the 1000
-		rows and then computes their size. This can be expensive. We therefore
-		reduce 1000 to the number of rows that are actually visible (typically
-		~50).
-		"""
-		num_rows_visible = self._get_num_visible_rows()
-		self.horizontalHeader().setResizeContentsPrecision(num_rows_visible)
 	def _get_num_visible_rows(self):
-		row_height = self.sizeHintForRow(0)
+		row_height = self.get_row_height()
 		if row_height == -1:
 			# This for instance happens when the model has 0 rows.
 			return 0
@@ -129,7 +126,7 @@ class ResizeColumnsToContents(QTableView):
 			self._handle_col_resize = True
 
 class FileListView(
-	SingleRowMode, MoveWithoutUpdatingSelection, DragAndDrop, UniformRowHeights,
+	SingleRowMode, MoveWithoutUpdatingSelection, DragAndDrop,
 	ResizeColumnsToContents
 ):
 	def __init__(self, parent):
@@ -215,7 +212,6 @@ class FileListView(
 				self._urls_being_loaded.remove(url)
 			except ValueError:
 				pass
-		self.update()
 	def _on_model_reset(self):
 		self._urls_being_loaded = []
 		super()._on_model_reset()

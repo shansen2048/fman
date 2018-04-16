@@ -15,15 +15,17 @@ class UniformRowHeights(QTableView):
 		if row < 0 or row >= model.rowCount():
 			# Mirror super implementation.
 			return -1
+		return self.get_row_height()
+	def get_row_height(self):
 		if self._row_height is None:
-			self._row_height = max(self._get_cell_heights(row))
+			self._row_height = max(self._get_cell_heights())
 		return self._row_height
 	def changeEvent(self, event):
 		# This for instance happens when the style sheet changed. It may affect
 		# the calculated row height. So invalidate:
 		self._row_height = None
 		super().changeEvent(event)
-	def _get_cell_heights(self, row):
+	def _get_cell_heights(self, row=0):
 		self.ensurePolished()
 		option = self.viewOptions()
 		model = self.model()
@@ -31,11 +33,10 @@ class UniformRowHeights(QTableView):
 			model.rowCount(), model.columnCount(), option.decorationSize
 		)
 		for column in range(model.columnCount()):
-			index = model.index(row, column)
+			index = dummy_model.index(row, column)
 			delegate = self.itemDelegate(index)
 			if delegate:
-				dummy_index = dummy_model.index(row, column)
-				yield delegate.sizeHint(option, dummy_index).height()
+				yield delegate.sizeHint(option, index).height()
 
 class DummyModel(QAbstractTableModel):
 	"""

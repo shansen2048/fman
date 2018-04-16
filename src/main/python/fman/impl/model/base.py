@@ -40,12 +40,16 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 	location_loaded = pyqtSignal(str)
 	file_renamed = pyqtSignal(str, str)
 
-	def __init__(self, fs, location, columns, sort_column=0, ascending=True):
+	def __init__(
+		self, fs, location, columns, sort_column=0, ascending=True,
+		num_rows_to_preload=0
+	):
 		column_headers = [column.display_name for column in columns]
 		super().__init__(column_headers, sort_column, ascending)
 		self._fs = fs
 		self._location = location
 		self._columns = columns
+		self._num_rows_to_preload = num_rows_to_preload
 		self._files = {}
 		self._file_watcher = FileWatcher(fs, self)
 		self._worker = Worker()
@@ -73,8 +77,16 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		else:
 			assert self._shutdown
 			return
+		files = self._sorted(self._filter(files))
+		for i in range(min(self._num_rows_to_preload, len(files))):
+			if self._shutdown:
+				return
+			try:
+				files[i] = self._load_file(files[i].url)
+			except FileNotFoundError:
+				pass
 		if files:
-			self._set_files(files)
+			self._on_rows_inited(files)
 		# Invoke the callback before emitting location_loaded. The reason is
 		# that the default location_loaded handler places the cursor - if is has
 		# not been placed yet. If the callback does place it, ugly "flickering"
@@ -105,11 +117,11 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			result.append(Cell(str_, sort_val_asc, sort_val_desc))
 		return result
 	@run_in_main_thread
-	def _set_files(self, rows):
+	def _on_rows_inited(self, rows):
 		self._files = {
 			row.url: row for row in rows
 		}
-		self.update()
+		self.set_rows(rows)
 	def row_is_loaded(self, rownum):
 		return self._rows[rownum].is_loaded
 	def load_rows(self, rownums, callback=None):
@@ -220,9 +232,15 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		else:
 			assert self._shutdown
 			return
-		self._set_files(files)
+		self._on_files_reloaded(files)
 		# We may have found new files that now still need to be loaded:
 		self._load_remaining_files()
+	@run_in_main_thread
+	def _on_files_reloaded(self, rows):
+		self._files = {
+			row.url: row for row in rows
+		}
+		self.update()
 	def get_columns(self):
 		return self._columns
 	def get_location(self):

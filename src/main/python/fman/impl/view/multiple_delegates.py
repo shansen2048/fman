@@ -21,6 +21,8 @@ class CompositeItemDelegate(QStyledItemDelegate):
 		self._items.remove(item)
 	def initStyleOption(self, option, index):
 		super().initStyleOption(option, index)
+		if not index.isValid():
+			return
 		for item in self._items:
 			# Unlike the other methods in this class, we don't call
 			# `item.initStyleOption(...)` here, for the following reason:
