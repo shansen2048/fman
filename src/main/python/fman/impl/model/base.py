@@ -148,6 +148,8 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 	def _load_file(self, url):
 		try:
 			is_dir = self._fs.is_dir(url)
+		except FileNotFoundError:
+			raise
 		except OSError:
 			is_dir = False
 		icon = self._fs.icon(url) or _get_empty_icon()
