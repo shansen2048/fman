@@ -270,10 +270,6 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			return True
 		return super().setData(index, value, role)
 	@asynch(priority=5)
-	def notify_file_added(self, url):
-		assert dirname(url) == self._location
-		self._load_files([url])
-	@asynch(priority=5)
 	def notify_file_changed(self, url):
 		assert dirname(url) == self._location
 		self._fs.clear_cache(url)
@@ -283,11 +279,6 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		assert dirname(old_url) == dirname(new_url) == self._location
 		self._fs.clear_cache(old_url)
 		self._load_files([old_url, new_url])
-	@asynch(priority=5)
-	def notify_file_removed(self, url):
-		assert dirname(url) == self._location
-		self._fs.clear_cache(url)
-		self._load_files([url])
 	@asynch(priority=6)
 	def _load_remaining_files(self, batch_timeout=.2):
 		end_time = time() + batch_timeout
