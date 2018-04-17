@@ -17,6 +17,7 @@ makes Qt print a warning. We suppress it with a custom QtMessageHandler.
 """
 
 from concurrent.futures import ThreadPoolExecutor
+from fbs_runtime.system import is_mac
 from fman.impl.util.qt.thread import run_in_thread
 from fman_integrationtest.impl.model.test___init__ import \
 	SortedFileSystemModelAT
@@ -24,8 +25,10 @@ from fman_integrationtest.impl.util.qt.test_thread import RunInThreadAT
 from PyQt5.QtCore import pyqtSignal, Qt, qInstallMessageHandler
 from PyQt5.QtWidgets import QApplication
 from threading import Event
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
+
+@skipIf(is_mac(), 'macOS does not allow running Qt in non-main thread')
 class QtIT(TestCase):
 	def run_in_app(self, f, *args, **kwargs):
 		return _QtApp.run(f, *args, **kwargs)
@@ -37,10 +40,12 @@ class RunInThreadIT(RunInThreadAT, QtIT):
 	pass
 
 def setUpModule():
-	_QtApp.start()
+	if not is_mac():
+		_QtApp.start()
 
 def tearDownModule():
-	_QtApp.shutdown()
+	if not is_mac():
+		_QtApp.shutdown()
 
 class _QtApp:
 	@classmethod
