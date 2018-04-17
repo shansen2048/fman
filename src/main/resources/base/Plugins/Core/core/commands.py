@@ -645,7 +645,18 @@ class OpenTerminal(DirectoryPaneCommand):
 
 class OpenNativeFileManager(DirectoryPaneCommand):
 	def __call__(self):
-		open_native_file_manager(self.pane.get_path())
+		url = self.pane.get_path()
+		scheme, path = splitscheme(url)
+		if scheme != 'file://':
+			if PLATFORM == 'Mac':
+				native_fm = 'Finder'
+			elif PLATFORM == 'Windows':
+				native_fm = 'Explorer'
+			else:
+				native_fm = 'your native file manager'
+			show_alert("Cannot open %s in %s" % (native_fm, scheme))
+			return
+		open_native_file_manager(as_human_readable(url))
 
 class CopyPathsToClipboard(DirectoryPaneCommand):
 	def __call__(self):
