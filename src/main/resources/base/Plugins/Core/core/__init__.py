@@ -19,6 +19,8 @@ class Name(Column):
 	def get_sort_value(self, url, is_ascending):
 		try:
 			is_dir = self._fs.is_dir(url)
+		except FileNotFoundError:
+			raise
 		except OSError:
 			is_dir = False
 		major = is_dir ^ is_ascending
@@ -43,6 +45,8 @@ class Size(Column):
 	def get_str(self, url):
 		try:
 			is_dir = self._fs.is_dir(url)
+		except FileNotFoundError:
+			raise
 		except OSError:
 			return ''
 		if is_dir:
@@ -64,6 +68,8 @@ class Size(Column):
 	def get_sort_value(self, url, is_ascending):
 		try:
 			is_dir = self._fs.is_dir(url)
+		except FileNotFoundError:
+			raise
 		except OSError:
 			is_dir = False
 		if is_dir:
@@ -98,6 +104,8 @@ class Modified(Column):
 	def get_sort_value(self, url, is_ascending):
 		try:
 			is_dir = self._fs.is_dir(url)
+		except FileNotFoundError:
+			raise
 		except OSError:
 			is_dir = False
 		try:
