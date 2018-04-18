@@ -7,7 +7,7 @@ from fman.impl.util.qt import EditRole, connect_once
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.url import join, dirname
 from functools import wraps
-from PyQt5.QtCore import QModelIndex, pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QPixmap
 from threading import Event
 from time import time
