@@ -6,7 +6,7 @@ from unittest import TestCase
 
 class ColumnTest:
 	def setUp(self):
-		file_system = StubFileSystem({
+		self._fs = StubFileSystem({
 			'a': {
 				'is_dir': False, 'size': 1, 'mtime': 1473339042.0
 			},
@@ -24,7 +24,7 @@ class ColumnTest:
 			}
 
 		})
-		self._column = self.column_class(StubFS(file_system))
+		self._column = self.column_class(StubFS(self._fs))
 	def assert_is_less(self, left, right, is_ascending=True):
 		left_val = self._get_sort_value(left, is_ascending)
 		right_val = self._get_sort_value(right, is_ascending)
@@ -67,6 +67,12 @@ class NameTest(ColumnTest, TestCase):
 			'a', 'b', 'a_dir', 'b_dir',
 			is_ascending=False
 		)
+	def assert_is_less(self, left, right, is_ascending=True):
+		if not self._fs.exists(left):
+			self._fs.touch(left)
+		if not self._fs.exists(right):
+			self._fs.touch(right)
+		super().assert_is_less(left, right, is_ascending)
 
 class SizeTest(ColumnTest, TestCase):
 
