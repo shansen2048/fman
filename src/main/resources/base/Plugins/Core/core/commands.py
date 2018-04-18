@@ -1338,6 +1338,8 @@ class History:
 		self._ignore_next_path_change = True
 		return self._paths[self._curr_path]
 	def path_changed(self, path):
+		if path == 'null://':
+			return
 		if self._ignore_next_path_change:
 			self._ignore_next_path_change = False
 			return
