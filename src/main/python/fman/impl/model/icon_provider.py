@@ -73,6 +73,8 @@ class GnomeFileIconProvider(QFileIconProvider):
 				# This happens when we run fman from source.
 				sys.modules['pgi.overrides.GObject'] = None
 				from gi.repository import Gtk, Gio, GLib
+			else:
+				raise
 		# This is required when we use pgi in a PyInstaller-frozen app. See:
 		# https://github.com/lazka/pgi/issues/38
 		Gtk.init(sys.argv)

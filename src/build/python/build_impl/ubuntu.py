@@ -16,7 +16,10 @@ import re
 
 @command
 def exe():
-	freeze_linux()
+	freeze_linux(extra_pyinstaller_args=[
+		'--hidden-import', 'pgi.overrides.GObject',
+		'--hidden-import', 'pgi.overrides.GLib'
+	])
 	postprocess_exe()
 	# When we build on Ubuntu on 14.04 and run on 17.10, fman fails to start
 	# with the following error:
