@@ -9,7 +9,6 @@ from fman.url import join, dirname
 from functools import wraps
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QPixmap
-from threading import Event
 from time import time
 
 def asynch(priority):
@@ -272,25 +271,39 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			self.file_renamed.emit(self.url(index), value)
 			return True
 		return super().setData(index, value, role)
-	def notify_file_changed(self, url):
-		self._reload_files([url])
-	def notify_file_renamed(self, old_url, new_url):
-		self._reload_files([old_url, new_url])
-	def _reload_files(self, urls):
-		# Process file changes synchronously. This is to support the following:
-		#  1. Create file
-		#  2. Place cursor at file.
-		# If we processed changes asynchronously, the second step would fail.
-		reloaded = Event()
-		self._reload_files_asynch(urls, reloaded.set)
-		reloaded.wait()
 	@asynch(priority=5)
-	def _reload_files_asynch(self, urls, callback):
-		for url in urls:
-			assert dirname(url) == self._location
-			self._fs.clear_cache(url)
-		self._load_files(urls)
-		callback()
+	def notify_file_added(self, url):
+		assert dirname(url) == self._location
+		self._load_files([url])
+	@asynch(priority=5)
+	def notify_file_changed(self, url):
+		assert dirname(url) == self._location
+		self._fs.clear_cache(url)
+		self._load_files([url])
+	@asynch(priority=5)
+	def notify_file_renamed(self, old_url, new_url):
+		assert dirname(old_url) == dirname(new_url) == self._location
+		self._fs.clear_cache(old_url)
+		try:
+			new_file = self._load_file(new_url)
+		except FileNotFoundError:
+			self._record_files([], [old_url, new_url])
+		else:
+			self._on_file_renamed(old_url, new_file)
+	@run_in_main_thread
+	def _on_file_renamed(self, old_url, new_file):
+		try:
+			old_row = self.find(old_url).row()
+		except ValueError:
+			pass
+		else:
+			self.update_rows([new_file], old_row)
+		self._record_files([new_file], [old_url])
+	@asynch(priority=5)
+	def notify_file_removed(self, url):
+		assert dirname(url) == self._location
+		self._fs.clear_cache(url)
+		self._record_files([], [url])
 	@asynch(priority=6)
 	def _load_remaining_files(self, batch_timeout=.2):
 		end_time = time() + batch_timeout

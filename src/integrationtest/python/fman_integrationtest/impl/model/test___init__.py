@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from core import Name, Size
+from fbs_runtime.system import is_linux
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.plugins.builtin import NullFileSystem, NullColumn
 from fman.impl.plugins.mother_fs import MotherFileSystem
@@ -151,6 +152,14 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 			lambda: not '0' in self._get_first_column(),
 			'Did not pick up move of file into subdirectory'
 		)
+	def test_rename_file_different_case(self):
+		self.test_set_location()
+		self._stubfs.move('stub://dir', 'stub://Dir')
+		self._fs.file_moved.trigger('stub://dir', 'stub://Dir')
+		def rename_noticed():
+			first_column = self._get_first_column()
+			return 'Dir' in first_column and 'dir' not in first_column
+		self._wait_until(rename_noticed, 'Did not pick up renaming of file')
 	def _set_location(self, location):
 		loaded = Event()
 		self._model.set_location(location, callback=loaded.set)
@@ -194,12 +203,13 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 			self._files['']['files'].append(fname)
 		self._folder_icon = folder_icon
 		self._file_icon = file_icon
-		self._fs = MotherFileSystem(StubIconProvider(self._files))
+		files = self._files if is_linux() else CaseInsensitiveDict(self._files)
+		self._fs = MotherFileSystem(StubIconProvider(files))
 		self._fs.add_child('null://', NullFileSystem())
 		self._null_column = NullColumn()
 		self._register_column(self._null_column)
 		self._stubfs = StubFileSystem(
-			self._files, default_columns=('core.Name', 'core.Size')
+			files, default_columns=('core.Name', 'core.Size')
 		)
 		self._fs.add_child('stub://', self._stubfs)
 		self._name_column = Name(self._fs)
@@ -247,3 +257,36 @@ class StubIconProvider:
 			return self._files[path].get('icon', None)
 		except KeyError:
 			raise filenotfounderror(url)
+
+class CaseInsensitiveDict:
+	def __init__(self, items):
+		self._items = items
+	def __getitem__(self, key):
+		for k, v in self._items.items():
+			if k.lower() == key.lower():
+				return v
+		raise KeyError(key)
+	def	__setitem__(self, key, value):
+		for k, v in self._items.items():
+			if k.lower() == key.lower():
+				self._items[k] = value
+				return
+		self._items[key] = value
+	def __contains__(self, item):
+		try:
+			self[item]
+		except KeyError:
+			return False
+		return True
+	def pop(self, key):
+		for k, v in self._items.items():
+			if k.lower() == key.lower():
+				return self._items.pop(key)
+		raise KeyError(key)
+	def items(self):
+		return self._items.items()
+	def clear(self):
+		self._items.clear()
+	def update(self, other):
+		for k, v in other.items():
+			self[k] = v
