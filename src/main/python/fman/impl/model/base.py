@@ -9,13 +9,24 @@ from fman.url import join, dirname
 from functools import wraps
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QPixmap
+from threading import Event
 from time import time
 
-def asynch(priority):
+def transaction(priority, synchronous=False):
 	def decorator(f):
 		@wraps(f)
 		def result(self, *args, **kwargs):
-			if not self._shutdown:
+			if self._shutdown:
+				return
+			if synchronous:
+				assert not is_in_main_thread()
+				has_run = Event()
+				def task():
+					f(self, *args, **kwargs)
+					has_run.set()
+				self._worker.submit(priority, task)
+				has_run.wait()
+			else:
 				self._worker.submit(priority, f, self, *args, **kwargs)
 		return result
 	return decorator
@@ -33,8 +44,8 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 	atomically commit it to the model. This ensures that the view (which also
 	runs in the main thread) does not read data that is only partially complete.
 
-	The worker's operations are encapsulated in @asynch methods below. Each of
-	these operations represents an atomic update of data.
+	The worker's operations are encapsulated in @transaction methods below. Each
+	of these operations represents an atomic update of data.
 	"""
 
 	location_loaded = pyqtSignal(str)
@@ -58,7 +69,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		connect_once(self.location_loaded, lambda _: self._file_watcher.start())
 		self._worker.start()
 		self._init(callback)
-	@asynch(priority=1)
+	@transaction(priority=1)
 	def _init(self, callback):
 		files = []
 		file_names = iter(self._fs.iterdir(self._location))
@@ -128,7 +139,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		assert is_in_main_thread()
 		urls = [self._rows[i].url for i in rownums]
 		self._load_files_async(urls, callback)
-	@asynch(priority=2)
+	@transaction(priority=2)
 	def _load_files_async(self, urls, callback=None):
 		self._load_files(urls, callback)
 	def _load_files(self, urls, callback=None):
@@ -170,7 +181,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		for file_ in files:
 			self._files[file_.url] = file_
 		self.update()
-	@asynch(priority=3)
+	@transaction(priority=3)
 	def sort(self, column, order=Qt.AscendingOrder):
 		ascending = order == Qt.AscendingOrder
 		for i, row in enumerate(self._rows):
@@ -206,7 +217,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 				col_val_desc = cell.sort_value_desc
 			cells.append(Cell(cell.str, col_val_asc, col_val_desc))
 		return File(row.url, row.icon, row.is_dir, cells, row.is_loaded)
-	@asynch(priority=4)
+	@transaction(priority=4)
 	def reload(self):
 		self._fs.clear_cache(self._location)
 		files = []
@@ -271,16 +282,16 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			self.file_renamed.emit(self.url(index), value)
 			return True
 		return super().setData(index, value, role)
-	@asynch(priority=5)
+	@transaction(priority=5, synchronous=True)
 	def notify_file_added(self, url):
 		assert dirname(url) == self._location
 		self._load_files([url])
-	@asynch(priority=5)
+	@transaction(priority=5, synchronous=True)
 	def notify_file_changed(self, url):
 		assert dirname(url) == self._location
 		self._fs.clear_cache(url)
 		self._load_files([url])
-	@asynch(priority=5)
+	@transaction(priority=5, synchronous=True)
 	def notify_file_renamed(self, old_url, new_url):
 		assert dirname(old_url) == dirname(new_url) == self._location
 		self._fs.clear_cache(old_url)
@@ -299,12 +310,12 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		else:
 			self.update_rows([new_file], old_row)
 		self._record_files([new_file], [old_url])
-	@asynch(priority=5)
+	@transaction(priority=5, synchronous=True)
 	def notify_file_removed(self, url):
 		assert dirname(url) == self._location
 		self._fs.clear_cache(url)
 		self._record_files([], [url])
-	@asynch(priority=6)
+	@transaction(priority=6)
 	def _load_remaining_files(self, batch_timeout=.2):
 		end_time = time() + batch_timeout
 		files = []

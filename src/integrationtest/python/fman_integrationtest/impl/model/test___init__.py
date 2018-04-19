@@ -103,9 +103,12 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 		}
 		self._files['']['files'].append('new')
 		self._fs.file_added.trigger('stub://new')
-		self._wait_until(
-			lambda: 'new' in [r[0] for r in self._get_data()],
-			'Did not pick up externally added file'
+		self.assertTrue(
+			'new' in [r[0] for r in self._get_data()],
+			'Should have processed new file synchronously to support use case:'
+			' 1. Create file.txt'
+			' 2. place cursor at file.txt. '
+			'Without synchronous processing, step 2. would fail.'
 		)
 	def test_file_removed(self):
 		self.test_set_location()
