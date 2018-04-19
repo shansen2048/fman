@@ -217,7 +217,7 @@ class SignHelper:
 	def _run_signtool(self, file_path, description='', url=''):
 		args = [
 			'signtool', 'sign', '/f', path('conf/windows/michaelherrmann.pfx'),
-			'/p', 'Tu4suttmdpn!', '/tr', 'http://tsa.startssl.com/rfc3161'
+			'/p', 'Tu4suttmdpn!', '/tr', 'http://sha256timestamp.ws.symantec.com/sha256/timestamp'
 		]
 		if description:
 			args.extend(['/d', description])
