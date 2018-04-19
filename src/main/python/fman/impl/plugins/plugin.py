@@ -241,13 +241,16 @@ class Wrapper:
 	@property
 	def _class_name(self):
 		return self._wrapped.__class__.__name__
-	def _handle_exceptions(self):
+	def _handle_exceptions(self, exclude=None):
 		message = '%s %r raised error.' % (self._type_name, self._class_name)
-		return HandleExceptions(self._error_handler, message)
+		return HandleExceptions(self._error_handler, message, exclude)
 
 class HandleExceptions:
-	def __init__(self, error_handler, message):
+	def __init__(self, error_handler, message, exclude=None):
+		if exclude is None:
+			exclude = []
 		self.exception = None
+		self._exclude = exclude
 		self._error_handler = error_handler
 		self._message = message
 	def __enter__(self):
@@ -259,9 +262,9 @@ class HandleExceptions:
 		if isinstance(exc_val, SystemExit):
 			exc_code = 0 if exc_val.code is None else exc_val.code
 			self._error_handler.handle_system_exit(exc_code)
-		else:
+		elif exc_type not in self._exclude:
 			self._error_handler.report(self._message, exc_val)
-		return True
+			return True
 
 class CommandWrapper(Wrapper):
 	def __init__(self, command, error_handler, callback):
@@ -381,10 +384,10 @@ class ColumnWrapper(Wrapper):
 	def __init__(self, wrapped, error_handler):
 		super().__init__(wrapped, 'Column', error_handler)
 	def get_str(self, url):
-		with self._handle_exceptions():
+		with self._handle_exceptions(exclude=(FileNotFoundError,)):
 			return self._wrapped.get_str(url)
 	def get_sort_value(self, url, is_ascending):
-		with self._handle_exceptions():
+		with self._handle_exceptions(exclude=(FileNotFoundError,)):
 			return self._wrapped.get_sort_value(url, is_ascending)
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)
