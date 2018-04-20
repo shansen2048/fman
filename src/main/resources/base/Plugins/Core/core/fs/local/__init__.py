@@ -107,9 +107,12 @@ class LocalFileSystem(FileSystem):
 		# QApplication which isn't available in some tests.
 		if self._watcher is None:
 			self._watcher = QFileSystemWatcher()
-			self._watcher.directoryChanged.connect(self.notify_file_changed)
-			self._watcher.fileChanged.connect(self.notify_file_changed)
+			self._watcher.directoryChanged.connect(self._on_file_changed)
+			self._watcher.fileChanged.connect(self._on_file_changed)
 		return self._watcher
+	def _on_file_changed(self, file_path):
+		path_forward_slashes = splitscheme(as_url(file_path))[1]
+		self.notify_file_changed(path_forward_slashes)
 	def _get_src_dst_path(self, src_url, dst_url):
 		src_scheme, src_path = splitscheme(src_url)
 		dst_scheme, dst_path = splitscheme(dst_url)
