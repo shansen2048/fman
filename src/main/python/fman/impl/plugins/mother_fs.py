@@ -191,17 +191,19 @@ class CachedIterator:
 		self._source = source
 		self._lock = Lock()
 		self._items = []
-		self._values_to_skip = []
+		self._values_to_skip = {}
 		self._values_to_add = []
 	def remove(self, value):
-		for item in self._items:
-			if item.value == value:
-				item.is_deleted = True
-				return
-		self._values_to_skip.append(value)
+		with self._lock:
+			for item in self._items:
+				if item.value == value:
+					item.is_deleted = True
+					return
+			self._values_to_skip[value] = self._values_to_skip.get(value, 0) + 1
 	def append(self, value):
 		# N.B.: Behaves like set#add(...), not like list#append(...)!
-		self._values_to_add.append(value)
+		with self._lock:
+			self._values_to_add.append(value)
 	def __iter__(self):
 		return _CachedIterator(self)
 	def get_next(self, pointer):
@@ -222,11 +224,16 @@ class CachedIterator:
 						break
 				else:
 					raise
-			if self._values_to_skip and result == self._values_to_skip[0]:
-				self._values_to_skip.pop(0)
-			else:
+			try:
+				count = self._values_to_skip[result]
+			except KeyError:
 				self._items.append(self.Item(result))
 				return result
+			else:
+				if count == 1:
+					del self._values_to_skip[result]
+				else:
+					self._values_to_skip[result] = count - 1
 
 class _CachedIterator:
 	def __init__(self, parent):

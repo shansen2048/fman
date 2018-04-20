@@ -252,6 +252,13 @@ class CachedIteratorTest(TestCase):
 		iterable.append(1)
 		with self.assertRaises(StopIteration, msg='Should not return 1 again.'):
 			next(iterator)
+	def test_add_remove_out_of_order(self):
+		iterable = CachedIterator(self._generate(1, 2))
+		iterator = iter(iterable)
+		iterable.remove(2)
+		iterable.remove(1)
+		with self.assertRaises(StopIteration):
+			next(iterator)
 	def _generate(self, *args):
 		yield from args
 	def _generate_slowly(self, *args):
