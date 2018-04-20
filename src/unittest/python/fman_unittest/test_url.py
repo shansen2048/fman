@@ -27,6 +27,9 @@ class AsHumanReadableTest(TestCase):
 	def test_root(self):
 		root = 'C:\\' if is_windows() else '/'
 		self.assertEqual(root, as_human_readable(as_url(root)))
+	def test_percent(self):
+		path = r'C:\%62.txt' if is_windows() else '/%62.txt'
+		self.assertEqual(path, as_human_readable(as_url(path)))
 
 class DirnameTest(TestCase):
 	def test_root_windows(self):
