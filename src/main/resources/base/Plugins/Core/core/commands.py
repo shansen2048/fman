@@ -13,6 +13,7 @@ from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 from getpass import getuser
 from io import UnsupportedOperation
 from itertools import chain, islice
+from os import strerror
 from os.path import basename, normpath, expanduser, isabs, pardir, islink
 from pathlib import PurePath, Path
 from PyQt5.QtCore import QFileInfo, QUrl
@@ -95,19 +96,39 @@ class MoveToTrash(DirectoryPaneCommand):
 		else:
 			description = as_human_readable(urls[0])
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
-		choice = show_alert(
-			"Do you really want to move %s to the %s?" % (description, trash),
-			YES | NO, YES
-		)
-		if choice & YES:
-			for url in urls:
-				try:
-					move_to_trash(url)
-				except FileNotFoundError:
-					# Perhaps the file has already been deleted.
-					pass
-				except UnsupportedOperation:
-					delete(url)
+		msg = "Do you really want to move %s to the %s?" % (description, trash)
+		_delete(urls, msg, move_to_trash, delete)
+
+def _delete(urls, message, delete_fn, fallback=None):
+	choice = show_alert(message, YES | NO, YES)
+	if not choice & YES:
+		return
+	ignore_errors = False
+	for url in urls:
+		try:
+			try:
+				delete_fn(url)
+			except UnsupportedOperation:
+				if fallback is None:
+					raise
+				fallback(url)
+		except FileNotFoundError:
+			# Perhaps the file has already been deleted.
+			pass
+		except OSError as e:
+			if ignore_errors:
+				continue
+			message = 'Could not delete ' + basename(url)
+			if e.errno is not None:
+				message += ': %s.' % strerror(e.errno)
+			else:
+				message += '.'
+			message += ' Do you want to continue?'
+			choice = show_alert(message, YES | NO | YES_TO_ALL)
+			if choice & NO:
+				break
+			if choice & YES_TO_ALL:
+				ignore_errors = True
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self, urls=None):
@@ -120,18 +141,10 @@ class DeletePermanently(DirectoryPaneCommand):
 			description = 'these %d items' % len(urls)
 		else:
 			description = as_human_readable(urls[0])
-		choice = show_alert(
-			"Do you really want to PERMANENTLY delete %s? This action cannot "
-			"be undone!" % description,
-			YES | NO, YES
-		)
-		if choice & YES:
-			for file_path in urls:
-				try:
-					delete(file_path)
-				except FileNotFoundError:
-					# Perhaps the file has already been deleted.
-					pass
+		message = \
+			"Do you really want to PERMANENTLY delete %s? This action cannot " \
+			"be undone!" % description
+		_delete(urls, message, delete)
 
 class GoUp(DirectoryPaneCommand):
 
