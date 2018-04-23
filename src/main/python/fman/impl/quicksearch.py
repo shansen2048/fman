@@ -50,6 +50,7 @@ class Quicksearch(QDialog):
 			QuicksearchItemDelegate(self, self._theme)
 		)
 		self._items.setFocusPolicy(NoFocus)
+		self._items.clicked.connect(self._on_item_clicked)
 		div = lambda widget: self._layout_vertically(Div(), widget)
 		query_container = div(div(self._query))
 		query_container.setObjectName('query-container')
@@ -58,7 +59,10 @@ class Quicksearch(QDialog):
 		self._layout_vertically(self, query_container, items_container)
 		self.layout().setSizeConstraint(QLayout.SetFixedSize)
 	def _on_return_pressed(self):
-		index = self._items.currentIndex()
+		self._accept(self._items.currentIndex())
+	def _on_item_clicked(self, index):
+		self._accept(index)
+	def _accept(self, index):
 		value = self._curr_items[index.row()].value if index.isValid() else None
 		self._result = self._query.text(), value
 		self.accept()
