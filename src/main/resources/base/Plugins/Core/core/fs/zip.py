@@ -5,7 +5,7 @@ from datetime import datetime
 from fman import PLATFORM, load_json
 from fman.fs import FileSystem
 from fman.url import as_url, splitscheme
-from io import UnsupportedOperation
+from io import UnsupportedOperation, TextIOWrapper
 from os.path import join, dirname
 from pathlib import PurePosixPath, Path
 from subprocess import Popen, PIPE, DEVNULL, CalledProcessError
@@ -15,19 +15,7 @@ import fman.fs
 import os
 import os.path
 
-if is_arch():
-	bin_dir = '/usr/bin'
-else:
-	bin_dir = join(dirname(dirname(dirname(__file__))), 'bin', PLATFORM.lower())
-
-_7ZIP_BINARY = join(bin_dir, '7za' + ('.exe' if PLATFORM == 'Windows' else ''))
-
-del bin_dir
-
 class _7ZipFileSystem(FileSystem):
-
-	_7ZIP_WARNING = 1
-
 	def __init__(self, fs=fman.fs, suffixes=None):
 		if suffixes is None:
 			suffixes = self._load_suffixes_from_json()
@@ -252,59 +240,19 @@ class _7ZipFileSystem(FileSystem):
 		# that contain at least one subdirectory with a file.
 		exclude = (path_in_zip + '/' if path_in_zip else '') + '*/*/*/*'
 		args.append('-x!' + exclude)
-		process = self._start_7zip(args)
-		try:
-			file_info = self._read_file_info(process.stdout)
+		with _7zip(args, kill=True) as stdout:
+			file_info = self._read_file_info(stdout)
 			if path_in_zip and not file_info:
 				raise filenotfounderror(self.scheme + path)
 			while file_info:
 				self._put_in_cache(zip_path, file_info)
 				yield file_info
-				file_info = self._read_file_info(process.stdout)
-		finally:
-			self._close_7zip(process, kill=True)
+				file_info = self._read_file_info(stdout)
 	def _raise_filenotfounderror_if_not_exists(self, zip_path):
 		os.stat(zip_path)
-	def _start_7zip(self, args, cwd=None):
-		extra_kwargs = {}
-		if PLATFORM == 'Windows':
-			from subprocess import STARTF_USESHOWWINDOW, SW_HIDE, STARTUPINFO
-			si = STARTUPINFO()
-			si.dwFlags = STARTF_USESHOWWINDOW
-			si.wShowWindow = SW_HIDE
-			extra_kwargs['startupinfo'] = si
-			env = {}
-			# Force an output encoding that works with universal_newlines:
-			args = ['-sccWIN'] + args
-		else:
-			# According to the README in its source code distribution, p7zip can
-			# only handle unicode file names properly if the environment is
-			# UTF-8:
-			env = {
-				'LANG': 'en_US.UTF-8'
-			}
-		return Popen(
-			[_7ZIP_BINARY] + args,
-			stdout=PIPE, stderr=DEVNULL, cwd=cwd, universal_newlines=True,
-			# We use our own env to prevent potential interferences with the
-			# user's environment variables:
-			env=env,
-			**extra_kwargs
-		)
-	def _close_7zip(self, process, kill=False):
-		try:
-			if kill:
-				process.kill()
-				process.wait()
-			else:
-				exit_code = process.wait()
-				if exit_code and exit_code != self._7ZIP_WARNING:
-					raise CalledProcessError(exit_code, process.args)
-		finally:
-			process.stdout.close()
 	def _run_7zip(self, args, cwd=None):
-		process = self._start_7zip(args, cwd=cwd)
-		self._close_7zip(process)
+		with _7zip(args, cwd=cwd):
+			pass
 	def _read_file_info(self, stdout):
 		path = size = mtime = None
 		is_dir = False
@@ -337,6 +285,70 @@ class _7ZipFileSystem(FileSystem):
 					zip_path + '/' + file_info.path, field,
 					getattr(file_info, field)
 				)
+
+class _7zip:
+
+	_7ZIP_WARNING = 1
+
+	def __init__(self, args, cwd=None, kill=False):
+		self._args = args
+		self._cwd = cwd
+		self._kill = kill
+		self._process = self._stdout = None
+	def __enter__(self):
+		extra_kwargs = {}
+		if PLATFORM == 'Windows':
+			from subprocess import STARTF_USESHOWWINDOW, SW_HIDE, STARTUPINFO
+			si = STARTUPINFO()
+			si.dwFlags = STARTF_USESHOWWINDOW
+			si.wShowWindow = SW_HIDE
+			extra_kwargs['startupinfo'] = si
+			env = {}
+			# Force an output encoding that works with universal_newlines:
+			args = ['-sccWIN'] + self._args
+			encoding = None
+		else:
+			# According to the README in its source code distribution, p7zip can
+			# only handle unicode file names properly if the environment is
+			# UTF-8:
+			env = {
+				'LANG': 'en_US.UTF-8'
+			}
+			args = self._args
+			# Set the encoding ourselves because Popen(...)'s universal_newlines
+			# uses ASCII if locale.getpreferredencoding(False) happens to be
+			# None.
+			encoding = 'utf-8'
+		self._process = Popen(
+			[self._get_7zip_binary()] + args, stdout=PIPE, stderr=DEVNULL,
+			cwd=self._cwd,
+			# We use our own env to prevent potential interferences with the
+			# user's environment variables:
+			env=env,
+			**extra_kwargs
+		)
+		self._stdout = TextIOWrapper(self._process.stdout, encoding=encoding)
+		return self._stdout
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		try:
+			if self._kill:
+				self._process.kill()
+				self._process.wait()
+			else:
+				exit_code = self._process.wait()
+				if exit_code and exit_code != self._7ZIP_WARNING:
+					raise CalledProcessError(exit_code, self._process.args)
+		finally:
+			self._stdout.close()
+			self._process.stdout.close()
+	def _get_7zip_binary(self):
+		if is_arch():
+			bin_dir = '/usr/bin'
+		else:
+			bin_dir = join(
+				dirname(dirname(dirname(__file__))), 'bin', PLATFORM.lower()
+			)
+		return join(bin_dir, '7za' + ('.exe' if PLATFORM == 'Windows' else ''))
 
 class ZipFileSystem(_7ZipFileSystem):
 	scheme = 'zip://'
