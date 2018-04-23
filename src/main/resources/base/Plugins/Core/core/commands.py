@@ -252,7 +252,9 @@ class OpenFile(DirectoryPaneCommand):
 			if any(file_name.lower().endswith(ext.lower()) for ext in pathext):
 				args = [path]
 			else:
-				args = ['start', '/D', cwd, file_name.replace('&', '^&')]
+				# The empty arg '' is the "title of the command window".
+				# It is required:
+				args = ['start', '', '/D', cwd, file_name.replace('&', '^&')]
 				kwargs['shell'] = True
 		else:
 			args = [path]
