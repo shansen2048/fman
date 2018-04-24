@@ -1824,7 +1824,11 @@ class OpenWith(DirectoryPaneCommand):
 def _open_files_with_app(files, app):
 	associations = _load_file_associations()
 	for file_path in files:
-		extension = os.path.splitext(file_path)[1]
+		file_name = os.path.basename(file_path)
+		try:
+			extension = file_name[file_name.rindex('.'):]
+		except ValueError:
+			extension = ''
 		ext_assocs = associations.setdefault(extension, {})
 		ext_assocs[app] = ext_assocs.get(app, 0) + 1
 	_save_file_associations()
