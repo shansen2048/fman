@@ -269,11 +269,6 @@ class OpenWithEditor(DirectoryPaneCommand):
 
 	aliases = ('Edit',)
 
-	_PLATFORM_APPLICATIONS_FILTER = {
-		'Mac': 'Applications (*.app)',
-		'Windows': 'Applications (*.exe)',
-		'Linux': 'Applications (*)'
-	}
 	def __call__(self, url=None):
 		if url is None:
 			url = self.pane.get_file_under_cursor()
@@ -302,28 +297,38 @@ class OpenWithEditor(DirectoryPaneCommand):
 				OK | CANCEL, OK
 			)
 			if choice & OK:
-				editor_path = show_file_open_dialog(
-					'Pick an Editor', self._get_applications_directory(),
-					self._PLATFORM_APPLICATIONS_FILTER[PLATFORM]
-				)
+				editor_path = _show_app_open_dialog('Pick an Editor')
 				if editor_path:
 					result = get_popen_kwargs_for_opening('{file}', editor_path)
 					settings['editor'] = result
 					save_json('Core Settings.json')
 		return result
-	def _get_applications_directory(self):
-		if PLATFORM == 'Mac':
-			return '/Applications'
-		elif PLATFORM == 'Windows':
-			result = _get_program_files()
-			if not os.path.exists(result):
-				result = _get_program_files_x86()
-			if not os.path.exists(result):
-				result = PurePath(sys.executable).anchor
-			return result
-		elif PLATFORM == 'Linux':
-			return '/usr/bin'
-		raise NotImplementedError(PLATFORM)
+
+def _show_app_open_dialog(caption):
+	return show_file_open_dialog(
+		caption, _get_applications_directory(),
+		_PLATFORM_APPLICATIONS_FILTER[PLATFORM]
+	)
+
+_PLATFORM_APPLICATIONS_FILTER = {
+	'Mac': 'Applications (*.app)',
+	'Windows': 'Applications (*.exe)',
+	'Linux': 'Applications (*)'
+}
+
+def _get_applications_directory():
+	if PLATFORM == 'Mac':
+		return '/Applications'
+	elif PLATFORM == 'Windows':
+		result = _get_program_files()
+		if not os.path.exists(result):
+			result = _get_program_files_x86()
+		if not os.path.exists(result):
+			result = PurePath(sys.executable).anchor
+		return result
+	elif PLATFORM == 'Linux':
+		return '/usr/bin'
+	raise NotImplementedError(PLATFORM)
 
 def _get_program_files():
 	return os.environ.get('PROGRAMW6432', r'C:\Program Files')
@@ -1774,3 +1779,238 @@ class LocationBarListener(DirectoryPaneListener):
 				'want to copy the current path, close GoTo, then press '
 				'Backspace followed by F11.' % ctrl, timeout_secs=15
 			)
+
+class OpenWith(DirectoryPaneCommand):
+
+	aliases = 'Open with...',
+
+	_OTHER = 'Other...'
+
+	def __call__(self):
+		files, error_msg = self._get_chosen_files()
+		if error_msg:
+			show_alert(error_msg)
+			return
+		is_first_execution = not _load_apps()
+		if is_first_execution:
+			app = _add_app()
+			if app:
+				_open_files_with_app(files, app)
+		else:
+			ShowAppsForOpening(files).show()
+	def _get_chosen_files(self):
+		urls = self.get_chosen_files()
+		if not urls:
+			return [], 'No file is selected!'
+		files = []
+		for url in urls:
+			try:
+				url_resolved = resolve(url)
+			except OSError:
+				pass
+			else:
+				scheme, path = splitscheme(url_resolved)
+				if scheme != 'file://':
+					return \
+						[], 'Sorry, opening %s files is not supported.' % scheme
+				files.append(as_human_readable(url_resolved))
+		return files, ''
+	def is_visible(self):
+		pane = self.pane
+		return splitscheme(pane.get_path())[0] == 'file://' \
+			   and pane.get_file_under_cursor()
+
+def _open_files_with_app(files, app):
+	associations = _load_file_associations()
+	for file_path in files:
+		extension = os.path.splitext(file_path)[1]
+		ext_assocs = associations.setdefault(extension, {})
+		ext_assocs[app] = ext_assocs.get(app, 0) + 1
+	_save_file_associations()
+	apps = _load_apps()
+	try:
+		app_path = apps[app]
+	except KeyError:
+		# We don't expect this to happen. But JSON files are always susceptible
+		# by becoming corrupted, eg. when the user edits them.
+		show_alert('Could not find the configuration for %s.' % app)
+		return
+	Popen([app_path] + files)
+
+def _load_file_associations():
+	return load_json('File Associations.json', {})
+
+def _save_file_associations():
+	save_json('File Associations.json')
+
+def _load_apps():
+	return load_json('Apps.json', {})
+
+def _save_apps():
+	save_json('Apps.json')
+
+def _add_app():
+	app_path = _show_app_open_dialog('Pick an application')
+	if not app_path:
+		return
+	app_name = os.path.basename(app_path).split('.')[0].capitalize()
+	app_name, ok = show_prompt(
+		'Please enter a name for the application:', app_name
+	)
+	if not ok or not app_name:
+		return
+	apps = _load_apps()
+	apps[app_name] = app_path
+	_save_apps()
+	return app_name
+
+def _remove_app(app):
+	apps = _load_apps()
+	try:
+		del apps[app]
+	except KeyError:
+		# We don't expect this to happen. But JSON files are always susceptible
+		# by becoming corrupted, eg. when the user edits them.
+		pass
+	_save_apps()
+	associations = _load_file_associations()
+	for suffix, apps in list(associations.items()):
+		apps.pop(app, None)
+		if not apps:
+			del associations[suffix]
+	_save_file_associations()
+
+class QuicksearchScreen:
+	def show(self):
+		options = list(self.get_options())
+		choice = show_quicksearch(lambda q: self._filter_options(options, q))
+		if choice:
+			option = choice[1]
+			self.on_selected(option)
+		else:
+			self.on_cancelled()
+	def get_options(self):
+		raise NotImplementedError()
+	def on_selected(self, option):
+		raise NotImplementedError()
+	def on_cancelled(self):
+		pass
+	def _filter_options(self, options, query):
+		for option in options:
+			match = contains_chars(option.lower(), query.lower())
+			if match or not query:
+				yield QuicksearchItem(option, highlight=match)
+
+class ShowAppsForOpening(QuicksearchScreen):
+
+	_CONFIGURE = 'Configure...'
+
+	def __init__(self, files):
+		super().__init__()
+		self._files = files
+	def get_options(self):
+		file_associations = sorted(
+			_load_file_associations().items(),
+			key=lambda tpl: len(tpl[0]), reverse=True
+		)
+		already_yielded = set()
+		for file_path in self._files:
+			fname = os.path.basename(file_path)
+			for suffix, associations in file_associations:
+				if fname.endswith(suffix) and (suffix or '.' not in fname):
+					for app, count in sorted(
+						associations.items(), key=lambda tpl: tpl[1],
+						reverse=True
+					):
+						if app not in already_yielded:
+							yield app
+							already_yielded.add(app)
+		for app in sorted(_load_apps()):
+			if app not in already_yielded:
+				yield app
+		yield self._CONFIGURE
+	def on_selected(self, option):
+		if option == self._CONFIGURE:
+			Configure(self._files).show()
+		else:
+			_open_files_with_app(self._files, option)
+
+class Configure(QuicksearchScreen):
+
+	_ADD_APP = 'Add app...'
+	_EDIT_APP = 'Edit app...'
+	_REMOVE_APP = 'Remove app...'
+
+	def __init__(self, files):
+		super().__init__()
+		self._files = files
+	def get_options(self):
+		yield self._ADD_APP
+		yield self._EDIT_APP
+		yield self._REMOVE_APP
+	def on_selected(self, option):
+		if option == self._ADD_APP:
+			app = _add_app()
+			if app:
+				_open_files_with_app(self._files, app)
+		elif option == self._EDIT_APP:
+			EditApp(self._files).show()
+		elif option == self._REMOVE_APP:
+			RemoveApp(self._files).show()
+	def on_cancelled(self):
+		ShowAppsForOpening(self._files).show()
+
+class EditApp(QuicksearchScreen):
+	def __init__(self, files):
+		super().__init__()
+		self._files = files
+	def get_options(self):
+		yield from sorted(_load_apps())
+	def on_selected(self, app):
+		new_name, ok = \
+			show_prompt('Enter the new name for the application:', app)
+		if not ok or not new_name:
+			Configure(self._files).show()
+			return
+		apps = _load_apps()
+		app_path = apps[app]
+		new_path = show_file_open_dialog(
+			"Pick an executable", app_path,
+			_PLATFORM_APPLICATIONS_FILTER[PLATFORM]
+		)
+		if not new_path:
+			Configure(self._files).show()
+			return
+		del apps[app]
+		apps[new_name] = new_path
+		_save_apps()
+		associations = _load_file_associations()
+		for suffix, app_counts_for_suffix in associations.items():
+			try:
+				app_counts_for_suffix[new_name] = app_counts_for_suffix.pop(app)
+			except KeyError:
+				pass
+		_save_file_associations()
+		show_alert('%s was updated.' % new_name)
+	def on_cancelled(self):
+		Configure(self._files).show()
+
+class RemoveApp(QuicksearchScreen):
+	def __init__(self, files):
+		super().__init__()
+		self._files = files
+	def get_options(self):
+		yield from sorted(_load_apps())
+	def on_selected(self, app):
+		apps = _load_apps()
+		del apps[app]
+		_save_apps()
+		associations = _load_file_associations()
+		for suffix, apps in list(associations.items()):
+			apps.pop(app, None)
+			if not apps:
+				del associations[suffix]
+		_save_file_associations()
+		show_alert('%s was removed from your favorite apps.' % app)
+	def on_cancelled(self):
+		Configure(self._files).show()
