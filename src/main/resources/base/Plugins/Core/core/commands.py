@@ -1886,6 +1886,9 @@ def _remove_app(app):
 	_save_file_associations()
 
 class QuicksearchScreen:
+
+	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
+
 	def show(self):
 		options = list(self.get_options())
 		choice = show_quicksearch(lambda q: self._filter_options(options, q))
@@ -1901,10 +1904,14 @@ class QuicksearchScreen:
 	def on_cancelled(self):
 		pass
 	def _filter_options(self, options, query):
-		for option in options:
-			match = contains_chars(option.lower(), query.lower())
-			if match or not query:
-				yield QuicksearchItem(option, highlight=match)
+		already_yielded = set()
+		for matcher in self._MATCHERS:
+			for option in options:
+				match = matcher(option.lower(), query.lower())
+				if match or not query:
+					if option not in already_yielded:
+						yield QuicksearchItem(option, highlight=match)
+						already_yielded.add(option)
 
 class ShowAppsForOpening(QuicksearchScreen):
 
