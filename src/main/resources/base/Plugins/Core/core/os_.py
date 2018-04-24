@@ -12,8 +12,8 @@ def is_arch():
 	except FileNotFoundError:
 		return False
 
-def get_popen_kwargs_for_opening(file_, with_):
-	args = [with_, file_]
+def get_popen_kwargs_for_opening(files, with_):
+	args = [with_] + files
 	if PLATFORM == 'Mac':
 		args = ['/usr/bin/open', '-a'] + args
 	return {'args': args}

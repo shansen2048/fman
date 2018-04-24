@@ -299,7 +299,8 @@ class OpenWithEditor(DirectoryPaneCommand):
 			if choice & OK:
 				editor_path = _show_app_open_dialog('Pick an Editor')
 				if editor_path:
-					result = get_popen_kwargs_for_opening('{file}', editor_path)
+					result = \
+						get_popen_kwargs_for_opening(['{file}'], editor_path)
 					settings['editor'] = result
 					save_json('Core Settings.json')
 		return result
@@ -1835,7 +1836,7 @@ def _open_files_with_app(files, app):
 		# by becoming corrupted, eg. when the user edits them.
 		show_alert('Could not find the configuration for %s.' % app)
 		return
-	Popen([app_path] + files)
+	Popen(**get_popen_kwargs_for_opening(files, with_=app_path))
 
 def _load_file_associations():
 	return load_json('File Associations.json', {})
