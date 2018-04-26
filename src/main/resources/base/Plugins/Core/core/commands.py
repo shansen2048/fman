@@ -151,30 +151,33 @@ class GoUp(DirectoryPaneCommand):
 	aliases = ('Go up', 'Go to parent directory')
 
 	def __call__(self):
-		path_before = self.pane.get_path()
-		def callback():
-			path_now = self.pane.get_path()
-			# Only move the cursor if we actually changed directories; For
-			# instance, we don't want to move the cursor if the user presses
-			# Backspace while at drives:// and the cursor is already at
-			# drives://C:
-			if path_now != path_before:
-				# Consider: The user is in zip:///Temp.zip and invokes GoUp.
-				# This takes us to file:///. We want to place the cursor at
-				# file:///Temp.zip. "Switch" schemes to make this happen:
-				cursor_dest = splitscheme(path_now)[0] + \
-							  splitscheme(path_before)[1]
-				try:
-					self.pane.place_cursor_at(cursor_dest)
-				except ValueError as dest_doesnt_exist:
-					self.pane.move_cursor_home()
-		parent_dir = dirname(path_before)
-		try:
-			self.pane.set_path(parent_dir, callback)
-		except FileNotFoundError:
-			# This for instance happens when the user pressed backspace when at
-			# file:/// on Unix.
-			pass
+		go_up(self.pane)
+
+def go_up(pane):
+	path_before = pane.get_path()
+	def callback():
+		path_now = pane.get_path()
+		# Only move the cursor if we actually changed directories; For
+		# instance, we don't want to move the cursor if the user presses
+		# Backspace while at drives:// and the cursor is already at
+		# drives://C:
+		if path_now != path_before:
+			# Consider: The user is in zip:///Temp.zip and invokes GoUp.
+			# This takes us to file:///. We want to place the cursor at
+			# file:///Temp.zip. "Switch" schemes to make this happen:
+			cursor_dest = splitscheme(path_now)[0] + \
+						  splitscheme(path_before)[1]
+			try:
+				pane.place_cursor_at(cursor_dest)
+			except ValueError as dest_doesnt_exist:
+				pane.move_cursor_home()
+	parent_dir = dirname(path_before)
+	try:
+		pane.set_path(parent_dir, callback)
+	except FileNotFoundError:
+		# This for instance happens when the user pressed backspace when at
+		# file:/// on Unix.
+		pass
 
 class Open(DirectoryPaneCommand):
 	def __call__(self, url=None):
@@ -1331,13 +1334,19 @@ class HistoryListener(DirectoryPaneListener):
 			path = self._history.go_back()
 		except ValueError:
 			return
-		self.pane.set_path(path)
+		self._navigate_to(path)
 	def go_forward(self):
 		try:
 			path = self._history.go_forward()
 		except ValueError:
 			return
-		self.pane.set_path(path)
+		self._navigate_to(path)
+	def _navigate_to(self, path):
+		if path == dirname(self.pane.get_path()):
+			# Place the cursor at the current directory after going up:
+			go_up(self.pane)
+		else:
+			self.pane.set_path(path)
 	def on_path_changed(self):
 		self._history.path_changed(self.pane.get_path())
 
