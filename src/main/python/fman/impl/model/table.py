@@ -138,7 +138,7 @@ class Row:
 			return NotImplemented
 	def __hash__(self):
 		return hash(self.key)
-	def __str__(self):
+	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.key)
 
 Cell = namedtuple('Cell', ('str', 'sort_value_asc', 'sort_value_desc'))
