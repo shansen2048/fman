@@ -241,11 +241,11 @@ class Wrapper:
 	@property
 	def _class_name(self):
 		return self._wrapped.__class__.__name__
-	def _handle_exceptions(self, exclude=None):
+	def _report_exceptions(self, exclude=None):
 		message = '%s %r raised error.' % (self._type_name, self._class_name)
-		return HandleExceptions(self._error_handler, message, exclude)
+		return ReportExceptions(self._error_handler, message, exclude)
 
-class HandleExceptions:
+class ReportExceptions:
 	def __init__(self, error_handler, message, exclude=None):
 		if exclude is None:
 			exclude = []
@@ -264,7 +264,6 @@ class HandleExceptions:
 			self._error_handler.handle_system_exit(exc_code)
 		elif exc_type not in self._exclude:
 			self._error_handler.report(self._message, exc_val)
-			return True
 
 class CommandWrapper(Wrapper):
 	def __init__(self, command, error_handler, callback):
@@ -284,11 +283,12 @@ class CommandWrapper(Wrapper):
 		return self._wrapped.is_visible()
 	def _run_in_thread(self, *args, **kwargs):
 		self._callback.before_command(self._class_name)
-		exc_occurred = True
-		with self._handle_exceptions():
-			self._wrapped(*args, **kwargs)
-			exc_occurred = False
-		if not exc_occurred:
+		try:
+			with self._report_exceptions():
+				self._wrapped(*args, **kwargs)
+		except Exception:
+			pass
+		else:
 			self._callback.after_command(self._class_name)
 
 class ListenerWrapper(Wrapper):
@@ -303,11 +303,17 @@ class ListenerWrapper(Wrapper):
 	def on_files_dropped(self, *args):
 		self._notify_listener('on_files_dropped', *args)
 	def on_command(self, command, args):
-		with self._handle_exceptions():
-			return self._wrapped.on_command(command, args)
+		try:
+			with self._report_exceptions():
+				return self._wrapped.on_command(command, args)
+		except Exception:
+			return None
 	def before_location_change(self, *args):
-		with self._handle_exceptions():
-			return self._wrapped.before_location_change(*args)
+		try:
+			with self._report_exceptions():
+				return self._wrapped.before_location_change(*args)
+		except Exception:
+			return None
 	def on_location_bar_clicked(self, *args):
 		self._notify_listener('on_location_bar_clicked', *args)
 	def _notify_listener(self, *args):
@@ -316,8 +322,11 @@ class ListenerWrapper(Wrapper):
 		).start()
 	def _notify_listener_in_thread(self, event, *args):
 		listener_method = getattr(self._wrapped, event)
-		with self._handle_exceptions():
-			listener_method(*args)
+		try:
+			with self._report_exceptions():
+				listener_method(*args)
+		except Exception:
+			pass
 
 class FileSystemWrapper(Wrapper):
 	def __init__(self, file_system, mother_fs, error_handler):
@@ -325,9 +334,10 @@ class FileSystemWrapper(Wrapper):
 		self._mother_fs = mother_fs
 	def get_default_columns(self, path):
 		result_on_error = 'core.Name',
-		with self._handle_exceptions() as cm:
-			result = self._wrapped.get_default_columns(path)
-		if cm.exception:
+		try:
+			with self._report_exceptions():
+				result = self._wrapped.get_default_columns(path)
+		except Exception:
 			return result_on_error
 		available_columns = self._mother_fs.get_registered_column_names()
 		for col_name in result:
@@ -351,9 +361,12 @@ class FileSystemWrapper(Wrapper):
 				exc=False
 			)
 		else:
-			with self._handle_exceptions() as cm:
-				result = iterdir(path)
-			if not cm.exception:
+			try:
+				with self._report_exceptions():
+					result = iterdir(path)
+			except Exception:
+				pass
+			else:
 				try:
 					iterable = iter(result)
 				except TypeError:
@@ -384,10 +397,19 @@ class ColumnWrapper(Wrapper):
 	def __init__(self, wrapped, error_handler):
 		super().__init__(wrapped, 'Column', error_handler)
 	def get_str(self, url):
-		with self._handle_exceptions(exclude=(FileNotFoundError,)):
-			return self._wrapped.get_str(url)
+		try:
+			with self._report_exceptions(exclude=(FileNotFoundError,)):
+				return self._wrapped.get_str(url)
+		except Exception:
+			return ''
 	def get_sort_value(self, url, is_ascending):
-		with self._handle_exceptions(exclude=(FileNotFoundError,)):
-			return self._wrapped.get_sort_value(url, is_ascending)
+		# We always return a tuple (error occurred, sort value) to ensure
+		# comparisons can be performed even when errors occur and there is no
+		# sort value.
+		try:
+			with self._report_exceptions(exclude=(FileNotFoundError,)):
+				return False, self._wrapped.get_sort_value(url, is_ascending)
+		except Exception:
+			return True, 0
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)
