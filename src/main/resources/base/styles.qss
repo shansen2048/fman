@@ -54,7 +54,13 @@ QTableView::item:focus {
 }
 
 QTableView #editor {
-	border: none;
+	/*
+	 * The Qt "editor" when renaming a file. It's a QLineEdit, which has a
+	 * border (see below). On Windows, this border shifts the file name down so
+	 * much that underscores "_" are obscured. Prevent this:
+	 */
+	border-top: none;
+	border-bottom: none;
 }
 
 QLabel, QRadioButton, QCheckBox {
