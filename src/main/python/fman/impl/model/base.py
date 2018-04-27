@@ -6,7 +6,7 @@ from fman.impl.model.worker import Worker
 from fman.impl.util.qt import EditRole, connect_once
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.url import join, dirname
-from functools import wraps
+from functools import wraps, lru_cache
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QPixmap
 from threading import Event
@@ -355,6 +355,7 @@ class File(Row):
 	def is_dir(self):
 		return self.drop_enabled
 
+@lru_cache(maxsize=1)
 @run_in_main_thread
 def _get_empty_icon(size=128):
 	"""
@@ -368,11 +369,6 @@ def _get_empty_icon(size=128):
 	can't instantiate QPixmap at the module level. This is because QPixmap(...)
 	requires a QApplication, which has not yet been instantiated at import time.
 	"""
-	global _empty_icon
-	if _empty_icon is None:
-		pixmap = QPixmap(size, size)
-		pixmap.fill(Qt.transparent)
-		_empty_icon = QIcon(pixmap)
-	return _empty_icon
-
-_empty_icon = None
+	pixmap = QPixmap(size, size)
+	pixmap.fill(Qt.transparent)
+	return QIcon(pixmap)
