@@ -15,6 +15,7 @@ from shutil import copytree, move, copyfile, copystat
 from stat import S_ISDIR
 
 import os
+import re
 
 if PLATFORM == 'Windows':
 	from core.fs.local.windows.rmtree import rmtree
@@ -51,8 +52,14 @@ class LocalFileSystem(FileSystem):
 	def touch(self, path):
 		Path(self._url_to_os_path(path)).touch()
 	def mkdir(self, path):
+		os_path = self._url_to_os_path(path)
+		if PLATFORM == 'Windows' and re.match(r'^[A-Z]:\\$', os_path):
+			# On Windows, Path('C:\\').mkdir() raises PermissionError, whereas
+			# Path('C:').mkdir() raises FileExistsError. We want the latter
+			# because #makedirs(...) relies on it:
+			os_path = os_path.rstrip('\\')
 		try:
-			Path(self._url_to_os_path(path)).mkdir()
+			Path(os_path).mkdir()
 		except FileNotFoundError:
 			raise
 		except OSError as e:
