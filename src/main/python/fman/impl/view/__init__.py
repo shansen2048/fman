@@ -8,7 +8,7 @@ from fman.impl.view.uniform_row_heights import UniformRowHeights
 from math import ceil
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	pyqtSignal
-from PyQt5.QtGui import QPen, QPainter
+from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QHeaderView, QToolTip
 
