@@ -52,21 +52,32 @@ class DevelopmentApplicationContext(ApplicationContext):
 		self._main_window = None
 	def run(self):
 		self.init_logging()
-		fman.FMAN_VERSION = self.fman_version
 		self.excepthook.install()
-		self.metrics.initialize(
-			callback=lambda: self.excepthook.set_user(self.metrics.get_user())
-		)
-		self.metrics.track('StartedFman')
-		# Ensure main_window is instantiated before plugin_support, or else
-		# plugin_support gets instantiated twice:
-		_ = self.main_window
-		for plugin_dir in self.plugin_dirs:
-			self.plugin_support.load_plugin(plugin_dir)
+		self._start_metrics()
+		self._load_plugins()
 		self.session_manager.show_main_window(self.window)
 		return self.app.exec_()
 	def init_logging(self):
 		logging.basicConfig()
+	def _start_metrics(self):
+		self.metrics.initialize(
+			callback=lambda: self.excepthook.set_user(self.metrics.get_user())
+		)
+		self.metrics.track('StartedFman')
+	def _load_plugins(self):
+		fman.FMAN_VERSION = self.fman_version
+		plugin_dirs = find_plugin_dirs(
+			self.get_resource('Plugins'),
+			join(DATA_DIRECTORY, 'Plugins', 'Third-party'),
+			join(DATA_DIRECTORY, 'Plugins', 'User')
+		)
+		settings_plugin = plugin_dirs[-1]
+		makedirs(settings_plugin, exist_ok=True)
+		# Ensure main_window is instantiated before plugin_support, or else
+		# plugin_support gets instantiated twice:
+		_ = self.main_window
+		for plugin_dir in plugin_dirs:
+			self.plugin_support.load_plugin(plugin_dir)
 	@property
 	def fman_version(self):
 		return self.constants['version']
@@ -203,17 +214,6 @@ class DevelopmentApplicationContext(ApplicationContext):
 		icons_dir = self._get_local_data_file('Cache', 'Icons')
 		makedirs(icons_dir, exist_ok=True)
 		return IconProvider(qt_icon_provider, fs, icons_dir)
-	@cached_property
-	def plugin_dirs(self):
-		result = find_plugin_dirs(
-			self.get_resource('Plugins'),
-			join(DATA_DIRECTORY, 'Plugins', 'Third-party'),
-			join(DATA_DIRECTORY, 'Plugins', 'User')
-		)
-		settings_plugin = result[-1]
-		if not exists(settings_plugin):
-			makedirs(settings_plugin)
-		return result
 	@cached_property
 	def config(self):
 		return Config(PLATFORM)
