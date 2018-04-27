@@ -53,6 +53,10 @@ QTableView::item:focus {
 	background-color: #49483e;
 }
 
+QTableView #editor {
+	border: none;
+}
+
 QLabel, QRadioButton, QCheckBox {
 	color: #8f908a;
 }

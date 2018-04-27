@@ -379,6 +379,10 @@ class FileListItemDelegate(QStyledItemDelegate):
 			QToolTip.showText(event.globalPos(), tooltip_text, view)
 			return True
 		return super().helpEvent(event, view, option, index)
+	def createEditor(self, parent, option, index):
+		result = super().createEditor(parent, option, index)
+		result.setObjectName('editor')
+		return result
 
 class Layout(QVBoxLayout):
 	def __init__(self, path_view, file_view):

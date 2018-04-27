@@ -47,5 +47,11 @@ class CompositeItemDelegate(QStyledItemDelegate):
 			if result:
 				return result
 		return super().helpEvent(event, view, option, index)
+	def createEditor(self, parent, option, index):
+		for item in self._items:
+			result = item.createEditor(parent, option, index)
+			if result:
+				return result
+		return super().createEditor(parent, option, index)
 	def _is_python_method(self, method):
 		return hasattr(method, '__func__')
