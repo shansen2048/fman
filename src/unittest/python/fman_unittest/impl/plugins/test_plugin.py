@@ -58,6 +58,10 @@ class FileSystemWrapperTest(TestCase):
 			"Error: FS.iterdir(...) yielded 0 instead of a string such as "
 			"'file.txt'."
 		)
+	def test_iterdir_raising_error(self):
+		def iterdir(_):
+			raise ValueError()
+		self._test_iterdir_error(iterdir, "FileSystem 'FS' raised error.")
 	def test_get_default_columns_nonexistent(self):
 		self._test_get_default_columns_error(
 			lambda _: ('Name',),

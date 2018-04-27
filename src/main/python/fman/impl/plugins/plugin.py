@@ -247,8 +247,6 @@ class Wrapper:
 
 class ReportExceptions:
 	def __init__(self, error_handler, message, exclude=None):
-		if exclude is None:
-			exclude = []
 		self.exception = None
 		self._exclude = exclude
 		self._error_handler = error_handler
@@ -262,7 +260,7 @@ class ReportExceptions:
 		if isinstance(exc_val, SystemExit):
 			exc_code = 0 if exc_val.code is None else exc_val.code
 			self._error_handler.handle_system_exit(exc_code)
-		elif exc_type not in self._exclude:
+		elif exc_type != self._exclude:
 			self._error_handler.report(self._message, exc_val)
 
 class CommandWrapper(Wrapper):
@@ -378,18 +376,25 @@ class FileSystemWrapper(Wrapper):
 					)
 				else:
 					showed_error = False
-					for item in iterable:
-						if isinstance(item, str):
-							yield item
+					while True:
+						try:
+							with self._report_exceptions(exclude=StopIteration):
+								item = next(iterable)
+						except Exception: # Includes StopIteration
+							break
 						else:
-							if not showed_error:
-								self._error_handler.report(
-									"Error: %s.iterdir(...) yielded %r instead "
-									"of a string such as 'file.txt'." % (
-										self._class_name, item),
-										exc=False
-									)
-								showed_error = True
+							if isinstance(item, str):
+								yield item
+							else:
+								if not showed_error:
+									self._error_handler.report(
+										"Error: %s.iterdir(...) yielded %r "
+										"instead of a string such as "
+										"'file.txt'." % (
+											self._class_name, item),
+											exc=False
+										)
+									showed_error = True
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)
 
@@ -398,7 +403,7 @@ class ColumnWrapper(Wrapper):
 		super().__init__(wrapped, 'Column', error_handler)
 	def get_str(self, url):
 		try:
-			with self._report_exceptions(exclude=(FileNotFoundError,)):
+			with self._report_exceptions(exclude=FileNotFoundError):
 				return self._wrapped.get_str(url)
 		except Exception:
 			return ''
@@ -407,7 +412,7 @@ class ColumnWrapper(Wrapper):
 		# comparisons can be performed even when errors occur and there is no
 		# sort value.
 		try:
-			with self._report_exceptions(exclude=(FileNotFoundError,)):
+			with self._report_exceptions(exclude=FileNotFoundError):
 				return False, self._wrapped.get_sort_value(url, is_ascending)
 		except Exception:
 			return True, 0
