@@ -62,6 +62,8 @@ class LocalFileSystem(FileSystem):
 			Path(os_path).mkdir()
 		except FileNotFoundError:
 			raise
+		except IsADirectoryError: # macOS
+			raise FileExistsError(path)
 		except OSError as e:
 			if e.errno == ENOENT:
 				raise filenotfounderror(path) from e
