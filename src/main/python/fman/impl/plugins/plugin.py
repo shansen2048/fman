@@ -146,6 +146,7 @@ class ExternalPlugin(Plugin):
 			return False
 		return True
 	def _load(self):
+		self._register_plugin_dir()
 		self._load_config()
 		for font in glob(join(self._path, '*.ttf')):
 			self._load_font(font)
@@ -157,6 +158,9 @@ class ExternalPlugin(Plugin):
 		self._extend_sys_path()
 		self._load_classes()
 		self._load_key_bindings()
+	def _register_plugin_dir(self):
+		self._error_handler.add_dir(self._path)
+		self._add_unload_action(self._error_handler.remove_dir, self._path)
 	def _load_config(self):
 		self._config.add_dir(self._path)
 		self._add_unload_action(self._config.remove_dir, self._path)

@@ -1,8 +1,6 @@
 from collections import namedtuple
 from fbs_runtime.application_context import cached_property
-from fman.impl.util import is_below_dir, os_
-from os.path import basename
-from traceback import extract_tb
+from fman.impl.util import os_
 
 import rollbar
 import sys
@@ -10,8 +8,7 @@ import threading
 import traceback
 
 class Excepthook:
-	def __init__(self, plugin_dirs, plugin_error_handler):
-		self._plugin_dirs = plugin_dirs
+	def __init__(self, plugin_error_handler):
 		self._plugin_error_handler = plugin_error_handler
 	def install(self):
 		sys.excepthook = self
@@ -19,26 +16,16 @@ class Excepthook:
 	def set_user(self, user):
 		pass
 	def __call__(self, exc_type, exc_value, exc_tb):
-		causing_plugin = self._get_plugin_causing_error(exc_tb)
-		if causing_plugin and basename(causing_plugin) != 'Core':
-			self._plugin_error_handler.report(
-				'Plugin %r raised an error.' % basename(causing_plugin)
-			)
-		else:
-			if not isinstance(exc_value, SystemExit):
-				enriched_tb = \
-					self._add_missing_frames(exc_tb) if exc_tb else exc_tb
-				self._handle_nonplugin_error(exc_type, exc_value, enriched_tb)
+		is_plugin_error = self._plugin_error_handler.handle(exc_tb)
+		if not is_plugin_error and not isinstance(exc_value, SystemExit):
+			enriched_tb = \
+				self._add_missing_frames(exc_tb) if exc_tb else exc_tb
+			self._handle_nonplugin_error(exc_type, exc_value, enriched_tb)
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
 		# Normally, we would like to use sys.__excepthook__ here. But it doesn't
 		# work with our "fake" traceback (see _add_missing_frames(...)). The
 		# following call avoids this yet produces the same result:
 		traceback.print_exception(exc_type, exc_value, exc_tb)
-	def _get_plugin_causing_error(self, traceback):
-		for frame in extract_tb(traceback):
-			for plugin_dir in self._plugin_dirs:
-				if is_below_dir(frame.filename, plugin_dir):
-					return plugin_dir
 	def _add_missing_frames(self, tb):
 		"""
 		Let f and h be Python functions and g be a function of Qt. If
@@ -106,10 +93,9 @@ class Excepthook:
 
 class RollbarExcepthook(Excepthook):
 	def __init__(
-		self, rollbar_token, environment, fman_version, plugin_dirs,
-		plugin_error_handler
+		self, rollbar_token, environment, fman_version, plugin_error_handler
 	):
-		super().__init__(plugin_dirs, plugin_error_handler)
+		super().__init__(plugin_error_handler)
 		self._rollbar_token = rollbar_token
 		self._environment = environment
 		self._fman_version = fman_version

@@ -129,7 +129,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 				constants[key] = value
 	@cached_property
 	def excepthook(self):
-		return Excepthook(self.plugin_dirs, self.plugin_error_handler)
+		return Excepthook(self.plugin_error_handler)
 	@property
 	def main_window(self):
 		if self._main_window is None:
@@ -411,7 +411,7 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 	def excepthook(self):
 		return RollbarExcepthook(
 			self.constants['rollbar_token'], self.constants['environment'],
-			self.fman_version, self.plugin_dirs, self.plugin_error_handler
+			self.fman_version, self.plugin_error_handler
 		)
 	def _should_auto_update(self):
 		if not system.is_mac():
