@@ -1,3 +1,4 @@
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from fman.fs import FileSystem, cached
 from fman.impl.plugins.mother_fs import MotherFileSystem, CachedIterator
@@ -203,10 +204,13 @@ class CachedIteratorTest(TestCase):
 		iterator = iter(iterable)
 		self.assertEqual(1, next(iterator))
 		iterable.append(3)
-		self.assertEqual(2, next(iterator))
-		self.assertEqual(3, next(iterator))
-		self.assertEqual([1, 2, 3], list(iterable))
-		self.assertEqual([1, 2, 3], list(iterable))
+		# We don't care if the order is [2, 3] or [3, 2] - but there should only
+		# be one each:
+		self.assertEqual(Counter([2, 3]), Counter(iterator))
+		# We don't care about the exact order of [1, 2, 3] but each elt. should
+		# only be returned once:
+		self.assertEqual(Counter([1, 2, 3]), Counter(iterable))
+		self.assertEqual(Counter([1, 2, 3]), Counter(iterable))
 	def test_add_after_exhausted(self):
 		iterable = CachedIterator(self._generate(1, 2))
 		self.assertEqual([1, 2], list(iterable))
@@ -216,8 +220,10 @@ class CachedIteratorTest(TestCase):
 	def test_add_duplicate(self):
 		iterable = CachedIterator(self._generate(1, 2))
 		iterable.append(2)
-		self.assertEqual([1, 2], list(iterable))
-		self.assertEqual([1, 2], list(iterable))
+		# We don't care about the exact order of [1, 2] but each elt. should
+		# only be returned once:
+		self.assertEqual(Counter([1, 2]), Counter(iterable))
+		self.assertEqual(Counter([1, 2]), Counter(iterable))
 	def test_add_duplicate_after_exhausted(self):
 		iterable = CachedIterator(self._generate(1, 2))
 		self.assertEqual([1, 2], list(iterable))

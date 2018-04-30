@@ -183,62 +183,45 @@ class TriggerFileAdded:
 				self._fs.file_added.trigger(self._url)
 
 class CachedIterator:
-	class Item:
-		def __init__(self, value):
-			self.value = value
-			self.is_deleted = False
 	def __init__(self, source):
 		self._source = source
 		self._lock = Lock()
 		self._items = []
-		self._values_to_skip = {}
-		self._values_to_add = []
-	def remove(self, value):
+		self._item_counts = {}
+	def remove(self, item):
 		with self._lock:
-			for item in self._items:
-				if item.value == value:
-					item.is_deleted = True
-					return
-			self._values_to_skip[value] = self._values_to_skip.get(value, 0) + 1
-	def append(self, value):
+			self._record(item, delta=-1)
+	def append(self, item):
 		# N.B.: Behaves like set#add(...), not like list#append(...)!
 		with self._lock:
-			self._values_to_add.append(value)
+			self._record(item)
 	def __iter__(self):
 		return _CachedIterator(self)
 	def get_next(self, pointer):
 		with self._lock:
 			for pointer in range(pointer, len(self._items)):
 				item = self._items[pointer]
-				if not item.is_deleted:
-					return pointer + 1, item.value
-			return pointer + 1, self._generate_next()
-	def _generate_next(self):
-		while True:
-			try:
-				result = next(self._source)
-			except StopIteration:
-				for i, result in enumerate(self._values_to_add):
-					if not any(result == item.value for item in self._items):
-						self._values_to_add = self._values_to_add[i + 1:]
-						break
-				else:
-					raise
-			try:
-				count = self._values_to_skip[result]
-			except KeyError:
-				self._items.append(self.Item(result))
-				return result
-			else:
-				if count == 1:
-					del self._values_to_skip[result]
-				else:
-					self._values_to_skip[result] = count - 1
+				if self._item_counts[item] > 0:
+					return pointer + 1, item
+			while True:
+				value = next(self._source) # Eventually raises StopIteration
+				if self._record(value):
+					return len(self._items), value
+	def _record(self, value, delta=1):
+		try:
+			self._item_counts[value] += delta
+			return False
+		except KeyError:
+			self._items.append(value)
+			self._item_counts[value] = delta
+			return True
 
 class _CachedIterator:
 	def __init__(self, parent):
 		self._parent = parent
 		self._pointer = 0
+	def __iter__(self):
+		return self
 	def __next__(self):
 		self._pointer, result = self._parent.get_next(self._pointer)
 		return result
