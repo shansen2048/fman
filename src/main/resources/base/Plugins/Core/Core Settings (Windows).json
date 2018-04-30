@@ -1,6 +1,6 @@
 {
 	"terminal": {
-		"args": "start cmd", "shell": true, "cwd": "{curr_dir}"
+		"args": "start C:\\Windows\\System32\\cmd.exe", "shell": true, "cwd": "{curr_dir}"
 	},
 	"native_file_manager": {
 		"args": ["start", "explorer", "{curr_dir}"], "shell": true
