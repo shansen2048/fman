@@ -69,38 +69,38 @@ class SessionManager:
 		return 'Updated to v%s. ' \
 			   '<a href="https://fman.io/changelog?s=f">Changelog</a>' \
 			   % self._fman_version
-	def _init_panes(self, panes, pane_infos, paths_on_command_line):
+	def _init_panes(self, panes, pane_infos, paths_on_cmdline):
 		with ThreadPoolExecutor(max_workers=len(panes)) as executor:
 			futures = [
 				executor.submit(self._init_pane, *args) for args in
-				self._get_pane_args(panes, pane_infos, paths_on_command_line)
+				self._get_pane_args(panes, pane_infos, paths_on_cmdline)
 			]
 			for future in concurrent.futures.as_completed(futures):
 				# Re-raise any exceptions:
 				future.result()
-	def _get_pane_args(self, panes, pane_infos, paths_on_command_line):
+	def _get_pane_args(self, panes, pane_infos, paths_on_cmdline):
 		for i, (pane_info, pane) in enumerate(zip(pane_infos, panes)):
 			try:
-				path = make_absolute(paths_on_command_line[i], getcwd())
+				path = paths_on_cmdline[i]
 			except IndexError:
-				# Note that pane_info['location'] may be None if the pane hadn't
-				# yet received a location the last time fman was closed. This
-				# likely happens when an error occurs during startup.
-				# To cope with this, we use the line below instead of
-				#     pane_info.get('location', expanduser('~')).
-				path = pane_info.get('location') or expanduser('~')
-			url = path if '://' in path else as_url(path)
-			yield pane, url, pane_info.get('col_widths')
-	def _init_pane(self, pane, url, col_widths=None):
+				path = None
+			yield pane, path, pane_info
+	def _init_pane(self, pane, cmdline, pane_info):
+		if cmdline:
+			path = make_absolute(cmdline, getcwd())
+		else:
+			# Note that pane_info['location'] may be None if the pane hadn't
+			# yet received a location the last time fman was closed. This
+			# likely happens when an error occurs during startup.
+			# To cope with this, we use the line below instead of
+			#     pane_info.get('location', expanduser('~')).
+			path = pane_info.get('location') or expanduser('~')
+		url = path if '://' in path else as_url(path)
+		col_widths = pane_info.get('col_widths')
 		callback = None
 		home_dir = as_url(expanduser('~'))
 		try:
-			def exists_and_is_dir(url_):
-				try:
-					return self._fs.is_dir(url_)
-				except FileNotFoundError:
-					return False
-			if exists_and_is_dir(url):
+			if self._exists_and_is_dir(url):
 				location = url
 			elif self._fs.exists(url):
 				location = dirname(url)
@@ -110,12 +110,13 @@ class SessionManager:
 					except ValueError as file_disappeared:
 						pass
 			else:
-				location = get_existing_pardir(url, exists_and_is_dir) \
+				location = get_existing_pardir(url, self._exists_and_is_dir) \
 						   or home_dir
 			pane.set_path(location, callback)
-		except Exception as exc:
-			msg = 'Could not load folder %s' % as_human_readable(url)
-			self._error_handler.report(msg, exc)
+		except Exception:
+			msg = 'Could not load folder %s.' % \
+			      (cmdline or as_human_readable(url))
+			self._error_handler.report(msg, exc=False)
 			try:
 				pane.set_path(home_dir)
 			except FileNotFoundError:
@@ -138,6 +139,11 @@ class SessionManager:
 				# This for instance happens when the old and new numbers of
 				# columns don't match (eg. 2 columns before, 3 now).
 				pass
+	def _exists_and_is_dir(self, url):
+		try:
+			return self._fs.is_dir(url)
+		except FileNotFoundError:
+			return False
 	def on_close(self, main_window):
 		self._settings['window_geometry'] = _encode(main_window.saveGeometry())
 		self._settings['window_state'] = \
