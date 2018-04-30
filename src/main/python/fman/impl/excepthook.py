@@ -103,7 +103,8 @@ class RollbarExcepthook(Excepthook):
 	def install(self):
 		rollbar.init(
 			self._rollbar_token, self._environment,
-			code_version=self._fman_version
+			code_version=self._fman_version,
+			locals={ 'safe_repr': False }
 		)
 		super().install()
 	def set_user(self, user):
