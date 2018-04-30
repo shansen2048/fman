@@ -17,7 +17,11 @@ class StubFileSystem(FileSystem):
 	def exists(self, path):
 		return resolve(path) in self._items
 	def iterdir(self, path):
-		return list(self._items[resolve(path)].get('files', []))
+		try:
+			items = self._items[resolve(path)]
+		except KeyError:
+			raise FileNotFoundError(path) from None
+		return list(items.get('files', []))
 	@cached # Mirror a typical implementation
 	def is_dir(self, existing_path):
 		path_resolved = resolve(existing_path)

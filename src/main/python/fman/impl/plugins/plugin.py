@@ -251,6 +251,15 @@ class Wrapper:
 
 class ReportExceptions:
 	def __init__(self, error_handler, message, exclude=None):
+		if exclude is None:
+			exclude = set()
+		if not isinstance(exclude, set):
+			# Consider ReportExceptions(..., exclude=StopIteration,): At first
+			# sight, this looks fine. But it isn't! In this case, exclude is not
+			# a tuple, but equal to just StopIteration. The above would have
+			# to be written as ..., exclude=(StopIteration,). To avoid falling
+			# into this trap, we require `exclude` to be a set:
+			raise ValueError('exclude must be a set')
 		self.exception = None
 		self._exclude = exclude
 		self._error_handler = error_handler
@@ -264,7 +273,7 @@ class ReportExceptions:
 		if isinstance(exc_val, SystemExit):
 			exc_code = 0 if exc_val.code is None else exc_val.code
 			self._error_handler.handle_system_exit(exc_code)
-		elif exc_type != self._exclude:
+		elif exc_type not in self._exclude:
 			self._error_handler.report(self._message, exc_val)
 
 class CommandWrapper(Wrapper):
@@ -382,8 +391,13 @@ class FileSystemWrapper(Wrapper):
 					showed_error = False
 					while True:
 						try:
-							with self._report_exceptions(exclude=StopIteration):
+							with self._report_exceptions(
+								exclude={StopIteration, FileNotFoundError}
+							):
 								item = next(iterable)
+						except FileNotFoundError:
+							# Let caller know that `path` disappeared.
+							raise
 						except Exception: # Includes StopIteration
 							break
 						else:
@@ -407,7 +421,7 @@ class ColumnWrapper(Wrapper):
 		super().__init__(wrapped, 'Column', error_handler)
 	def get_str(self, url):
 		try:
-			with self._report_exceptions(exclude=FileNotFoundError):
+			with self._report_exceptions(exclude={FileNotFoundError}):
 				return self._wrapped.get_str(url)
 		except Exception:
 			return ''
@@ -416,7 +430,7 @@ class ColumnWrapper(Wrapper):
 		# comparisons can be performed even when errors occur and there is no
 		# sort value.
 		try:
-			with self._report_exceptions(exclude=FileNotFoundError):
+			with self._report_exceptions(exclude={FileNotFoundError}):
 				return False, self._wrapped.get_sort_value(url, is_ascending)
 		except Exception:
 			return True, 0

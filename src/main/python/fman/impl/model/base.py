@@ -50,6 +50,7 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 
 	location_loaded = pyqtSignal(str)
 	file_renamed = pyqtSignal(str, str)
+	location_disappeared = pyqtSignal(str)
 
 	def __init__(
 		self, fs, location, columns, sort_column=0, ascending=True,
@@ -72,10 +73,17 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 	@transaction(priority=1)
 	def _init(self, callback):
 		files = []
-		file_names = iter(self._fs.iterdir(self._location))
+		try:
+			file_names = iter(self._fs.iterdir(self._location))
+		except FileNotFoundError:
+			self.location_disappeared.emit(self._location)
+			return
 		while not self._shutdown:
 			try:
 				file_name = next(file_names)
+			except FileNotFoundError:
+				self.location_disappeared.emit(self._location)
+				return
 			except (StopIteration, OSError):
 				break
 			else:
@@ -221,10 +229,17 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 	def reload(self):
 		self._fs.clear_cache(self._location)
 		files = []
-		file_names = iter(self._fs.iterdir(self._location))
+		try:
+			file_names = iter(self._fs.iterdir(self._location))
+		except FileNotFoundError:
+			self.location_disappeared.emit(self._location)
+			return
 		while not self._shutdown:
 			try:
 				file_name = next(file_names)
+			except FileNotFoundError:
+				self.location_disappeared.emit(self._location)
+				return
 			except (StopIteration, OSError):
 				break
 			else:

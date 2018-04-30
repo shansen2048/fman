@@ -104,6 +104,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		# Would prefer signal.connect(self.signal.emit) here. But PyQt doesn't
 		# support it. So we need Python wrappers "_emit_...":
 		model.location_loaded.connect(self._emit_location_loaded)
+		model.location_disappeared.connect(self._on_file_removed)
 		model.file_renamed.connect(self._emit_file_renamed)
 		model.files_dropped.connect(self._emit_files_dropped)
 		model.sort_order_changed.connect(self._emit_sort_order_changed)
@@ -111,6 +112,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		# Would prefer signal.disconnect(self.signal.emit) here. But PyQt
 		# doesn't support it. So we need Python wrappers "_emit_...":
 		model.location_loaded.disconnect(self._emit_location_loaded)
+		model.location_disappeared.disconnect(self._on_file_removed)
 		model.file_renamed.disconnect(self._emit_file_renamed)
 		model.files_dropped.disconnect(self._emit_files_dropped)
 		model.sort_order_changed.disconnect(self._emit_sort_order_changed)

@@ -118,6 +118,14 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 			lambda: '0' not in [r[0] for r in self._get_data()],
 			'Did not pick up external removal of file'
 		)
+	def test_location_removed(self):
+		self._set_location('stub://dir')
+		self._stubfs.delete('dir')
+		self._model.reload()
+		self._wait_until(
+			lambda: self._model.get_location() == 'stub://',
+			'Did not pick up external removal of location'
+		)
 	def test_root_directory_changed(self):
 		self.test_set_location()
 		# "Delete" all files:
