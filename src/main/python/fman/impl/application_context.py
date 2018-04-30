@@ -29,7 +29,7 @@ from fman.impl.util.settings import Settings
 from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from os import makedirs
-from os.path import dirname, join, exists
+from os.path import dirname, join
 from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
