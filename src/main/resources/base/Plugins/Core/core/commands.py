@@ -104,7 +104,7 @@ def _delete(urls, message, delete_fn, fallback=None):
 	if not choice & YES:
 		return
 	ignore_errors = False
-	for url in urls:
+	for i, url in enumerate(urls):
 		try:
 			try:
 				delete_fn(url)
@@ -119,16 +119,22 @@ def _delete(urls, message, delete_fn, fallback=None):
 			if ignore_errors:
 				continue
 			message = 'Could not delete ' + basename(url)
-			if e.errno is not None:
-				message += ': %s.' % strerror(e.errno)
+			reason = e.strerror or ''
+			if not reason and e.errno is not None:
+				reason = strerror(e.errno)
+			if reason:
+				message += ': ' + reason
+			message += '.'
+			is_last = i == len(urls) - 1
+			if is_last:
+				show_alert(message)
 			else:
-				message += '.'
-			message += ' Do you want to continue?'
-			choice = show_alert(message, YES | NO | YES_TO_ALL)
-			if choice & NO:
-				break
-			if choice & YES_TO_ALL:
-				ignore_errors = True
+				message += ' Do you want to continue?'
+				choice = show_alert(message, YES | NO | YES_TO_ALL)
+				if choice & NO:
+					break
+				if choice & YES_TO_ALL:
+					ignore_errors = True
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self, urls=None):

@@ -1,4 +1,6 @@
+from errno import EINVAL
 from fman import PLATFORM
+from os import strerror
 
 if PLATFORM == 'Mac':
 	from osxtrash import move_to_trash
@@ -6,7 +8,14 @@ else:
 	def move_to_trash(*files):
 		send2trash = _import_send2trash()
 		for file in files:
-			send2trash(file)
+			try:
+				send2trash(file)
+			except OSError as e:
+				if PLATFORM == 'Windows':
+					if e.errno == EINVAL and e.winerror == _DE_INVALIDFILES:
+						message = strerror(EINVAL) + ' (file may be in use)'
+						raise OSError(EINVAL, message)
+				raise
 
 def _import_send2trash():
 	# We import send2trash as late as possible. Here's why: On Ubuntu
@@ -24,3 +33,6 @@ def _import_send2trash():
 			if not hasattr(GObject, 'GError'):
 				from send2trash.plat_other import send2trash as result
 	return result
+
+# Windows constant:
+_DE_INVALIDFILES = 0x7C
