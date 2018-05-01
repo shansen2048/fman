@@ -71,6 +71,8 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		new_model.start(callback)
 		self._already_visited.add(url)
 		self.location_changed.emit(url)
+		order = Qt.AscendingOrder if ascending else Qt.DescendingOrder
+		self.sort_order_changed.emit(sort_col_index, order)
 	def row_is_loaded(self, i):
 		source_row = self.mapToSource(self.index(i, 0)).row()
 		return self.sourceModel().row_is_loaded(source_row)
