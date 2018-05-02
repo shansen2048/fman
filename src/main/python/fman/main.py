@@ -11,6 +11,6 @@ def main():
 if __name__ == '__main__':
 	if len(sys.argv) > 1 and sys.argv[1] == '--profile':
 		sys.argv.pop(1)
-		cProfile.run('main()', sort='cumtime')
+		cProfile.run('main()', filename='fman.profile', sort='cumtime')
 	else:
 		main()
