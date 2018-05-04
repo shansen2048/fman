@@ -15,5 +15,6 @@
 	{ "keys": ["Ctrl+F1"], "command": "sort_by_column", "args": {"column_index": 0}},
 	{ "keys": ["Ctrl+F2"], "command": "sort_by_column", "args": {"column_index": 1}},
 	{ "keys": ["Ctrl+F3"], "command": "sort_by_column", "args": {"column_index": 2}},
-	{ "keys": ["Alt+Up"], "command": "go_up" }
+	{ "keys": ["Alt+Up"], "command": "go_up" },
+	{ "keys": ["Alt+Enter"], "command": "show_explorer_properties" }
 ]
