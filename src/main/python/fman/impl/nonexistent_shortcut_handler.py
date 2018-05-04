@@ -224,8 +224,8 @@ class NonexistentShortcutHandler:
 			load_plugin(settings_plugin)
 			show_alert(
 				'Your key bindings were updated. To change them later, please '
-				'see the %s section on fman\'s web site.'
-				% highlight('Shortcuts')
+				'see the <a href="https://fman.io/docs/custom-shortcuts?s=f">'
+				'Shortcuts</a> section on fman\'s web site.'
 			)
 	def _offer_to_install_arrownavigation_plugin(self, pretext):
 		choice = show_alert(
