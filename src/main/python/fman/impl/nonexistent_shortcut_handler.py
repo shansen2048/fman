@@ -167,8 +167,9 @@ class NonexistentShortcutHandler:
 		if choice != 'Rename':
 			return
 		self._offer_to_customize_keybindings(
-			'The shortcut for renaming files in dual-pane file managers is %s. '
-			% highlight('Shift+F6'), 'F2', 'rename'
+			'The shortcut for renaming files %s. (This is a convention of most '
+			'dual-pane file managers.) ' % highlight('Shift+F6'),
+			'F2', 'rename'
 		)
 	def _is_existing_dir(self, url):
 		try:
