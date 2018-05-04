@@ -92,9 +92,11 @@ class SessionManager:
 			# Note that pane_info['location'] may be None if the pane hadn't
 			# yet received a location the last time fman was closed. This
 			# likely happens when an error occurs during startup.
-			# To cope with this, we use the line below instead of
+			# To cope with this, we use the below instead of
 			#     pane_info.get('location', expanduser('~')).
-			path = pane_info.get('location') or expanduser('~')
+			path = pane_info.get('location')
+			if not path or path == 'null://':
+				path = expanduser('~')
 		url = path if '://' in path else as_url(path)
 		col_widths = pane_info.get('col_widths')
 		callback = None
