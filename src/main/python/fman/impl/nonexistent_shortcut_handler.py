@@ -1,9 +1,10 @@
 from fbs_runtime.system import is_mac
-from fman import show_alert, YES, NO, run_application_command
+from fman import show_alert, YES, NO, run_application_command, load_json, \
+	save_json, DATA_DIRECTORY, unload_plugin, load_plugin
 from fman.fs import is_dir
 from fman.impl.html_style import highlight
 from fman.impl.util.qt import Key_Up
-from os.path import dirname, basename
+from os.path import dirname, basename, join
 from pathlib import PurePath
 from PyQt5.QtCore import QEvent, QUrl
 from PyQt5.QtGui import QDesktopServices
@@ -28,6 +29,8 @@ class NonexistentShortcutHandler:
 			self._handle_key_left(pane)
 		elif key_event.matches('Right'):
 			self._handle_key_right(pane)
+		elif key_event.matches('F2'):
+			self._handle_f2(pane)
 	def _handle_key_left(self, pane):
 		dialog_id = 'NonExistentShortcutPromptLeft'
 		if not self._should_show_suggestions(dialog_id):
@@ -72,18 +75,19 @@ class NonexistentShortcutHandler:
 		elif choice == 'Open in left pane':
 			self._offer_to_customize_keybindings(
 				'The normal shortcut for opening a directory in the left pane '
-				'is %s. ' % highlight('Ctrl+Left')
+				'is %s. ' % highlight('Ctrl+Left'), 'Left', 'open_in_left_pane'
 			)
 		elif choice == 'Move cursor up':
 			self._offer_to_customize_keybindings(
 				'The normal shortcut for moving the cursor up is %s. '
-				% highlight('Arrow-Up')
+				% highlight('Arrow-Up'), 'Left', 'move_cursor_up'
 			)
 		elif choice == 'Go back':
 			self._offer_to_customize_keybindings(
 				'The normal shortcut for going back to the previous '
 				'folder is %s. '
-				% highlight(('Cmd' if is_mac() else 'Alt') + '+Left')
+				% highlight(('Cmd' if is_mac() else 'Alt') + '+Left'),
+				'Left', 'go_back'
 			)
 		elif choice == 'Switch to left pane':
 			self._offer_to_install_switchpanes_plugin()
@@ -130,23 +134,42 @@ class NonexistentShortcutHandler:
 		elif choice == 'Open in right pane':
 			self._offer_to_customize_keybindings(
 				'The normal shortcut for opening a directory in the right pane '
-				'is %s. ' % highlight('Ctrl+Right')
+				'is %s. ' % highlight('Ctrl+Right'),
+				'Right', 'open_in_right_pane'
 			)
 		elif choice == 'Move cursor down':
 			self._offer_to_customize_keybindings(
 				'The normal shortcut for moving the cursor down is %s. '
-				% highlight('Arrow-Down')
+				% highlight('Arrow-Down'),
+				'Right', 'move_cursor_down'
 			)
 		elif choice == 'Go forward':
 			self._offer_to_customize_keybindings(
 				'The normal shortcut for going forward in history is %s. '
-				% highlight(('Cmd' if is_mac() else 'Alt') + '+Right')
+				% highlight(('Cmd' if is_mac() else 'Alt') + '+Right'),
+				'Right', 'go_forward'
 			)
 		elif choice == 'Switch to right pane':
 			self._offer_to_install_switchpanes_plugin()
 		else:
 			assert choice == 'Other'
 			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
+	def _handle_f2(self, pane):
+		dialog_id = 'NonExistentShortcutPromptF2'
+		if not self._should_show_suggestions(dialog_id):
+			return
+		title = 'The shortcut %s is not defined. ' \
+				'What do you want to do?' % highlight('F2')
+		options = [(
+			'Rename', 'Rename "%s"' % basename(pane.get_file_under_cursor())
+		)]
+		choice = self._show_suggestions(dialog_id, title, options)
+		if choice != 'Rename':
+			return
+		self._offer_to_customize_keybindings(
+			'The shortcut for renaming files in dual-pane file managers is %s. '
+			% highlight('Shift+F6'), 'F2', 'rename'
+		)
 	def _is_existing_dir(self, url):
 		try:
 			return is_dir(url)
@@ -182,16 +205,26 @@ class NonexistentShortcutHandler:
 			'text': dialog.get_other_text()
 		})
 		return choice
-	def _offer_to_customize_keybindings(self, pretext):
+	def _offer_to_customize_keybindings(self, pretext, keys, command):
 		choice = show_alert(
-			pretext +
-			'Would you like to see how you can customize fman\'s '
-			'key bindings to change it?',
+			pretext + 'Do you want to use %s instead?' % highlight(keys),
 			YES | NO, YES
 		)
 		if choice & YES:
-			self._open_url(
-				'https://fman.io/docs/custom-shortcuts?s=f'
+			key_bindings = load_json('Key Bindings.json')
+			key_bindings.insert(0, {
+				'keys': [keys],
+				'command': command
+			})
+			save_json('Key Bindings.json')
+			settings_plugin = \
+				join(DATA_DIRECTORY, 'Plugins', 'User', 'Settings')
+			unload_plugin(settings_plugin)
+			load_plugin(settings_plugin)
+			show_alert(
+				'Your key bindings were updated. To change them later, please '
+				'see the %s section on fman\'s web site.'
+				% highlight('Shortcuts')
 			)
 	def _offer_to_install_arrownavigation_plugin(self, pretext):
 		choice = show_alert(
