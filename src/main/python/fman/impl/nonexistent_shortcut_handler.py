@@ -103,24 +103,25 @@ class NonexistentShortcutHandler:
 		options = []
 		is_left_pane = pane.window.get_panes().index(pane) == 0
 		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
-		if self._is_existing_dir(file_under_cursor):
+		file_u_c_exists = self._is_existing_dir(file_under_cursor)
+		if file_u_c_exists:
 			dir_name = basename(file_under_cursor)
 			options.append((
 				'Open directory', 'Open the directory "%s"' % dir_name
 			))
-			if is_left_pane:
-				options.append((
-					'Open in right pane',
-					'Open "%s" in the right pane' % dir_name
-				))
+		if is_left_pane:
+			options.append(('Switch to right pane','Switch to the right pane'))
+		if file_u_c_exists and is_left_pane:
+			options.append((
+				'Open in right pane',
+				'Open "%s" in the right pane' % dir_name
+			))
 		next_in_history = self._get_next_folder_in_history(pane)
 		if next_in_history:
 			options.append((
 				'Go forward',
 				'Go forward in history (to "%s")' % basename(next_in_history)
 			))
-		if is_left_pane:
-			options.append(('Switch to right pane','Switch to the right pane'))
 		if not options:
 			return
 		choice = self._show_suggestions(dialog_id, title, options)
