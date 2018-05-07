@@ -207,7 +207,7 @@ class NonexistentShortcutHandler:
 		return choice
 	def _offer_to_customize_keybindings(self, pretext, keys, command):
 		choice = show_alert(
-			pretext + 'Do you want to use %s instead?' % highlight(keys),
+			pretext + 'Do you want to use %s too?' % highlight(keys),
 			YES | NO, YES
 		)
 		if choice & YES:
