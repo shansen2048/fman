@@ -37,7 +37,8 @@ class Controller:
 		if not key_event.is_modifier_only() and \
 			not key_event.is_letter_only() and \
 			not key_event.is_digit_only():
-			self._nonexistent_shortcut_handler(key_event, pane)
+			if self._nonexistent_shortcut_handler(key_event, pane):
+				return True
 		event.ignore()
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):

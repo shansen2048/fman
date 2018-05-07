@@ -31,6 +31,9 @@ class NonexistentShortcutHandler:
 			self._handle_key_right(pane)
 		elif key_event.matches('F2'):
 			self._handle_f2(pane)
+		else:
+			return False
+		return True
 	def _handle_key_left(self, pane):
 		dialog_id = 'NonExistentShortcutPromptLeft'
 		if not self._should_show_suggestions(dialog_id):
