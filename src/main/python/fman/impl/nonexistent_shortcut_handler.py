@@ -57,6 +57,7 @@ class NonexistentShortcutHandler:
 				'Go back to the previous folder ("%s")' %
 				basename(prev_in_history)
 			))
+		options.append(('Move home', 'Jump to the first file'))
 		if is_right_pane:
 			options.append(('Switch to left pane', 'Switch to the left pane'))
 		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
@@ -94,6 +95,12 @@ class NonexistentShortcutHandler:
 			)
 		elif choice == 'Switch to left pane':
 			self._offer_to_install_switchpanes_plugin()
+		elif choice == 'Move home':
+			self._offer_to_customize_keybindings(
+				'The normal shortcut for jumping to the first file is %s. '
+				% highlight('Home'),
+				'Left', 'move_cursor_home'
+			)
 	def _handle_key_right(self, pane):
 		dialog_id = 'NonExistentShortcutPromptRight'
 		if not self._should_show_suggestions(dialog_id):
@@ -111,6 +118,7 @@ class NonexistentShortcutHandler:
 			))
 		if is_left_pane:
 			options.append(('Switch to right pane','Switch to the right pane'))
+		options.append(('Move end', 'Jump to the last file'))
 		if file_u_c_exists and is_left_pane:
 			options.append((
 				'Open in right pane',
@@ -152,6 +160,12 @@ class NonexistentShortcutHandler:
 			)
 		elif choice == 'Switch to right pane':
 			self._offer_to_install_switchpanes_plugin()
+		elif choice == 'Move end':
+			self._offer_to_customize_keybindings(
+				'The normal shortcut for jumping to the last file is %s. '
+				% highlight('End'),
+				'Right', 'move_cursor_end'
+			)
 	def _handle_f2(self, pane):
 		dialog_id = 'NonExistentShortcutPromptF2'
 		if not self._should_show_suggestions(dialog_id):
