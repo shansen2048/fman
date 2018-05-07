@@ -94,9 +94,6 @@ class NonexistentShortcutHandler:
 			)
 		elif choice == 'Switch to left pane':
 			self._offer_to_install_switchpanes_plugin()
-		else:
-			assert choice == 'Other'
-			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
 	def _handle_key_right(self, pane):
 		dialog_id = 'NonExistentShortcutPromptRight'
 		if not self._should_show_suggestions(dialog_id):
@@ -154,9 +151,6 @@ class NonexistentShortcutHandler:
 			)
 		elif choice == 'Switch to right pane':
 			self._offer_to_install_switchpanes_plugin()
-		else:
-			assert choice == 'Other'
-			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
 	def _handle_f2(self, pane):
 		dialog_id = 'NonExistentShortcutPromptF2'
 		if not self._should_show_suggestions(dialog_id):
@@ -208,6 +202,8 @@ class NonexistentShortcutHandler:
 			'choice': choice,
 			'text': dialog.get_other_text()
 		})
+		if choice == 'Other':
+			show_alert(self._THANK_YOU_FOR_FEEDBACK_MESSAGE)
 		return choice
 	def _offer_to_customize_keybindings(self, pretext, keys, command):
 		choice = show_alert(
