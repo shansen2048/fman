@@ -50,12 +50,6 @@ class NonexistentShortcutHandler:
 				'Go to parent directory',
 				'Go to the parent directory ("%s")' % dir_name
 			))
-		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
-		if is_right_pane and self._is_existing_dir(file_under_cursor):
-			options.append((
-				'Open in left pane',
-				'Open "%s" in the left pane' % basename(file_under_cursor)
-			))
 		prev_in_history = self._get_previous_folder_in_history(pane)
 		if prev_in_history:
 			options.append((
@@ -65,6 +59,12 @@ class NonexistentShortcutHandler:
 			))
 		if is_right_pane:
 			options.append(('Switch to left pane', 'Switch to the left pane'))
+		file_under_cursor = pane.get_file_under_cursor() or pane.get_path()
+		if is_right_pane and self._is_existing_dir(file_under_cursor):
+			options.append((
+				'Open in left pane',
+				'Open "%s" in the left pane' % basename(file_under_cursor)
+			))
 		if not options:
 			return
 		choice = self._show_suggestions(dialog_id, title, options)
