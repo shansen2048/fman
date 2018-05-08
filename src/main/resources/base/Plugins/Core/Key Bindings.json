@@ -30,6 +30,7 @@
 	{ "keys": ["F7"], "command": "create_directory" },
 	{ "keys": ["F8"], "command": "move_to_trash" },
 	{ "keys": ["Delete"], "command": "move_to_trash" },
+	{ "keys": ["Num+Delete"], "command": "move_to_trash" },
 	{ "keys": ["F9"], "command": "open_terminal" },
 	{ "keys": ["F10"], "command": "open_native_file_manager" },
 	{ "keys": ["F11"], "command": "copy_paths_to_clipboard" },
@@ -37,5 +38,6 @@
 	{ "keys": ["Ctrl+Left"], "command": "open_in_left_pane" },
 	{ "keys": ["Shift+Delete"], "command": "delete_permanently" },
 	{ "keys": ["Alt+F1"], "command": "show_volumes", "args": {"pane_index": 0} },
-	{ "keys": ["Alt+F2"], "command": "show_volumes", "args": {"pane_index": 1} }
+	{ "keys": ["Alt+F2"], "command": "show_volumes", "args": {"pane_index": 1} },
+	{ "keys": ["Num+Insert"], "command": "move_cursor_down", "args": {"toggle_selection": true} }
 ]
