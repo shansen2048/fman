@@ -36,7 +36,10 @@ def exe():
 		# Required by send2trash, which is used in the Core plugin:
 		'--hidden-import', 'ctypes.wintypes',
 		# Required by the Core plugin:
-		'--hidden-import', 'adodbapi'
+		'--hidden-import', 'adodbapi',
+		'--hidden-import', 'win32com.shell.shell',
+		'--hidden-import', 'win32com.shell.shellcon',
+		'--hidden-import', 'win32gui'
 	])
 	rmtree(path('${freeze_dir}/Plugins/Core/bin/mac'))
 	rmtree(path('${freeze_dir}/Plugins/Core/bin/linux'))
