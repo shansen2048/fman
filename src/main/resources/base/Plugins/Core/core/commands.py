@@ -1502,7 +1502,7 @@ class RemovePlugin(ApplicationCommand):
 						unload_plugin(plugin_dir)
 					except ValueError as plugin_was_not_loaded:
 						pass
-					rmtree(plugin_dir)
+					delete(as_url(plugin_dir))
 					show_alert(
 						'Plugin %r was successfully removed.'
 						% os.path.basename(plugin_dir)
