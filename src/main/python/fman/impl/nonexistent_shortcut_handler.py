@@ -31,6 +31,8 @@ class NonexistentShortcutHandler:
 			self._handle_key_right(pane)
 		elif key_event.matches('F2'):
 			self._handle_f2(pane)
+		elif key_event.matches('Ctrl+T'):
+			self._handle_ctrl_t()
 		else:
 			return False
 		return True
@@ -182,6 +184,15 @@ class NonexistentShortcutHandler:
 			'The shortcut for renaming files is %s. (This is a convention of '
 			'most dual-pane file managers.) ' % highlight('Shift+F6'),
 			'F2', 'rename'
+		)
+	def _handle_ctrl_t(self):
+		key = lambda mod, k: highlight(('Cmd' if is_mac() else mod) + '+' + k)
+		show_alert(
+			"Sorry, fman does not yet support tabs. But! You might not need "
+			"them: Jump to other directories with %s, then press %s "
+			"to go back. This lets you switch folders almost as fast &ndash; "
+			"and saves valuable screen space."
+			% (key('Ctrl', 'P'), key('Alt', 'Left'))
 		)
 	def _is_existing_dir(self, url):
 		try:
