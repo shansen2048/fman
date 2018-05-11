@@ -1245,8 +1245,23 @@ class CommandPalette(DirectoryPaneCommand):
 		return result
 	def _get_shortcuts_for_command(self, command):
 		for binding in load_json('Key Bindings.json'):
-			if binding['command'] == command:
+			try:
+				binding_cmd = binding['command']
+			except (KeyError, TypeError):
+				# Malformed Key Bindings.json
+				continue
+			else:
+				if binding_cmd != command:
+					continue
+			try:
 				shortcut = binding['keys'][0]
+			except (KeyError, IndexError, TypeError):
+				# Malformed Key Bindings.json
+				continue
+			else:
+				if not isinstance(shortcut, str):
+					# Malformed Key Bindings.json
+					continue
 				if PLATFORM == 'Mac':
 					shortcut = self._insert_mac_key_symbols(shortcut)
 				yield shortcut
