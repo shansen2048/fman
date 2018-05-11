@@ -33,6 +33,14 @@ class SanitizeKeyBindingsTest(TestCase):
 			]),
 			sanitize_key_bindings([{'command': 'foo', 'keys': 'F3'}], ['foo'])
 		)
+	def test_keys_empty_list(self):
+		self.assertEqual(
+			([], [
+				'Error: A key binding\'s "keys" must be a non-empty list '
+				'["..."], not [].'
+			]),
+			sanitize_key_bindings([{'command': 'foo', 'keys': []}], ['foo'])
+		)
 	def test_nonexistent_command(self):
 		self.assertEqual(
 			([], ["Error in key bindings: Command 'foo' does not exist."]),
