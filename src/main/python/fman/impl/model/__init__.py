@@ -4,7 +4,8 @@ from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.file_watcher import FileWatcher
 from fman.impl.model.table import TableModel, Cell, Row
 from fman.impl.util.qt.thread import run_in_main_thread
-from fman.impl.util.url import get_existing_pardir, is_pardir
+from fman.impl.util.url import is_pardir
+from fman.url import dirname
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
 class SortedFileSystemModel(QSortFilterProxyModel):
@@ -101,8 +102,14 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		return self.mapFromSource(self.sourceModel().find(url))
 	def _on_file_removed(self, url):
 		if is_pardir(url, self.get_location()):
-			existing_pardir = get_existing_pardir(url, self._fs.is_dir)
-			self.set_location(existing_pardir or self._null_location)
+			dir_ = dirname(url)
+			if dir_ == url:
+				self.set_location(self._null_location)
+			else:
+				try:
+					self.set_location(dir_)
+				except FileNotFoundError:
+					self._on_file_removed(dir_)
 	def _connect_signals(self, model):
 		# Would prefer signal.connect(self.signal.emit) here. But PyQt doesn't
 		# support it. So we need Python wrappers "_emit_...":
