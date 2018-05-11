@@ -1633,6 +1633,11 @@ elif PLATFORM == 'Windows':
 	try:
 		from .explorer_properties import ShowExplorerProperties
 	except ImportError as e:
+		# If we simply refer to `e` below, we get a NameError. This is likely
+		# because the captured exception of `except` statements goes out of
+		# scope as soon as the except block exits. So introduce a separate
+		# variable that does not go out of scope:
+		error = e
 		class ShowExplorerProperties(DirectoryPaneCommand):
 			def __call__(self):
 				show_alert(
@@ -1641,7 +1646,7 @@ elif PLATFORM == 'Windows':
 					'<a href="https://fman.io/issues?s=f">'
 					'https://fman.io/issues</a> mentioning your Windows '
 					'version (eg. Windows 10) and architecture (eg. 64 bit).'
-					% e.name
+					% error.name
 				)
 
 def _get_local_filepaths(urls):
