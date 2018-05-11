@@ -3,14 +3,14 @@ from fman import load_json
 from fman.impl.onboarding import Tour, TourStep
 from fman.impl.util import is_below_dir
 from fman.impl.util.qt import connect_once
-from fman.impl.util.qt.thread import run_in_main_thread
+from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
 	normpath, dirname
 from pathlib import PurePath
 from PyQt5.QtCore import QFileInfo
 from PyQt5.QtWidgets import QFileDialog
-from time import time
+from time import time, sleep
 
 import fman.url
 import os.path
@@ -300,8 +300,7 @@ class Tutorial(Tour):
 			actions['after'] = {'ToggleHiddenFiles': self._navigate}
 		self._steps[self._curr_step_index] = TourStep('', paragraphs, actions)
 		if instruction == 'open' and path != '..':
-			toggle_url = fman.url.join(self._get_location(), path)
-			self._pane_widget.toggle_selection(toggle_url)
+			self._highlight(fman.url.join(self._get_location(), path))
 		self._show_current_screen()
 	def _get_step_paragraphs(self, instruction, path):
 		result = []
@@ -369,6 +368,20 @@ class Tutorial(Tour):
 		self._encouragement_index += 1
 		self._encouragement_index %= len(self._encouragements)
 		return result
+	def _highlight(self, file_url, timeout_secs=.25):
+		start_time = time()
+		while time() < start_time + timeout_secs:
+			try:
+				self._pane_widget.toggle_selection(file_url)
+			except ValueError:
+				# This for instance happens when the file was hidden, the user
+				# just toggled to show hidden files (an asynchronous operation)
+				# and it has not yet completed.
+				assert not is_in_main_thread(), \
+					"We never want to block the main thread"
+				sleep(.1)
+			else:
+				break
 	def _get_src_url(self, dst_path):
 		dst_url = as_url(dst_path)
 		steps_from = lambda url: len(self._get_navigation_steps(dst_url, url))
