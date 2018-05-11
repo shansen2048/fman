@@ -18,7 +18,6 @@ from os.path import basename, normpath, expanduser, isabs, pardir, islink
 from pathlib import PurePath, Path
 from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
-from shutil import rmtree
 from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
 
