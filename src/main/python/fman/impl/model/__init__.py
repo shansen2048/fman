@@ -108,7 +108,13 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 			else:
 				try:
 					self.set_location(dir_)
-				except FileNotFoundError:
+				except OSError:
+					# In a perfect world, would like to only handle
+					# FileNotFoundError here. But there can of course also be
+					# other reasons. For example, when on a network share on
+					# Windows, we may get a PermissionError trying to list a
+					# parent directory we don't have access to. So catch all
+					# OSErrors and in the worst case go to null://.
 					self._on_file_removed(dir_)
 	def _connect_signals(self, model):
 		# Would prefer signal.connect(self.signal.emit) here. But PyQt doesn't
