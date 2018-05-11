@@ -1792,13 +1792,13 @@ class SortByColumn(DirectoryPaneCommand):
 					result[i].append(item)
 					break
 		return chain.from_iterable(result)
-	def _remember_settings(self, path, column, is_ascending):
+	def _remember_settings(self, url, column, is_ascending):
 		settings = load_json('Sort Settings.json', default={})
 		default = (self.pane.get_columns()[0], True)
 		if (column, is_ascending) == default:
-			settings.pop(path, None)
+			settings.pop(url, None)
 		else:
-			settings[path] = {
+			settings[url] = {
 				'column': column,
 				'is_ascending': is_ascending
 			}
@@ -1806,6 +1806,14 @@ class SortByColumn(DirectoryPaneCommand):
 
 class RememberSortSettings(DirectoryPaneListener):
 	def before_location_change(self, url, sort_column='', ascending=True):
+		try:
+			# Consider: We're at zip:///foo.zip and go up. This moves us to
+			# zip:/// - which resolves to file:///. The sort settings will have
+			# been saved for this latter URL. So we have to resolve(...) to go
+			# from the former to the latter:
+			url = resolve(url)
+		except OSError:
+			pass
 		settings = load_json('Sort Settings.json', default={})
 		try:
 			data = settings[url]
