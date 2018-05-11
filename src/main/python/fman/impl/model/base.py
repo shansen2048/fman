@@ -226,6 +226,15 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			cells.append(Cell(cell.str, col_val_asc, col_val_desc))
 		return File(row.url, row.icon, row.is_dir, cells, row.is_loaded)
 	@transaction(priority=4)
+	def add_filter(self, filter_):
+		super().add_filter(filter_)
+	@transaction(priority=4)
+	def remove_filter(self, filter_):
+		super().remove_filter(filter_)
+	@run_in_main_thread # Because #update() is called by eg. #add_filter(...)
+	def update(self):
+		super().update()
+	@transaction(priority=5)
 	def reload(self):
 		self._fs.clear_cache(self._location)
 		files = []
@@ -297,16 +306,16 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			self.file_renamed.emit(self.url(index), value)
 			return True
 		return super().setData(index, value, role)
-	@transaction(priority=5, synchronous=True)
+	@transaction(priority=6, synchronous=True)
 	def notify_file_added(self, url):
 		assert dirname(url) == self._location
 		self._load_files([url])
-	@transaction(priority=5, synchronous=True)
+	@transaction(priority=6, synchronous=True)
 	def notify_file_changed(self, url):
 		assert dirname(url) == self._location
 		self._fs.clear_cache(url)
 		self._load_files([url])
-	@transaction(priority=5, synchronous=True)
+	@transaction(priority=6, synchronous=True)
 	def notify_file_renamed(self, old_url, new_url):
 		assert dirname(old_url) == dirname(new_url) == self._location
 		self._fs.clear_cache(old_url)
@@ -325,12 +334,12 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		else:
 			self.update_rows([new_file], old_row)
 		self._record_files([new_file], [old_url])
-	@transaction(priority=5, synchronous=True)
+	@transaction(priority=6, synchronous=True)
 	def notify_file_removed(self, url):
 		assert dirname(url) == self._location
 		self._fs.clear_cache(url)
 		self._record_files([], [url])
-	@transaction(priority=6)
+	@transaction(priority=7)
 	def _load_remaining_files(self, batch_timeout=.2):
 		end_time = time() + batch_timeout
 		files = []

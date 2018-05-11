@@ -116,8 +116,8 @@ class DirectoryPaneWidget(QWidget):
 	def add_filter(self, filter_):
 		self._model.add_filter(filter_)
 	@run_in_main_thread
-	def invalidate_filters(self):
-		self._model.invalidate_filters()
+	def remove_filter(self, filter_):
+		self._model.remove_filter(filter_)
 	@property
 	def window(self):
 		return self.parentWidget().parentWidget()

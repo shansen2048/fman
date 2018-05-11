@@ -771,17 +771,19 @@ class ToggleHiddenFiles(DirectoryPaneCommand):
 		for _ in range(pane_index - len(settings) + 1):
 			settings.append(default.copy())
 		self.pane_info = settings[pane_index]
-		self.pane._add_filter(self.should_display)
-	def should_display(self, url):
-		if self.show_hidden_files:
-			return True
+		if not self.show_hidden_files:
+			self.pane._add_filter(self._filter_hidden)
+	def _filter_hidden(self, url):
 		if PLATFORM == 'Mac' and url == 'file:///Volumes':
 			return True
 		scheme, path = splitscheme(url)
 		return scheme != 'file://' or not _is_hidden(path)
 	def __call__(self):
 		self.show_hidden_files = not self.show_hidden_files
-		self.pane._invalidate_filters()
+		if self.show_hidden_files:
+			self.pane._remove_filter(self._filter_hidden)
+		else:
+			self.pane._add_filter(self._filter_hidden)
 	@property
 	def show_hidden_files(self):
 		return self.pane_info['show_hidden_files']

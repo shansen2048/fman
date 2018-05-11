@@ -78,8 +78,8 @@ class DirectoryPane:
 
 	def _add_filter(self, filter_):
 		self._widget.add_filter(filter_)
-	def _invalidate_filters(self):
-		self._widget.invalidate_filters()
+	def _remove_filter(self, filter_):
+		self._widget.remove_filter(filter_)
 
 	def get_selected_files(self):
 		return self._widget.get_selected_files()

@@ -54,3 +54,7 @@ class SortFilterTableModel(TableModel):
 		self.sort_order_changed.emit(column, order)
 	def add_filter(self, filter_):
 		self._filters.append(filter_)
+		self.update()
+	def remove_filter(self, filter_):
+		self._filters.remove(filter_)
+		self.update()

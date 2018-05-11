@@ -90,10 +90,11 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 	def sort(self, column, order=Qt.AscendingOrder):
 		self.sourceModel().sort(column, order)
 	def add_filter(self, filter_):
-		self.sourceModel().add_filter(filter_)
 		self._filters.append(filter_)
-	def invalidate_filters(self):
-		self.sourceModel().update()
+		self.sourceModel().add_filter(filter_)
+	def remove_filter(self, filter_):
+		self._filters.remove(filter_)
+		self.sourceModel().remove_filter(filter_)
 	def url(self, index):
 		return self.sourceModel().url(self.mapToSource(index))
 	def find(self, url):
