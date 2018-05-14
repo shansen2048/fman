@@ -1,4 +1,4 @@
-from fman.impl.view import _get_ideal_column_widths, \
+from fman.impl.view.resize_cols_to_contents import _get_ideal_column_widths, \
 	_resize_column
 from unittest import TestCase
 
