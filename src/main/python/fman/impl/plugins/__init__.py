@@ -55,7 +55,7 @@ class PluginSupport:
 			except KeyError:
 				continue
 			else:
-				return command.get_aliases()
+				return command.aliases
 		raise LookupError(command_name)
 	def run_application_command(self, name, args=None):
 		if args is None:

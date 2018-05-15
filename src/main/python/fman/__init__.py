@@ -4,6 +4,8 @@ from os import getenv
 from os.path import join, expanduser
 from PyQt5.QtWidgets import QMessageBox
 
+import re
+
 __all__ = [
 	'ApplicationCommand', 'DirectoryPaneCommand', 'DirectoryPaneListener',
 	'load_json', 'save_json',
@@ -36,7 +38,13 @@ elif PLATFORM == 'Mac':
 elif PLATFORM == 'Linux':
 	DATA_DIRECTORY = expanduser('~/.config/fman')
 
-class ApplicationCommand:
+class Command:
+	@property
+	def aliases(self):
+		return re.sub(r'([a-z])([A-Z])', r'\1 \2', self.__class__.__name__)\
+				   .lower().capitalize(),
+
+class ApplicationCommand(Command):
 	def __init__(self, window):
 		self.window = window
 	def __call__(self, *args, **kwargs):
@@ -70,7 +78,7 @@ class DirectoryPane:
 				break
 		return self._commands[name](**args)
 	def get_command_aliases(self, command_name):
-		return self._commands[command_name].get_aliases()
+		return self._commands[command_name].aliases
 	def is_command_visible(self, command_name):
 		return self._commands[command_name].is_visible()
 	def _register_command(self, command_name, command):
@@ -150,7 +158,7 @@ class Window:
 		_get_controller().register_pane(pane_widget, pane)
 		return pane
 
-class DirectoryPaneCommand:
+class DirectoryPaneCommand(Command):
 	def __init__(self, pane):
 		self.pane = pane
 	def __call__(self, *args, **kwargs):

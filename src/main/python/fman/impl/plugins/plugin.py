@@ -284,12 +284,9 @@ class CommandWrapper(Wrapper):
 		Thread(
 			target=self._run_in_thread, args=args, kwargs=kwargs, daemon=True
 		).start()
-	def get_aliases(self):
-		try:
-			return self._wrapped.aliases
-		except AttributeError:
-			return re.sub(r'([a-z])([A-Z])', r'\1 \2', self._class_name)\
-					   .lower().capitalize(),
+	@property
+	def aliases(self):
+		return self._wrapped.aliases
 	def is_visible(self):
 		return self._wrapped.is_visible()
 	def _run_in_thread(self, *args, **kwargs):
