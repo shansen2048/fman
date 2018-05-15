@@ -504,6 +504,8 @@ class _TreeCommand(DirectoryPaneCommand):
 	@classmethod
 	def _verb(cls):
 		return cls.__name__.lower()
+	def is_visible(self):
+		return bool(self.pane.get_file_under_cursor())
 
 def get_dest_suggestion(dst_url):
 	scheme = splitscheme(dst_url)[0]
@@ -598,6 +600,8 @@ class Rename(DirectoryPaneCommand):
 			self.pane.edit_name(file_under_cursor, selection_end=selection_end)
 		else:
 			show_alert('No file is selected!')
+	def is_visible(self):
+		return bool(self.pane.get_file_under_cursor())
 
 class RenameListener(DirectoryPaneListener):
 	def on_name_edited(self, file_url, new_name):
@@ -712,6 +716,8 @@ class CopyToClipboard(DirectoryPaneCommand):
 			clipboard.copy_files(files)
 		else:
 			show_alert('No file is selected!')
+	def is_visible(self):
+		return bool(self.pane.get_file_under_cursor())
 
 class Cut(DirectoryPaneCommand):
 	def __call__(self):
@@ -726,6 +732,8 @@ class Cut(DirectoryPaneCommand):
 			clipboard.cut_files(files)
 		else:
 			show_alert('No file is selected!')
+	def is_visible(self):
+		return bool(self.pane.get_file_under_cursor())
 
 class Paste(DirectoryPaneCommand):
 	def __call__(self):
@@ -737,6 +745,8 @@ class Paste(DirectoryPaneCommand):
 		else:
 			dest = self.pane.get_path()
 			self.pane.run_command('copy', {'files': files, 'dest_dir': dest})
+	def is_visible(self):
+		return bool(clipboard.get_files())
 
 class PasteCut(DirectoryPaneCommand):
 	def __call__(self):
