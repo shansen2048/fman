@@ -1,6 +1,5 @@
 from fman.impl.util.qt import WA_MacShowFocusRect, Key_Home, Key_End, \
 	ShiftModifier, Key_Return, Key_Enter, ToolTipRole, connect_once
-from fman.impl.view.context_menu import ContextMenuAction
 from fman.impl.view.drag_and_drop import DragAndDrop
 from fman.impl.view.move_without_updating_selection import \
 	MoveWithoutUpdatingSelection
