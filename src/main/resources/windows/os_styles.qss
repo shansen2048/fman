@@ -9,3 +9,19 @@ QStatusBar {
 Overlay {
 	max-width: 25em;
 }
+
+QMenu {
+	background-color: white;
+	border: 1px solid #a0a0a0;
+	padding: 2px;
+	font-family: "Segoe UI";
+	color: black;
+}
+
+QMenu::item {
+	padding: 1ex 10ex;
+}
+
+QMenu::item:selected {
+	background-color: #e5e5e5;
+}

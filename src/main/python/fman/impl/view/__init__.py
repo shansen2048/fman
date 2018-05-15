@@ -1,5 +1,6 @@
 from fman.impl.util.qt import WA_MacShowFocusRect, Key_Home, Key_End, \
 	ShiftModifier, Key_Return, Key_Enter, ToolTipRole, connect_once
+from fman.impl.view.context_menu import ContextMenuAction
 from fman.impl.view.drag_and_drop import DragAndDrop
 from fman.impl.view.move_without_updating_selection import \
 	MoveWithoutUpdatingSelection
@@ -10,7 +11,7 @@ from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	pyqtSignal
 from PyQt5.QtGui import QPen
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
-	QStyledItemDelegate, QProxyStyle, QHeaderView, QToolTip
+	QStyledItemDelegate, QProxyStyle, QHeaderView, QToolTip, QMenu, QAction
 
 class FileListView(
 	SingleRowMode, MoveWithoutUpdatingSelection, DragAndDrop,
@@ -33,7 +34,20 @@ class FileListView(
 		self._delegate = FileListItemDelegate()
 		self.add_delegate(self._delegate)
 		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		self.setContextMenuPolicy(Qt.DefaultContextMenu)
 		self._urls_being_loaded = []
+	def contextMenuEvent(self, event):
+		menu = QMenu(self)
+		for a in (
+			'Open', 'Open in new window', 'Open in fman',
+			'Convert to file format...', 'Share with',
+			'Restore previous versions', 'Compare with Code Compare',
+			'Select Left', 'Include in library', 'Send to', 'Cut', 'Copy',
+			'Create shortcut', 'Delete', 'Rename', 'Properties'
+		):
+			action = QAction(a, self)
+			menu.addAction(action)
+		menu.exec(event.globalPos())
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		return [self.model().url(index) for index in indexes]
