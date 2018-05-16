@@ -1,0 +1,7 @@
+[
+	{ "command": "open_with" },
+	{ "command": "copy_to_clipboard", "caption": "Copy" },
+	{ "command": "paste" },
+	{ "command": "rename" },
+	{ "command": "get_info" }
+]
