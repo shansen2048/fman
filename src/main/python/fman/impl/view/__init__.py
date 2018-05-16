@@ -8,7 +8,7 @@ from fman.impl.view.single_row_mode import SingleRowMode
 from fman.impl.view.uniform_row_heights import UniformRowHeights
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	pyqtSignal
-from PyQt5.QtGui import QPen
+from PyQt5.QtGui import QPen, QContextMenuEvent
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QHeaderView, QToolTip, QMenu, QAction
 
@@ -16,8 +16,9 @@ class FileListView(
 	SingleRowMode, MoveWithoutUpdatingSelection, DragAndDrop,
 	ResizeColumnsToContents
 ):
-	def __init__(self, parent):
+	def __init__(self, parent, get_context_menu):
 		super().__init__(parent)
+		self._get_context_menu = get_context_menu
 		self.key_press_event_filter = lambda source, event: False
 		self.setShowGrid(False)
 		self.setSortingEnabled(True)
@@ -36,17 +37,25 @@ class FileListView(
 		self.setContextMenuPolicy(Qt.DefaultContextMenu)
 		self._urls_being_loaded = []
 	def contextMenuEvent(self, event):
+		index = self.indexAt(event.pos())
+		if index.isValid():
+			file_under_mouse = self.model().url(index)
+		else:
+			file_under_mouse = None
 		menu = QMenu(self)
-		for a in (
-			'Open', 'Open in new window', 'Open in fman',
-			'Convert to file format...', 'Share with',
-			'Restore previous versions', 'Compare with Code Compare',
-			'Select Left', 'Include in library', 'Send to', 'Cut', 'Copy',
-			'Create shortcut', 'Delete', 'Rename', 'Properties'
+		for caption, callback in self._get_context_menu(
+			event, file_under_mouse
 		):
-			action = QAction(a, self)
+			action = QAction(caption, self)
+			# Need `c=callback` to create one lambda per loop:
+			action.triggered.connect(lambda _, c=callback: c())
 			menu.addAction(action)
-		menu.exec(event.globalPos())
+		pos = event.globalPos()
+		if event.reason() != QContextMenuEvent.Mouse:
+			# For some reason, event.globalPos() does not take the header into
+			# account when not caused by mouse. Correct for this:
+			pos.setY(pos.y() + self.horizontalHeader().height())
+		menu.exec(pos)
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		return [self.model().url(index) for index in indexes]

@@ -68,6 +68,25 @@ class PluginSupport:
 		for pane in self._panes:
 			if pane._has_focus():
 				return pane
+	def get_context_menu(self, pane, file_under_mouse=None):
+		for entry in self.load_json('Context Menu.json', default=[]):
+			cmd_name = entry['command']
+			if cmd_name in pane.get_commands():
+				with pane._override_file_under_cursor(file_under_mouse):
+					if not pane.is_command_visible(cmd_name):
+						continue
+				def run_command(cmd_name):
+					pane.run_command(
+						cmd_name, file_under_cursor=file_under_mouse
+					)
+				def_caption = pane.get_command_aliases(cmd_name)[0]
+			else:
+				run_command = self.run_application_command
+				def_caption = self.get_application_command_aliases(cmd_name)[0]
+			caption = entry.get('caption', def_caption)
+			# Need `c=cmd_name` to create one lambda per loop:
+			callback = lambda c=cmd_name: run_command(c)
+			yield (caption, callback)
 	@property
 	def _plugins(self):
 		if self._builtin_plugin is not None:

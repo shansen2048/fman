@@ -11,7 +11,7 @@ class SingleRowMode(
 		super().__init__(parent)
 		self.setSelectionBehavior(QAbstractItemView.SelectRows)
 		self._single_row_delegate = None
-		self._would_have_focus = False
+		self._focus_out_reason = None
 	def _get_modifiers(self, cursor_action):
 		if cursor_action in (self.MoveHome, self.MoveEnd):
 			return Qt.ControlModifier
@@ -40,13 +40,10 @@ class SingleRowMode(
 		if not self.currentIndex().isValid():
 			self.move_cursor_home()
 		super().focusInEvent(event)
-		self._would_have_focus = True
+		self._focus_out_reason = None
 	def focusOutEvent(self, event):
 		super().focusOutEvent(event)
-		self._would_have_focus = event.reason() in (
-			Qt.ActiveWindowFocusReason, Qt.PopupFocusReason,
-			Qt.MenuBarFocusReason
-		)
+		self._focus_out_reason = event.reason()
 	def _current_row_changed(self, current, previous):
 		# When the cursor moves, Qt only repaints the cell that was left and the
 		# cell that was entered. But because we are highlighting the entire row
@@ -70,10 +67,19 @@ class SingleRowModeDelegate(QStyledItemDelegate):
 		view = self._view
 		if index.row() != view.currentIndex().row():
 			return False
+		if view.hasFocus():
+			return True
+		nofocus_reason = view._focus_out_reason
+		if view.isActiveWindow():
+			# Check if the reason we don't have focus is a context menu:
+			return nofocus_reason == Qt.PopupFocusReason
 		# QTableView::item:focus is only applied when the window has focus. This
 		# means that the cursor disappears when the window is in the background
 		# (or behind a modal). This leads to non-pleasant flickering effects.
 		# So we always highlight the cursor even when the window doesn't have
 		# focus:
-		return view.hasFocus() or \
-			   (not view.isActiveWindow() and view._would_have_focus)
+		would_have_focus = nofocus_reason in (
+			Qt.ActiveWindowFocusReason, Qt.PopupFocusReason,
+			Qt.MenuBarFocusReason
+		)
+		return would_have_focus

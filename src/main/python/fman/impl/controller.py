@@ -1,4 +1,5 @@
 from fman.impl.util.qt.key_event import QtKeyEvent
+from PyQt5.QtGui import QContextMenuEvent
 from weakref import WeakValueDictionary
 
 class Controller:
@@ -50,3 +51,15 @@ class Controller:
 	def on_files_dropped(self, pane_widget, *args):
 		self._metrics.track('DroppedFile')
 		self._panes[pane_widget]._broadcast('on_files_dropped', *args)
+	def on_context_menu(self, pane_widget, event, file_under_mouse):
+		if event.reason() == QContextMenuEvent.Mouse:
+			via = 'Mouse'
+		elif event.reason() == QContextMenuEvent.Keyboard:
+			via = 'Keyboard'
+		else:
+			assert event.reason() == QContextMenuEvent.Other, event.reason()
+			via = 'Other'
+		self._metrics.track('OpenedContextMenu', {'via': via})
+		return self._plugin_support.get_context_menu(
+			self._panes[pane_widget], file_under_mouse
+		)

@@ -48,3 +48,5 @@ class StubDirectoryPaneWidget:
 				for row_url in self._fs.iterdir(url)
 			]
 		callback()
+	def get_file_under_cursor(self):
+		return None

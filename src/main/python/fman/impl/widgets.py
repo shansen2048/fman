@@ -50,7 +50,9 @@ class DirectoryPaneWidget(QWidget):
 		self._model = SortedFileSystemModel(self, fs, null_location)
 		self._model.file_renamed.connect(self._on_file_renamed)
 		self._model.files_dropped.connect(self._on_files_dropped)
-		self._file_view = FileListView(self)
+		self._file_view = FileListView(
+			self, lambda *args: controller.on_context_menu(self, *args)
+		)
 		self._file_view.setModel(self._model)
 		self._file_view.doubleClicked.connect(self._on_doubleclicked)
 		self._file_view.key_press_event_filter = self._on_key_pressed

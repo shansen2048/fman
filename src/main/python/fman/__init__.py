@@ -1,4 +1,5 @@
 from . import clipboard
+from contextlib import contextmanager
 from fbs_runtime import system
 from os import getenv
 from os.path import join, expanduser
@@ -51,11 +52,15 @@ class ApplicationCommand(Command):
 		raise NotImplementedError()
 
 class DirectoryPane:
+
+	_DEFAULT_FILE_UNDER_CURSOR = object()
+
 	def __init__(self, window, widget):
 		self.window = window
 		self._widget = widget
 		self._commands = {}
 		self._listeners = []
+		self._get_file_under_cursor_orig = self.get_file_under_cursor
 
 	def _add_listener(self, listener):
 		self._listeners.append(listener)
@@ -65,7 +70,9 @@ class DirectoryPane:
 
 	def get_commands(self):
 		return set(self._commands)
-	def run_command(self, name, args=None):
+	def run_command(
+		self, name, args=None, file_under_cursor=_DEFAULT_FILE_UNDER_CURSOR
+	):
 		if args is None:
 			args = {}
 		while True:
@@ -76,7 +83,9 @@ class DirectoryPane:
 					break
 			else:
 				break
-		return self._commands[name](**args)
+		if file_under_cursor is self._DEFAULT_FILE_UNDER_CURSOR:
+			file_under_cursor = self.get_file_under_cursor()
+		return self._commands[name](file_under_cursor, **args)
 	def get_command_aliases(self, command_name):
 		return self._commands[command_name].aliases
 	def is_command_visible(self, command_name):
@@ -142,6 +151,11 @@ class DirectoryPane:
 		return self._widget.get_sort_column()
 	def _has_focus(self):
 		return self._widget.hasFocus()
+	@contextmanager
+	def _override_file_under_cursor(self, value):
+		self.get_file_under_cursor = lambda: value
+		yield
+		self.get_file_under_cursor = self._get_file_under_cursor_orig
 
 class Window:
 	def __init__(self, widget):

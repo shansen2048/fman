@@ -30,7 +30,9 @@ class Plugin:
 		raise NotImplementedError()
 	def on_pane_added(self, pane):
 		for cmd_name, cmd_class in self._directory_pane_commands.items():
-			command = self._instantiate_command(cmd_class, pane)
+			command = self._instantiate_command(
+				cmd_class, (pane,), DirectoryPaneCommandWrapper
+			)
 			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
 			pane._add_listener(
@@ -47,7 +49,7 @@ class Plugin:
 	def _register_application_command(self, cls, *args):
 		name = _get_command_name(cls)
 		self._key_bindings.register_command(name)
-		instance = self._instantiate_command(cls, self._window, *args)
+		instance = self._instantiate_command(cls, [self._window] + list(args))
 		self._application_command_instances[name] = instance
 	def _unregister_application_command(self, cls):
 		name = _get_command_name(cls)
@@ -77,15 +79,17 @@ class Plugin:
 			self._mother_fs.register_column(cls.get_qualified_name(), instance)
 	def _unregister_column(self, cls):
 		self._mother_fs.unregister_column(cls.get_qualified_name())
-	def _instantiate_command(self, cmd_class, *args, **kwargs):
+	def _instantiate_command(self, cmd_class, args, wrapper_cls=None):
+		if wrapper_cls is None:
+			wrapper_cls = CommandWrapper
 		try:
-			command = cmd_class(*args, **kwargs)
+			command = cmd_class(*args)
 		except Exception:
 			self._error_handler.report(
 				'Could not instantiate command %r.' % cmd_class.__name__
 			)
 			command = lambda *_, **__: None
-		return CommandWrapper(
+		return wrapper_cls(
 			command, self._error_handler, self._command_callback
 		)
 	def _instantiate_listener(self, listener_class, *args, **kwargs):
@@ -298,6 +302,12 @@ class CommandWrapper(Wrapper):
 			pass
 		else:
 			self._callback.after_command(self._class_name)
+
+class DirectoryPaneCommandWrapper(CommandWrapper):
+	def _run_in_thread(self, file_under_cursor, **kwargs):
+		pane = self.unwrap().pane
+		with pane._override_file_under_cursor(file_under_cursor):
+			super()._run_in_thread(**kwargs)
 
 class ListenerWrapper(Wrapper):
 	def __init__(self, listener, error_handler):
