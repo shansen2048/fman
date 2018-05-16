@@ -1,0 +1,8 @@
+[
+	{ "command": "open_with" },
+	{ "command": "cut" },
+	{ "command": "copy_to_clipboard", "caption": "Copy" },
+	{ "command": "paste" },
+	{ "command": "rename" },
+	{ "command": "show_explorer_properties" }
+]
