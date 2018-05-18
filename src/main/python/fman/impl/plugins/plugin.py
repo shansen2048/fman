@@ -15,33 +15,27 @@ import sys
 
 class Plugin:
 	def __init__(
-		self, error_handler, command_callback, key_bindings, mother_fs, window
+		self, error_handler, command_registry, command_callback, key_bindings,
+		mother_fs, window
 	):
 		self._error_handler = error_handler
+		self._command_registry = command_registry
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
 		self._mother_fs = mother_fs
 		self._window = window
 		self._application_command_instances = {}
-		self._directory_pane_commands = {}
 		self._directory_pane_listeners = []
 	@property
 	def name(self):
 		raise NotImplementedError()
 	def on_pane_added(self, pane):
-		for cmd_name, cmd_class in self._directory_pane_commands.items():
-			command = self._instantiate_command(
-				cmd_class, (pane,), DirectoryPaneCommandWrapper
-			)
-			pane._register_command(cmd_name, command)
 		for listener_class in self._directory_pane_listeners:
 			pane._add_listener(
 				self._instantiate_listener(listener_class, pane)
 			)
 	def get_application_commands(self):
 		return self._application_command_instances
-	def get_directory_pane_commands(self):
-		return self._directory_pane_commands
 	def run_application_command(self, name, args=None):
 		if args is None:
 			args = {}
@@ -57,11 +51,11 @@ class Plugin:
 		self._key_bindings.unregister_command(name)
 	def _register_directory_pane_command(self, cls):
 		name = _get_command_name(cls)
+		self._command_registry.register_command(name, cls)
 		self._key_bindings.register_command(name)
-		self._directory_pane_commands[name] = cls
 	def _unregister_directory_pane_command(self, cls):
 		name = _get_command_name(cls)
-		del self._directory_pane_commands[name]
+		self._command_registry.unregister_command(name)
 		self._key_bindings.unregister_command(name)
 	def _register_directory_pane_listener(self, cls):
 		self._directory_pane_listeners.append(cls)
@@ -79,9 +73,7 @@ class Plugin:
 			self._mother_fs.register_column(cls.get_qualified_name(), instance)
 	def _unregister_column(self, cls):
 		self._mother_fs.unregister_column(cls.get_qualified_name())
-	def _instantiate_command(self, cmd_class, args, wrapper_cls=None):
-		if wrapper_cls is None:
-			wrapper_cls = CommandWrapper
+	def _instantiate_command(self, cmd_class, args):
 		try:
 			command = cmd_class(*args)
 		except Exception:
@@ -89,7 +81,7 @@ class Plugin:
 				'Could not instantiate command %r.' % cmd_class.__name__
 			)
 			command = lambda *_, **__: None
-		return wrapper_cls(
+		return CommandWrapper(
 			command, self._error_handler, self._command_callback
 		)
 	def _instantiate_listener(self, listener_class, *args, **kwargs):
@@ -302,12 +294,6 @@ class CommandWrapper(Wrapper):
 			pass
 		else:
 			self._callback.after_command(self._class_name)
-
-class DirectoryPaneCommandWrapper(CommandWrapper):
-	def _run_in_thread(self, file_under_cursor, **kwargs):
-		pane = self.unwrap().pane
-		with pane._override_file_under_cursor(file_under_cursor):
-			super()._run_in_thread(**kwargs)
 
 class ListenerWrapper(Wrapper):
 	def __init__(self, listener, error_handler):

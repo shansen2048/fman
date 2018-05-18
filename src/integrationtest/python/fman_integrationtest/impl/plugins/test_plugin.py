@@ -1,6 +1,7 @@
 from fman import PLATFORM, ApplicationCommand, DirectoryPaneCommand, \
 	DirectoryPane, DirectoryPaneListener, Window
 from fman.impl.plugins import ExternalPlugin
+from fman.impl.plugins.command_registry import CommandRegistry
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
@@ -25,6 +26,7 @@ class PluginTest(TestCase):
 	def test_error_instantiating_directory_pane_command(self):
 		self._plugin._register_directory_pane_command(FailToInstantiateDPC)
 		self._plugin.on_pane_added(self._pane)
+		self._pane.run_command('fail_to_instantiate_dpc')
 		self.assertEqual(
 			["Could not instantiate command 'FailToInstantiateDPC'."],
 			self._error_handler.error_messages
@@ -40,12 +42,14 @@ class PluginTest(TestCase):
 		super().setUp()
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
+		self._command_registry = \
+			CommandRegistry(self._error_handler, self._command_callback)
 		self._key_bindings = KeyBindings()
 		self._plugin = Plugin(
-			self._error_handler, self._command_callback, self._key_bindings,
-			None, None
+			self._error_handler, self._command_registry, self._command_callback,
+			self._key_bindings, None, None
 		)
-		self._pane = DirectoryPane(None, None)
+		self._pane = DirectoryPane(None, None, self._command_registry)
 
 class FailToInstantiateAC(ApplicationCommand):
 	def __init__(self, *args, **kwargs):
@@ -73,7 +77,7 @@ class ExternalPluginTest(TestCase):
 		self.assertIn(self._plugin_dir, sys.path)
 		self.assertIn('test_command', self._plugin.get_application_commands())
 		self.assertIn(
-			'command_raising_error', self._plugin.get_directory_pane_commands()
+			'command_raising_error', self._command_registry.get_commands()
 		)
 
 		from simple_plugin import ListenerRaisingError
@@ -100,7 +104,7 @@ class ExternalPluginTest(TestCase):
 		self.assertEqual({}, self._mother_fs._children)
 		self.assertEqual([], self._key_bindings.get_sanitized_bindings())
 		self.assertEqual([], self._plugin._directory_pane_listeners)
-		self.assertEqual({}, self._plugin.get_directory_pane_commands())
+		self.assertEqual(set(), self._command_registry.get_commands())
 		self.assertEqual({}, self._plugin.get_application_commands())
 		self.assertNotIn(self._plugin_dir, sys.path)
 		self.assertEqual([], self._theme.loaded_css_files)
@@ -115,12 +119,15 @@ class ExternalPluginTest(TestCase):
 		self._font_database = StubFontDatabase()
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
+		self._command_registry = \
+			CommandRegistry(self._error_handler, self._command_callback)
 		self._key_bindings = KeyBindings()
 		self._mother_fs = MotherFileSystem(None)
+		window = Window(None, self._command_registry)
 		self._plugin = ExternalPlugin(
 			self._plugin_dir, self._config, self._theme, self._font_database,
-			self._error_handler, self._command_callback, self._key_bindings,
-			self._mother_fs, Window(None)
+			self._error_handler, self._command_registry, self._command_callback,
+			self._key_bindings, self._mother_fs, window
 		)
 	def tearDown(self):
 		sys.path = self._sys_path_before

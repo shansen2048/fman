@@ -5,7 +5,8 @@ SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
 	def __init__(
-		self, plugin_factory, key_bindings, config, builtin_plugin=None
+		self, plugin_factory, command_registry, key_bindings, config,
+		builtin_plugin=None
 	):
 		self._plugin_factory = plugin_factory
 		self._key_bindings = key_bindings
@@ -13,6 +14,7 @@ class PluginSupport:
 		self._builtin_plugin = builtin_plugin
 		self._external_plugins = {}
 		self._panes = []
+		self._command_registry = command_registry
 	def load_plugin(self, plugin_dir):
 		plugin = self._plugin_factory(plugin_dir)
 		success = plugin.load()
@@ -72,14 +74,14 @@ class PluginSupport:
 		for entry in self.load_json('Context Menu.json', default=[]):
 			cmd_name = entry['command']
 			if cmd_name in pane.get_commands():
-				with pane._override_file_under_cursor(file_under_mouse):
-					if not pane.is_command_visible(cmd_name):
-						continue
-				def run_command(cmd_name):
-					pane.run_command(
-						cmd_name, file_under_cursor=file_under_mouse
-					)
-				def_caption = pane.get_command_aliases(cmd_name)[0]
+				if self._command_registry.is_command_visible(
+					cmd_name, pane, file_under_mouse
+				):
+					def run_command(c=cmd_name):
+						self._command_registry.execute_command(
+							c, {}, pane, file_under_mouse
+						)
+					def_caption = pane.get_command_aliases(cmd_name)[0]
 			else:
 				run_command = self.run_application_command
 				def_caption = self.get_application_command_aliases(cmd_name)[0]
@@ -95,13 +97,14 @@ class PluginSupport:
 
 class PluginFactory:
 	def __init__(
-		self, config, theme, font_database, error_handler, command_callback,
-		key_bindings, mother_fs, window
+		self, config, theme, font_database, error_handler, command_registry,
+		command_callback, key_bindings, mother_fs, window
 	):
 		self._config = config
 		self._theme = theme
 		self._font_database = font_database
 		self._error_handler = error_handler
+		self._command_registry = command_registry
 		self._command_callback = command_callback
 		self._key_bindings = key_bindings
 		self._mother_fs = mother_fs
@@ -109,8 +112,8 @@ class PluginFactory:
 	def __call__(self, plugin_dir):
 		return ExternalPlugin(
 			plugin_dir, self._config, self._theme, self._font_database,
-			self._error_handler, self._command_callback, self._key_bindings,
-			self._mother_fs, self._window
+			self._error_handler, self._command_registry, self._command_callback,
+			self._key_bindings, self._mother_fs, self._window
 		)
 
 class CommandCallback:

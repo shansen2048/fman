@@ -39,26 +39,21 @@ elif PLATFORM == 'Mac':
 elif PLATFORM == 'Linux':
 	DATA_DIRECTORY = expanduser('~/.config/fman')
 
-class Command:
-	@property
-	def aliases(self):
-		return re.sub(r'([a-z])([A-Z])', r'\1 \2', self.__class__.__name__)\
-				   .lower().capitalize(),
-
-class ApplicationCommand(Command):
+class ApplicationCommand:
 	def __init__(self, window):
 		self.window = window
 	def __call__(self, *args, **kwargs):
 		raise NotImplementedError()
+	@property
+	def aliases(self):
+		return re.sub(r'([a-z])([A-Z])', r'\1 \2', self.__class__.__name__) \
+				   .lower().capitalize(),
 
 class DirectoryPane:
-
-	_DEFAULT_FILE_UNDER_CURSOR = object()
-
-	def __init__(self, window, widget):
+	def __init__(self, window, widget, command_registry):
 		self.window = window
 		self._widget = widget
-		self._commands = {}
+		self._command_registry = command_registry
 		self._listeners = []
 		self._get_file_under_cursor_orig = self.get_file_under_cursor
 
@@ -69,10 +64,8 @@ class DirectoryPane:
 			getattr(listener, event)(*args)
 
 	def get_commands(self):
-		return set(self._commands)
-	def run_command(
-		self, name, args=None, file_under_cursor=_DEFAULT_FILE_UNDER_CURSOR
-	):
+		return self._command_registry.get_commands()
+	def run_command(self, name, args=None):
 		if args is None:
 			args = {}
 		while True:
@@ -83,15 +76,11 @@ class DirectoryPane:
 					break
 			else:
 				break
-		if file_under_cursor is self._DEFAULT_FILE_UNDER_CURSOR:
-			file_under_cursor = self.get_file_under_cursor()
-		return self._commands[name](file_under_cursor, **args)
+		return self._command_registry.execute_command(name, args, self)
 	def get_command_aliases(self, command_name):
-		return self._commands[command_name].aliases
+		return self._command_registry.get_command_aliases(command_name)
 	def is_command_visible(self, command_name):
-		return self._commands[command_name].is_visible()
-	def _register_command(self, command_name, command):
-		self._commands[command_name] = command
+		return self._command_registry.is_command_visible(command_name, self)
 
 	def _add_filter(self, filter_):
 		self._widget.add_filter(filter_)
@@ -158,8 +147,9 @@ class DirectoryPane:
 		self.get_file_under_cursor = self._get_file_under_cursor_orig
 
 class Window:
-	def __init__(self, widget):
+	def __init__(self, widget, command_registry):
 		self._widget = widget
+		self._command_registry = command_registry
 		self._panes = []
 	def get_panes(self):
 		return self._panes
@@ -167,12 +157,12 @@ class Window:
 		self._widget.minimize()
 	def add_pane(self):
 		pane_widget = self._widget.add_pane()
-		pane = DirectoryPane(self, pane_widget)
+		pane = DirectoryPane(self, pane_widget, self._command_registry)
 		self._panes.append(pane)
 		_get_controller().register_pane(pane_widget, pane)
 		return pane
 
-class DirectoryPaneCommand(Command):
+class DirectoryPaneCommand:
 	def __init__(self, pane):
 		self.pane = pane
 	def __call__(self, *args, **kwargs):

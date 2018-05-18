@@ -772,33 +772,41 @@ class ToggleHiddenFiles(DirectoryPaneCommand):
 
 	aliases = ('Toggle hidden files', 'Show / hide hidden files')
 
+	def __call__(self):
+		_toggle_hidden_files(self.pane, not _is_showing_hidden_files(self.pane))
+
+class InitHiddenFilesFilter(DirectoryPaneListener):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		settings = load_json('Panes.json', default=[], save_on_quit=True)
-		default = {'show_hidden_files': False}
-		pane_index = self.pane.window.get_panes().index(self.pane)
-		for _ in range(pane_index - len(settings) + 1):
-			settings.append(default.copy())
-		self.pane_info = settings[pane_index]
-		if not self.show_hidden_files:
-			self.pane._add_filter(self._filter_hidden)
-	def _filter_hidden(self, url):
-		if PLATFORM == 'Mac' and url == 'file:///Volumes':
-			return True
-		scheme, path = splitscheme(url)
-		return scheme != 'file://' or not _is_hidden(path)
-	def __call__(self):
-		self.show_hidden_files = not self.show_hidden_files
-		if self.show_hidden_files:
-			self.pane._remove_filter(self._filter_hidden)
-		else:
-			self.pane._add_filter(self._filter_hidden)
-	@property
-	def show_hidden_files(self):
-		return self.pane_info['show_hidden_files']
-	@show_hidden_files.setter
-	def show_hidden_files(self, value):
-		self.pane_info['show_hidden_files'] = value
+		# We need to do this somewhere when fman starts. We can't do it in the
+		# __init__ of ToggleHiddenFiles, because fman instantiates commands
+		# lazily.
+		if not _is_showing_hidden_files(self.pane):
+			_toggle_hidden_files(self.pane, False)
+
+def _is_showing_hidden_files(pane):
+	return _get_pane_info(pane)['show_hidden_files']
+
+def _toggle_hidden_files(pane, value):
+	if value:
+		pane._remove_filter(_hidden_file_filter)
+	else:
+		pane._add_filter(_hidden_file_filter)
+	_get_pane_info(pane)['show_hidden_files'] = value
+
+def _get_pane_info(pane):
+	settings = load_json('Panes.json', default=[], save_on_quit=True)
+	default = {'show_hidden_files': False}
+	pane_index = pane.window.get_panes().index(pane)
+	for _ in range(pane_index - len(settings) + 1):
+		settings.append(default.copy())
+	return settings[pane_index]
+
+def _hidden_file_filter(url):
+	if PLATFORM == 'Mac' and url == 'file:///Volumes':
+		return True
+	scheme, path = splitscheme(url)
+	return scheme != 'file://' or not _is_hidden(path)
 
 def _is_hidden(file_path):
 	return QFileInfo(file_path).isHidden()
