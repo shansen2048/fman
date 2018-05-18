@@ -1,6 +1,6 @@
 from fman import PLATFORM, Window, DirectoryPane
 from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, PluginFactory
-from fman.impl.plugins.command_registry import CommandRegistry
+from fman.impl.plugins.command_registry import PaneCommandRegistry
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
@@ -32,8 +32,9 @@ class PluginTest(TestCase):
 		self._command_callback = StubCommandCallback()
 		key_bindings = KeyBindings()
 		self._mother_fs = MotherFileSystem(None)
-		self._command_registry = \
-			CommandRegistry(self._error_handler, self._command_callback)
+		self._command_registry = PaneCommandRegistry(
+			self._error_handler, self._command_callback
+		)
 		self._window = Window(None, self._command_registry)
 		theme = StubTheme()
 		font_db = StubFontDatabase()

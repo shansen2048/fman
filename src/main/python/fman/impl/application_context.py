@@ -13,7 +13,7 @@ from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback, PluginFactory
 from fman.impl.plugins.builtin import BuiltinPlugin, NullFileSystem
-from fman.impl.plugins.command_registry import CommandRegistry
+from fman.impl.plugins.command_registry import PaneCommandRegistry
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
@@ -252,7 +252,9 @@ class DevelopmentApplicationContext(ApplicationContext):
 		)
 	@cached_property
 	def command_registry(self):
-		return CommandRegistry(self.plugin_error_handler, self.command_callback)
+		return PaneCommandRegistry(
+			self.plugin_error_handler, self.command_callback
+		)
 	@cached_property
 	def plugin_error_handler(self):
 		return PluginErrorHandler(self.app)

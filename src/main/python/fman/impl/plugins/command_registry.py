@@ -7,7 +7,7 @@ import re
 
 _DEFAULT = object()
 
-class CommandRegistry:
+class PaneCommandRegistry:
 	def __init__(self, error_handler, callback):
 		self._error_handler = error_handler
 		self._callback = callback

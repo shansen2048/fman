@@ -1,7 +1,7 @@
 from fman import PLATFORM, ApplicationCommand, DirectoryPaneCommand, \
 	DirectoryPane, DirectoryPaneListener, Window
 from fman.impl.plugins import ExternalPlugin
-from fman.impl.plugins.command_registry import CommandRegistry
+from fman.impl.plugins.command_registry import PaneCommandRegistry
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
@@ -42,8 +42,9 @@ class PluginTest(TestCase):
 		super().setUp()
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
-		self._command_registry = \
-			CommandRegistry(self._error_handler, self._command_callback)
+		self._command_registry = PaneCommandRegistry(
+			self._error_handler, self._command_callback
+		)
 		self._key_bindings = KeyBindings()
 		self._plugin = Plugin(
 			self._error_handler, self._command_registry, self._command_callback,
@@ -119,8 +120,9 @@ class ExternalPluginTest(TestCase):
 		self._font_database = StubFontDatabase()
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
-		self._command_registry = \
-			CommandRegistry(self._error_handler, self._command_callback)
+		self._command_registry = PaneCommandRegistry(
+			self._error_handler, self._command_callback
+		)
 		self._key_bindings = KeyBindings()
 		self._mother_fs = MotherFileSystem(None)
 		window = Window(None, self._command_registry)
