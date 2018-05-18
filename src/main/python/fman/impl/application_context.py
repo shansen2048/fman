@@ -13,7 +13,8 @@ from fman.impl.model.icon_provider import GnomeFileIconProvider, \
 from fman.impl.nonexistent_shortcut_handler import NonexistentShortcutHandler
 from fman.impl.plugins import PluginSupport, CommandCallback, PluginFactory
 from fman.impl.plugins.builtin import BuiltinPlugin, NullFileSystem
-from fman.impl.plugins.command_registry import PaneCommandRegistry
+from fman.impl.plugins.command_registry import PaneCommandRegistry, \
+	ApplicationCommandRegistry
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
@@ -198,8 +199,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return BuiltinPlugin(
 			self.tour_controller, self.tutorial_factory,
 			self.cleanupguide_factory, self.plugin_error_handler,
-			self.command_registry, self.command_callback, self.key_bindings,
-			self.mother_fs, self.window
+			self.application_command_registry, self.pane_command_registry,
+			self.key_bindings, self.mother_fs, self.window
 		)
 	@cached_property
 	def mother_fs(self):
@@ -239,19 +240,25 @@ class DevelopmentApplicationContext(ApplicationContext):
 	@cached_property
 	def plugin_support(self):
 		return PluginSupport(
-			self.plugin_factory, self.command_registry, self.key_bindings,
-			self.config, self.builtin_plugin
+			self.plugin_factory, self.application_command_registry,
+			self.pane_command_registry, self.key_bindings, self.config,
+			self.builtin_plugin
 		)
 	@cached_property
 	def plugin_factory(self):
 		return PluginFactory(
 			self.config, self.theme, self.font_database,
-			self.plugin_error_handler, self.command_registry,
-			self.command_callback, self.key_bindings, self.mother_fs,
+			self.plugin_error_handler, self.application_command_registry,
+			self.pane_command_registry, self.key_bindings, self.mother_fs,
 			self.window
 		)
 	@cached_property
-	def command_registry(self):
+	def application_command_registry(self):
+		return ApplicationCommandRegistry(
+			self.window, self.plugin_error_handler, self.command_callback
+		)
+	@cached_property
+	def pane_command_registry(self):
 		return PaneCommandRegistry(
 			self.plugin_error_handler, self.command_callback
 		)
@@ -369,7 +376,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return None
 	@cached_property
 	def window(self):
-		return Window(self.main_window, self.command_registry)
+		return Window(self.main_window, self.pane_command_registry)
 	def _get_local_data_file(self, *rel_path):
 		return join(DATA_DIRECTORY, 'Local', *rel_path)
 

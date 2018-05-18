@@ -1,7 +1,8 @@
 from fman import PLATFORM, ApplicationCommand, DirectoryPaneCommand, \
 	DirectoryPane, DirectoryPaneListener, Window
 from fman.impl.plugins import ExternalPlugin
-from fman.impl.plugins.command_registry import PaneCommandRegistry
+from fman.impl.plugins.command_registry import PaneCommandRegistry, \
+	ApplicationCommandRegistry
 from fman.impl.plugins.config import Config
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
@@ -42,15 +43,18 @@ class PluginTest(TestCase):
 		super().setUp()
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
-		self._command_registry = PaneCommandRegistry(
-			self._error_handler, self._command_callback
+		self._panecmd_registry = \
+			PaneCommandRegistry(self._error_handler, self._command_callback)
+		self._window = Window(None, self._panecmd_registry)
+		self._appcmd_registry = ApplicationCommandRegistry(
+			self._window, self._error_handler, self._command_callback
 		)
 		self._key_bindings = KeyBindings()
 		self._plugin = Plugin(
-			self._error_handler, self._command_registry, self._command_callback,
+			self._error_handler, self._appcmd_registry, self._panecmd_registry,
 			self._key_bindings, None, None
 		)
-		self._pane = DirectoryPane(None, None, self._command_registry)
+		self._pane = DirectoryPane(None, None, self._panecmd_registry)
 
 class FailToInstantiateAC(ApplicationCommand):
 	def __init__(self, *args, **kwargs):
@@ -76,9 +80,9 @@ class ExternalPluginTest(TestCase):
 		theme_css = join(self._plugin_dir, 'Theme.css')
 		self.assertEqual([theme_css], self._theme.loaded_css_files)
 		self.assertIn(self._plugin_dir, sys.path)
-		self.assertIn('test_command', self._plugin.get_application_commands())
+		self.assertIn('test_command', self._appcmd_registry.get_commands())
 		self.assertIn(
-			'command_raising_error', self._command_registry.get_commands()
+			'command_raising_error', self._panecmd_registry.get_commands()
 		)
 
 		from simple_plugin import ListenerRaisingError
@@ -105,8 +109,8 @@ class ExternalPluginTest(TestCase):
 		self.assertEqual({}, self._mother_fs._children)
 		self.assertEqual([], self._key_bindings.get_sanitized_bindings())
 		self.assertEqual([], self._plugin._directory_pane_listeners)
-		self.assertEqual(set(), self._command_registry.get_commands())
-		self.assertEqual({}, self._plugin.get_application_commands())
+		self.assertEqual(set(), self._panecmd_registry.get_commands())
+		self.assertEqual(set(), self._appcmd_registry.get_commands())
 		self.assertNotIn(self._plugin_dir, sys.path)
 		self.assertEqual([], self._theme.loaded_css_files)
 		self.assertEqual([], self._font_database.loaded_fonts)
@@ -120,16 +124,20 @@ class ExternalPluginTest(TestCase):
 		self._font_database = StubFontDatabase()
 		self._error_handler = StubErrorHandler()
 		self._command_callback = StubCommandCallback()
-		self._command_registry = PaneCommandRegistry(
-			self._error_handler, self._command_callback
+		self._panecmd_registry = \
+			PaneCommandRegistry(self._error_handler, self._command_callback)
+		self._window = Window(None, self._panecmd_registry)
+		self._appcmd_registry = ApplicationCommandRegistry(
+			self._window, self._error_handler, self._command_callback
 		)
 		self._key_bindings = KeyBindings()
 		self._mother_fs = MotherFileSystem(None)
-		window = Window(None, self._command_registry)
+		window = Window(None, self._panecmd_registry)
 		self._plugin = ExternalPlugin(
 			self._plugin_dir, self._config, self._theme, self._font_database,
-			self._error_handler, self._command_registry, self._command_callback,
-			self._key_bindings, self._mother_fs, window
+			self._error_handler, self._appcmd_registry,
+			self._panecmd_registry, self._key_bindings, self._mother_fs,
+			window
 		)
 	def tearDown(self):
 		sys.path = self._sys_path_before

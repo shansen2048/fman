@@ -147,9 +147,9 @@ class DirectoryPane:
 		self.get_file_under_cursor = self._get_file_under_cursor_orig
 
 class Window:
-	def __init__(self, widget, command_registry):
+	def __init__(self, widget, panecmd_registry):
 		self._widget = widget
-		self._command_registry = command_registry
+		self._panecmd_registry = panecmd_registry
 		self._panes = []
 	def get_panes(self):
 		return self._panes
@@ -157,7 +157,7 @@ class Window:
 		self._widget.minimize()
 	def add_pane(self):
 		pane_widget = self._widget.add_pane()
-		pane = DirectoryPane(self, pane_widget, self._command_registry)
+		pane = DirectoryPane(self, pane_widget, self._panecmd_registry)
 		self._panes.append(pane)
 		_get_controller().register_pane(pane_widget, pane)
 		return pane

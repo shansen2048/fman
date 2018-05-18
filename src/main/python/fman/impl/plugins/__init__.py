@@ -5,16 +5,17 @@ SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
 	def __init__(
-		self, plugin_factory, command_registry, key_bindings, config,
-		builtin_plugin=None
+		self, plugin_factory, appcmd_registry, panecmd_registry, key_bindings,
+		config, builtin_plugin=None
 	):
 		self._plugin_factory = plugin_factory
+		self._appcmd_registry = appcmd_registry
+		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
 		self._config = config
 		self._builtin_plugin = builtin_plugin
 		self._external_plugins = {}
 		self._panes = []
-		self._command_registry = command_registry
 	def load_plugin(self, plugin_dir):
 		plugin = self._plugin_factory(plugin_dir)
 		success = plugin.load()
@@ -45,27 +46,13 @@ class PluginSupport:
 	def get_panes(self):
 		return self._panes
 	def get_application_commands(self):
-		result = set()
-		for plugin in self._plugins:
-			for command in plugin.get_application_commands():
-				result.add(command)
-		return result
+		return self._appcmd_registry.get_commands()
 	def get_application_command_aliases(self, command_name):
-		for plugin in self._plugins:
-			try:
-				command = plugin.get_application_commands()[command_name]
-			except KeyError:
-				continue
-			else:
-				return command.aliases
-		raise LookupError(command_name)
+		return self._appcmd_registry.get_command_aliases(command_name)
 	def run_application_command(self, name, args=None):
 		if args is None:
 			args = {}
-		for plugin in self._plugins:
-			if name in plugin.get_application_commands():
-				return plugin.run_application_command(name, args)
-		raise LookupError(name)
+		self._appcmd_registry.execute_command(name, args)
 	def get_active_pane(self):
 		for pane in self._panes:
 			if pane._has_focus():
@@ -74,14 +61,15 @@ class PluginSupport:
 		for entry in self.load_json('Context Menu.json', default=[]):
 			cmd_name = entry['command']
 			if cmd_name in pane.get_commands():
-				if self._command_registry.is_command_visible(
+				if not self._panecmd_registry.is_command_visible(
 					cmd_name, pane, file_under_mouse
 				):
-					def run_command(c=cmd_name):
-						self._command_registry.execute_command(
-							c, {}, pane, file_under_mouse
-						)
-					def_caption = pane.get_command_aliases(cmd_name)[0]
+					continue
+				def run_command(c=cmd_name):
+					self._panecmd_registry.execute_command(
+						c, {}, pane, file_under_mouse
+					)
+				def_caption = pane.get_command_aliases(cmd_name)[0]
 			else:
 				run_command = self.run_application_command
 				def_caption = self.get_application_command_aliases(cmd_name)[0]
@@ -97,22 +85,22 @@ class PluginSupport:
 
 class PluginFactory:
 	def __init__(
-		self, config, theme, font_database, error_handler, command_registry,
-		command_callback, key_bindings, mother_fs, window
+		self, config, theme, font_database, error_handler, appcmd_registry,
+		panecmd_registry, key_bindings, mother_fs, window
 	):
 		self._config = config
 		self._theme = theme
 		self._font_database = font_database
 		self._error_handler = error_handler
-		self._command_registry = command_registry
-		self._command_callback = command_callback
+		self._appcmd_registry = appcmd_registry
+		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
 		self._mother_fs = mother_fs
 		self._window = window
 	def __call__(self, plugin_dir):
 		return ExternalPlugin(
 			plugin_dir, self._config, self._theme, self._font_database,
-			self._error_handler, self._command_registry, self._command_callback,
+			self._error_handler, self._appcmd_registry, self._panecmd_registry,
 			self._key_bindings, self._mother_fs, self._window
 		)
 

@@ -15,16 +15,15 @@ import sys
 
 class Plugin:
 	def __init__(
-		self, error_handler, command_registry, command_callback, key_bindings,
+		self, error_handler, appcmd_registry, panecmd_registry, key_bindings,
 		mother_fs, window
 	):
 		self._error_handler = error_handler
-		self._command_registry = command_registry
-		self._command_callback = command_callback
+		self._appcmd_registry = appcmd_registry
+		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
 		self._mother_fs = mother_fs
 		self._window = window
-		self._application_command_instances = {}
 		self._directory_pane_listeners = []
 	@property
 	def name(self):
@@ -34,28 +33,21 @@ class Plugin:
 			pane._add_listener(
 				self._instantiate_listener(listener_class, pane)
 			)
-	def get_application_commands(self):
-		return self._application_command_instances
-	def run_application_command(self, name, args=None):
-		if args is None:
-			args = {}
-		return self._application_command_instances[name](**args)
-	def _register_application_command(self, cls, *args):
+	def _register_application_command(self, cls):
 		name = _get_command_name(cls)
+		self._appcmd_registry.register_command(name, cls)
 		self._key_bindings.register_command(name)
-		instance = self._instantiate_command(cls, [self._window] + list(args))
-		self._application_command_instances[name] = instance
 	def _unregister_application_command(self, cls):
 		name = _get_command_name(cls)
-		del self._application_command_instances[name]
 		self._key_bindings.unregister_command(name)
+		self._appcmd_registry.unregister_command(name)
 	def _register_directory_pane_command(self, cls):
 		name = _get_command_name(cls)
-		self._command_registry.register_command(name, cls)
+		self._panecmd_registry.register_command(name, cls)
 		self._key_bindings.register_command(name)
 	def _unregister_directory_pane_command(self, cls):
 		name = _get_command_name(cls)
-		self._command_registry.unregister_command(name)
+		self._panecmd_registry.unregister_command(name)
 		self._key_bindings.unregister_command(name)
 	def _register_directory_pane_listener(self, cls):
 		self._directory_pane_listeners.append(cls)
@@ -73,17 +65,6 @@ class Plugin:
 			self._mother_fs.register_column(cls.get_qualified_name(), instance)
 	def _unregister_column(self, cls):
 		self._mother_fs.unregister_column(cls.get_qualified_name())
-	def _instantiate_command(self, cmd_class, args):
-		try:
-			command = cmd_class(*args)
-		except Exception:
-			self._error_handler.report(
-				'Could not instantiate command %r.' % cmd_class.__name__
-			)
-			command = lambda *_, **__: None
-		return CommandWrapper(
-			command, self._error_handler, self._command_callback
-		)
 	def _instantiate_listener(self, listener_class, *args, **kwargs):
 		try:
 			listener = listener_class(*args, **kwargs)
@@ -271,29 +252,6 @@ class ReportExceptions:
 			self._error_handler.handle_system_exit(exc_code)
 		elif exc_type not in self._exclude:
 			self._error_handler.report(self._message, exc_val)
-
-class CommandWrapper(Wrapper):
-	def __init__(self, command, error_handler, callback):
-		super().__init__(command, 'Command', error_handler)
-		self._callback = callback
-	def __call__(self, *args, **kwargs):
-		Thread(
-			target=self._run_in_thread, args=args, kwargs=kwargs, daemon=True
-		).start()
-	@property
-	def aliases(self):
-		return self._wrapped.aliases
-	def is_visible(self):
-		return self._wrapped.is_visible()
-	def _run_in_thread(self, *args, **kwargs):
-		self._callback.before_command(self._class_name)
-		try:
-			with self._report_exceptions():
-				self._wrapped(*args, **kwargs)
-		except Exception:
-			pass
-		else:
-			self._callback.after_command(self._class_name)
 
 class ListenerWrapper(Wrapper):
 	def __init__(self, listener, error_handler):
