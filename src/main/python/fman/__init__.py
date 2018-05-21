@@ -169,6 +169,8 @@ class DirectoryPaneCommand:
 		raise NotImplementedError()
 	def is_visible(self):
 		return True
+	def is_visible_in_contextmenu(self, clicked_empty):
+		return self.is_visible()
 	def get_chosen_files(self):
 		selected_files = self.pane.get_selected_files()
 		if selected_files:

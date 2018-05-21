@@ -752,6 +752,8 @@ class Paste(DirectoryPaneCommand):
 			self.pane.run_command('copy', {'files': files, 'dest_dir': dest})
 	def is_visible(self):
 		return bool(clipboard.get_files())
+	def is_visible_in_contextmenu(self, clicked_empty):
+		return clicked_empty and self.is_visible()
 
 class PasteCut(DirectoryPaneCommand):
 	def __call__(self):

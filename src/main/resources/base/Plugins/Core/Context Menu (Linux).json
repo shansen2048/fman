@@ -2,8 +2,8 @@
 	{ "command": "open_with" },
 	{ "command": "cut" },
 	{ "command": "copy_to_clipboard", "caption": "Copy" },
-	{ "command": "paste" },
 	{ "command": "rename" },
 	{ "command": "move_to_trash", "caption": "Move to Trash" },
-	{ "command": "pack", "caption": "Compress..." }
+	{ "command": "pack", "caption": "Compress..." },
+	{ "command": "paste" }
 ]
