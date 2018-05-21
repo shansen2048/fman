@@ -9,6 +9,7 @@
 	],
 	"directory": [
 		{ "command": "create_directory" },
+		{ "command": "get_info" },
 		{ "command": "paste" }
 	]
 }
