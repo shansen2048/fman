@@ -6,12 +6,13 @@ SETTINGS_PLUGIN_NAME = 'Settings'
 class PluginSupport:
 	def __init__(
 		self, plugin_factory, appcmd_registry, panecmd_registry, key_bindings,
-		config, builtin_plugin=None
+		context_menu_provider, config, builtin_plugin=None
 	):
 		self._plugin_factory = plugin_factory
 		self._appcmd_registry = appcmd_registry
 		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
+		self._context_menu_provider = context_menu_provider
 		self._config = config
 		self._builtin_plugin = builtin_plugin
 		self._external_plugins = {}
@@ -58,27 +59,9 @@ class PluginSupport:
 			if pane._has_focus():
 				return pane
 	def get_context_menu(self, pane, file_under_mouse=None):
-		settings = self.load_json('Context Menu.json', default=[])
-		key = 'directory' if file_under_mouse is None else 'files'
-		for entry in settings[key]:
-			cmd_name = entry['command']
-			if cmd_name in pane.get_commands():
-				if not self._panecmd_registry.is_command_visible(
-					cmd_name, pane, file_under_mouse
-				):
-					continue
-				def run_command(c=cmd_name):
-					self._panecmd_registry.execute_command(
-						c, {}, pane, file_under_mouse
-					)
-				def_caption = pane.get_command_aliases(cmd_name)[0]
-			else:
-				run_command = self.run_application_command
-				def_caption = self.get_application_command_aliases(cmd_name)[0]
-			caption = entry.get('caption', def_caption)
-			# Need `c=cmd_name` to create one lambda per loop:
-			callback = lambda c=cmd_name: run_command(c)
-			yield (caption, callback)
+		return self._context_menu_provider.get_context_menu(
+			pane, file_under_mouse
+		)
 	@property
 	def _plugins(self):
 		if self._builtin_plugin is not None:

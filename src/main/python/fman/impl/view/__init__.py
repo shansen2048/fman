@@ -8,7 +8,7 @@ from fman.impl.view.single_row_mode import SingleRowMode
 from fman.impl.view.uniform_row_heights import UniformRowHeights
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
 	pyqtSignal
-from PyQt5.QtGui import QPen, QContextMenuEvent
+from PyQt5.QtGui import QPen, QContextMenuEvent, QKeySequence
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QHeaderView, QToolTip, QMenu, QAction
 
@@ -67,12 +67,14 @@ class FileListView(
 		else:
 			file_under_mouse = None
 		menu = QMenu(self)
-		for caption, callback in self._get_context_menu(
+		for caption, shortcut, callback in self._get_context_menu(
 			event, file_under_mouse
 		):
 			action = QAction(caption, self)
 			# Need `c=callback` to create one lambda per loop:
 			action.triggered.connect(lambda _, c=callback: c())
+			if shortcut:
+				action.setShortcut(QKeySequence(shortcut))
 			menu.addAction(action)
 		pos = event.globalPos()
 		if event.reason() != QContextMenuEvent.Mouse:

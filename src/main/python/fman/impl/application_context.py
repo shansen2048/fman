@@ -16,6 +16,7 @@ from fman.impl.plugins.builtin import BuiltinPlugin, NullFileSystem
 from fman.impl.plugins.command_registry import PaneCommandRegistry, \
 	ApplicationCommandRegistry
 from fman.impl.plugins.config import Config
+from fman.impl.plugins.context_menu import ContextMenuProvider
 from fman.impl.plugins.discover import find_plugin_dirs
 from fman.impl.plugins.error import PluginErrorHandler
 from fman.impl.plugins.key_bindings import KeyBindings
@@ -241,8 +242,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_factory, self.application_command_registry,
-			self.pane_command_registry, self.key_bindings, self.config,
-			self.builtin_plugin
+			self.pane_command_registry, self.key_bindings,
+			self.context_menu_provider, self.config, self.builtin_plugin
 		)
 	@cached_property
 	def plugin_factory(self):
@@ -261,6 +262,12 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def pane_command_registry(self):
 		return PaneCommandRegistry(
 			self.plugin_error_handler, self.command_callback
+		)
+	@cached_property
+	def context_menu_provider(self):
+		return ContextMenuProvider(
+			self.config, self.pane_command_registry,
+			self.application_command_registry
 		)
 	@cached_property
 	def plugin_error_handler(self):

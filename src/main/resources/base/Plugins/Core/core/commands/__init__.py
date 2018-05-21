@@ -1220,11 +1220,6 @@ class CommandPalette(DirectoryPaneCommand):
 
 	_MATCHERS = (contains_chars_after_separator(' '), contains_chars)
 
-	_KEY_SYMBOLS_MAC = {
-		'Cmd': '⌘', 'Alt': '⌥', 'Ctrl': '⌃', 'Shift': '⇧', 'Backspace': '⌫',
-		'Up': '↑', 'Down': '↓', 'Left': '←', 'Right': '→', 'Enter': '↩'
-	}
-
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._last_query = ''
@@ -1260,7 +1255,7 @@ class CommandPalette(DirectoryPaneCommand):
 				for i, matcher in enumerate(self._MATCHERS):
 					highlight = matcher(alias.lower(), query.lower())
 					if highlight is not None:
-						shortcuts = self._get_shortcuts_for_command(cmd_name)
+						shortcuts = _get_shortcuts_for_command(cmd_name)
 						hint = ', '.join(shortcuts)
 						item = QuicksearchItem(command, alias, highlight, hint)
 						result[i].append(item)
@@ -1285,31 +1280,38 @@ class CommandPalette(DirectoryPaneCommand):
 			command = CommandPaletteItem(run_application_command, cmd_name)
 			result.append((cmd_name, aliases, command))
 		return result
-	def _get_shortcuts_for_command(self, command):
-		for binding in load_json('Key Bindings.json'):
-			try:
-				binding_cmd = binding['command']
-			except (KeyError, TypeError):
+
+def _get_shortcuts_for_command(command):
+	for binding in load_json('Key Bindings.json'):
+		try:
+			binding_cmd = binding['command']
+		except (KeyError, TypeError):
+			# Malformed Key Bindings.json
+			continue
+		else:
+			if binding_cmd != command:
+				continue
+		try:
+			shortcut = binding['keys'][0]
+		except (KeyError, IndexError, TypeError):
+			# Malformed Key Bindings.json
+			continue
+		else:
+			if not isinstance(shortcut, str):
 				# Malformed Key Bindings.json
 				continue
-			else:
-				if binding_cmd != command:
-					continue
-			try:
-				shortcut = binding['keys'][0]
-			except (KeyError, IndexError, TypeError):
-				# Malformed Key Bindings.json
-				continue
-			else:
-				if not isinstance(shortcut, str):
-					# Malformed Key Bindings.json
-					continue
-				if PLATFORM == 'Mac':
-					shortcut = self._insert_mac_key_symbols(shortcut)
-				yield shortcut
-	def _insert_mac_key_symbols(self, shortcut):
-		keys = shortcut.split('+')
-		return ''.join(self._KEY_SYMBOLS_MAC.get(key, key) for key in keys)
+			if PLATFORM == 'Mac':
+				shortcut = _insert_mac_key_symbols(shortcut)
+			yield shortcut
+
+def _insert_mac_key_symbols(self, shortcut):
+	keys = shortcut.split('+')
+	return ''.join(_KEY_SYMBOLS_MAC.get(key, key) for key in keys)
+
+_KEY_SYMBOLS_MAC = {
+	'Cmd': '⌘', 'Alt': '⌥', 'Ctrl': '⌃', 'Shift': '⇧', 'Backspace': '⌫',
+	'Up': '↑', 'Down': '↓', 'Left': '←', 'Right': '→', 'Enter': '↩'
+}
 
 class CommandPaletteItem:
 	def __init__(self, run_fn, cmd_name):
