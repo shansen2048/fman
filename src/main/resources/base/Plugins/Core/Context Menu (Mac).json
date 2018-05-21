@@ -1,8 +1,8 @@
 [
 	{ "command": "open_with" },
 	{ "command": "move_to_trash", "caption": "Move to Trash" },
+	{ "command": "get_info" },
 	{ "command": "copy_to_clipboard", "caption": "Copy" },
 	{ "command": "paste" },
-	{ "command": "rename" },
-	{ "command": "get_info" }
+	{ "command": "rename" }
 ]
