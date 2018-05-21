@@ -240,7 +240,17 @@ class OpenDirectory(DirectoryPaneCommand):
 
 class OpenFile(DirectoryPaneCommand):
 	def __call__(self, url):
-		url = resolve(url)
+		_open_files([url])
+	def is_visible(self):
+		return False
+
+def _open_files(urls):
+	local_file_paths = []
+	for url in urls:
+		try:
+			url = resolve(url)
+		except OSError:
+			continue
 		scheme = splitscheme(url)[0]
 		if scheme != 'file://':
 			show_alert(
@@ -251,10 +261,9 @@ class OpenFile(DirectoryPaneCommand):
 			return
 		# Use as_human_readable(...) instead of the result from splitscheme(...)
 		# above to get backslashes on Windows:
-		path = as_human_readable(url)
+		local_file_paths.append(as_human_readable(url))
+	for path in local_file_paths:
 		_open_local_file(path)
-	def is_visible(self):
-		return False
 
 def _open_local_file(path):
 	cwd = os.path.dirname(path)
@@ -277,6 +286,17 @@ def _open_local_file(path):
 		Popen(args, **kwargs)
 	except (OSError, ValueError):
 		QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+class OpenSelectedFiles(DirectoryPaneCommand):
+	def __call__(self):
+		file_under_cursor = self.pane.get_file_under_cursor()
+		selected_files = self.pane.get_selected_files()
+		if file_under_cursor in selected_files:
+			_open_files(selected_files)
+		else:
+			_open_files([file_under_cursor])
+	def is_visible(self):
+		return bool(self.get_chosen_files())
 
 class OpenWithEditor(DirectoryPaneCommand):
 

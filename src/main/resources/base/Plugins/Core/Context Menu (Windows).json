@@ -1,5 +1,6 @@
 {
 	"files": [
+		{ "command": "open_selected_files", "caption": "Open" },
 		{ "command": "open_with" },
 		{ "command": "cut" },
 		{ "command": "copy_to_clipboard", "caption": "Copy" },

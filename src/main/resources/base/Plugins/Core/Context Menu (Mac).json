@@ -1,5 +1,6 @@
 {
 	"files": [
+		{ "command": "open_selected_files", "caption": "Open" },
 		{ "command": "open_with" },
 		{ "command": "move_to_trash", "caption": "Move to Trash" },
 		{ "command": "get_info" },
