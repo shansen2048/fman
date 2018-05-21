@@ -1,5 +1,6 @@
 [
 	{ "command": "open_with" },
+	{ "command": "move_to_trash", "caption": "Move to Trash" },
 	{ "command": "copy_to_clipboard", "caption": "Copy" },
 	{ "command": "paste" },
 	{ "command": "rename" },
