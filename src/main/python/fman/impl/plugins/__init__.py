@@ -58,10 +58,12 @@ class PluginSupport:
 			if pane._has_focus():
 				return pane
 	def get_context_menu(self, pane, file_under_mouse=None):
-		for entry in self.load_json('Context Menu.json', default=[]):
+		settings = self.load_json('Context Menu.json', default=[])
+		key = 'directory' if file_under_mouse is None else 'files'
+		for entry in settings[key]:
 			cmd_name = entry['command']
 			if cmd_name in pane.get_commands():
-				if not self._panecmd_registry.is_command_visible_in_contextmenu(
+				if not self._panecmd_registry.is_command_visible(
 					cmd_name, pane, file_under_mouse
 				):
 					continue

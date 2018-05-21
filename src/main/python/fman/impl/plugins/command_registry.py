@@ -85,13 +85,6 @@ class PaneCommandRegistry:
 			return None
 		with self._set_context(pane, file_under_cursor):
 			return command.is_visible()
-	def is_command_visible_in_contextmenu(self, name, pane, file_under_mouse):
-		command = self._get_command(pane, name)
-		if command is None:
-			# Command could not be instantiated.
-			return None
-		with self._set_context(pane, file_under_mouse):
-			return command.is_visible_in_contextmenu(file_under_mouse is None)
 	def _execute_command(self, command, args, pane, file_under_cursor):
 		class_name = command.__class__.__name__
 		self._callback.before_command(class_name)

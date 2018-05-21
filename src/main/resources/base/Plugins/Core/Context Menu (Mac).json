@@ -1,8 +1,13 @@
-[
-	{ "command": "open_with" },
-	{ "command": "move_to_trash", "caption": "Move to Trash" },
-	{ "command": "get_info" },
-	{ "command": "copy_to_clipboard", "caption": "Copy" },
-	{ "command": "paste" },
-	{ "command": "rename" }
-]
+{
+	"files": [
+		{ "command": "open_with" },
+		{ "command": "move_to_trash", "caption": "Move to Trash" },
+		{ "command": "get_info" },
+		{ "command": "copy_to_clipboard", "caption": "Copy" },
+		{ "command": "rename" }
+	],
+	"directory": [
+		{ "command": "create_directory" },
+		{ "command": "paste" }
+	]
+}

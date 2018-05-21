@@ -1,9 +1,14 @@
-[
-	{ "command": "open_with" },
-	{ "command": "cut" },
-	{ "command": "copy_to_clipboard", "caption": "Copy" },
-	{ "command": "rename" },
-	{ "command": "move_to_trash", "caption": "Move to Trash" },
-	{ "command": "pack", "caption": "Compress..." },
-	{ "command": "paste" }
-]
+{
+	"files": [
+		{ "command": "open_with" },
+		{ "command": "cut" },
+		{ "command": "copy_to_clipboard", "caption": "Copy" },
+		{ "command": "rename" },
+		{ "command": "move_to_trash", "caption": "Move to Trash" },
+		{ "command": "pack", "caption": "Compress..." }
+	],
+	"directory": [
+		{ "command": "create_directory" },
+		{ "command": "paste" }
+	]
+}
