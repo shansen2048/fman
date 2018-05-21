@@ -1695,7 +1695,7 @@ def _get_local_filepaths(urls):
 
 class Pack(DirectoryPaneCommand):
 
-	aliases = 'Pack to archive (.zip, .7z, .tar)',
+	aliases = 'Pack to archive (.zip, .7z, .tar)', 'Compress...'
 
 	def __call__(self):
 		files = self.get_chosen_files()
