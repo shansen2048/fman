@@ -5,5 +5,6 @@
 	{ "command": "paste" },
 	{ "command": "move_to_trash" },
 	{ "command": "rename" },
+	{ "command": "pack", "caption": "Add to archive..." },
 	{ "command": "show_explorer_properties" }
 ]
