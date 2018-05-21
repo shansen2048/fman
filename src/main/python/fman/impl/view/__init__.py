@@ -38,8 +38,32 @@ class FileListView(
 		self._urls_being_loaded = []
 	def contextMenuEvent(self, event):
 		index = self.indexAt(event.pos())
+		updated_selection = False
 		if index.isValid():
 			file_under_mouse = self.model().url(index)
+			if event.reason() == QContextMenuEvent.Mouse:
+				# Our context menu implementation simply calls plugin commands.
+				# Many commands act on the selected files, or the file under the
+				# cursor if no file is selected. This lets the user press Insert
+				# to select files and move the cursor down, then perform actions
+				# on the selected files above - and not(!) the file under the
+				# cursor.
+				# Consider what happens in the above scenario when the user
+				# launches the context menu on the file under the cursor with
+				# the mouse. The expectation would be for this to act on the
+				# file under the cursor (because it was just selected with the
+				# mouse). But without special treatment of this case, our
+				# implementation would call the command on the selected files,
+				# as if it had been invoked via the keyboard.
+				# To solve this, we reset the selection to the file that was
+				# clicked on when the user opens the context menu by mouse. This
+				# way, the command sees (and naturally acts on) the correct
+				# "selected" file. This behaviour exactly mimics that of Total
+				# Commander.
+				model = self.selectionModel()
+				if not model.isSelected(index):
+					model.select(index, QISM.ClearAndSelect | QISM.Rows)
+					updated_selection = True
 		else:
 			file_under_mouse = None
 		menu = QMenu(self)
@@ -56,6 +80,8 @@ class FileListView(
 			# account when not caused by mouse. Correct for this:
 			pos.setY(pos.y() + self.horizontalHeader().height())
 		menu.exec(pos)
+		if updated_selection:
+			self.clearSelection()
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		return [self.model().url(index) for index in indexes]
