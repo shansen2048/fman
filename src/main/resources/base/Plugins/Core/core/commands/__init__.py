@@ -97,6 +97,8 @@ class MoveToTrash(DirectoryPaneCommand):
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
 		msg = "Do you really want to move %s to the %s?" % (description, trash)
 		_delete(urls, msg, move_to_trash, delete)
+	def is_visible(self):
+		return bool(self.pane.get_file_under_cursor())
 
 def _delete(urls, message, delete_fn, fallback=None):
 	choice = show_alert(message, YES | NO, YES)
