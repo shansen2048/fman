@@ -252,28 +252,31 @@ class OpenFile(DirectoryPaneCommand):
 		# Use as_human_readable(...) instead of the result from splitscheme(...)
 		# above to get backslashes on Windows:
 		path = as_human_readable(url)
-		cwd = os.path.dirname(path)
-		kwargs = {
-			'cwd': cwd
-		}
-		if PLATFORM == 'Windows':
-			file_name = os.path.basename(path)
-			pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
-			if any(file_name.lower().endswith(ext.lower()) for ext in pathext):
-				args = [path]
-			else:
-				# The empty arg '' is the "title of the command window".
-				# It is required:
-				args = ['start', '', '/D', cwd, file_name.replace('&', '^&')]
-				kwargs['shell'] = True
-		else:
-			args = [path]
-		try:
-			Popen(args, **kwargs)
-		except (OSError, ValueError):
-			QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+		_open_local_file(path)
 	def is_visible(self):
 		return False
+
+def _open_local_file(path):
+	cwd = os.path.dirname(path)
+	kwargs = {
+		'cwd': cwd
+	}
+	if PLATFORM == 'Windows':
+		file_name = os.path.basename(path)
+		pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
+		if any(file_name.lower().endswith(ext.lower()) for ext in pathext):
+			args = [path]
+		else:
+			# The empty arg '' is the "title of the command window".
+			# It is required:
+			args = ['start', '', '/D', cwd, file_name.replace('&', '^&')]
+			kwargs['shell'] = True
+	else:
+		args = [path]
+	try:
+		Popen(args, **kwargs)
+	except (OSError, ValueError):
+		QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
 class OpenWithEditor(DirectoryPaneCommand):
 
