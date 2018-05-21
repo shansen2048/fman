@@ -1737,6 +1737,8 @@ class Pack(DirectoryPaneCommand):
 				file_name = basename(file_url)
 				with StatusMessage('Packing %s...' % file_name):
 					copy(file_url, join(dest_rewritten, file_name))
+	def is_visible(self):
+		return bool(self.pane.get_file_under_cursor())
 
 def _get_handler_for_archive(file_name):
 	settings = load_json('Core Settings.json', default={})
