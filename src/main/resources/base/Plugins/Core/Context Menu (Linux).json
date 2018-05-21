@@ -5,5 +5,5 @@
 	{ "command": "paste" },
 	{ "command": "rename" },
 	{ "command": "move_to_trash", "caption": "Move to Trash" },
-	{ "command": "Pack", "caption": "Compress..." }
+	{ "command": "pack", "caption": "Compress..." }
 ]
