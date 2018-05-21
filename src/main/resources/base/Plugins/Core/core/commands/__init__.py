@@ -1304,7 +1304,7 @@ def _get_shortcuts_for_command(command):
 				shortcut = _insert_mac_key_symbols(shortcut)
 			yield shortcut
 
-def _insert_mac_key_symbols(self, shortcut):
+def _insert_mac_key_symbols(shortcut):
 	keys = shortcut.split('+')
 	return ''.join(_KEY_SYMBOLS_MAC.get(key, key) for key in keys)
 
