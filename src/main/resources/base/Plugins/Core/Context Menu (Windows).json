@@ -11,6 +11,7 @@
 	],
 	"directory": [
 		{ "command": "paste" },
-		{ "command": "create_directory" }
+		{ "command": "create_directory" },
+		{ "command": "show_explorer_properties" }
 	]
 }

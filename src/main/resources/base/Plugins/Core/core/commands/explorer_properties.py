@@ -15,25 +15,46 @@ class ShowExplorerProperties(DirectoryPaneCommand):
 	aliases = 'Properties',
 
 	def __call__(self):
-		files = self.get_chosen_files()
-		if not files:
-			return
+		scheme = splitscheme(self.pane.get_path())[0]
+		if scheme not in ('file://', 'drives://', 'network://'):
+			show_alert(
+				'Sorry, showing the properties of %s files is not '
+				'yet supported.' % scheme
+			)
+		else:
+			action = self._get_action()
+			if action:
+				action()
+	def _get_action(self):
+		file_under_cursor = self.pane.get_file_under_cursor()
+		selected_files = self.pane.get_selected_files()
+		chosen_files = selected_files or \
+		               ([file_under_cursor] if file_under_cursor else [])
 		location = self.pane.get_path()
 		scheme, path = splitscheme(location)
 		if scheme == 'file://':
-			dir_ = as_human_readable(location)
-			filenames = [basename(f) for f in files]
-			_show_file_properties(dir_, filenames)
+			if file_under_cursor is None:
+				# Either we're in an empty folder, or the user
+				# right-clicked inside a directory.
+				if self._is_drive(path):
+					return lambda: _show_drive_properties(path)
+				else:
+					dir_ = as_human_readable(dirname(location))
+					filenames = [basename(location)]
+			else:
+				dir_ = as_human_readable(location)
+				filenames = [basename(f) for f in chosen_files]
+			return lambda: _show_file_properties(dir_, filenames)
 		elif scheme == 'drives://':
-			drive = splitscheme(self.pane.get_file_under_cursor())[1]
-			if re.match('^[A-Z]:$', drive):
-				_show_drive_properties(drive)
+			drive = splitscheme(file_under_cursor)[1]
+			if self._is_drive(drive):
+				return lambda: _show_drive_properties(drive)
 		elif scheme == 'network://':
 			# We check `path` because when it's empty, we're at the
 			# overview of network locations. Servers don't have a Properties
 			# dialog. So we can't do anything there.
 			if path:
-				for f in files:
+				for f in chosen_files:
 					try:
 						f_fileurl = resolve(f)
 					except OSError:
@@ -45,18 +66,12 @@ class ShowExplorerProperties(DirectoryPaneCommand):
 					break
 				else:
 					return
-				filenames = [basename(f) for f in files]
-				_show_file_properties(dir_, filenames)
-		else:
-			show_alert(
-				'Sorry, showing the properties of %s files is not '
-				'yet supported.' % scheme
-			)
+				filenames = [basename(f) for f in chosen_files]
+				return lambda: _show_file_properties(dir_, filenames)
 	def is_visible(self):
-		if not self.get_chosen_files():
-			return False
-		scheme = splitscheme(self.pane.get_path())[0]
-		return scheme == 'file://'
+		return bool(self._get_action())
+	def _is_drive(self, path):
+		return re.match('^[A-Z]:$', path)
 
 def _show_file_properties(dir_, filenames):
 	# Note: If you ever want to extend this method so it can handle files in
