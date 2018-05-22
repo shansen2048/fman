@@ -1,15 +1,15 @@
 {
 	"files": [
-		{ "command": "open_selected_files", "caption": "Open" },
-		{ "command": "open_with" },
-		{ "command": "cut" },
-		{ "command": "copy_to_clipboard", "caption": "Copy" },
-		{ "command": "rename" },
-		{ "command": "move_to_trash", "caption": "Move to Trash" },
-		{ "command": "pack", "caption": "Compress..." }
+		{ "command": "open_selected_files", "caption": "&Open" },
+		{ "command": "open_with", "caption": "Open wit&h..." },
+		{ "command": "cut", "caption": "Cu&t" },
+		{ "command": "copy_to_clipboard", "caption": "&Copy" },
+		{ "command": "rename", "caption": "Rena&me" },
+		{ "command": "move_to_trash", "caption": "Mo&ve to Trash" },
+		{ "command": "pack", "caption": "Com&press..." }
 	],
 	"directory": [
-		{ "command": "create_directory" },
-		{ "command": "paste" }
+		{ "command": "create_directory", "caption": "New &Folder" },
+		{ "command": "paste", "caption": "&Paste" }
 	]
 }
