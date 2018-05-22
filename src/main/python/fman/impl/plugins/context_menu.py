@@ -10,6 +10,10 @@ class ContextMenuProvider:
 		settings = self._config.load_json('Context Menu.json', default=[])
 		key = 'directory' if file_under_mouse is None else 'files'
 		for entry in settings[key]:
+			caption = entry.get('caption')
+			if caption == '-':
+				yield ('-', '', '')
+				continue
 			cmd_name = entry['command']
 			if cmd_name in pane.get_commands():
 				if not self._panecmd_registry.is_command_visible(
@@ -20,12 +24,11 @@ class ContextMenuProvider:
 					self._panecmd_registry.execute_command(
 						c, {}, pane, file_under_mouse
 					)
-				def_caption = pane.get_command_aliases(cmd_name)[0]
+				caption = caption or pane.get_command_aliases(cmd_name)[0]
 			else:
 				run_command = self._appcmd_registry.execute_command
-				def_caption = \
-					self._appcmd_registry.get_command_aliases(cmd_name)[0]
-			caption = entry.get('caption', def_caption)
+				caption = caption or \
+						  self._appcmd_registry.get_command_aliases(cmd_name)[0]
 			# Need `c=cmd_name` to create one lambda per loop:
 			callback = lambda c=cmd_name: run_command(c)
 			try:

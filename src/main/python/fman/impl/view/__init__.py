@@ -70,12 +70,15 @@ class FileListView(
 		for caption, shortcut, callback in self._get_context_menu(
 			event, file_under_mouse
 		):
-			action = QAction(caption, self)
-			# Need `c=callback` to create one lambda per loop:
-			action.triggered.connect(lambda _, c=callback: c())
-			if shortcut:
-				action.setShortcut(QKeySequence(shortcut))
-			menu.addAction(action)
+			if caption == '-':
+				menu.addSeparator()
+			else:
+				action = QAction(caption, self)
+				# Need `c=callback` to create one lambda per loop:
+				action.triggered.connect(lambda _, c=callback: c())
+				if shortcut:
+					action.setShortcut(QKeySequence(shortcut))
+				menu.addAction(action)
 		pos = event.globalPos()
 		if event.reason() != QContextMenuEvent.Mouse:
 			# For some reason, event.globalPos() does not take the header into
