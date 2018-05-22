@@ -6,14 +6,24 @@ QMenu {
 	font-family: "Helvetica Neue";
 	color: #333333;
 	font-size: 14pt;
+	background-color: #f6f6f6;
+	padding-top: .75ex;
+	padding-bottom: .75ex;
 }
 
 QMenu::item {
 	background-color: #f6f6f6;
-	padding: .5ex 3ex;
+	padding: .35ex 1.5ex .3ex 3ex;
+	min-width: 25ex;
 }
 
 QMenu::item:selected {
 	background-color: #0763d8;
 	color: white;
+}
+
+QMenu::separator {
+	height: 2px;
+	background: #e5e5e5;
+	margin: .75ex 0;
 }
