@@ -267,7 +267,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def context_menu_provider(self):
 		return ContextMenuProvider(
 			self.config, self.pane_command_registry,
-			self.application_command_registry
+			self.application_command_registry, self.key_bindings
 		)
 	@cached_property
 	def plugin_error_handler(self):

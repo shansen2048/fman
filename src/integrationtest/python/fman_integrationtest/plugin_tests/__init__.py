@@ -47,7 +47,7 @@ class PluginTest(TestCase):
 			self._panecmd_registry, key_bindings, self._mother_fs, self._window
 		)
 		cm_provider = ContextMenuProvider(
-			config, self._panecmd_registry, self._appcmd_registry
+			config, self._panecmd_registry, self._appcmd_registry, key_bindings
 		)
 		self._plugin_support = PluginSupport(
 			plugin_factory, self._appcmd_registry, key_bindings, cm_provider,
