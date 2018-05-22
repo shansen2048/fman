@@ -23,8 +23,8 @@
 	"ssh_key": "conf/ssh/id_rsa",
 	"resources_to_filter": [
 		"src/main/resources/base/constants.json",
-		"src/main/resources/mac/Contents/Info.plist",
-		"src/main/resources/mac/Contents/SharedSupport/bin/fman"
+		"src/main/resources/mac-frozen/Contents/Info.plist",
+		"src/main/resources/mac-frozen/Contents/SharedSupport/bin/fman"
 	],
 	"gpg_key": "B015FE599CFAF7EB",
 	"gpg_pass": "fenst4r",
