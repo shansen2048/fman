@@ -3,10 +3,10 @@
 		{ "command": "open_selected_files", "caption": "Open" },
 		{ "command": "open_with" },
 		{ "command": "move_to_trash", "caption": "Move to Trash" },
+		{ "command": "rename" },
 		{ "command": "get_info" },
 		{ "command": "pack", "caption": "Compress..." },
-		{ "command": "copy_to_clipboard", "caption": "Copy" },
-		{ "command": "rename" }
+		{ "command": "copy_to_clipboard", "caption": "Copy" }
 	],
 	"directory": [
 		{ "command": "create_directory" },
