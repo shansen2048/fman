@@ -19,9 +19,18 @@ QMenu {
 }
 
 QMenu::item {
-	padding: 1ex 10ex;
+	padding: 1.5ex 5ex 1.5ex 10ex;
+	margin-top: .5ex;
+	margin-bottom: .5ex;
+	min-width: 40ex;
 }
 
 QMenu::item:selected {
 	background-color: #e5e5e5;
+}
+
+QMenu::separator {
+	height: 1px;
+	background: #bfbfbf;
+	margin-left: 10ex;
 }

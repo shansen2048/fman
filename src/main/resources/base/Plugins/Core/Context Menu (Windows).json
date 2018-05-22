@@ -1,7 +1,6 @@
 {
 	"files": [
 		{ "command": "open_selected_files", "caption": "&Open" },
-		{ "caption": "-" },
 		{ "command": "open_with", "caption": "Open wit&h..." },
 		{ "caption": "-" },
 		{ "command": "cut", "caption": "Cu&t" },
