@@ -3,6 +3,7 @@ from fman.impl.plugins import PluginSupport, SETTINGS_PLUGIN_NAME, PluginFactory
 from fman.impl.plugins.command_registry import PaneCommandRegistry, \
 	ApplicationCommandRegistry
 from fman.impl.plugins.config import Config
+from fman.impl.plugins.context_menu import ContextMenuProvider
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman_integrationtest import get_resource
@@ -45,9 +46,12 @@ class PluginTest(TestCase):
 			config, theme, font_db, self._error_handler, self._appcmd_registry,
 			self._panecmd_registry, key_bindings, self._mother_fs, self._window
 		)
+		cm_provider = ContextMenuProvider(
+			config, self._panecmd_registry, self._appcmd_registry
+		)
 		self._plugin_support = PluginSupport(
-			plugin_factory, self._appcmd_registry, self._panecmd_registry,
-			key_bindings, config
+			plugin_factory, self._appcmd_registry, key_bindings, cm_provider,
+			config
 		)
 		self._plugin_support.load_plugin(self._shipped_plugin)
 		self._plugin_support.load_plugin(self._thirdparty_plugin)
