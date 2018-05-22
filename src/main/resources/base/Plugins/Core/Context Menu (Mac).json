@@ -4,6 +4,7 @@
 		{ "command": "open_with" },
 		{ "command": "move_to_trash", "caption": "Move to Trash" },
 		{ "command": "get_info" },
+		{ "command": "pack", "caption": "Compress..." },
 		{ "command": "copy_to_clipboard", "caption": "Copy" },
 		{ "command": "rename" }
 	],
