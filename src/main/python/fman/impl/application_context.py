@@ -242,8 +242,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def plugin_support(self):
 		return PluginSupport(
 			self.plugin_factory, self.application_command_registry,
-			self.pane_command_registry, self.key_bindings,
-			self.context_menu_provider, self.config, self.builtin_plugin
+			self.key_bindings, self.context_menu_provider, self.config,
+			self.builtin_plugin
 		)
 	@cached_property
 	def plugin_factory(self):

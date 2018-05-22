@@ -5,12 +5,11 @@ SETTINGS_PLUGIN_NAME = 'Settings'
 
 class PluginSupport:
 	def __init__(
-		self, plugin_factory, appcmd_registry, panecmd_registry, key_bindings,
+		self, plugin_factory, appcmd_registry, key_bindings,
 		context_menu_provider, config, builtin_plugin=None
 	):
 		self._plugin_factory = plugin_factory
 		self._appcmd_registry = appcmd_registry
-		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
 		self._context_menu_provider = context_menu_provider
 		self._config = config
