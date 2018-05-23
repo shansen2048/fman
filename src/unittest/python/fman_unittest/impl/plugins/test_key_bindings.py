@@ -1,4 +1,4 @@
-from fman.impl.plugins import sanitize_key_bindings
+from fman.impl.plugins.key_bindings import sanitize_key_bindings
 from unittest import TestCase
 
 class SanitizeKeyBindingsTest(TestCase):
