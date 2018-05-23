@@ -25,7 +25,7 @@ class ContextMenuProvider:
 		except TypeError as not_iterable:
 			pass
 	def get_context_menu(self, pane, file_under_mouse=None):
-		key = 'directory' if file_under_mouse is None else 'files'
+		key = 'in_directory' if file_under_mouse is None else 'on_file'
 		for part in self._sanitized_config:
 			for entry in part.get(key, []):
 				caption = entry.get('caption')
