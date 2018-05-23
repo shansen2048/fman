@@ -4,6 +4,7 @@ from fman.impl.plugins import ExternalPlugin
 from fman.impl.plugins.command_registry import PaneCommandRegistry, \
 	ApplicationCommandRegistry
 from fman.impl.plugins.config import Config
+from fman.impl.plugins.context_menu import ContextMenuProvider
 from fman.impl.plugins.key_bindings import KeyBindings
 from fman.impl.plugins.mother_fs import MotherFileSystem
 from fman.impl.plugins.plugin import Plugin
@@ -131,13 +132,16 @@ class ExternalPluginTest(TestCase):
 			self._window, self._error_handler, self._command_callback
 		)
 		self._key_bindings = KeyBindings()
+		cm_provider = ContextMenuProvider(
+			self._panecmd_registry, self._appcmd_registry, self._key_bindings
+		)
 		self._mother_fs = MotherFileSystem(None)
 		window = Window(None, self._panecmd_registry)
 		self._plugin = ExternalPlugin(
 			self._plugin_dir, self._config, self._theme, self._font_database,
 			self._error_handler, self._appcmd_registry,
-			self._panecmd_registry, self._key_bindings, None, self._mother_fs,
-			window
+			self._panecmd_registry, self._key_bindings, cm_provider,
+			self._mother_fs, window
 		)
 	def tearDown(self):
 		sys.path = self._sys_path_before

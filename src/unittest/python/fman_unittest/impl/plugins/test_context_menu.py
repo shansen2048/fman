@@ -6,48 +6,34 @@ class SanitizeContextMenuTest(TestCase):
 		self.assertEqual(
 			([], [
 				'Error: Context Menu.json should be a list [...], not {...}.'
-			]), sanitize_context_menu({}, [])
+			]), self._sanitize_context_menu({})
 		)
-	def test_part_non_list(self):
+	def test_entry_non_dict(self):
 		self.assertEqual(
 			([], [
-				'Error: Context Menu.json should be a list of dicts '
-				'[{...}, {...}, ...].'
-			]), sanitize_context_menu([[]], [])
-		)
-	def test_cm_type_non_list(self):
-		self.assertEqual(
-			([], [
-				'Error: "on_file" in Context Menu.json should be a list [...], '
-				'not {...}.'
-			]), sanitize_context_menu([{'on_file': {}}], [])
-		)
-	def test_item_non_dict(self):
-		self.assertEqual(
-			([], [
-				'Error: Element [] of "on_file" in Context Menu.json should be '
-				'a dict {...}, not [...].'
-			]), sanitize_context_menu([{'on_file': [[]]}], [])
+				'Error in Context Menu.json: Element [] should be a dict '
+				'{...}, not [...].'
+			]), self._sanitize_context_menu([[]])
 		)
 	def test_no_command_no_caption(self):
 		self.assertEqual(
 			([], [
-				'Error: Element {} of "on_file" in Context Menu.json should '
-				'specify at least a "command" or a "caption".'
-			]), sanitize_context_menu([{'on_file': [{}]}], [])
+				'Error in Context Menu.json: Element {} should specify at '
+				'least a "command" or a "caption".'
+			]), self._sanitize_context_menu([{}])
 		)
 	def test_arg_non_dict(self):
 		self.assertEqual(
 			([], [
 				'Error in Context Menu.json: "args" must be a dict {...}, not '
 				'[...].'
-			]), sanitize_context_menu(
-				[{'on_file': [{'command': 'foo', 'args': []}]}], ['foo']
+			]), self._sanitize_context_menu(
+				[{'command': 'foo', 'args': []}], ['foo']
 			)
 		)
 	def test_separator_with_command(self):
-		result = sanitize_context_menu(
-			[{'on_file': [{'caption': '-', 'command': 'foo'}]}], ['foo']
+		result = self._sanitize_context_menu(
+			[{'caption': '-', 'command': 'foo'}], ['foo']
 		)
 		self.assertEqual([], result[0])
 		self.assertIsInstance(result[1], list)
@@ -58,7 +44,7 @@ class SanitizeContextMenuTest(TestCase):
 			'{"command": "foo", "caption": "-"}'
 		}
 		possible_errors = {
-			'Error in element %s of "on_file" in Context Menu.json: "command" '
+			'Error in Context Menu.json, element %s: "command" '
 			'cannot be used when the caption is "-".' % r
 			for r in elt_reprs
 		}
@@ -66,38 +52,33 @@ class SanitizeContextMenuTest(TestCase):
 	def test_no_command(self):
 		self.assertEqual(
 			([], [
-				'Error in element {"caption": "Hello"} of "on_file" in Context '
-				'Menu.json: Unless the caption is "-", you must specify a '
-				'"command".'
-			]), sanitize_context_menu([{'on_file': [{'caption': 'Hello'}]}], [])
+				'Error in Context Menu.json, element {"caption": "Hello"}: '
+				'Unless the caption is "-", you must specify a "command".'
+			]), self._sanitize_context_menu([{'caption': 'Hello'}])
 		)
 	def test_nonexistent_command(self):
 		self.assertEqual(
 			([], [
 				'Error in Context Menu.json: Command "foo" referenced in '
 				'element {"command": "foo"} does not exist.'
-			]), sanitize_context_menu([{'on_file': [{'command': 'foo'}]}], [])
+			]), self._sanitize_context_menu([{'command': 'foo'}])
 		)
 	def test_valid(self):
-		data = [{
-			'on_file': [
-				{ 'command': 'cut' },
-				{ 'command': 'copy_to_clipboard', 'caption': 'cut' },
-				{ 'caption': '-' },
-				{ 'command': 'paste' }
-			],
-			'in_directory': [
-				{ 'command': 'create_directory', 'caption': 'New folder' },
-				{ 'caption': '-' },
-				{ 'command': 'properties' }
-			]
-		}]
+		data = [
+			{ 'command': 'cut' },
+			{ 'command': 'copy_to_clipboard', 'caption': 'cut' },
+			{ 'caption': '-' },
+			{ 'command': 'paste' }
+		]
 		self.assertEqual(
 			(data, []),
-			sanitize_context_menu(
-				data, [
-					'cut', 'copy_to_clipboard', 'paste', 'create_directory',
-					'properties'
-				]
+			self._sanitize_context_menu(
+				data, ['cut', 'copy_to_clipboard', 'paste']
 			)
+		)
+	def _sanitize_context_menu(self, cm, available_commands=None):
+		if available_commands is None:
+			available_commands = []
+		return sanitize_context_menu(
+			cm, 'Context Menu.json', available_commands
 		)

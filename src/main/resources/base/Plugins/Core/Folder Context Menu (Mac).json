@@ -1,0 +1,7 @@
+[
+	{ "command": "create_directory" },
+	{ "caption": "-" },
+	{ "command": "get_info" },
+	{ "caption": "-" },
+	{ "command": "paste" }
+]

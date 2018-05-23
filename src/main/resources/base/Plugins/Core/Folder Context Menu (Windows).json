@@ -1,0 +1,7 @@
+[
+	{ "command": "paste", "caption": "&Paste" },
+	{ "caption": "-" },
+	{ "command": "create_directory", "caption": "New &Folder" },
+	{ "caption": "-" },
+	{ "command": "show_explorer_properties", "caption": "P&roperties" }
+]
