@@ -48,7 +48,7 @@ class ContextMenuProvider:
 					caption = caption or \
 							  self._appcmd_registry\
 								  .get_command_aliases(cmd_name)[0]
-				# Need `c=cmd_name` to create one lambda per loop:
+				# Need `r=run_command,c=cmd_name` to create one lambda per loop:
 				callback = lambda r=run_command, c=cmd_name: r(c)
 				all_shortcuts = self._get_shortcuts_for_command(cmd_name)
 				try:
