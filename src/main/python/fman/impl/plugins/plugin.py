@@ -16,12 +16,13 @@ import sys
 class Plugin:
 	def __init__(
 		self, error_handler, appcmd_registry, panecmd_registry, key_bindings,
-		mother_fs, window
+		context_menu_provider, mother_fs, window
 	):
 		self._error_handler = error_handler
 		self._appcmd_registry = appcmd_registry
 		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
+		self._context_menu_provider = context_menu_provider
 		self._mother_fs = mother_fs
 		self._window = window
 		self._directory_pane_listeners = []
@@ -135,6 +136,7 @@ class ExternalPlugin(Plugin):
 		self._extend_sys_path()
 		self._load_classes()
 		self._load_key_bindings()
+		self._load_context_menu()
 	def _register_plugin_dir(self):
 		self._error_handler.add_dir(self._path)
 		self._add_unload_action(self._error_handler.remove_dir, self._path)
@@ -174,21 +176,29 @@ class ExternalPlugin(Plugin):
 				register(cls)
 				self._add_unload_action(unregister, cls)
 	def _load_key_bindings(self):
-		for json_file in self._config.locate('Key Bindings.json', self._path):
+		self._configure_component_from_json(
+			self._key_bindings, 'Key Bindings.json'
+		)
+	def _load_context_menu(self):
+		self._configure_component_from_json(
+			self._context_menu_provider, 'Context Menu.json'
+		)
+	def _configure_component_from_json(self, component, json_name):
+		for json_file in self._config.locate(json_name, self._path):
 			try:
 				with open(json_file, 'r') as f:
-					bindings = json.load(f)
+					config = json.load(f)
 			except FileNotFoundError:
 				pass
 			except JSONDecodeError as e:
 				self._error_handler.report(
-					'Could not load key bindings: ' + e.args[0], exc=False
+					'Could not load %s: %s' % (json_name, e.args[0]), exc=False
 				)
 			except Exception:
-				self._error_handler.report('Could not load key bindings.')
+				self._error_handler.report('Could not load %s.' % json_name)
 			else:
-				errors = self._key_bindings.load(bindings)
-				self._add_unload_action(self._key_bindings.unload, bindings)
+				errors = component.load(config)
+				self._add_unload_action(component.unload, config)
 				for error in errors:
 					self._error_handler.report(error)
 					break

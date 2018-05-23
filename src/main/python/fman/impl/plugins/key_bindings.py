@@ -1,3 +1,5 @@
+from fman.impl.plugins.util import describe_type
+
 class KeyBindings:
 	def __init__(self):
 		self._sanitized_bindings = []
@@ -23,7 +25,7 @@ class KeyBindings:
 def sanitize_key_bindings(bindings, available_commands):
 	if not isinstance(bindings, list):
 		return [], [('Error: Key bindings should be a list [...], not %s.' %
-					 _describe_type(bindings))]
+					 describe_type(bindings))]
 	result, errors = [], []
 	for binding in bindings:
 		this_binding_errors = []
@@ -37,7 +39,7 @@ def sanitize_key_bindings(bindings, available_commands):
 			if not isinstance(command, str):
 				this_binding_errors.append(
 					'Error: A key binding\'s "command" must be a string "...", '
-					'not %s.' % _describe_type(command)
+					'not %s.' % describe_type(command)
 				)
 			else:
 				if command not in available_commands:
@@ -55,7 +57,7 @@ def sanitize_key_bindings(bindings, available_commands):
 			if not isinstance(keys, list):
 				this_binding_errors.append(
 					'Error: A key binding\'s "keys" must be a list ["..."], '
-					'not %s.' % _describe_type(keys)
+					'not %s.' % describe_type(keys)
 				)
 			if not keys:
 				this_binding_errors.append(
@@ -67,10 +69,3 @@ def sanitize_key_bindings(bindings, available_commands):
 		else:
 			result.append(binding)
 	return result, errors
-
-def _describe_type(value):
-	if isinstance(value, dict):
-		return '{...}'
-	if isinstance(value, str):
-		return '"..."'
-	return type(value).__name__

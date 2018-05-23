@@ -201,7 +201,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 			self.tour_controller, self.tutorial_factory,
 			self.cleanupguide_factory, self.plugin_error_handler,
 			self.application_command_registry, self.pane_command_registry,
-			self.key_bindings, self.mother_fs, self.window
+			self.key_bindings, self.context_menu_provider, self.mother_fs,
+			self.window
 		)
 	@cached_property
 	def mother_fs(self):
@@ -250,8 +251,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return PluginFactory(
 			self.config, self.theme, self.font_database,
 			self.plugin_error_handler, self.application_command_registry,
-			self.pane_command_registry, self.key_bindings, self.mother_fs,
-			self.window
+			self.pane_command_registry, self.key_bindings,
+			self.context_menu_provider, self.mother_fs, self.window
 		)
 	@cached_property
 	def application_command_registry(self):

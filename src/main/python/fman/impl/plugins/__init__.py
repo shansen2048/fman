@@ -70,7 +70,7 @@ class PluginSupport:
 class PluginFactory:
 	def __init__(
 		self, config, theme, font_database, error_handler, appcmd_registry,
-		panecmd_registry, key_bindings, mother_fs, window
+		panecmd_registry, key_bindings, context_menu_provider, mother_fs, window
 	):
 		self._config = config
 		self._theme = theme
@@ -79,13 +79,15 @@ class PluginFactory:
 		self._appcmd_registry = appcmd_registry
 		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
+		self._context_menu_provider = context_menu_provider
 		self._mother_fs = mother_fs
 		self._window = window
 	def __call__(self, plugin_dir):
 		return ExternalPlugin(
 			plugin_dir, self._config, self._theme, self._font_database,
 			self._error_handler, self._appcmd_registry, self._panecmd_registry,
-			self._key_bindings, self._mother_fs, self._window
+			self._key_bindings, self._context_menu_provider, self._mother_fs,
+			self._window
 		)
 
 class CommandCallback:
