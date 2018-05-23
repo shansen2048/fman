@@ -36,6 +36,15 @@ class SanitizeContextMenuTest(TestCase):
 				'specify at least a "command" or a "caption".'
 			]), sanitize_context_menu([{'files': [{}]}], [])
 		)
+	def test_arg_non_dict(self):
+		self.assertEqual(
+			([], [
+				'Error in Context Menu.json: "args" must be a dict {...}, not '
+				'[...].'
+			]), sanitize_context_menu(
+				[{'files': [{'command': 'foo', 'args': []}]}], ['foo']
+			)
+		)
 	def test_separator_with_command(self):
 		result = sanitize_context_menu(
 			[{'files': [{'caption': '-', 'command': 'foo'}]}], ['foo']

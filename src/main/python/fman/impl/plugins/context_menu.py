@@ -38,9 +38,9 @@ class ContextMenuProvider:
 						cmd_name, pane, file_under_mouse
 					):
 						continue
-					def run_command(c=cmd_name):
+					def run_command(cmd_name, args):
 						self._panecmd_registry.execute_command(
-							c, {}, pane, file_under_mouse
+							cmd_name, args, pane, file_under_mouse
 						)
 					caption = caption or pane.get_command_aliases(cmd_name)[0]
 				else:
@@ -48,8 +48,9 @@ class ContextMenuProvider:
 					caption = caption or \
 							  self._appcmd_registry\
 								  .get_command_aliases(cmd_name)[0]
-				# Need `r=run_command,c=cmd_name` to create one lambda per loop:
-				callback = lambda r=run_command, c=cmd_name: r(c)
+				args = entry.get('args', {})
+				# Need `r=run_command,...` to create one lambda per loop:
+				callback = lambda r=run_command, c=cmd_name, a=args: r(c, a)
 				all_shortcuts = self._get_shortcuts_for_command(cmd_name)
 				try:
 					shortcut = next(iter(all_shortcuts))
@@ -111,6 +112,13 @@ def sanitize_context_menu(cm, available_commands):
 							'Error in Context Menu.json: Command %s referenced '
 							'in element %s does not exist.' %
 							(json.dumps(command), json.dumps(item))
+						)
+						continue
+					args = item.get('args')
+					if args is not None and not isinstance(args, dict):
+						errors.append(
+							'Error in Context Menu.json: "args" must be a dict '
+							'{...}, not %s.' % describe_type(args)
 						)
 						continue
 				else:
