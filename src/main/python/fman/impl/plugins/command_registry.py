@@ -24,7 +24,9 @@ class ApplicationCommandRegistry:
 		del self._commands[name]
 	def get_commands(self):
 		return set(self._commands)
-	def execute_command(self, name, args):
+	def execute_command(self, name, args=None):
+		if args is None:
+			args = {}
 		command = self._commands[name]
 		Thread(target=self._execute_command, args=(command, args), daemon=True)\
 			.start()
