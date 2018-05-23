@@ -52,7 +52,7 @@ class PluginTest(TestCase):
 		self._key_bindings = KeyBindings()
 		self._plugin = Plugin(
 			self._error_handler, self._appcmd_registry, self._panecmd_registry,
-			self._key_bindings, None, None
+			self._key_bindings, None, None, None
 		)
 		self._pane = DirectoryPane(None, None, self._panecmd_registry)
 
@@ -136,7 +136,7 @@ class ExternalPluginTest(TestCase):
 		self._plugin = ExternalPlugin(
 			self._plugin_dir, self._config, self._theme, self._font_database,
 			self._error_handler, self._appcmd_registry,
-			self._panecmd_registry, self._key_bindings, self._mother_fs,
+			self._panecmd_registry, self._key_bindings, None, self._mother_fs,
 			window
 		)
 	def tearDown(self):

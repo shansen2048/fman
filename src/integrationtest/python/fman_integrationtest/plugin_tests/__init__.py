@@ -42,12 +42,13 @@ class PluginTest(TestCase):
 		)
 		theme = StubTheme()
 		font_db = StubFontDatabase()
+		cm_provider = ContextMenuProvider(
+			self._panecmd_registry, self._appcmd_registry, key_bindings
+		)
 		plugin_factory = PluginFactory(
 			config, theme, font_db, self._error_handler, self._appcmd_registry,
-			self._panecmd_registry, key_bindings, self._mother_fs, self._window
-		)
-		cm_provider = ContextMenuProvider(
-			config, self._panecmd_registry, self._appcmd_registry, key_bindings
+			self._panecmd_registry, key_bindings, cm_provider, self._mother_fs,
+			self._window
 		)
 		self._plugin_support = PluginSupport(
 			plugin_factory, self._appcmd_registry, key_bindings, cm_provider,
