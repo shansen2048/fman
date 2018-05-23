@@ -1,14 +1,11 @@
 QMenu {
-	border: 1px solid #c0c0c0;
-	border-top-color: #d2d2d2;
-	border-bottom-color: #adadad;
-	border-radius: 4px;
 	font-family: "Helvetica Neue";
 	color: #333333;
 	font-size: 14pt;
 	background-color: #f6f6f6;
 	padding-top: .75ex;
 	padding-bottom: .75ex;
+	/* border-radius is set in the `Menu` class in fman */
 }
 
 QMenu::item {

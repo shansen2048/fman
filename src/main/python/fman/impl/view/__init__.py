@@ -1,3 +1,4 @@
+from fbs_runtime.system import is_mac
 from fman.impl.util.qt import WA_MacShowFocusRect, Key_Home, Key_End, \
 	ShiftModifier, Key_Return, Key_Enter, ToolTipRole, connect_once
 from fman.impl.view.drag_and_drop import DragAndDrop
@@ -7,8 +8,9 @@ from fman.impl.view.resize_cols_to_contents import ResizeColumnsToContents
 from fman.impl.view.single_row_mode import SingleRowMode
 from fman.impl.view.uniform_row_heights import UniformRowHeights
 from PyQt5.QtCore import QEvent, QItemSelectionModel as QISM, QRect, Qt, \
-	pyqtSignal
-from PyQt5.QtGui import QPen, QContextMenuEvent, QKeySequence
+	pyqtSignal, QRectF
+from PyQt5.QtGui import QPen, QContextMenuEvent, QKeySequence, QPainterPath, \
+	QRegion
 from PyQt5.QtWidgets import QTableView, QLineEdit, QVBoxLayout, QStyle, \
 	QStyledItemDelegate, QProxyStyle, QHeaderView, QToolTip, QMenu, QAction
 
@@ -66,7 +68,7 @@ class FileListView(
 					updated_selection = True
 		else:
 			file_under_mouse = None
-		menu = QMenu(self)
+		menu = Menu(self)
 		for caption, shortcut, callback in self._get_context_menu(
 			event, file_under_mouse
 		):
@@ -164,6 +166,26 @@ class FileListView(
 		vertical_header.setStyleSheet("QHeaderView::section { padding: 0px; }")
 		vertical_header.setMinimumSectionSize(0)
 		vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
+
+class Menu(QMenu):
+	def resizeEvent(self, e):
+		if is_mac():
+			"""
+			To mimic macOS's context menu, we need rounded corners.
+			Ideally, we would want to simply use `border-radius` in QSS.
+			Unfortunately, this does not work: Due to a bug in Qt [1], we get a
+			completely filled rectangle with rounded corners drawn inside it.
+			To work around this, we add a mask with rounded corners. This has
+			the shortcoming that we don't get anti-aliasing because masks are
+			only 0 or 1. Combining mask and border-radius to use a colored
+			border does not work well either (the background color still shines
+			through beyond the border). So we just use the mask.
+			 [1]: https://bugreports.qt.io/browse/QTBUG-49965
+			"""
+			path = QPainterPath()
+			path.addRoundedRect(QRectF(self.rect()), 4, 4)
+			self.setMask(QRegion(path.toFillPolygon().toPolygon()))
+		super().resizeEvent(e)
 
 def set_selection(qlineedit, selection_start, selection_end=None):
 	"""
