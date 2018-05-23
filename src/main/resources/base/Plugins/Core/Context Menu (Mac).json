@@ -1,4 +1,4 @@
-{
+[{
 	"files": [
 		{ "command": "open_selected_files", "caption": "Open" },
 		{ "command": "open_with" },
@@ -18,4 +18,4 @@
 		{ "caption": "-" },
 		{ "command": "paste" }
 	]
-}
+}]

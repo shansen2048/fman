@@ -1,4 +1,4 @@
-{
+[{
 	"files": [
 		{ "command": "open_selected_files", "caption": "&Open" },
 		{ "command": "open_with", "caption": "Open wit&h..." },
@@ -20,4 +20,4 @@
 		{ "caption": "-" },
 		{ "command": "show_explorer_properties", "caption": "P&roperties" }
 	]
-}
+}]
