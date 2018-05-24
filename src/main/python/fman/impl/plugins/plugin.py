@@ -16,13 +16,12 @@ import sys
 class Plugin:
 	def __init__(
 		self, error_handler, appcmd_registry, panecmd_registry, key_bindings,
-		context_menu_provider, mother_fs, window
+		mother_fs, window
 	):
 		self._error_handler = error_handler
 		self._appcmd_registry = appcmd_registry
 		self._panecmd_registry = panecmd_registry
 		self._key_bindings = key_bindings
-		self._context_menu_provider = context_menu_provider
 		self._mother_fs = mother_fs
 		self._window = window
 		self._directory_pane_listeners = []
@@ -106,12 +105,16 @@ def _get_command_name(command_class):
 	return re.sub(r'([a-z])([A-Z])', r'\1_\2', command_class).lower()
 
 class ExternalPlugin(Plugin):
-	def __init__(self, path, config, theme, font_database, *super_args):
+	def __init__(
+		self, path, config, theme, font_database, context_menu_provider,
+		*super_args
+	):
 		super().__init__(*super_args)
 		self._path = path
 		self._config = config
 		self._theme = theme
 		self._font_database = font_database
+		self._context_menu_provider = context_menu_provider
 		self._unload_actions = []
 	@property
 	def name(self):

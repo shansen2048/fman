@@ -85,9 +85,9 @@ class PluginFactory:
 	def __call__(self, plugin_dir):
 		return ExternalPlugin(
 			plugin_dir, self._config, self._theme, self._font_database,
-			self._error_handler, self._appcmd_registry, self._panecmd_registry,
-			self._key_bindings, self._context_menu_provider, self._mother_fs,
-			self._window
+			self._context_menu_provider, self._error_handler,
+			self._appcmd_registry, self._panecmd_registry, self._key_bindings,
+			self._mother_fs, self._window
 		)
 
 class CommandCallback:
