@@ -23,9 +23,6 @@ def app():
 	copy_python_library(
 		'osxtrash', path('${freeze_dir}/Contents/Resources/Plugins/Core')
 	)
-	copy_python_library(
-		'ordered_set', path('${freeze_dir}/Contents/Resources/Plugins/Core')
-	)
 
 @command
 def sign_app():
