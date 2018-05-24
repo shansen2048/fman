@@ -21,6 +21,9 @@ class ContextMenuProvider:
 		self._sanitized_config[context] = \
 			sanitized + self._sanitized_config.get(context, [])
 		return errors
+	# The extra `file_name` parameter is there so unload(...) has the same
+	# signature as load(...). This is required so ContextMenuProvider can be
+	# used with ExternalPlugin#_configure_component_from_json(...).
 	def unload(self, config, file_name, context):
 		try:
 			for elt in config:
