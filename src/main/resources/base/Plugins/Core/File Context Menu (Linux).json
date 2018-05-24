@@ -1,12 +1,13 @@
 [
+	{ "caption": "-", "id": "open" },
 	{ "command": "open_selected_files", "caption": "&Open" },
 	{ "command": "open_with", "caption": "Open wit&h..." },
-	{ "caption": "-" },
+	{ "caption": "-", "id": "clipboard" },
 	{ "command": "cut", "caption": "Cu&t" },
 	{ "command": "copy_to_clipboard", "caption": "&Copy" },
-	{ "caption": "-" },
+	{ "caption": "-", "id": "file_operations" },
 	{ "command": "rename", "caption": "Rena&me" },
 	{ "command": "move_to_trash", "caption": "Mo&ve to Trash" },
-	{ "caption": "-" },
+	{ "caption": "-", "id": "archive" },
 	{ "command": "pack", "caption": "Com&press..." }
 ]

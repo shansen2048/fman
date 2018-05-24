@@ -1,5 +1,41 @@
-from fman.impl.plugins.context_menu import sanitize_context_menu
+from fman import DirectoryPane
+from fman.impl.plugins.command_registry import PaneCommandRegistry, \
+	ApplicationCommandRegistry
+from fman.impl.plugins.context_menu import sanitize_context_menu, \
+	ContextMenuProvider
+from fman.impl.plugins.key_bindings import KeyBindings
 from unittest import TestCase
+
+class GetContextMenuTest(TestCase):
+	def test_id_handling(self):
+		for cmd in ('about', 'delete', 'open', 'copy', 'rename'):
+			self._app_cmd_registry.register_command(cmd, lambda *_, **__: None)
+		self._cm.load(
+			[
+				{ 'command': 'about', 'caption': 'About' },
+				{ 'caption': '-', 'id': 'file_operations' },
+				{ 'command': 'delete', 'caption': 'Delete' },
+				{ 'caption': '-', 'id': 'open' },
+				{ 'command': 'open', 'caption': 'Open' },
+				{ 'caption': '-', 'id': 'clipboard' },
+				{ 'command': 'copy', 'caption': 'Copy' },
+				{'caption': '-', 'id': 'file_operations'},
+				{'command': 'rename', 'caption': 'Rename'}
+			], '', self._cm.FOLDER_CONTEXT
+		)
+		self.assertEqual(
+			['About', '-', 'Open', '-', 'Copy', '-', 'Rename', 'Delete'],
+			[entry[0] for entry in self._cm.get_context_menu(self._pane)]
+		)
+	def setUp(self):
+		super().setUp()
+		self._pane_cmd_registry = PaneCommandRegistry(None, None)
+		self._app_cmd_registry = ApplicationCommandRegistry(None, None, None)
+		self._key_bindings = KeyBindings()
+		self._cm = ContextMenuProvider(
+			self._pane_cmd_registry, self._app_cmd_registry, self._key_bindings
+		)
+		self._pane = DirectoryPane(None, None, self._pane_cmd_registry)
 
 class SanitizeContextMenuTest(TestCase):
 	def test_non_list(self):

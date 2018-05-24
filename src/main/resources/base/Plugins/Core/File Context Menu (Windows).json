@@ -1,14 +1,15 @@
 [
+	{ "caption": "-", "id": "open" },
 	{ "command": "open_selected_files", "caption": "&Open" },
 	{ "command": "open_with", "caption": "Open wit&h..." },
-	{ "caption": "-" },
+	{ "caption": "-", "id": "clipboard" },
 	{ "command": "cut", "caption": "Cu&t" },
 	{ "command": "copy_to_clipboard", "caption": "&Copy" },
-	{ "caption": "-" },
+	{ "caption": "-", "id": "file_operations" },
 	{ "command": "move_to_trash", "caption": "&Delete" },
 	{ "command": "rename", "caption": "Rena&me" },
-	{ "caption": "-" },
+	{ "caption": "-", "id": "archive" },
 	{ "command": "pack", "caption": "Add to archive..." },
-	{ "caption": "-" },
+	{ "caption": "-", "id": "properties" },
 	{ "command": "show_explorer_properties", "caption": "P&roperties" }
 ]
