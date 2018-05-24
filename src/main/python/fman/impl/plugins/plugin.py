@@ -184,14 +184,11 @@ class ExternalPlugin(Plugin):
 		)
 	def _load_context_menu(self):
 		provider = self._context_menu_provider
-		self._configure_component_from_json(
-			provider, 'File Context Menu.json', 'File Context Menu.json',
-			provider.FILE_CONTEXT
-		)
-		self._configure_component_from_json(
-			provider, 'Folder Context Menu.json', 'Folder Context Menu.json',
-			provider.FOLDER_CONTEXT
-		)
+		for fname, context in (
+			('File Context Menu.json', provider.FILE_CONTEXT),
+			('Folder Context Menu.json', provider.FOLDER_CONTEXT)
+		):
+			self._configure_component_from_json(provider, fname, fname, context)
 	def _configure_component_from_json(self, component, json_name, *args):
 		for json_file in self._config.locate(json_name, self._path):
 			try:
