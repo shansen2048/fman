@@ -96,16 +96,16 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		else:
 			assert self._shutdown
 			return
-		files = self._sorted(self._filter(files))
-		for i in range(min(self._num_rows_to_preload, len(files))):
+		preloaded_files = self._sorted(self._filter(files))
+		for i in range(min(self._num_rows_to_preload, len(preloaded_files))):
 			if self._shutdown:
 				return
 			try:
-				files[i] = self._load_file(files[i].url)
+				preloaded_files[i] = self._load_file(preloaded_files[i].url)
 			except FileNotFoundError:
 				pass
 		if files:
-			self._on_rows_inited(files)
+			self._on_rows_inited(files, preloaded_files)
 		# Invoke the callback before emitting location_loaded. The reason is
 		# that the default location_loaded handler places the cursor - if is has
 		# not been placed yet. If the callback does place it, ugly "flickering"
@@ -136,11 +136,11 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			result.append(Cell(str_, sort_val_asc, sort_val_desc))
 		return result
 	@run_in_main_thread
-	def _on_rows_inited(self, rows):
+	def _on_rows_inited(self, rows, preloaded_rows):
 		self._files = {
 			row.url: row for row in rows
 		}
-		self.set_rows(rows)
+		self.set_rows(preloaded_rows)
 	def row_is_loaded(self, rownum):
 		return self._rows[rownum].is_loaded
 	def load_rows(self, rownums, callback=None):
