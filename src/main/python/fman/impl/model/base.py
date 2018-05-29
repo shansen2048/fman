@@ -140,6 +140,8 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		self._files = {
 			row.url: row for row in rows
 		}
+		for preloaded_row in preloaded_rows:
+			self._files[preloaded_row.url] = preloaded_row
 		self.set_rows(preloaded_rows)
 	def row_is_loaded(self, rownum):
 		return self._rows[rownum].is_loaded
