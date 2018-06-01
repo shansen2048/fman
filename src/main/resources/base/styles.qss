@@ -24,8 +24,8 @@ QHeaderView::section::first, QHeaderView::section::only-one {
 
 QTableView::item {
 	color: #75715e;
-	padding-top: .5ex;
-	padding-bottom: .5ex;
+	padding-top: 1px;
+	padding-bottom: 1px;
 }
 
 /*

@@ -2,6 +2,11 @@ PathView {
 	padding: 1ex;
 }
 
+QTableView::item {
+	padding-top: .5ex;
+	padding-bottom: .5ex;
+}
+
 QStatusBar {
 	min-height: 6ex;
 }
