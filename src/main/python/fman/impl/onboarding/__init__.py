@@ -8,11 +8,11 @@ import re
 class TourController:
 	def __init__(self):
 		self._tour = None
-	def start(self, tour):
+	def start(self, tour, step=0):
 		if self._tour:
 			self._tour.close()
 		self._tour = tour
-		self._tour.start()
+		self._tour.start(step)
 
 class Tour:
 	def __init__(self, name, main_window, pane, app, command_callback, metrics):
@@ -30,8 +30,8 @@ class Tour:
 	@property
 	def _pane_widget(self):
 		return self._pane._widget
-	def start(self):
-		self._curr_step_index = -1
+	def start(self, step=0):
+		self._curr_step_index = step - 1
 		self._next_step()
 	def reject(self):
 		self._track('AbortedTour', step=self._curr_step_index)

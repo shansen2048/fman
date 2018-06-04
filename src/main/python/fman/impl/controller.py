@@ -7,9 +7,13 @@ class Controller:
 	The main purpose of this class is to shield the rest of the `plugin`
 	implementation from having to know about Qt.
 	"""
-	def __init__(self, plugin_support, nonexistent_shortcut_handler, metrics):
+	def __init__(
+		self, plugin_support, nonexistent_shortcut_handler, usage_helper,
+		metrics
+	):
 		self._plugin_support = plugin_support
 		self._nonexistent_shortcut_handler = nonexistent_shortcut_handler
+		self._usage_helper = usage_helper
 		self._metrics = metrics
 		self._panes = WeakValueDictionary()
 	def register_pane(self, pane_widget, pane):
@@ -21,7 +25,11 @@ class Controller:
 		self._panes[pane_widget]._broadcast('on_path_changed')
 	def on_location_bar_clicked(self, pane_widget):
 		self._metrics.track('ClickedLocationBar')
-		self._panes[pane_widget]._broadcast('on_location_bar_clicked')
+		pane = self._panes[pane_widget]
+		# `[:-1]` to exclude ClickedLocationBar:
+		past_events = self._metrics.past_events[:-1]
+		if not self._usage_helper.on_location_bar_clicked(pane, past_events):
+			pane._broadcast('on_location_bar_clicked')
 	def on_key_pressed(self, pane_widget, event):
 		pane = self._panes[pane_widget]
 		key_event = QtKeyEvent(event.key(), event.modifiers())
@@ -44,7 +52,11 @@ class Controller:
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):
 		self._metrics.track('DoubleclickedFile')
-		self._panes[pane_widget]._broadcast('on_doubleclicked', file_path)
+		pane = self._panes[pane_widget]
+		# `[:-1]` to exclude DoubleclickedFile:
+		past_events = self._metrics.past_events[:-1]
+		if not self._usage_helper.on_doubleclicked(pane, past_events):
+			pane._broadcast('on_doubleclicked', file_path)
 	def on_file_renamed(self, pane_widget, *args):
 		self._metrics.track('RenamedFile')
 		self._panes[pane_widget]._broadcast('on_name_edited', *args)

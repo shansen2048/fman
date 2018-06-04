@@ -27,6 +27,7 @@ from fman.impl.onboarding import TourController
 from fman.impl.onboarding.cleanup_guide import CleanupGuide
 from fman.impl.onboarding.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
+from fman.impl.usage_helper import UsageHelper
 from fman.impl.util.qt import connect_once
 from fman.impl.util.settings import Settings
 from fman.impl.view import Style
@@ -275,7 +276,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 	@cached_property
 	def controller(self):
 		return Controller(
-			self.plugin_support, self.nonexistent_shortcut_handler, self.metrics
+			self.plugin_support, self.nonexistent_shortcut_handler,
+			self.usage_helper, self.metrics
 		)
 	@cached_property
 	def nonexistent_shortcut_handler(self):
@@ -283,6 +285,9 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return NonexistentShortcutHandler(
 			self.main_window, settings, self.metrics
 		)
+	@cached_property
+	def usage_helper(self):
+		return UsageHelper(self.session_manager.is_first_run)
 	@cached_property
 	def metrics(self):
 		json_path = self._get_metrics_json_path()

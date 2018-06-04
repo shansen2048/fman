@@ -36,8 +36,8 @@ class TourCommand(DirectoryPaneCommand):
 		super().__init__(pane)
 		self._controller = controller
 		self._tour_factory = tour_factory
-	def __call__(self):
-		self._controller.start(self._tour_factory(self.pane))
+	def __call__(self, step=0):
+		self._controller.start(self._tour_factory(self.pane), step)
 
 class NullFileSystem(FileSystem):
 

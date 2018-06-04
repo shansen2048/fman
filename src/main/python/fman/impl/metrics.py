@@ -148,6 +148,7 @@ class LoggingBackend:
 
 class AsynchronousMetrics:
 	def __init__(self, metrics):
+		self.past_events = []
 		self._metrics = metrics
 		self._queue = Queue()
 		self._thread = Thread(target=self._work, daemon=True)
@@ -158,6 +159,7 @@ class AsynchronousMetrics:
 	def get_user(self):
 		return self._metrics.get_user()
 	def track(self, event, properties=None):
+		self.past_events.append(event)
 		self._queue.put(lambda: self._metrics.track(event, properties))
 	def update_user(self, **properties):
 		self._queue.put(lambda: self._metrics.update_user(**properties))
