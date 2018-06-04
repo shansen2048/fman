@@ -21,7 +21,11 @@ class ApplicationCommandRegistry:
 			command = lambda *_, **__: None
 		self._commands[name] = command
 	def unregister_command(self, name):
-		del self._commands[name]
+		try:
+			del self._commands[name]
+		except KeyError:
+			# fman's API requires us to raise ValueError, not KeyError:
+			raise ValueError('Command %r is not registered' % name) from None
 	def get_commands(self):
 		return set(self._commands)
 	def execute_command(self, name, args=None):
