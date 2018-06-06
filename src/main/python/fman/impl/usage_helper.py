@@ -15,8 +15,8 @@ class UsageHelper:
 		if events[-1] == 'AbortedTour' and 'AbortedTour' not in events[:-1]:
 			response = show_alert(
 				"Hey, sorry to bother again. You just used the mouse. That "
-				"works, but fman's features aren't really optimized for it."
-				"Maybe you do briefly want to see what makes fman special?",
+				"works, but fman isn't really optimized for it. Maybe you do "
+				"briefly want to see what makes fman special?",
 				OK | CANCEL, OK
 			)
 			if response == OK:
