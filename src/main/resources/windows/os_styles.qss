@@ -17,15 +17,15 @@ QPushButton {
 
 Quicksearch #query-container {
 	margin: .6ex;
-	border: .2ex solid #404040;
+	border-width: .2ex;
 }
 
 Quicksearch #query-container > Div {
-	border: .2ex solid #2c2c2c;
+	border-width: .2ex;
 }
 
 Quicksearch QLineEdit {
-	border: .2ex solid #dddddd;
+	border-width: .2ex;
 }
 
 Quicksearch #items-container {
