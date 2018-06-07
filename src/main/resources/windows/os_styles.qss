@@ -7,8 +7,43 @@ QTableView::item {
 	padding-bottom: .5ex;
 }
 
+QInputDialog QLineEdit {
+	min-width: 15em;
+}
+
+QPushButton {
+	padding: 1ex 3ex;
+}
+
+Quicksearch #query-container {
+	margin: .6ex;
+	border: .2ex solid #404040;
+}
+
+Quicksearch #query-container > Div {
+	border: .2ex solid #2c2c2c;
+}
+
+Quicksearch QLineEdit {
+	border: .2ex solid #dddddd;
+}
+
+Quicksearch #items-container {
+	margin-bottom: .8ex;
+}
+
+Quicksearch QListView {
+	min-width: 30em;
+	margin-left: .8ex;
+	margin-right: .8ex;
+}
+
 QStatusBar {
 	min-height: 6ex;
+}
+
+SplashScreen QPushButton {
+	max-width: 3em;
 }
 
 Overlay {
