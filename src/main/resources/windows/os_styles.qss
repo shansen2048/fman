@@ -12,7 +12,7 @@ QInputDialog QLineEdit {
 }
 
 QPushButton {
-	padding: 1ex 3ex;
+	padding: 1ex 6ex;
 }
 
 Quicksearch #query-container {
