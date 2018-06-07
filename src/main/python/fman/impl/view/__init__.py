@@ -68,27 +68,30 @@ class FileListView(
 					updated_selection = True
 		else:
 			file_under_mouse = None
-		menu = Menu(self)
-		for caption, shortcut, callback in self._get_context_menu(
-			event, file_under_mouse
-		):
-			if caption == '-':
-				menu.addSeparator()
-			else:
-				action = QAction(caption, self)
-				# Need `c=callback` to create one lambda per loop:
-				action.triggered.connect(lambda _, c=callback: c())
-				if shortcut:
-					action.setShortcut(QKeySequence(shortcut))
-				menu.addAction(action)
-		pos = event.globalPos()
-		if event.reason() != QContextMenuEvent.Mouse:
-			# For some reason, event.globalPos() does not take the header into
-			# account when not caused by mouse. Correct for this:
-			pos.setY(pos.y() + self.horizontalHeader().height())
-		menu.exec(pos)
-		if updated_selection:
-			self.clearSelection()
+		try:
+			menu = Menu(self)
+			entries = self._get_context_menu(event, file_under_mouse)
+			if not entries:
+				return
+			for caption, shortcut, callback in entries:
+				if caption == '-':
+					menu.addSeparator()
+				else:
+					action = QAction(caption, self)
+					# Need `c=callback` to create one lambda per loop:
+					action.triggered.connect(lambda _, c=callback: c())
+					if shortcut:
+						action.setShortcut(QKeySequence(shortcut))
+					menu.addAction(action)
+			pos = event.globalPos()
+			if event.reason() != QContextMenuEvent.Mouse:
+				# For some reason, event.globalPos() does not take the header into
+				# account when not caused by mouse. Correct for this:
+				pos.setY(pos.y() + self.horizontalHeader().height())
+			menu.exec(pos)
+		finally:
+			if updated_selection:
+				self.clearSelection()
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		return [self.model().url(index) for index in indexes]

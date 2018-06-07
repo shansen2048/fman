@@ -8,6 +8,8 @@ class UsageHelper:
 		return self._on_mouse_action(pane, past_events)
 	def on_doubleclicked(self, pane, past_events):
 		return self._on_mouse_action(pane, past_events)
+	def on_context_menu(self, pane, via, past_events):
+		return via == 'Mouse' and self._on_mouse_action(pane, past_events)
 	def _on_mouse_action(self, pane, events):
 		if not self._is_first_run:
 			return False

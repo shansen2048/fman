@@ -24,10 +24,9 @@ class Controller:
 	def on_location_changed(self, pane_widget):
 		self._panes[pane_widget]._broadcast('on_path_changed')
 	def on_location_bar_clicked(self, pane_widget):
+		past_events = self._metrics.past_events[::]
 		self._metrics.track('ClickedLocationBar')
 		pane = self._panes[pane_widget]
-		# `[:-1]` to exclude ClickedLocationBar:
-		past_events = self._metrics.past_events[:-1]
 		if not self._usage_helper.on_location_bar_clicked(pane, past_events):
 			pane._broadcast('on_location_bar_clicked')
 	def on_key_pressed(self, pane_widget, event):
@@ -51,10 +50,9 @@ class Controller:
 		event.ignore()
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):
+		past_events = self._metrics.past_events[::]
 		self._metrics.track('DoubleclickedFile')
 		pane = self._panes[pane_widget]
-		# `[:-1]` to exclude DoubleclickedFile:
-		past_events = self._metrics.past_events[:-1]
 		if not self._usage_helper.on_doubleclicked(pane, past_events):
 			pane._broadcast('on_doubleclicked', file_path)
 	def on_file_renamed(self, pane_widget, *args):
@@ -71,7 +69,9 @@ class Controller:
 		else:
 			assert event.reason() == QContextMenuEvent.Other, event.reason()
 			via = 'Other'
+		past_events = self._metrics.past_events[::]
 		self._metrics.track('OpenedContextMenu', {'via': via})
-		return self._plugin_support.get_context_menu(
-			self._panes[pane_widget], file_under_mouse
-		)
+		pane = self._panes[pane_widget]
+		if self._usage_helper.on_context_menu(pane, via, past_events):
+			return []
+		return self._plugin_support.get_context_menu(pane, file_under_mouse)
