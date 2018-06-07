@@ -2131,3 +2131,13 @@ class RemoveApp(QuicksearchScreen):
 		show_alert('%s was removed from your favorite apps.' % app)
 	def on_cancelled(self):
 		Configure(self._files).show()
+
+if PLATFORM == 'Mac':
+	class QuickLook(DirectoryPaneCommand):
+
+		aliases = ('Quick Look', 'Preview')
+
+		def __call__(self):
+			file_under_cursor = self.pane.get_file_under_cursor()
+			if file_under_cursor:
+				Popen(['qlmanage', '-p', as_human_readable(file_under_cursor)])
