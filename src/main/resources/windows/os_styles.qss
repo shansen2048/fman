@@ -48,7 +48,7 @@ SplashScreen QPushButton {
 
 Overlay {
 	max-width: 25em;
-	padding: 5ex;
+	padding: 5ex 5ex 3ex;
 }
 
 QMenu {
