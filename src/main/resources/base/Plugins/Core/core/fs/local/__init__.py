@@ -52,14 +52,9 @@ class LocalFileSystem(FileSystem):
 	def touch(self, path):
 		Path(self._url_to_os_path(path)).touch()
 	def mkdir(self, path):
-		os_path = self._url_to_os_path(path)
-		if PLATFORM == 'Windows' and re.match(r'^[A-Z]:\\$', os_path):
-			# On Windows, Path('C:\\').mkdir() raises PermissionError, whereas
-			# Path('C:').mkdir() raises FileExistsError. We want the latter
-			# because #makedirs(...) relies on it:
-			os_path = os_path.rstrip('\\')
+		os_path = Path(self._url_to_os_path(path))
 		try:
-			Path(os_path).mkdir()
+			os_path.mkdir()
 		except FileNotFoundError:
 			raise
 		except IsADirectoryError: # macOS
@@ -67,6 +62,12 @@ class LocalFileSystem(FileSystem):
 		except OSError as e:
 			if e.errno == ENOENT:
 				raise filenotfounderror(path) from e
+			elif os_path.exists():
+				# On at least Windows, Path('Z:\\').mkdir() raises
+				# PermissionError instead of FileExistsError. We want the latter
+				# however because #makedirs(...) relies on it. So handle this
+				# case generally here:
+				raise FileExistsError(path) from e
 			else:
 				raise
 	def move(self, src_url, dst_url):
