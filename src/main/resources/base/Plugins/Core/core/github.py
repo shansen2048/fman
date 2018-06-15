@@ -1,7 +1,8 @@
-from requests import HTTPError
+from urllib.error import HTTPError
+from urllib.request import urlopen
 
+import json
 import re
-import requests
 import sys
 
 def find_repos(topics):
@@ -44,7 +45,7 @@ class GitHubRepo:
 		try:
 			data = _get_json(self._url('releases', id='latest'))
 		except HTTPError as e:
-			if e.response.status_code == 404:
+			if e.code == 404:
 				raise LookupError()
 			raise
 		return data['tag_name']
@@ -52,7 +53,7 @@ class GitHubRepo:
 		return _get_json(self._url('commits'))[0]['sha']
 	def download_zipball(self, ref):
 		zipball_url = self._url('archive', archive_format='zipball', ref=ref)
-		return _get(zipball_url).content
+		return _get(zipball_url)
 	def _url(self, name, **kwargs):
 		url = self._data[name + '_url']
 		required_url_params = re.finditer(r'{([^/][^}]+)}', url)
@@ -66,9 +67,7 @@ class GitHubRepo:
 		return url
 
 def _get_json(url):
-	return _get(url).json()
+	return json.loads(_get(url).decode('utf-8'))
 
 def _get(url):
-	response = requests.get(url)
-	response.raise_for_status()
-	return response
+	return urlopen(url).read()
