@@ -197,8 +197,8 @@ class Tutorial(Tour):
 			TourStep(
 				'',
 				[
-					"Perfect! The files were selected. Here's a little "
-					"challenge for you: _De_select the files!",
+					"Perfect! The files were selected. Last step: Can you find "
+					"a way to _de_select them?",
 					"Hint: The shortcut for the Command Palette is *%s*."
 					% self._cmd_shift_p
 				],
