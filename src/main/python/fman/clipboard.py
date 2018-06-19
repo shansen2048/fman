@@ -50,7 +50,15 @@ def cut_files(file_urls):
 
 @run_in_main_thread
 def get_files():
-	return [from_qurl(qurl) for qurl in _clipboard().mimeData().urls()]
+	result = []
+	for qurl in _clipboard().mimeData().urls():
+		try:
+			result.append(from_qurl(qurl))
+		except ValueError:
+			# On at least Windows 10, we sometimes get plain text (not file
+			# URLs) on the text/uri-list clipboard. Ignore this:
+			pass
+	return result
 
 @run_in_main_thread
 def files_were_cut():
