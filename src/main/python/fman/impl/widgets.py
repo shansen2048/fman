@@ -104,8 +104,10 @@ class DirectoryPaneWidget(QWidget):
 	@run_in_main_thread
 	def get_location(self):
 		return self._model.get_location()
-	def set_location(self, url, sort_column='', ascending=True, callback=None):
-		self._model.set_location(url, sort_column, ascending, callback)
+	def set_location(
+		self, url, sort_column='', ascending=True, callback=None, onerror=None
+	):
+		self._model.set_location(url, sort_column, ascending, callback, onerror)
 	def reload(self):
 		self._model.reload()
 	@run_in_main_thread

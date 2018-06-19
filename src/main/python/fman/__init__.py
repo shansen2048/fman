@@ -1,4 +1,5 @@
 from . import clipboard
+from .url import dirname
 from contextlib import contextmanager
 from fbs_runtime import system
 from os import getenv
@@ -48,6 +49,11 @@ class ApplicationCommand:
 	def aliases(self):
 		return re.sub(r'([a-z])([A-Z])', r'\1 \2', self.__class__.__name__) \
 				   .lower().capitalize(),
+
+def _set_path_onerror(e, url):
+	if isinstance(e, FileNotFoundError):
+		return dirname(url)
+	raise
 
 class DirectoryPane:
 	def __init__(self, window, widget, command_registry):
@@ -109,7 +115,7 @@ class DirectoryPane:
 	def get_path(self):
 		return self._widget.get_location()
 	# TODO: Rename to set_location(...)
-	def set_path(self, dir_url, callback=None):
+	def set_path(self, dir_url, callback=None, onerror=_set_path_onerror):
 		args = dir_url, '', True
 		while True:
 			for listener in self._listeners:
@@ -119,7 +125,7 @@ class DirectoryPane:
 					break
 			else:
 				break
-		self._widget.set_location(args[0], args[1], args[2], callback)
+		self._widget.set_location(args[0], args[1], args[2], callback, onerror)
 	def reload(self):
 		self._widget.reload()
 	def edit_name(self, file_url, selection_start=0, selection_end=None):

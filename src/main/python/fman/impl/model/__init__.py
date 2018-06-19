@@ -27,9 +27,25 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		self._fs.file_removed.add_callback(self._on_file_removed)
 	def set_num_rows_to_preload(self, preload_rows):
 		self._num_rows_to_preload = preload_rows
-	def set_location(self, url, sort_column='', ascending=True, callback=None):
+	def set_location(
+		self, url, sort_column='', ascending=True, callback=None, onerror=None
+	):
 		if callback is None:
 			callback = lambda: None
+		if onerror is None:
+			def onerror(*_):
+				raise
+		error_urls = {url}
+		while True:
+			try:
+				self._set_location(url, sort_column, ascending, callback)
+				break
+			except Exception as e:
+				url = onerror(e, url)
+				if url in error_urls:
+					raise
+				error_urls.add(url)
+	def _set_location(self, url, sort_column, ascending, callback):
 		url = self._fs.resolve(url)
 		old_model = self.sourceModel()
 		if old_model:
@@ -55,9 +71,13 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 			def callback():
 				orig_callback()
 				self.reload()
-		self._set_location(url, columns, sort_col_index, ascending, callback)
+		self._set_location_main(
+			url, columns, sort_col_index, ascending, callback
+		)
 	@run_in_main_thread
-	def _set_location(self, url, columns, sort_col_index, ascending, callback):
+	def _set_location_main(
+		self, url, columns, sort_col_index, ascending, callback
+	):
 		old_model = self.sourceModel()
 		if old_model:
 			self._disconnect_signals(old_model)

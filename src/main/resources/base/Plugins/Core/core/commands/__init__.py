@@ -223,7 +223,7 @@ class OpenDirectory(DirectoryPaneCommand):
 			return
 		if url_is_dir:
 			try:
-				self.pane.set_path(url)
+				self.pane.set_path(url, onerror=None)
 			except PermissionError:
 				show_alert(
 					'Access to "%s" was denied.' % as_human_readable(url)
@@ -234,7 +234,7 @@ class OpenDirectory(DirectoryPaneCommand):
 					self.pane.place_cursor_at(url)
 				except ValueError as file_disappeared:
 					pass
-			self.pane.set_path(dirname(url), callback=callback)
+			self.pane.set_path(dirname(url), callback=callback, onerror=None)
 	def is_visible(self):
 		return False
 
@@ -1630,7 +1630,7 @@ class ListPlugins(DirectoryPaneCommand):
 		if result:
 			plugin_dir = result[1]
 			if plugin_dir:
-				self.pane.set_path(as_url(plugin_dir))
+				self.pane.set_path(as_url(plugin_dir), onerror=None)
 	def _get_matching_plugins(self, query):
 		result = []
 		for plugin_dir in _get_thirdparty_plugins():
