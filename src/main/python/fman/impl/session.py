@@ -32,7 +32,13 @@ class SessionManager:
 	def show_main_window(self, window):
 		main_window = window._widget
 		self._restore_window_geometry(main_window)
-		pane_infos = self._settings.get('panes', [{}] * self.DEFAULT_NUM_PANES)
+		pane_infos = self._settings.get('panes', None)
+		if not pane_infos:
+			# We did not supply this default value in self._settings.get(...) to
+			# handle the case where the pane infos in the settings are set but
+			# empty. This can happen when there are bugs in fman that make it
+			# start without any panes.
+			pane_infos = [{}] * self.DEFAULT_NUM_PANES
 		panes = [window.add_pane() for _ in range(len(pane_infos))]
 		self._show_startup_messages(main_window)
 		is_first_run = not self._settings
