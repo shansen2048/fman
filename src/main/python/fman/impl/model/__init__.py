@@ -8,6 +8,8 @@ from fman.impl.util.url import is_pardir
 from fman.url import dirname
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
+import sip
+
 class SortedFileSystemModel(QSortFilterProxyModel):
 
 	location_changed = pyqtSignal(str)
@@ -94,6 +96,10 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		self.location_changed.emit(url)
 		order = Qt.AscendingOrder if ascending else Qt.DescendingOrder
 		self.sort_order_changed.emit(sort_col_index, order)
+	def setSourceModel(self, model):
+		# Without this call, #sourceModel() sometimes returns None on Arch:
+		sip.transferto(model, None)
+		super().setSourceModel(model)
 	def row_is_loaded(self, i):
 		source_row = self.mapToSource(self.index(i, 0)).row()
 		return self.sourceModel().row_is_loaded(source_row)
