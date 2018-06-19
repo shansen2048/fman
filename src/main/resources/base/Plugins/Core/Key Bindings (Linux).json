@@ -1,4 +1,6 @@
 [
+	{ "keys": ["Ctrl+Right"], "command": "open_in_right_pane" },
+	{ "keys": ["Ctrl+Left"], "command": "open_in_left_pane" },
 	{ "keys": ["Ins"], "command": "move_cursor_down", "args": {"toggle_selection": true} },
 	{ "keys": ["Ctrl+C"], "command": "copy_to_clipboard" },
 	{ "keys": ["Ctrl+X"], "command": "cut" },

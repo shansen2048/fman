@@ -1,4 +1,6 @@
 [
+	{ "keys": ["Alt+Right"], "command": "open_in_right_pane" },
+	{ "keys": ["Alt+Left"], "command": "open_in_left_pane" },
 	{ "keys": ["Cmd+C"], "command": "copy_to_clipboard" },
 	{ "keys": ["Cmd+X"], "command": "cut" },
 	{ "keys": ["Cmd+V"], "command": "paste" },
