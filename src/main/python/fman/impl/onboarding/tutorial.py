@@ -377,8 +377,8 @@ class Tutorial(Tour):
 				# This for instance happens when the file was hidden, the user
 				# just toggled to show hidden files (an asynchronous operation)
 				# and it has not yet completed.
-				assert not is_in_main_thread(), \
-					"We never want to block the main thread"
+				if is_in_main_thread(): # Never block the main thread
+					break
 				sleep(.1)
 			else:
 				break
