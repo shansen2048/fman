@@ -2,6 +2,11 @@ PathView {
 	padding: 1ex;
 }
 
+QHeaderView::section:horizontal {
+	padding-left: 2ex;
+	padding-right: 2ex;
+}
+
 QTableView::item {
 	padding-top: .5ex;
 	padding-bottom: .5ex;
