@@ -18,7 +18,7 @@ QHeaderView::section {
 	padding-bottom: 1.25ex;
 }
 
-QHeaderView::section:horizontal{
+QHeaderView::section:horizontal {
     border-style: solid;
     border-left-width: 1px;
     border-left-color: #272822;
