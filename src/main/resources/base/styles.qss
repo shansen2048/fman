@@ -10,22 +10,12 @@ QHeaderView, QHeaderView::section {
 QHeaderView::section {
 	color: #8f908a;
 	border: none;
-	/*
-	 * Would just like padding-top = padding-bottom = 1ex here but for some
-	 * reason it does not center vertically.
-	 */
-	padding-top: .75ex;
-	padding-bottom: 1.25ex;
-}
-
-QHeaderView::section:horizontal {
-    border-style: solid;
-    border-left-width: 1px;
-    border-left-color: #272822;
-    border-right-color: #363731;
-    border-right-width: 1px;
-	padding-left: 1ex;
-	padding-right: 1ex;
+	padding: 1ex;
+	border-style: solid;
+	border-left-width: 1px;
+	border-left-color: #272822;
+	border-right-color: #363731;
+	border-right-width: 1px;
 }
 
 QTableView::item {
