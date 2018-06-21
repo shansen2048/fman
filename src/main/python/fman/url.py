@@ -4,7 +4,6 @@ from pathlib import PurePath, PurePosixPath
 
 import posixpath
 import re
-import string
 
 def splitscheme(url):
 	separator = '://'
@@ -31,39 +30,9 @@ def as_human_readable(url):
 		return url
 	if not is_windows():
 		return path
-	if re.fullmatch('[A-Z]:', path):
+	if re.fullmatch('[a-zA-Z]:', path):
 		return path + '\\'
-	return _nturl2path_url2pathname(path)
-
-def _nturl2path_url2pathname(url):
-	"""
-	Copied and modified from Python 3.5's nturl2path.url2pathname(...).
-	"""
-	# Windows itself uses ":" even in URLs.
-	url = url.replace(':', '|')
-	if not '|' in url:
-		# No drive specifier, just convert slashes
-		if url[:4] == '////':
-			# path is something like ////host/path/on/remote/host
-			# convert this to \\host\path\on\remote\host
-			# (notice halving of slashes at the start of the path)
-			url = url[2:]
-		components = url.split('/')
-		# make sure not to convert quoted slashes :-)
-		return '\\'.join(components)
-	comp = url.split('|')
-	if len(comp) != 2 or comp[0][-1] not in string.ascii_letters:
-		raise ValueError('Bad URL: ' + url)
-	drive = comp[0][-1].upper()
-	components = comp[1].split('/')
-	path = drive + ':'
-	for comp in components:
-		if comp:
-			path = path + '\\' + comp
-	# Issue #11474 - handing url such as |c/|
-	if path.endswith(':') and url.endswith('/'):
-		path += '\\'
-	return path
+	return path.replace('/', '\\')
 
 def dirname(url):
 	scheme, path = splitscheme(url)

@@ -89,7 +89,7 @@ class _7ZipFileSystem(FileSystem):
 			# Guaranteed by fman's file system implementation:
 			assert src_scheme == self.scheme
 			with TemporaryDirectory() as tmp_dir:
-				tmp_dst = join(as_url(tmp_dir), 'tmp')
+				tmp_dst = as_url(join(tmp_dir, 'tmp'))
 				self.copy(src_url, tmp_dst)
 				self.copy(tmp_dst, dst_url)
 		else:
@@ -109,7 +109,7 @@ class _7ZipFileSystem(FileSystem):
 					)
 			else:
 				with TemporaryDirectory() as tmp_dir:
-					tmp_dst = join(as_url(tmp_dir), 'tmp')
+					tmp_dst = as_url(join(tmp_dir, 'tmp'))
 					self.copy(src_url, tmp_dst)
 					self.move(tmp_dst, dst_url)
 					self.delete(src_path)

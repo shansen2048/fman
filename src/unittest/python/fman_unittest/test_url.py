@@ -30,6 +30,13 @@ class AsHumanReadableTest(TestCase):
 	def test_percent(self):
 		path = r'C:\%62.txt' if is_windows() else '/%62.txt'
 		self.assertEqual(path, as_human_readable(as_url(path)))
+	def test_cons(self):
+		path = r'C:\18:14:12.jpg' if is_windows() else '/18:14:12.jpg'
+		self.assertEqual(path, as_human_readable(as_url(path)))
+	@skipIf(not is_windows(), 'Skipping Windows-only test')
+	def test_unc(self):
+		path = r'\\host\path\on\remote'
+		self.assertEqual(path, as_human_readable(as_url(path)))
 
 class DirnameTest(TestCase):
 	def test_root_windows(self):

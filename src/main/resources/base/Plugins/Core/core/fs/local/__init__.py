@@ -15,7 +15,6 @@ from shutil import copytree, move, copyfile, copystat
 from stat import S_ISDIR
 
 import os
-import re
 
 if PLATFORM == 'Windows':
 	from core.fs.local.windows.rmtree import rmtree
@@ -72,18 +71,17 @@ class LocalFileSystem(FileSystem):
 				raise
 	def move(self, src_url, dst_url):
 		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
-		move(src_path, dst_path)
+		move(self._url_to_os_path(src_path), self._url_to_os_path(dst_path))
 	def move_to_trash(self, path):
 		move_to_trash(self._url_to_os_path(path))
 	def delete(self, path):
-		path = self._url_to_os_path(path)
 		if self.is_dir(path):
 			def handle_error(func, path, exc_info):
 				if not isinstance(exc_info[1], FileNotFoundError):
 					raise
-			rmtree(path, onerror=handle_error)
+			rmtree(self._url_to_os_path(path), onerror=handle_error)
 		else:
-			remove(path)
+			remove(self._url_to_os_path(path))
 	def resolve(self, path):
 		if not path:
 			raise filenotfounderror(path)
@@ -110,11 +108,14 @@ class LocalFileSystem(FileSystem):
 		return samefile(path1, path2)
 	def copy(self, src_url, dst_url):
 		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
-		if self.is_dir(src_path):
-			copytree(src_path, dst_path, symlinks=True)
+		src_is_dir = self.is_dir(src_path)
+		os_src_path = self._url_to_os_path(src_path)
+		os_dst_path = self._url_to_os_path(dst_path)
+		if src_is_dir:
+			copytree(os_src_path, os_dst_path, symlinks=True)
 		else:
-			copyfile(src_path, dst_path, follow_symlinks=False)
-			copystat(src_path, dst_path, follow_symlinks=False)
+			copyfile(os_src_path, os_dst_path, follow_symlinks=False)
+			copystat(os_src_path, os_dst_path, follow_symlinks=False)
 	@run_in_main_thread
 	def watch(self, path):
 		self._get_watcher().addPath(self._url_to_os_path(path))
@@ -137,7 +138,7 @@ class LocalFileSystem(FileSystem):
 		dst_scheme, dst_path = splitscheme(dst_url)
 		if src_scheme != self.scheme or dst_scheme != self.scheme:
 			raise UnsupportedOperation()
-		return self._url_to_os_path(src_path), self._url_to_os_path(dst_path)
+		return src_path, dst_path
 	def _url_to_os_path(self, path):
 		# Convert a "URL path" a/b to a path understood by the OS, eg. a\b on
 		# Windows. An important effect of this function is that it turns
