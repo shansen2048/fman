@@ -52,17 +52,9 @@ class FileTreeOperation:
 		try:
 			if self._fs.is_dir(src):
 				if self._fs.exists(dest):
-					for top_dir, _, files in self._walk_bottom_up(src):
-						for file_url in files:
-							dst = self._get_dest_url(file_url)
-							try:
-								if not self.perform_on_file(file_url, dst):
-									return False
-							except (OSError, IOError) as e:
-								return self._handle_exception(
-									file_url, is_last, e
-								)
-						self.postprocess_directory(top_dir)
+					result = self._merge_directory(src, is_last)
+					if result is not None:
+						return result
 				else:
 					self._perform_on_dir_dest_doesnt_exist(src, dest)
 			else:
@@ -71,6 +63,16 @@ class FileTreeOperation:
 		except (OSError, IOError) as e:
 			return self._handle_exception(src, is_last, e)
 		return True
+	def _merge_directory(self, src, is_last):
+		for top_dir, _, files in self._walk_bottom_up(src):
+			for file_url in files:
+				dst = self._get_dest_url(file_url)
+				try:
+					if not self.perform_on_file(file_url, dst):
+						return False
+				except (OSError, IOError) as e:
+					return self._handle_exception(file_url, is_last, e)
+			self.postprocess_directory(top_dir)
 	def _walk_bottom_up(self, url):
 		dirs = []
 		nondirs = []
