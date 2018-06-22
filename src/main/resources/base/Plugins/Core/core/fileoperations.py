@@ -28,6 +28,8 @@ class FileTreeOperation:
 		raise NotImplementedError()
 	def _can_perform_on_samefile(self):
 		raise NotImplementedError()
+	def _postprocess_directory(self, src_dir_path):
+		pass
 	def __call__(self):
 		for i, src in enumerate(self._files):
 			is_last = i == len(self._files) - 1
@@ -73,7 +75,7 @@ class FileTreeOperation:
 						return False
 				except (OSError, IOError) as e:
 					return self._handle_exception(file_url, is_last, e)
-			self.postprocess_directory(top_dir)
+			self._postprocess_directory(top_dir)
 	def _walk_bottom_up(self, url):
 		dirs = []
 		nondirs = []
@@ -142,8 +144,6 @@ class FileTreeOperation:
 				"You cannot %s a file to itself." % self._descr_verb
 			)
 			self._cannot_move_to_self_shown = True
-	def postprocess_directory(self, src_dir_path):
-		pass
 	def _get_dest_url(self, src_file):
 		dest_name = self._dest_name or basename(src_file)
 		if self._src_dir:
@@ -178,7 +178,14 @@ class CopyFiles(FileTreeOperation):
 class MoveFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
 		super().__init__('move', *super_args, **super_kwargs)
-	def postprocess_directory(self, src_dir_path):
+	def _perform_on_file(self, src, dest):
+		self._fs.move(src, dest)
+	def _can_perform_on_samefile(self):
+		# May be able to move to the same file on case insensitive file systems.
+		# Consider a/ and A/: They are the "same" file yet it does make sense to
+		# rename one to the other.
+		return True
+	def _postprocess_directory(self, src_dir_path):
 		if self._is_empty(src_dir_path):
 			try:
 				self._fs.delete(src_dir_path)
@@ -190,10 +197,3 @@ class MoveFiles(FileTreeOperation):
 		except StopIteration:
 			return True
 		return False
-	def _perform_on_file(self, src, dest):
-		self._fs.move(src, dest)
-	def _can_perform_on_samefile(self):
-		# May be able to move to the same file on case insensitive file systems.
-		# Consider a/ and A/: They are the "same" file yet it does make sense to
-		# rename one to the other.
-		return True
