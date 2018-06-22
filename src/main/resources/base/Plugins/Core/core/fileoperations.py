@@ -24,9 +24,9 @@ class FileTreeOperation:
 		self._fs = fs
 		self._cannot_move_to_self_shown = False
 		self._override_all = None
-	def _perform_on_file(self, src, dest):
+	def _transfer(self, src, dest):
 		raise NotImplementedError()
-	def _can_perform_on_samefile(self):
+	def _can_transfer_samefile(self):
 		raise NotImplementedError()
 	def _postprocess_directory(self, src_dir_path):
 		pass
@@ -46,8 +46,8 @@ class FileTreeOperation:
 				except OSError:
 					is_samefile = False
 				if is_samefile:
-					if self._can_perform_on_samefile():
-						self._perform_on_file(src, dest)
+					if self._can_transfer_samefile():
+						self._transfer(src, dest)
 						return True
 					return False
 			self._show_self_warning()
@@ -59,7 +59,7 @@ class FileTreeOperation:
 					if result is not None:
 						return result
 				else:
-					self._perform_on_file(src, dest)
+					self._transfer(src, dest)
 			else:
 				if not self.perform_on_file(src, dest):
 					return False
@@ -136,7 +136,7 @@ class FileTreeOperation:
 			if self._override_all is False:
 				return True
 		self._fs.makedirs(dirname(dest), exist_ok=True)
-		self._perform_on_file(src, dest)
+		self._transfer(src, dest)
 		return True
 	def _show_self_warning(self):
 		if not self._cannot_move_to_self_shown:
@@ -169,18 +169,18 @@ class FileTreeOperation:
 class CopyFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
 		super().__init__('copy', *super_args, **super_kwargs)
-	def _perform_on_file(self, src, dest):
+	def _transfer(self, src, dest):
 		self._fs.copy(src, dest)
-	def _can_perform_on_samefile(self):
+	def _can_transfer_samefile(self):
 		# Can never copy to the same file.
 		return False
 
 class MoveFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
 		super().__init__('move', *super_args, **super_kwargs)
-	def _perform_on_file(self, src, dest):
+	def _transfer(self, src, dest):
 		self._fs.move(src, dest)
-	def _can_perform_on_samefile(self):
+	def _can_transfer_samefile(self):
 		# May be able to move to the same file on case insensitive file systems.
 		# Consider a/ and A/: They are the "same" file yet it does make sense to
 		# rename one to the other.
