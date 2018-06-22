@@ -24,11 +24,9 @@ class FileTreeOperation:
 		self._fs = fs
 		self._cannot_move_to_self_shown = False
 		self._override_all = None
-	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		raise NotImplementedError()
 	def _perform_on_file(self, src, dest):
 		raise NotImplementedError()
-	def _perform_on_samefile(self, src, dest):
+	def _can_perform_on_samefile(self):
 		raise NotImplementedError()
 	def __call__(self):
 		for i, src in enumerate(self._files):
@@ -45,8 +43,11 @@ class FileTreeOperation:
 					is_samefile = self._fs.samefile(src, dest)
 				except OSError:
 					is_samefile = False
-				if is_samefile and self._perform_on_samefile(src, dest):
-					return True
+				if is_samefile:
+					if self._can_perform_on_samefile():
+						self._perform_on_file(src, dest)
+						return True
+					return False
 			self._show_self_warning()
 			return True
 		try:
@@ -56,7 +57,7 @@ class FileTreeOperation:
 					if result is not None:
 						return result
 				else:
-					self._perform_on_dir_dest_doesnt_exist(src, dest)
+					self._perform_on_file(src, dest)
 			else:
 				if not self.perform_on_file(src, dest):
 					return False
@@ -168,11 +169,9 @@ class FileTreeOperation:
 class CopyFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
 		super().__init__('copy', *super_args, **super_kwargs)
-	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		self._fs.copy(src, dest)
 	def _perform_on_file(self, src, dest):
 		self._fs.copy(src, dest)
-	def _perform_on_samefile(self, src, dest):
+	def _can_perform_on_samefile(self):
 		# Can never copy to the same file.
 		return False
 
@@ -191,13 +190,10 @@ class MoveFiles(FileTreeOperation):
 		except StopIteration:
 			return True
 		return False
-	def _perform_on_dir_dest_doesnt_exist(self, src, dest):
-		self._fs.move(src, dest)
 	def _perform_on_file(self, src, dest):
 		self._fs.move(src, dest)
-	def _perform_on_samefile(self, src, dest):
+	def _can_perform_on_samefile(self):
 		# May be able to move to the same file on case insensitive file systems.
 		# Consider a/ and A/: They are the "same" file yet it does make sense to
 		# rename one to the other.
-		self._fs.move(src, dest)
 		return True
