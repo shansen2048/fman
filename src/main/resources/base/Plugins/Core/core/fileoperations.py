@@ -76,6 +76,30 @@ class FileTreeOperation:
 				except (OSError, IOError) as e:
 					return self._handle_exception(file_url, is_last, e)
 			self._postprocess_directory(top_dir)
+	def perform_on_file(self, src, dest):
+		self._report_processing_of_file(src)
+		if self._fs.exists(dest):
+			if self._fs.samefile(src, dest):
+				self._show_self_warning()
+				return True
+			if self._override_all is None:
+				choice = self._ui.show_alert(
+					"%s exists. Do you want to overwrite it?" % basename(src),
+					YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
+				)
+				if choice & NO:
+					return True
+				elif choice & NO_TO_ALL:
+					self._override_all = False
+				elif choice & YES_TO_ALL:
+					self._override_all = True
+				elif choice & ABORT:
+					return False
+			if self._override_all is False:
+				return True
+		self._fs.makedirs(dirname(dest), exist_ok=True)
+		self._transfer(src, dest)
+		return True
 	def _walk_bottom_up(self, url):
 		dirs = []
 		nondirs = []
@@ -114,30 +138,6 @@ class FileTreeOperation:
 		verb = self._descr_verb.capitalize()
 		verbing = (verb[:-1] if verb.endswith('e') else verb) + 'ing'
 		self._ui.show_status_message('%s %s...' % (verbing, basename(file_)))
-	def perform_on_file(self, src, dest):
-		self._report_processing_of_file(src)
-		if self._fs.exists(dest):
-			if self._fs.samefile(src, dest):
-				self._show_self_warning()
-				return True
-			if self._override_all is None:
-				choice = self._ui.show_alert(
-					"%s exists. Do you want to overwrite it?" % basename(src),
-					YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
-				)
-				if choice & NO:
-					return True
-				elif choice & NO_TO_ALL:
-					self._override_all = False
-				elif choice & YES_TO_ALL:
-					self._override_all = True
-				elif choice & ABORT:
-					return False
-			if self._override_all is False:
-				return True
-		self._fs.makedirs(dirname(dest), exist_ok=True)
-		self._transfer(src, dest)
-		return True
 	def _show_self_warning(self):
 		if not self._cannot_move_to_self_shown:
 			self._ui.show_alert(
