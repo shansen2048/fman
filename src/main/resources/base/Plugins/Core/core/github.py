@@ -1,8 +1,9 @@
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 import json
 import re
+import requests
 import sys
 
 def find_repos(topics):
@@ -70,4 +71,14 @@ def _get_json(url):
 	return json.loads(_get(url).decode('utf-8'))
 
 def _get(url):
-	return urlopen(url).read()
+	try:
+		return urlopen(url).read()
+	except URLError:
+		# Fallback: Some users get "SSL: CERTIFICATE_VERIFY_FAILED" for urlopen.
+		response = requests.get(url)
+		if response.status_code != 200:
+			raise HTTPError(
+				url, response.status_code, response.reason, response.headers,
+				None
+			)
+		return response.content
