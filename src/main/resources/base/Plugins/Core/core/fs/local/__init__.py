@@ -49,7 +49,13 @@ class LocalFileSystem(FileSystem):
 	def modified_datetime(self, path):
 		return datetime.fromtimestamp(self.stat(path).st_mtime)
 	def touch(self, path):
-		Path(self._url_to_os_path(path)).touch()
+		os_path = Path(self._url_to_os_path(path))
+		try:
+			os_path.touch(exist_ok=False)
+		except FileExistsError:
+			os_path.touch(exist_ok=True)
+		else:
+			self.notify_file_added(path)
 	def mkdir(self, path):
 		os_path = Path(self._url_to_os_path(path))
 		try:
@@ -69,11 +75,14 @@ class LocalFileSystem(FileSystem):
 				raise FileExistsError(path) from e
 			else:
 				raise
+		self.notify_file_added(path)
 	def move(self, src_url, dst_url):
 		src_path, dst_path = self._get_src_dst_path(src_url, dst_url)
 		move(self._url_to_os_path(src_path), self._url_to_os_path(dst_path))
+		self.notify_file_moved(src_url, dst_url)
 	def move_to_trash(self, path):
 		move_to_trash(self._url_to_os_path(path))
+		self.notify_file_removed(path)
 	def delete(self, path):
 		if self.is_dir(path):
 			def handle_error(func, path, exc_info):
@@ -82,6 +91,7 @@ class LocalFileSystem(FileSystem):
 			rmtree(self._url_to_os_path(path), onerror=handle_error)
 		else:
 			remove(self._url_to_os_path(path))
+		self.notify_file_removed(path)
 	def resolve(self, path):
 		if not path:
 			raise filenotfounderror(path)
@@ -113,9 +123,13 @@ class LocalFileSystem(FileSystem):
 		os_dst_path = self._url_to_os_path(dst_path)
 		if src_is_dir:
 			copytree(os_src_path, os_dst_path, symlinks=True)
+			dst_existed = False
 		else:
+			dst_existed = self.exists(dst_path)
 			copyfile(os_src_path, os_dst_path, follow_symlinks=False)
 			copystat(os_src_path, os_dst_path, follow_symlinks=False)
+		if not dst_existed:
+			self.notify_file_added(dst_path)
 	@run_in_main_thread
 	def watch(self, path):
 		self._get_watcher().addPath(self._url_to_os_path(path))

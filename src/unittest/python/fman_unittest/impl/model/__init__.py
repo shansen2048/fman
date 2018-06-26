@@ -37,15 +37,22 @@ class StubFileSystem(FileSystem):
 	def modified_datetime(self, path):
 		return self._items[resolve(path)].get('mtime', 1473339041.0)
 	def touch(self, path):
+		file_existed = self.exists(path)
 		self._items[resolve(path)] = {}
+		if not file_existed:
+			self.notify_file_added(path)
 	def mkdir(self, path):
+		if self.exists(path):
+			raise FileExistsError(path)
 		self._items[resolve(path)] = {'is_dir': True}
+		self.notify_file_added(path)
 	def move(self, src_url, dst_url):
 		src_scheme, src_path = splitscheme(src_url)
 		dst_scheme, dst_path = splitscheme(dst_url)
 		if src_scheme != self.scheme or dst_scheme != self.scheme:
 			raise UnsupportedOperation()
 		self._items[resolve(dst_path)] = self._items.pop(resolve(src_path))
+		self.notify_file_moved(src_url, dst_url)
 	def delete(self, path):
 		path = resolve(path)
 		new_items = {
@@ -57,3 +64,4 @@ class StubFileSystem(FileSystem):
 		url = self.scheme + path
 		parent, file_ = splitscheme(dirname(url))[1], basename(url)
 		self._items[parent]['files'].remove(file_)
+		self.notify_file_removed(path)
