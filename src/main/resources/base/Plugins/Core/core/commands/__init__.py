@@ -400,7 +400,11 @@ class CreateAndEditFile(OpenWithEditor):
 						% as_human_readable(file_to_edit)
 					)
 					return
-			self.pane.place_cursor_at(file_to_edit)
+			try:
+				self.pane.place_cursor_at(file_to_edit)
+			except ValueError:
+				# This can happen when the file is hidden. Eg .bashrc on Linux.
+				pass
 			super().__call__(file_to_edit)
 
 def _find_extension_start(file_name, start=0):
