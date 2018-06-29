@@ -36,10 +36,15 @@ class FileTreeOperation(Task):
 	def _postprocess_directory(self, src_dir_path):
 		return None
 	def __call__(self):
+		try:
+			self._execute()
+		except Canceled:
+			pass
+	def _execute(self):
 		self.set_text('Gathering files...')
 		tasks = self._gather_files()
 		self.set_size(sum(task.get_size() for task in tasks))
-		for i, task in enumerate(tasks):
+		for i, task in enumerate(self._iter(tasks)):
 			is_last = i == len(tasks) - 1
 			progress_before = self.get_progress()
 			try:
@@ -50,13 +55,11 @@ class FileTreeOperation(Task):
 				if not self._handle_exception(message, is_last, e):
 					break
 				self.set_progress(progress_before + task.get_size())
-			if task.was_canceled():
-				break
 	def _gather_files(self):
 		result = []
 		num_files = [0]
 		def gather(iterable):
-			for task in iterable:
+			for task in self._iter(iterable):
 				if task.get_size() > 0:
 					num_files[0] += 1
 					self.set_text(
@@ -64,9 +67,7 @@ class FileTreeOperation(Task):
 							.format(num_files[0], self._descr_verb)
 					)
 				result.append(task)
-		for i, src in enumerate(self._files):
-			if self.was_canceled():
-				return []
+		for i, src in enumerate(self._iter(self._files)):
 			is_last = i == len(self._files) - 1
 			dest = self._get_dest_url(src)
 			if is_parent(src, dest, self._fs):
@@ -96,9 +97,7 @@ class FileTreeOperation(Task):
 					# Merge the src and dest directories:
 					parent_dirs = []
 					for parent_dir, dirs, files in self._walk_topdown(src):
-						for dir_ in dirs:
-							if self.was_canceled():
-								return []
+						for dir_ in self._iter(dirs):
 							dst = self._get_dest_url(dir_)
 							try:
 								dst_is_dir = self._fs.is_dir(dst)
@@ -111,9 +110,7 @@ class FileTreeOperation(Task):
 										target=self._fs.mkdir, args=(dst,)
 									)
 								])
-						for file_ in files:
-							if self.was_canceled():
-								return []
+						for file_ in self._iter(files):
 							dst = self._get_dest_url(file_)
 							if self._fs.exists(dst):
 								should_overwrite = self._should_overwrite(dst)
@@ -223,6 +220,11 @@ class FileTreeOperation(Task):
 		yield url, dirs, nondirs
 		for dir_ in dirs:
 			yield from self._walk_topdown(dir_)
+	def _iter(self, iterable):
+		for item in iterable:
+			if self.was_canceled():
+				raise Canceled()
+			yield item
 	def _get_title(self, descr_verb, files):
 		verb = descr_verb.capitalize()
 		result = (verb[:-1] if verb.endswith('e') else verb) + 'ing '
@@ -231,6 +233,9 @@ class FileTreeOperation(Task):
 		else:
 			result += '%d files' % len(files)
 		return result
+
+class Canceled(RuntimeError):
+	pass
 
 class CopyFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
