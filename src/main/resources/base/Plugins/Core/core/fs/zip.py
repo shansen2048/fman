@@ -29,7 +29,6 @@ class _7ZipFileSystem(FileSystem):
 			suffix for suffix, scheme in archive_handlers.items()
 			if scheme == self.scheme
 		)
-
 	def get_default_columns(self, path):
 		return 'core.Name', 'core.Size', 'core.Modified'
 	def resolve(self, path):
