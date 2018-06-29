@@ -94,15 +94,12 @@ class LocalFileSystem(FileSystem):
 			args=(src_url, dst_url)
 		)
 		if src_stat.st_dev == dst_dir_dev:
-			can_rename_over_existing = PLATFORM != 'Windows'
-			if can_rename_over_existing or not self.exists(dst_path) or \
-				self.samefile(src_path, dst_path):
-				yield Task(
-					'Moving ' + basename(src_url),
-					target=os.rename, args=(os_src_path, os_dst_path), size=1
-				)
-				yield notify_file_moved
-				return
+			yield Task(
+				'Moving ' + basename(src_url),
+				target=Path(os_src_path).replace, args=(os_dst_path,), size=1
+			)
+			yield notify_file_moved
+			return
 		yield from self._prepare_copy(src_url, dst_url, measure_size)
 		yield Task(
 			'Postprocessing ' + basename(src_url),
