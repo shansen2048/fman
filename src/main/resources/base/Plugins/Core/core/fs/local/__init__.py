@@ -9,7 +9,7 @@ from fman.url import as_url, splitscheme, as_human_readable, join, basename, \
 	dirname
 from io import UnsupportedOperation
 from os import remove
-from os.path import samefile, islink
+from os.path import islink, samestat
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
 from shutil import copystat
@@ -89,21 +89,26 @@ class LocalFileSystem(FileSystem):
 		dst_dir_dev = self.stat(splitscheme(dirname(dst_url))[1]).st_dev
 		os_src_path = self._url_to_os_path(src_path)
 		os_dst_path = self._url_to_os_path(dst_path)
-		if src_stat.st_dev == dst_dir_dev:
-			yield Task(
-				'Moving ' + basename(src_url),
-				target=os.rename, args=(os_src_path, os_dst_path), size=1
-			)
-		else:
-			yield from self._prepare_copy(src_url, dst_url, measure_size)
-			yield Task(
-				'Postprocessing ' + basename(src_url),
-				target=self.delete, args=(src_url,)
-			)
-		yield Task(
+		notify_file_moved = Task(
 			'Postprocessing', target=self.notify_file_moved,
 			args=(src_url, dst_url)
 		)
+		if src_stat.st_dev == dst_dir_dev:
+			can_rename_over_existing = PLATFORM != 'Windows'
+			if can_rename_over_existing or not self.exists(dst_path) or \
+				self.samefile(src_path, dst_path):
+				yield Task(
+					'Moving ' + basename(src_url),
+					target=os.rename, args=(os_src_path, os_dst_path), size=1
+				)
+				yield notify_file_moved
+				return
+		yield from self._prepare_copy(src_url, dst_url, measure_size)
+		yield Task(
+			'Postprocessing ' + basename(src_url),
+			target=self.delete, args=(src_path,)
+		)
+		yield notify_file_moved
 	def move_to_trash(self, path):
 		move_to_trash(self._url_to_os_path(path))
 		self.notify_file_removed(path)
@@ -137,9 +142,7 @@ class LocalFileSystem(FileSystem):
 				raise
 		return as_url(path)
 	def samefile(self, path1, path2):
-		path1 = self._url_to_os_path(path1)
-		path2 = self._url_to_os_path(path2)
-		return samefile(path1, path2)
+		return samestat(self.stat(path1), self.stat(path2))
 	def copy(self, src_url, dst_url):
 		self._check_scheme(src_url, dst_url)
 		for task in self._prepare_copy(src_url, dst_url):
