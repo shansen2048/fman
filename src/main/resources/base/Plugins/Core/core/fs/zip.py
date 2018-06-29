@@ -119,6 +119,7 @@ class _7ZipFileSystem(FileSystem):
 				self.delete(src_path)
 			else:
 				self._fs.delete(src_url)
+		self.notify_file_moved(src_url, dst_url)
 	def mkdir(self, path):
 		if self.exists(path):
 			raise FileExistsError(path)
@@ -138,6 +139,7 @@ class _7ZipFileSystem(FileSystem):
 			name = PurePosixPath(zip_path).name
 			self._run_7zip(['a', name], cwd=tmp_dir)
 			Path(tmp_dir, name).rename(zip_path)
+		self.notify_file_added(zip_path)
 	def _create_temp_dir_next_to(self, path):
 		return TemporaryDirectory(
 			dir=str(PurePosixPath(path).parent), prefix='', suffix='.tmp'
@@ -148,6 +150,7 @@ class _7ZipFileSystem(FileSystem):
 		zip_path, path_in_zip = self._split(path)
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			self._run_7zip(['d', zip_path, path_in_zip])
+		self.notify_file_removed(path)
 	def size_bytes(self, path):
 		return self._query_info_attr(path, 'size_bytes', None)
 	def modified_datetime(self, path):
