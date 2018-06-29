@@ -218,6 +218,7 @@ class _7ZipFileSystem(FileSystem):
 			if PLATFORM != 'Windows':
 				args.insert(1, '-l')
 			self._run_7zip(args, cwd=tmp_dir)
+			self.notify_file_added(zip_path + '/' + path_in_zip)
 	def _split(self, path):
 		for suffix in self._suffixes:
 			try:
