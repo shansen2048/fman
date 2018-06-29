@@ -91,6 +91,21 @@ class MotherFileSystem:
 			else:
 				# Maybe the destination FS can handle the operation:
 				dst_fs.move(src_url, dst_url)
+	def prepare_move(self, src_url, dst_url):
+		src_fs, src_path = self._split(src_url)
+		dst_fs, dst_path = self._split(dst_url)
+		try:
+			return src_fs.prepare_move(src_url, dst_url)
+		except UnsupportedOperation:
+			if src_fs == dst_fs:
+				raise
+			else:
+				# Maybe the destination FS can handle the operation:
+				try:
+					return dst_fs.prepare_move(src_url, dst_url)
+				except Exception as e:
+					# Don't show previous UnsupportedOperation in traceback.
+					raise e from None
 	def move_to_trash(self, url):
 		child, path = self._split(url)
 		child.move_to_trash(path)
@@ -116,6 +131,21 @@ class MotherFileSystem:
 				# Maybe the destination FS can handle the operation:
 				try:
 					dst_fs.copy(src_url, dst_url)
+				except Exception as e:
+					# Don't show previous UnsupportedOperation in traceback.
+					raise e from None
+	def prepare_copy(self, src_url, dst_url):
+		src_fs, src_path = self._split(src_url)
+		dst_fs, dst_path = self._split(dst_url)
+		try:
+			return src_fs.prepare_copy(src_url, dst_url)
+		except UnsupportedOperation:
+			if src_fs == dst_fs:
+				raise
+			else:
+				# Maybe the destination FS can handle the operation:
+				try:
+					return dst_fs.prepare_copy(src_url, dst_url)
 				except Exception as e:
 					# Don't show previous UnsupportedOperation in traceback.
 					raise e from None

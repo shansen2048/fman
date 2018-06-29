@@ -2,8 +2,7 @@ from fbs_runtime.system import is_windows, is_mac
 from fman import OK
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.quicksearch import Quicksearch
-from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
-	AscendingOrder
+from fman.impl.util.qt import disable_window_animations_mac, Key_Escape
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.view.location_bar import LocationBar
 from fman.impl.view import FileListView, Layout, set_selection
@@ -13,7 +12,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
-	QFrame, QAction, QSizePolicy
+	QFrame, QAction, QSizePolicy, QProgressDialog
 from random import randint, randrange
 
 class Application(QApplication):
@@ -270,6 +269,8 @@ class MainWindow(QMainWindow):
 		)
 		result = self.exec_dialog(dialog)
 		return result
+	def create_progress_dialog(self, title, task_size):
+		return ProgressDialog(self, title, task_size)
 	@run_in_main_thread
 	def exec_dialog(self, dialog):
 		self._dialog = dialog
@@ -556,3 +557,59 @@ class Overlay(QFrame):
 		self.setLayout(layout)
 	def close(self):
 		self.setParent(None)
+
+class ProgressDialog(QProgressDialog):
+
+	_MAX_C_INT = 2147483647
+
+	@run_in_main_thread
+	def __init__(self, parent, title, size):
+		super().__init__(parent)
+		self._title = title
+		self._size = self.maximum()
+		self._progress = 0
+		self._was_canceled = False
+		self.setMinimumDuration(1000)
+		self.setWindowTitle(title)
+		self.set_task_size(size)
+		self.canceled.disconnect(super().cancel)
+		self.canceled.connect(self.request_cancel)
+		# Ensure the progress dialog appears in 1 sec starting *now*:
+		self.set_progress(0)
+	@run_in_main_thread
+	def set_text(self, text):
+		self.setLabelText(text)
+	@run_in_main_thread
+	def set_task_size(self, size):
+		self._size = size
+		self.setMaximum(min(size, self._MAX_C_INT))
+	@run_in_main_thread
+	def set_progress(self, progress):
+		self._progress = progress
+		if self._size > self._MAX_C_INT:
+			# QProgressDialog#setValue(...) can only handle ints. If `progress`
+			# is too large, we need to scale it down. If we didn't do this and
+			# pass a larger number, it would overflow to a negative value.
+			progress = self._MAX_C_INT * progress // self._size
+		self.setValue(progress)
+	@run_in_main_thread
+	def get_progress(self):
+		return self._progress
+	def reject(self):
+		# Called when the user presses the "Close window" button.
+		self.request_cancel()
+	@run_in_main_thread
+	def cancel(self):
+		super().cancel()
+	@run_in_main_thread
+	def request_cancel(self):
+		self.set_text('Canceling...')
+		cancel_button = self.findChild(QPushButton)
+		cancel_button.setEnabled(False)
+		self._was_canceled = True
+	def was_canceled(self):
+		return self._was_canceled
+	def showEvent(self, e):
+		# Prevent the dialog from being resizable:
+		self.setFixedSize(self.size())
+		super().showEvent(e)

@@ -316,3 +316,7 @@ class Style(QProxyStyle):
 			painter.restore()
 			return
 		super().drawPrimitive(element, option, painter, widget)
+	def styleHint(self, hint, *args):
+		if hint == self.SH_ProgressDialog_TextLabelAlignment:
+			return Qt.AlignLeft | Qt.AlignVCenter
+		return super().styleHint(hint, *args)

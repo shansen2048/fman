@@ -1,4 +1,5 @@
 from core import LocalFileSystem
+from fman.fs import FileSystem
 from fman.url import splitscheme
 
 class StubUI:
@@ -36,10 +37,11 @@ class StubUI:
 	def clear_status_message(self):
 		pass
 
-class StubFS:
+class StubFS(FileSystem):
 	def __init__(self, backend=None):
 		if backend is None:
 			backend = LocalFileSystem()
+		super().__init__()
 		self._backend = backend
 	def is_dir(self, url):
 		return self._backend.is_dir(self._as_path(url))

@@ -1,6 +1,8 @@
+from fman import Task
 from fman.impl.fs_cache import Cache
 from fman.impl.util import Event
 from fman.impl.util.path import parent
+from fman.url import basename
 from functools import wraps
 from io import UnsupportedOperation
 from pathlib import PurePosixPath
@@ -26,6 +28,9 @@ def is_dir(existing_url):
 def move(src_url, dst_url):
 	_get_mother_fs().move(src_url, dst_url)
 
+def prepare_move(src_url, dst_url):
+	return _get_mother_fs().prepare_move(src_url, dst_url)
+
 def move_to_trash(url):
 	_get_mother_fs().move_to_trash(url)
 
@@ -37,6 +42,9 @@ def samefile(url1, url2):
 
 def copy(src_url, dst_url):
 	_get_mother_fs().copy(src_url, dst_url)
+
+def prepare_copy(src_url, dst_url):
+	return _get_mother_fs().prepare_copy(src_url, dst_url)
 
 def iterdir(url):
 	return _get_mother_fs().iterdir(url)
@@ -116,6 +124,20 @@ class FileSystem:
 		raise self._operation_not_supported()
 	def touch(self, path):
 		raise self._operation_not_supported()
+	def copy(self, src_url, dst_url):
+		raise self._operation_not_supported()
+	def prepare_copy(self, src_url, dst_url):
+		yield Task(
+			'Copying ' + basename(src_url),
+			target=self.copy, args=(src_url, dst_url)
+		)
+	def move(self, src_url, dst_url):
+		raise self._operation_not_supported()
+	def prepare_move(self, src_url, dst_url):
+		yield Task(
+			'Moving ' + basename(src_url),
+			target=self.move, args=(src_url, dst_url)
+		)
 	def _operation_not_supported(self):
 		message = self.__class__.__name__ + ' does not implement this function.'
 		return UnsupportedOperation(message)

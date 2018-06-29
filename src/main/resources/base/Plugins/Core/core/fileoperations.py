@@ -1,12 +1,12 @@
 from core.util import is_parent
-from fman import YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
+from fman import Task, YES, NO, YES_TO_ALL, NO_TO_ALL, ABORT, OK
 from fman.url import basename, join, dirname, splitscheme, relpath, \
 	as_human_readable
 from os.path import pardir
 
 import fman.fs
 
-class FileTreeOperation:
+class FileTreeOperation(Task):
 	def __init__(
 		self, descr_verb, ui, files, dest_dir, src_dir=None, dest_name=None,
 		fs=fman.fs
@@ -15,6 +15,7 @@ class FileTreeOperation:
 			raise ValueError(
 				'Destination name can only be given when there is one file.'
 			)
+		super().__init__(self._get_title(descr_verb, files))
 		self._ui = ui
 		self._files = files
 		self._dest_dir = dest_dir
@@ -26,102 +27,153 @@ class FileTreeOperation:
 		self._override_all = None
 	def _transfer(self, src, dest):
 		raise NotImplementedError()
+	def _prepare_transfer(self, src, dest):
+		raise NotImplementedError()
 	def _can_transfer_samefile(self):
 		raise NotImplementedError()
+	def _does_postprocess_directory(self):
+		return False
 	def _postprocess_directory(self, src_dir_path):
-		pass
+		return None
 	def __call__(self):
-		for i, src in enumerate(self._files):
-			is_last = i == len(self._files) - 1
-			if not self._call_on_file(src, is_last):
-				break
-		self._ui.clear_status_message()
-	def _call_on_file(self, src, is_last):
-		self._report_processing_of_file(src)
-		dest = self._get_dest_url(src)
-		if is_parent(src, dest, self._fs):
-			if src != dest:
-				try:
-					is_samefile = self._fs.samefile(src, dest)
-				except OSError:
-					is_samefile = False
-				if is_samefile:
-					if self._can_transfer_samefile():
-						self._transfer(src, dest)
-						return True
-					return False
-			self._show_self_warning()
-			return True
-		try:
-			if self._fs.is_dir(src):
-				if self._fs.exists(dest):
-					result = self._merge_directory(src, is_last)
-					if result is not None:
-						return result
-				else:
-					self._transfer(src, dest)
-			else:
-				if not self.perform_on_file(src, dest):
-					return False
-		except (OSError, IOError) as e:
-			return self._handle_exception(src, is_last, e)
-		return True
-	def _merge_directory(self, src, is_last):
-		for top_dir, _, files in self._walk_bottom_up(src):
-			for file_url in files:
-				dst = self._get_dest_url(file_url)
-				try:
-					if not self.perform_on_file(file_url, dst):
-						return False
-				except (OSError, IOError) as e:
-					return self._handle_exception(file_url, is_last, e)
-			self._postprocess_directory(top_dir)
-	def perform_on_file(self, src, dest):
-		self._report_processing_of_file(src)
-		if self._fs.exists(dest):
-			if self._fs.samefile(src, dest):
-				self._show_self_warning()
-				return True
-			if self._override_all is None:
-				choice = self._ui.show_alert(
-					"%s exists. Do you want to overwrite it?" % basename(src),
-					YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
-				)
-				if choice & NO:
-					return True
-				elif choice & NO_TO_ALL:
-					self._override_all = False
-				elif choice & YES_TO_ALL:
-					self._override_all = True
-				elif choice & ABORT:
-					return False
-			if self._override_all is False:
-				return True
-		self._fs.makedirs(dirname(dest), exist_ok=True)
-		self._transfer(src, dest)
-		return True
-	def _walk_bottom_up(self, url):
-		dirs = []
-		nondirs = []
-		for file_name in self._fs.iterdir(url):
-			file_url = join(url, file_name)
+		self.set_text('Gathering files...')
+		tasks = self._gather_files()
+		self.set_size(sum(task.get_size() for task in tasks))
+		for i, task in enumerate(tasks):
+			is_last = i == len(tasks) - 1
+			progress_before = self.get_progress()
 			try:
-				is_dir = self._fs.is_dir(file_url)
-			except OSError:
-				is_dir = False
+				self.run(task)
+			except (OSError, IOError) as e:
+				title = task.get_title()
+				message = 'Error ' + (title[0].lower() + title[1:])
+				if not self._handle_exception(message, is_last, e):
+					break
+				self.set_progress(progress_before + task.get_size())
+			if task.was_canceled():
+				break
+	def _gather_files(self):
+		result = []
+		num_files = [0]
+		def gather(iterable):
+			for task in iterable:
+				if task.get_size() > 0:
+					num_files[0] += 1
+					self.set_text(
+						'Gathered {:,} files to {}.'
+							.format(num_files[0], self._descr_verb)
+					)
+				result.append(task)
+		for i, src in enumerate(self._files):
+			if self.was_canceled():
+				return []
+			is_last = i == len(self._files) - 1
+			dest = self._get_dest_url(src)
+			if is_parent(src, dest, self._fs):
+				if src != dest:
+					try:
+						is_samefile = self._fs.samefile(src, dest)
+					except OSError:
+						is_samefile = False
+					if is_samefile:
+						if self._can_transfer_samefile():
+							gather(self._prepare_transfer(src, dest))
+							continue
+				self._ui.show_alert(
+					"You cannot %s a file to itself." % self._descr_verb
+				)
+				return []
+			try:
+				is_dir = self._fs.is_dir(src)
+			except OSError as e:
+				error_message = 'Could not %s %s' % \
+								(self._descr_verb, as_human_readable(src))
+				if self._handle_exception(error_message, is_last, e):
+					continue
+				return []
 			if is_dir:
-				dirs.append(file_url)
-				yield from self._walk_bottom_up(file_url)
+				if self._fs.exists(dest):
+					# Merge the src and dest directories:
+					parent_dirs = []
+					for parent_dir, dirs, files in self._walk_topdown(src):
+						for dir_ in dirs:
+							if self.was_canceled():
+								return []
+							dst = self._get_dest_url(dir_)
+							try:
+								dst_is_dir = self._fs.is_dir(dst)
+							except OSError:
+								dst_is_dir = False
+							if not dst_is_dir:
+								gather([
+									Task(
+										'Creating ' + basename(dst),
+										target=self._fs.mkdir, args=(dst,)
+									)
+								])
+						for file_ in files:
+							if self.was_canceled():
+								return []
+							dst = self._get_dest_url(file_)
+							if self._fs.exists(dst):
+								should_overwrite = self._should_overwrite(dst)
+								if should_overwrite == NO:
+									continue
+								elif should_overwrite == ABORT:
+									return []
+								else:
+									assert should_overwrite == YES, \
+										should_overwrite
+							gather(self._prepare_transfer(file_, dst))
+						parent_dirs.append(parent_dir)
+					if self._does_postprocess_directory():
+						# Post-process the parent directories bottom-up. For
+						# Move, this ensures that each directory is empty when
+						# post-processing.
+						for parent_dir in reversed(parent_dirs):
+							gather([self._postprocess_directory(parent_dir)])
+				else:
+					gather(self._prepare_transfer(src, dest))
 			else:
-				nondirs.append(file_url)
-		yield url, dirs, nondirs
-	def _handle_exception(self, file_url, is_last, exc):
+				if self._fs.exists(dest):
+					should_overwrite = self._should_overwrite(dest)
+					if should_overwrite == NO:
+						continue
+					elif should_overwrite == ABORT:
+						return []
+					else:
+						assert should_overwrite == YES, should_overwrite
+				dir_ = dirname(dest)
+				gather([Task(
+					'Preparing ' + basename(dir_), target=self._fs.makedirs,
+					 args=(dir_,), kwargs={'exist_ok': True}
+				)])
+				gather(self._prepare_transfer(src, dest))
+		return result
+	def _should_overwrite(self, file_url):
+		if self._override_all is None:
+			choice = self._ui.show_alert(
+				"%s exists. Do you want to overwrite it?" % basename(file_url),
+				YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
+			)
+			if choice & YES:
+				return YES
+			elif choice & NO:
+				return NO
+			elif choice & YES_TO_ALL:
+				self._override_all = True
+			elif choice & NO_TO_ALL:
+				self._override_all = False
+			else:
+				assert choice & ABORT, choice
+				return ABORT
+		return YES if self._override_all else NO
+	def _handle_exception(self, message, is_last, exc):
 		if exc.strerror:
 			cause = exc.strerror[0].lower() + exc.strerror[1:]
 		else:
 			cause = exc.__class__.__name__
-		message = 'Could not %s %s (%s).' % \
-				  (self._descr_verb, as_human_readable(file_url), cause)
+		message = '%s (%s).' % (message, cause)
 		if is_last:
 			buttons = OK
 			default_button = OK
@@ -134,16 +186,6 @@ class FileTreeOperation:
 			return choice & OK
 		else:
 			return choice & YES or choice & YES_TO_ALL
-	def _report_processing_of_file(self, file_):
-		verb = self._descr_verb.capitalize()
-		verbing = (verb[:-1] if verb.endswith('e') else verb) + 'ing'
-		self._ui.show_status_message('%s %s...' % (verbing, basename(file_)))
-	def _show_self_warning(self):
-		if not self._cannot_move_to_self_shown:
-			self._ui.show_alert(
-				"You cannot %s a file to itself." % self._descr_verb
-			)
-			self._cannot_move_to_self_shown = True
 	def _get_dest_url(self, src_file):
 		dest_name = self._dest_name or basename(src_file)
 		if self._src_dir:
@@ -165,6 +207,30 @@ class FileTreeOperation:
 				else:
 					return join(self._dest_dir, rel_path)
 		return join(self._dest_dir, dest_name)
+	def _walk_topdown(self, url):
+		dirs = []
+		nondirs = []
+		for file_name in self._fs.iterdir(url):
+			file_url = join(url, file_name)
+			try:
+				is_dir = self._fs.is_dir(file_url)
+			except OSError:
+				is_dir = False
+			if is_dir:
+				dirs.append(file_url)
+			else:
+				nondirs.append(file_url)
+		yield url, dirs, nondirs
+		for dir_ in dirs:
+			yield from self._walk_topdown(dir_)
+	def _get_title(self, descr_verb, files):
+		verb = descr_verb.capitalize()
+		result = (verb[:-1] if verb.endswith('e') else verb) + 'ing '
+		if len(files) == 1:
+			result += basename(files[0])
+		else:
+			result += '%d files' % len(files)
+		return result
 
 class CopyFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
@@ -174,6 +240,8 @@ class CopyFiles(FileTreeOperation):
 	def _can_transfer_samefile(self):
 		# Can never copy to the same file.
 		return False
+	def _prepare_transfer(self, src, dest):
+		return self._fs.prepare_copy(src, dest)
 
 class MoveFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):
@@ -185,7 +253,16 @@ class MoveFiles(FileTreeOperation):
 		# Consider a/ and A/: They are the "same" file yet it does make sense to
 		# rename one to the other.
 		return True
+	def _prepare_transfer(self, src, dest):
+		return self._fs.prepare_move(src, dest)
+	def _does_postprocess_directory(self):
+		return True
 	def _postprocess_directory(self, src_dir_path):
+		return Task(
+			'Postprocessing ' + basename(src_dir_path),
+			target=self._do_postprocess_directory, args=(src_dir_path,)
+		)
+	def _do_postprocess_directory(self, src_dir_path):
 		if self._is_empty(src_dir_path):
 			try:
 				self._fs.delete(src_dir_path)

@@ -1,5 +1,6 @@
 from . import clipboard
 from .url import dirname
+from .impl.task import StubProgressDialog, ChildProgressDialog
 from contextlib import contextmanager
 from fbs_runtime import system
 from os import getenv
@@ -17,6 +18,7 @@ __all__ = [
 	'get_application_commands', 'run_application_command',
 	'get_application_command_aliases', 'load_plugin', 'unload_plugin',
 	'clipboard',
+	'submit_task', 'Task',
 	'PLATFORM', 'FMAN_VERSION', 'DATA_DIRECTORY',
 	'OK', 'CANCEL', 'YES', 'NO', 'YES_TO_ALL', 'NO_TO_ALL', 'ABORT'
 ]
@@ -264,6 +266,52 @@ def unload_plugin(plugin_path):
 	Raises ValueError if the plugin was not loaded.
 	"""
 	_get_plugin_support().unload_plugin(plugin_path)
+
+class Task:
+	def __init__(
+		self, title, target=lambda: None, args=(), kwargs=None, size=0
+	):
+		if kwargs is None:
+			kwargs = {}
+		self._title = title
+		self._target = target
+		self._args = args
+		self._kwargs = kwargs
+		self._size = size
+		self._dialog = StubProgressDialog()
+	def __call__(self):
+		self._target(*self._args, **self._kwargs)
+	def get_title(self):
+		return self._title
+	def set_text(self, status):
+		self._dialog.set_text(status)
+	def set_size(self, size):
+		self._size = size
+		self._dialog.set_task_size(size)
+	def get_size(self):
+		return self._size
+	def set_progress(self, progress):
+		self._dialog.set_progress(progress)
+	def get_progress(self):
+		return self._dialog.get_progress()
+	def was_canceled(self):
+		return self._dialog.was_canceled()
+	def run(self, subtask):
+		self.set_text(subtask.get_title())
+		subtask._dialog = ChildProgressDialog(self._dialog)
+		subtask()
+	def __str__(self):
+		return self._title
+
+def submit_task(task):
+	dialog = _get_ui().create_progress_dialog(task.get_title(), task.get_size())
+	dialog_before = task._dialog
+	task._dialog = dialog
+	try:
+		task()
+	finally:
+		dialog.cancel()
+		task._dialog = dialog_before
 
 def _get_plugin_support():
 	return _get_app_ctxt().plugin_support

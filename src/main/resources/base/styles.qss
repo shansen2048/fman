@@ -169,3 +169,8 @@ NonexistentShortcutDialog QLineEdit {
 QRadioButton::checked {
 	color: white;
 }
+
+ProgressDialog {
+	min-width: 30em;
+	max-width: 30em;
+}
