@@ -67,6 +67,11 @@ class FileTreeOperation(Task):
 							.format(num_files[0], self._descr_verb)
 					)
 				result.append(task)
+		dest_dir_url = self._get_dest_dir_url()
+		gather([Task(
+			'Preparing ' + basename(dest_dir_url), target=self._fs.makedirs,
+			 args=(dest_dir_url,), kwargs={'exist_ok': True}
+		)])
 		for i, src in enumerate(self._iter(self._files)):
 			is_last = i == len(self._files) - 1
 			dest = self._get_dest_url(src)
@@ -140,11 +145,6 @@ class FileTreeOperation(Task):
 						return []
 					else:
 						assert should_overwrite == YES, should_overwrite
-				dir_ = dirname(dest)
-				gather([Task(
-					'Preparing ' + basename(dir_), target=self._fs.makedirs,
-					 args=(dir_,), kwargs={'exist_ok': True}
-				)])
 				gather(self._prepare_transfer(src, dest))
 		return result
 	def _should_overwrite(self, file_url):
@@ -183,6 +183,14 @@ class FileTreeOperation(Task):
 			return choice & OK
 		else:
 			return choice & YES or choice & YES_TO_ALL
+	def _get_dest_dir_url(self):
+		try:
+			splitscheme(self._dest_dir)
+		except ValueError as not_a_url:
+			is_url = False
+		else:
+			is_url = True
+		return self._dest_dir if is_url else join(self._src_dir, self._dest_dir)
 	def _get_dest_url(self, src_file):
 		dest_name = self._dest_name or basename(src_file)
 		if self._src_dir:
