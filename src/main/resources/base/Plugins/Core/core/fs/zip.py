@@ -190,8 +190,9 @@ class _7ZipFileSystem(FileSystem):
 			if path_in_zip:
 				args.insert(2, path_in_zip)
 			self._run_7zip(args)
-			root = Path(tmp_dir.name, *path_in_zip.split('/'))
-			root.replace(dst_path)
+			self._fs.move(
+				join(as_url(tmp_dir.name), path_in_zip), 'file://' + dst_path
+			)
 		finally:
 			try:
 				tmp_dir.cleanup()
