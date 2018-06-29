@@ -12,7 +12,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
-	QFrame, QAction, QSizePolicy, QProgressDialog
+	QFrame, QAction, QSizePolicy, QProgressDialog, QProgressBar
 from random import randint, randrange
 
 class Application(QApplication):
@@ -175,11 +175,15 @@ class MainWindow(QMainWindow):
 	closed = pyqtSignal()
 	before_dialog = pyqtSignal(QDialog)
 
-	def __init__(self, app, help_menu_actions, theme, fs, null_location):
+	def __init__(
+		self, app, help_menu_actions, theme, progress_bar_palette, fs,
+		null_location
+	):
 		super().__init__()
 		self._controller = None
 		self._app = app
 		self._theme = theme
+		self._progress_bar_palette = progress_bar_palette
 		self._fs = fs
 		self._null_location = null_location
 		self._panes = []
@@ -269,8 +273,9 @@ class MainWindow(QMainWindow):
 		)
 		result = self.exec_dialog(dialog)
 		return result
+	@run_in_main_thread
 	def create_progress_dialog(self, title, task_size):
-		return ProgressDialog(self, title, task_size)
+		return ProgressDialog(self, title, task_size, self._progress_bar_palette)
 	@run_in_main_thread
 	def exec_dialog(self, dialog):
 		self._dialog = dialog
@@ -563,12 +568,13 @@ class ProgressDialog(QProgressDialog):
 	_MAX_C_INT = 2147483647
 
 	@run_in_main_thread
-	def __init__(self, parent, title, size):
+	def __init__(self, parent, title, size, progress_bar_palette):
 		super().__init__(parent)
 		self._title = title
 		self._size = self.maximum()
 		self._progress = 0
 		self._was_canceled = False
+		self.findChild(QProgressBar).setPalette(progress_bar_palette)
 		self.setMinimumDuration(1000)
 		self.setWindowTitle(title)
 		self.set_task_size(size)

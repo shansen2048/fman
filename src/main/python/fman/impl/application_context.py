@@ -149,8 +149,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def main_window(self):
 		if self._main_window is None:
 			self._main_window = MainWindow(
-				self.app, self.help_menu_actions, self.theme, self.mother_fs,
-				NullFileSystem.scheme
+				self.app, self.help_menu_actions, self.theme,
+				self.progress_bar_palette, self.mother_fs, NullFileSystem.scheme
 			)
 			# Resolve the cyclic dependency main_window <-> controller
 			self._main_window.set_controller(self.controller)
@@ -362,6 +362,17 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def main_window_palette(self):
 		result = QPalette(self.palette)
 		result.setColor(QPalette.Window, QColor(0x44, 0x44, 0x44))
+		return result
+	@cached_property
+	def progress_bar_palette(self):
+		result = QPalette(self.main_window_palette)
+		# On Windows, when the progress bar (/the progress dialog) is in the
+		# background, ie. not the active window, its color changes from blue to
+		# white. Avoid this:
+		result.setColor(
+			QPalette.Inactive, QPalette.Highlight,
+			result.color(QPalette.Active, QPalette.Highlight)
+		)
 		return result
 	@cached_property
 	def session_manager(self):
