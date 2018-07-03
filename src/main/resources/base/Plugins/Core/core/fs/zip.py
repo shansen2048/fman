@@ -300,39 +300,40 @@ class _7zip:
 		self._kill = kill
 		self._process = self._stdout = None
 	def __enter__(self):
-		extra_kwargs = {}
 		if PLATFORM == 'Windows':
-			from subprocess import STARTF_USESHOWWINDOW, SW_HIDE, STARTUPINFO
-			si = STARTUPINFO()
-			si.dwFlags = STARTF_USESHOWWINDOW
-			si.wShowWindow = SW_HIDE
-			extra_kwargs['startupinfo'] = si
-			env = {}
-			# Force an output encoding that works with universal_newlines:
-			args = ['-sccWIN'] + self._args
+			kwargs = self._get_popen_kwargs_windows()
 			encoding = None
 		else:
+			kwargs = self._get_popen_kwargs_unix()
+			# Force encoding because Popen(...)'s universal_newlines uses ASCII
+			# if locale.getpreferredencoding(False) happens to be None:
+			encoding = 'utf-8'
+		self._process = \
+			Popen(stdout=PIPE, stderr=PIPE, cwd=self._cwd, **kwargs)
+		self._stdout = TextIOWrapper(self._process.stdout, encoding=encoding)
+		return self._stdout
+	def _get_popen_kwargs_windows(self):
+		from subprocess import STARTF_USESHOWWINDOW, SW_HIDE, STARTUPINFO
+		si = STARTUPINFO()
+		si.dwFlags = STARTF_USESHOWWINDOW
+		si.wShowWindow = SW_HIDE
+		return {
+			# Force an output encoding that works with universal_newlines:
+			'args': [self._get_7zip_binary()] + ['-sccWIN'] + self._args,
+			# Prevent potential interferences with existing env. variables:
+			'env': {},
+			'startupinfo': si
+		}
+	def _get_popen_kwargs_unix(self):
+		return {
+			'args':[self._get_7zip_binary()] + self._args,
 			# According to the README in its source code distribution, p7zip can
 			# only handle unicode file names properly if the environment is
 			# UTF-8:
-			env = {
+			'env': {
 				'LANG': 'en_US.UTF-8'
 			}
-			args = self._args
-			# Set the encoding ourselves because Popen(...)'s universal_newlines
-			# uses ASCII if locale.getpreferredencoding(False) happens to be
-			# None.
-			encoding = 'utf-8'
-		self._process = Popen(
-			[self._get_7zip_binary()] + args, stdout=PIPE, stderr=DEVNULL,
-			cwd=self._cwd,
-			# We use our own env to prevent potential interferences with the
-			# user's environment variables:
-			env=env,
-			**extra_kwargs
-		)
-		self._stdout = TextIOWrapper(self._process.stdout, encoding=encoding)
-		return self._stdout
+		}
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		try:
 			if self._kill:
