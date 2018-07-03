@@ -15,6 +15,15 @@ import fman.fs
 import os
 import os.path
 
+if is_arch():
+	_7ZIP_BINARY = '/usr/bin/7za'
+else:
+	_7ZIP_BINARY = join(
+		dirname(dirname(dirname(__file__))), 'bin', PLATFORM.lower(), '7za'
+	)
+	if PLATFORM == 'Windows':
+		_7ZIP_BINARY += '.exe'
+
 class _7ZipFileSystem(FileSystem):
 	def __init__(self, fs=fman.fs, suffixes=None):
 		if suffixes is None:
@@ -319,14 +328,14 @@ class _7zip:
 		si.wShowWindow = SW_HIDE
 		return {
 			# Force an output encoding that works with universal_newlines:
-			'args': [self._get_7zip_binary()] + ['-sccWIN'] + self._args,
+			'args': [_7ZIP_BINARY] + ['-sccWIN'] + self._args,
 			# Prevent potential interferences with existing env. variables:
 			'env': {},
 			'startupinfo': si
 		}
 	def _get_popen_kwargs_unix(self):
 		return {
-			'args':[self._get_7zip_binary()] + self._args,
+			'args':[_7ZIP_BINARY] + self._args,
 			# According to the README in its source code distribution, p7zip can
 			# only handle unicode file names properly if the environment is
 			# UTF-8:
@@ -346,14 +355,6 @@ class _7zip:
 		finally:
 			self._stdout.close()
 			self._process.stdout.close()
-	def _get_7zip_binary(self):
-		if is_arch():
-			bin_dir = '/usr/bin'
-		else:
-			bin_dir = join(
-				dirname(dirname(dirname(__file__))), 'bin', PLATFORM.lower()
-			)
-		return join(bin_dir, '7za' + ('.exe' if PLATFORM == 'Windows' else ''))
 
 class ZipFileSystem(_7ZipFileSystem):
 	scheme = 'zip://'
