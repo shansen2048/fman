@@ -576,6 +576,7 @@ class ProgressDialog(QProgressDialog):
 		self._was_canceled = False
 		self.findChild(QProgressBar).setPalette(progress_bar_palette)
 		self.setMinimumDuration(1000)
+		self.setAutoReset(False)
 		self.setWindowTitle(title)
 		self.set_task_size(size)
 		self.canceled.disconnect(super().cancel)
