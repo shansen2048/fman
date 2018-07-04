@@ -7,7 +7,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
 from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
-	samefile, copy, iterdir, resolve
+	samefile, copy, iterdir, resolve, prepare_copy
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 	dirname
 from getpass import getuser
@@ -1762,12 +1762,24 @@ class Pack(DirectoryPaneCommand):
 				)
 				if not answer & YES:
 					return
-			for file_url in files:
-				file_name = basename(file_url)
-				with StatusMessage('Packing %s...' % file_name):
-					copy(file_url, join(dest_rewritten, file_name))
+			submit_task(_Pack(files, dest_rewritten))
 	def is_visible(self):
 		return bool(self.pane.get_file_under_cursor())
+
+class _Pack(Task):
+	def __init__(self, files, archive_url):
+		title = 'Packing '
+		if len(files) == 1:
+			title += basename(files[0])
+		else:
+			title += '%d files' % len(files)
+		super().__init__(title, size=len(files) * 100)
+		self._files = files
+		self._archive = archive_url
+	def __call__(self):
+		for f in self._files:
+			for task in prepare_copy(f, join(self._archive, basename(f))):
+				self.run(task)
 
 def _get_handler_for_archive(file_name):
 	settings = load_json('Core Settings.json', default={})
