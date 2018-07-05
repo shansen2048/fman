@@ -6,8 +6,8 @@ from core.util import strformat_dict_values, listdir_absolute, is_parent
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
-from fman.fs import exists, touch, mkdir, is_dir, move, move_to_trash, delete, \
-	samefile, copy, iterdir, resolve, prepare_copy
+from fman.fs import exists, touch, mkdir, is_dir, move_to_trash, delete, \
+	samefile, copy, iterdir, resolve, prepare_copy, prepare_move
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 	dirname
 from getpass import getuser
@@ -652,19 +652,35 @@ class RenameListener(DirectoryPaneListener):
 			if not samefile(new_url, file_url):
 				show_alert(new_name + ' already exists!')
 				return
+		submit_task(_Rename(self.pane, file_url, new_url))
+
+class _Rename(Task):
+	def __init__(self, pane, src_url, dst_url):
+		self._pane = pane
+		self._src_url = src_url
+		self._dst_url = dst_url
+		super().__init__('Renaming ' + basename(src_url))
+	def __call__(self):
+		self.set_text('Preparing...')
+		tasks = list(prepare_move(self._src_url, self._dst_url))
+		self.set_size(sum(t.get_size() for t in tasks))
 		try:
-			move(file_url, new_url)
+			for task in tasks:
+				self.run(task)
 		except OSError as e:
 			if isinstance(e, PermissionError):
 				message = 'Access was denied trying to rename %s to %s.'
 			else:
 				message = 'Could not rename %s to %s.'
+			old_name = basename(self._src_url)
+			new_name = basename(self._dst_url)
 			show_alert(message % (old_name, new_name))
 		else:
-			try:
-				self.pane.place_cursor_at(new_url)
-			except ValueError as file_disappeared:
-				pass
+			if not self.was_canceled():
+				try:
+					self._pane.place_cursor_at(self._dst_url)
+				except ValueError as file_disappeared:
+					pass
 
 class CreateDirectory(DirectoryPaneCommand):
 
