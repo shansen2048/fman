@@ -18,7 +18,9 @@ import re
 def exe():
 	freeze_linux(extra_pyinstaller_args=[
 		'--hidden-import', 'pgi.overrides.GObject',
-		'--hidden-import', 'pgi.overrides.GLib'
+		'--hidden-import', 'pgi.overrides.GLib',
+		# Dependency of the Core plugin:
+		'--hidden-import', 'pty'
 	])
 	postprocess_exe()
 	# When we build on Ubuntu on 14.04 and run on 17.10, fman fails to start

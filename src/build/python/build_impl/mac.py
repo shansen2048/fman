@@ -13,7 +13,10 @@ from tempfile import TemporaryDirectory
 
 @command
 def app():
-	freeze_mac()
+	freeze_mac(extra_pyinstaller_args=[
+		# Dependency of the Core plugin:
+		'--hidden-import', 'pty'
+	])
 	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/linux'))
 	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/windows'))
 	copy_framework(
