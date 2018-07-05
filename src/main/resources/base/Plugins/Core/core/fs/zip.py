@@ -295,7 +295,8 @@ class AddToArchive(Task):
 				for line in process.stdout:
 					if self.was_canceled():
 						return
-					match = re.match(r' *(\d\d?)% ', line)
+					# The \r appears on Windows only:
+					match = re.match('\r? *(\\d\\d?)% ', line)
 					if match:
 						percent = int(match.group(1))
 						# At least on Linux, 7za shows progress going from 0 to
@@ -384,12 +385,10 @@ class _7zip:
 		self._process = None
 	def __enter__(self):
 		if PLATFORM == 'Windows':
-			self._process = Popen7ZipWindows(self._args, self._cwd)
+			cls = Run7ZipViaWinpty if self._pty else Popen7ZipWindows
 		else:
-			if self._pty:
-				self._process = Run7ZipViaPty(self._args, self._cwd)
-			else:
-				self._process = Popen7ZipUnix(self._args, self._cwd)
+			cls = Run7ZipViaPty if self._pty else Popen7ZipUnix
+		self._process = cls(self._args, self._cwd)
 		return self._process
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		try:
@@ -405,8 +404,12 @@ class _7zip:
 
 class Popen7Zip:
 	def __init__(self, args, cwd, env, encoding=None, **kwargs):
+		# We need to supply stdin and stderr != None because otherwise on
+		# Windows, when fman is run as a GUI app, we get:
+		# 	OSError: [WinError 6] The handle is invalid
+		# This is likely caused by https://bugs.python.org/issue3905.
 		self._process = Popen(
-			[_7ZIP_BINARY] + args, stdout=PIPE, stderr=DEVNULL, cwd=cwd,
+			[_7ZIP_BINARY] + args, stdout=PIPE, stderr=DEVNULL, stdin=DEVNULL, cwd=cwd,
 			env=env, **kwargs
 		)
 		self.stdout = SourceClosingTextIOWrapper(self._process.stdout, encoding)
@@ -417,10 +420,7 @@ class Popen7Zip:
 
 class Popen7ZipWindows(Popen7Zip):
 	def __init__(self, args, cwd):
-		# Force an output encoding that works with TextIOWrapper(...):
-		args = ['-sccWIN'] + args
-		# Prevent potential interferences with existing env. variables:
-		env = {}
+		args, env = _get_7zip_args_env_windows(args)
 		super().__init__(args, cwd, env, startupinfo=self._get_startupinfo())
 	def _get_startupinfo(self):
 		from subprocess import STARTF_USESHOWWINDOW, SW_HIDE, STARTUPINFO
@@ -429,14 +429,26 @@ class Popen7ZipWindows(Popen7Zip):
 		result.wShowWindow = SW_HIDE
 		return result
 
+def _get_7zip_args_env_windows(args):
+	# Force an output encoding that works with TextIOWrapper(...):
+	args = ['-sccWIN'] + args
+	# Prevent potential interferences with existing env. variables:
+	env = {}
+	return args, env
+
 class Popen7ZipUnix(Popen7Zip):
 	def __init__(self, args, cwd):
-		# According to the README in its source code distribution, p7zip can
-		# only handle unicode file names properly if the environment is UTF-8:
-		env = { 'LANG': 'en_US.UTF-8' }
-		# Force encoding because TextIOWrapper uses ASCII if
-		# locale.getpreferredencoding(False) happens to be None:
-		super().__init__(args, cwd, env, encoding='utf-8')
+		env, encoding = _get_7zip_env_encoding_unix()
+		super().__init__(args, cwd, env, encoding=encoding)
+
+def _get_7zip_env_encoding_unix():
+	# According to the README in its source code distribution, p7zip can
+	# only handle unicode file names properly if the environment is UTF-8:
+	env = {'LANG': 'en_US.UTF-8'}
+	# Force encoding because TextIOWrapper uses ASCII if
+	# locale.getpreferredencoding(False) happens to be None:
+	encoding = 'utf-8'
+	return env, encoding
 
 class Run7ZipViaPty:
 	"""
@@ -492,11 +504,9 @@ class Run7ZipViaPty:
 			self._source.close()
 
 	def __init__(self, args, cwd):
-		# According to the README in its source code distribution, p7zip can
-		# only handle unicode file names properly if the environment is UTF-8:
-		env = {'LANG': 'en_US.UTF-8'}
+		env, encoding = _get_7zip_env_encoding_unix()
 		self._pid, fd = self._spawn([_7ZIP_BINARY] + args, cwd, env)
-		self.stdout = self.Stdout(fd, encoding='utf-8')
+		self.stdout = self.Stdout(fd, encoding=encoding)
 	def kill(self):
 		os.kill(self._pid, signal.SIGTERM)
 	def wait(self):
@@ -514,6 +524,36 @@ class Run7ZipViaPty:
 				os.environ = env
 			os.execlp(argv[0], *argv)
 		return pid, master_fd
+
+class Run7ZipViaWinpty:
+
+	class Stdout:
+		def __init__(self, process):
+			self._process = process
+			self._escape_ansi = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]')
+		def __iter__(self):
+			while True:
+				try:
+					line = self._process.read()
+				except EOFError:
+					break
+				line = self._escape_ansi.sub('', line)
+				if line:
+					yield line
+		def close(self):
+			self._process.close()
+
+	def __init__(self, args, cwd):
+		args, env = _get_7zip_args_env_windows(args)
+		self._process = self._spawn([_7ZIP_BINARY] + args, cwd, env)
+		self.stdout = self.Stdout(self._process)
+	def kill(self):
+		self._process.terminate(force=True)
+	def wait(self):
+		return self._process.wait()
+	def _spawn(self, argv, cwd=None, env=None):
+		from winpty import PtyProcess
+		return PtyProcess.spawn(argv, cwd, env)
 
 class ZipFileSystem(_7ZipFileSystem):
 	scheme = 'zip://'

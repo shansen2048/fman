@@ -39,14 +39,21 @@ def exe():
 		'--hidden-import', 'adodbapi',
 		'--hidden-import', 'win32com.shell.shell',
 		'--hidden-import', 'win32com.shell.shellcon',
-		'--hidden-import', 'win32gui'
+		'--hidden-import', 'win32gui',
+		'--hidden-import', 'winpty'
 	])
+	_copy_winpty_files()
 	rmtree(path('${freeze_dir}/Plugins/Core/bin/mac'))
 	rmtree(path('${freeze_dir}/Plugins/Core/bin/linux'))
 	copy_python_library('send2trash', path('${freeze_dir}/Plugins/Core'))
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('${freeze_dir}/fman.exe'))
 	_generate_uninstaller()
+
+def _copy_winpty_files():
+	import winpty
+	winpty_dir = dirname(winpty.__file__)
+	copy(join(winpty_dir, 'winpty-agent.exe'), path('${freeze_dir}'))
 
 def _move_pyinstaller_output_to_version_subdir():
 	rename(path('${freeze_dir}'), path('${freeze_dir}.tmp'))
