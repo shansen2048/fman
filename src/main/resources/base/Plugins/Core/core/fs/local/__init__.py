@@ -82,6 +82,7 @@ class LocalFileSystem(FileSystem):
 		for task in self._prepare_move(src_url, dst_url):
 			task()
 	def prepare_move(self, src_url, dst_url):
+		self._check_scheme(src_url, dst_url)
 		return self._prepare_move(src_url, dst_url, measure_size=True)
 	def _prepare_move(self, src_url, dst_url, measure_size=False):
 		src_path, dst_path = self._check_scheme(src_url, dst_url)
