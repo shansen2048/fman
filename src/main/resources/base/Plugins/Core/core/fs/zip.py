@@ -4,7 +4,7 @@ from core.util import filenotfounderror
 from datetime import datetime
 from fman import PLATFORM, load_json, Task
 from fman.fs import FileSystem
-from fman.url import as_url, splitscheme, as_human_readable
+from fman.url import as_url, splitscheme, as_human_readable, basename
 from io import UnsupportedOperation, FileIO, BufferedReader, TextIOWrapper
 from os.path import join, dirname
 from pathlib import PurePosixPath, Path
@@ -16,6 +16,9 @@ import os
 import os.path
 import re
 import signal
+
+# Prevent 'Rename' below from accidentally overwriting core.Rename:
+__all__ = ['ZipFileSystem', 'SevenZipFileSystem', 'TarFileSystem']
 
 if is_arch():
 	_7ZIP_BINARY = '/usr/bin/7za'
@@ -107,13 +110,16 @@ class _7ZipFileSystem(FileSystem):
 			assert src_scheme == self.scheme
 			src_zip_path, path_in_src_zip = self._split(src_path)
 			dst_zip_path, path_in_dst_zip = self._split(dst_path)
-			return [CopyAcrossArchives(
+			return [CopyBetweenArchives(
 				self, self._fs, src_zip_path, path_in_src_zip, dst_zip_path,
 				path_in_dst_zip
 			)]
 		else:
 			raise UnsupportedOperation()
 	def move(self, src_url, dst_url):
+		for task in self.prepare_move(src_url, dst_url):
+			task()
+	def prepare_move(self, src_url, dst_url):
 		src_scheme, src_path = splitscheme(src_url)
 		dst_scheme, dst_path = splitscheme(dst_url)
 		if src_scheme == dst_scheme:
@@ -122,22 +128,18 @@ class _7ZipFileSystem(FileSystem):
 			src_zip, src_pth_in_zip = self._split(src_path)
 			dst_zip, dst_pth_in_zip = self._split(dst_path)
 			if src_zip == dst_zip:
-				with self._preserve_empty_parent(src_zip, src_pth_in_zip):
-					_run_7zip(['rn', src_zip, src_pth_in_zip, dst_pth_in_zip])
+				return [Rename(self, src_zip, src_pth_in_zip, dst_pth_in_zip)]
 			else:
-				with TemporaryDirectory() as tmp_dir:
-					tmp_dst = as_url(join(tmp_dir, 'tmp'))
-					self.copy(src_url, tmp_dst)
-					self.move(tmp_dst, dst_url)
-					self.delete(src_path)
+				return [MoveBetweenArchives(self, src_url, dst_url)]
 		else:
-			self.copy(src_url, dst_url)
-			src_scheme, src_path = splitscheme(src_url)
-			if src_scheme == 'zip://':
-				self.delete(src_path)
-			else:
-				self._fs.delete(src_url)
-		self.notify_file_moved(src_url, dst_url)
+			result = list(self.prepare_copy(src_url, dst_url))
+			title = 'Cleaning up ' + basename(src_url)
+			result.append(Task(title, target=self._fs.delete, args=(src_url,)))
+			result.append(Task(
+				'Postprocessing', target=self.notify_file_moved,
+				args=(src_url, dst_url)
+			))
+			return result
 	def mkdir(self, path):
 		if self.exists(path):
 			raise FileExistsError(path)
@@ -264,7 +266,24 @@ class _7ZipFileSystem(FileSystem):
 					getattr(file_info, field)
 				)
 
-class AddToArchive(Task):
+class _7zipTaskWithProgress(Task):
+	def run_7zip_with_progress(self, args, **kwargs):
+		# kill=True in case we `return` early when canceled:
+		with _7zip(args, kill=True, pty=True, **kwargs) as process:
+			for line in process.stdout:
+				if self.was_canceled():
+					return
+				# The \r appears on Windows only:
+				match = re.match('\r? *(\\d\\d?)% ', line)
+				if match:
+					percent = int(match.group(1))
+					# At least on Linux, 7za shows progress going from 0 to
+					# 100% twice. The second pass is much faster - maybe
+					# some kind of verification? Only show the first round:
+					if percent > self.get_progress():
+						self.set_progress(percent)
+
+class AddToArchive(_7zipTaskWithProgress):
 	def __init__(self, zip_fs, fman_fs, src_ospath, zip_path, path_in_zip):
 		if not path_in_zip:
 			raise ValueError(
@@ -290,22 +309,10 @@ class AddToArchive(Task):
 			args = ['a', self._zip_path, self._path_in_zip]
 			if PLATFORM != 'Windows':
 				args.insert(1, '-l')
-			# kill=True in case we `return` early when canceled:
-			with _7zip(args, cwd=tmp_dir, kill=True, pty=True) as process:
-				for line in process.stdout:
-					if self.was_canceled():
-						return
-					# The \r appears on Windows only:
-					match = re.match('\r? *(\\d\\d?)% ', line)
-					if match:
-						percent = int(match.group(1))
-						# At least on Linux, 7za shows progress going from 0 to
-						# 100% twice. The second pass is much faster - maybe
-						# some kind of verification? Only show the first round:
-						if percent > self.get_progress():
-							self.set_progress(percent)
-			dest_path = self._zip_path + '/' + self._path_in_zip
-			self._zip_fs.notify_file_added(dest_path)
+			self.run_7zip_with_progress(args, cwd=tmp_dir)
+			if not self.was_canceled():
+				dest_path = self._zip_path + '/' + self._path_in_zip
+				self._zip_fs.notify_file_added(dest_path)
 
 class Extract(Task):
 	def __init__(self, fman_fs, zip_path, path_in_zip, dst_ospath):
@@ -336,7 +343,7 @@ class Extract(Task):
 				# This happens when path_in_zip = ''
 				pass
 
-class CopyAcrossArchives(Task):
+class CopyBetweenArchives(Task):
 	def __init__(
 		self, zip_fs, fman_fs, src_zip_path, path_in_src_zip, dst_zip_path,
 		path_in_dst_zip
@@ -361,8 +368,42 @@ class CopyAcrossArchives(Task):
 				self._path_in_dst_zip
 			))
 
+class Rename(_7zipTaskWithProgress):
+	def __init__(self, zip_fs, zip_path, src_in_zip, dst_in_zip):
+		super().__init__('Renaming ' + src_in_zip.rsplit('/', 1)[-1], size=100)
+		self._fs = zip_fs
+		self._zip_path = zip_path
+		self._src_in_zip = src_in_zip
+		self._dst_in_zip = dst_in_zip
+	def __call__(self, *args, **kwargs):
+		with self._fs._preserve_empty_parent(self._zip_path, self._src_in_zip):
+			self.run_7zip_with_progress(
+				['rn', self._zip_path, self._src_in_zip, self._dst_in_zip]
+			)
+		if not self.was_canceled():
+			zip_url = as_url(self._zip_path, self._fs.scheme)
+			src_url = join(zip_url, self._src_in_zip)
+			dst_url = join(zip_url, self._dst_in_zip)
+			self._fs.notify_file_moved(src_url, dst_url)
+
+class MoveBetweenArchives(Task):
+	def __init__(self, fs, src_url, dst_url):
+		super().__init__('Moving ' + basename(src_url), size=200)
+		self._fs = fs
+		self._src_url = src_url
+		self._dst_url = dst_url
+	def __call__(self):
+		self.set_text('Preparing...')
+		with TemporaryDirectory() as tmp_dir:
+			tmp_url = as_url(os.path.join(tmp_dir, 'tmp'))
+			tasks = list(self._fs.prepare_move(self._src_url, tmp_url))
+			tasks.extend(self._fs.prepare_move(tmp_url, self._dst_url))
+			for task in tasks:
+				self.run(task)
+
 def _basename(zip_path, path_in_zip):
-	return (zip_path + path_in_zip).rsplit('/', 1)[-1]
+	sep = ('/' if path_in_zip else '')
+	return (zip_path + sep + path_in_zip).rsplit('/', 1)[-1]
 
 def _run_7zip(args, cwd=None, pty=False):
 	with _7zip(args, cwd=cwd, pty=pty):
