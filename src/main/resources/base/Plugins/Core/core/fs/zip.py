@@ -14,7 +14,6 @@ from tempfile import TemporaryDirectory
 import fman.fs
 import os
 import os.path
-import pty
 import re
 import signal
 
@@ -504,6 +503,7 @@ class Run7ZipViaPty:
 		return os.waitpid(self._pid, 0)[1]
 	def _spawn(self, argv, cwd=None, env=None):
 		# Copied and adapted from pty.spawn(...).
+		import pty
 		pid, master_fd = pty.fork()
 		if pid == pty.CHILD:
 			# In some magical way, this code is executed in the forked child
