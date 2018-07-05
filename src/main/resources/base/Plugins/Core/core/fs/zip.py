@@ -503,7 +503,7 @@ class Run7ZipViaPty:
 		return os.waitpid(self._pid, 0)[1]
 	def _spawn(self, argv, cwd=None, env=None):
 		# Copied and adapted from pty.spawn(...).
-		import pty
+		import pty # <- import late because pty is not available on Windows.
 		pid, master_fd = pty.fork()
 		if pid == pty.CHILD:
 			# In some magical way, this code is executed in the forked child
