@@ -666,6 +666,7 @@ class _Rename(Task):
 		self.set_size(sum(t.get_size() for t in tasks))
 		try:
 			for task in tasks:
+				self.check_canceled()
 				self.run(task)
 		except OSError as e:
 			if isinstance(e, PermissionError):
@@ -1794,6 +1795,7 @@ class _Pack(Task):
 	def __call__(self):
 		for f in self._files:
 			for task in prepare_copy(f, join(self._archive, basename(f))):
+				self.check_canceled()
 				self.run(task)
 
 def _get_handler_for_archive(file_name):
