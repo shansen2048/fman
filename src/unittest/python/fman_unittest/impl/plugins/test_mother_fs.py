@@ -81,7 +81,6 @@ class MotherFileSystemTest(TestCase):
 		t1.join()
 		t2.join()
 		self.assertEqual(1, fs.num_is_dir_calls)
-		self.assertEqual({}, fs.cache._read_locks, 'Likely memory leak!')
 	def test_permission_error(self):
 		fs = FileSystemRaisingError()
 		mother_fs = self._create_mother_fs(fs)
