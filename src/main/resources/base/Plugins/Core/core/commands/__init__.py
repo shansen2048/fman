@@ -674,7 +674,7 @@ class _Rename(Task):
 				message = 'Could not rename %s to %s.'
 			old_name = basename(self._src_url)
 			new_name = basename(self._dst_url)
-			show_alert(message % (old_name, new_name))
+			self.show_alert(message % (old_name, new_name))
 		else:
 			try:
 				self._pane.place_cursor_at(self._dst_url)
