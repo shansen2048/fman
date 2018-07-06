@@ -275,7 +275,9 @@ class MainWindow(QMainWindow):
 		return result
 	@run_in_main_thread
 	def create_progress_dialog(self, title, task_size):
-		return ProgressDialog(self, title, task_size, self._progress_bar_palette)
+		return ProgressDialog(
+			self, title, task_size, self._progress_bar_palette
+		)
 	@run_in_main_thread
 	def exec_dialog(self, dialog):
 		self._dialog = dialog
