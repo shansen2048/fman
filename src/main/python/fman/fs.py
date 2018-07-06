@@ -37,6 +37,9 @@ def move_to_trash(url):
 def delete(url):
 	_get_mother_fs().delete(url)
 
+def prepare_delete(url):
+	return _get_mother_fs().prepare_delete(url)
+
 def samefile(url1, url2):
 	return _get_mother_fs().samefile(url1, url2)
 
@@ -120,6 +123,9 @@ class FileSystem:
 		raise self._operation_not_supported()
 	def delete(self, path):
 		raise self._operation_not_supported()
+	def prepare_delete(self, path):
+		title = 'Deleting ' + path.rsplit('/', 1)[-1]
+		yield Task(title, target=self.delete, args=(path,))
 	def move_to_trash(self, path):
 		raise self._operation_not_supported()
 	def touch(self, path):

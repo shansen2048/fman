@@ -305,6 +305,9 @@ class Task:
 		self.set_text(subtask.get_title())
 		subtask._dialog = ChildProgressDialog(self._dialog)
 		subtask()
+		# Some tasks, especially those with size 1, may not "complete" their
+		# progress at the end. Do it for them:
+		subtask.set_progress(subtask.get_size())
 	def show_alert(self, *args, **kwargs):
 		return self._dialog.show_alert(*args, **kwargs)
 	def __str__(self):

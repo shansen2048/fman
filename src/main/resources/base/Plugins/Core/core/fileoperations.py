@@ -57,8 +57,8 @@ class FileTreeOperation(Task):
 				if task.get_size() > 0:
 					num_files[0] += 1
 					self.set_text(
-						'Gathered {:,} files to {}.'
-							.format(num_files[0], self._descr_verb)
+						'Preparing to {} {:,} files.'
+							.format(self._descr_verb, num_files[0])
 					)
 				result.append(task)
 		dest_dir_url = self._get_dest_dir_url()

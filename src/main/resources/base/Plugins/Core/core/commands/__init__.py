@@ -7,7 +7,7 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
 from fman.fs import exists, touch, mkdir, is_dir, move_to_trash, delete, \
-	samefile, copy, iterdir, resolve, prepare_copy, prepare_move
+	samefile, copy, iterdir, resolve, prepare_copy, prepare_move, prepare_delete
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 	dirname
 from getpass import getuser
@@ -90,20 +90,20 @@ class MoveToTrash(DirectoryPaneCommand):
 		if not urls:
 			show_alert('No file is selected!')
 			return
-		if len(urls) > 1:
-			description = 'these %d items' % len(urls)
-		else:
-			description = as_human_readable(urls[0])
+		description = _describe(urls, 'these %d files')
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
 		msg = "Do you really want to move %s to the %s?" % (description, trash)
-		_delete(urls, msg, move_to_trash, delete)
+		if show_alert(msg, YES | NO, YES) & YES:
+			_delete(urls, move_to_trash, delete)
 	def is_visible(self):
 		return bool(self.pane.get_file_under_cursor())
 
-def _delete(urls, message, delete_fn, fallback=None):
-	choice = show_alert(message, YES | NO, YES)
-	if not choice & YES:
-		return
+def _describe(files, template='%d files'):
+	if len(files) == 1:
+		return basename(files[0])
+	return template % len(files)
+
+def _delete(urls, delete_fn, fallback=None):
 	ignore_errors = False
 	for i, url in enumerate(urls):
 		try:
@@ -144,14 +144,57 @@ class DeletePermanently(DirectoryPaneCommand):
 		if not urls:
 			show_alert('No file is selected!')
 			return
-		if len(urls) > 1:
-			description = 'these %d items' % len(urls)
-		else:
-			description = as_human_readable(urls[0])
+		description = _describe(urls, 'these %d items')
 		message = \
 			"Do you really want to PERMANENTLY delete %s? This action cannot " \
 			"be undone!" % description
-		_delete(urls, message, delete)
+		if show_alert(message, YES | NO, YES) & YES:
+			submit_task(_Delete(urls))
+
+class _Delete(Task):
+	def __init__(self, urls):
+		super().__init__('Deleting ' + _describe(urls))
+		self._urls = urls
+	def __call__(self):
+		tasks = []
+		for url in self._urls:
+			for task in prepare_delete(url):
+				self.check_canceled()
+				tasks.append(task)
+				if task.get_size():
+					self.set_text(
+						'Preparing to delete {:,} files.'.format(len(tasks))
+					)
+		self.set_size(sum(t.get_size() for t in tasks))
+		ignore_errors = False
+		for i, task in enumerate(tasks):
+			self.check_canceled()
+			try:
+				self.run(task)
+			except FileNotFoundError:
+				# Perhaps the file has already been deleted.
+				pass
+			except OSError as e:
+				if ignore_errors:
+					continue
+				text = task.get_text()
+				message = 'Error ' + text[0].lower() + text[1:]
+				reason = e.strerror or ''
+				if not reason and e.errno is not None:
+					reason = strerror(e.errno)
+				if reason:
+					message += ': ' + reason
+				message += '.'
+				is_last = i == len(tasks) - 1
+				if is_last:
+					self.show_alert(message)
+				else:
+					message += ' Do you want to continue?'
+					choice = show_alert(message, YES | NO | YES_TO_ALL)
+					if choice & NO:
+						break
+					if choice & YES_TO_ALL:
+						ignore_errors = True
 
 class GoUp(DirectoryPaneCommand):
 
@@ -1748,17 +1791,15 @@ class Pack(DirectoryPaneCommand):
 			show_alert('No file is selected!')
 			return
 		if len(files) == 1:
-			descr = basename(files[0])
 			dest_name = PurePath(basename(files[0])).stem + '.zip'
 		else:
-			descr = '%d files' % len(files)
 			dest_name = basename(self.pane.get_path()) + '.zip'
 		dest_dir = _get_opposite_pane(self.pane).get_path()
 		dest_url = join(dest_dir, dest_name)
 		suggested_dst, selection_start, selection_end = \
 			get_dest_suggestion(dest_url)
 		dest, ok = show_prompt(
-			'Pack %s to (.zip, .7z, .tar):' % descr, suggested_dst,
+			'Pack %s to (.zip, .7z, .tar):' % _describe(files), suggested_dst,
 			selection_start, selection_end
 		)
 		if dest and ok:
@@ -1784,12 +1825,7 @@ class Pack(DirectoryPaneCommand):
 
 class _Pack(Task):
 	def __init__(self, files, archive_url):
-		title = 'Packing '
-		if len(files) == 1:
-			title += basename(files[0])
-		else:
-			title += '%d files' % len(files)
-		super().__init__(title, size=len(files) * 100)
+		super().__init__('Packing ' + _describe(files), size=len(files) * 100)
 		self._files = files
 		self._archive = archive_url
 	def __call__(self):

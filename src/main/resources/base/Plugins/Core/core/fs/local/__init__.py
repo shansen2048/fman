@@ -8,7 +8,7 @@ from fman.impl.util.qt.thread import run_in_main_thread
 from fman.url import as_url, splitscheme, as_human_readable, join, basename, \
 	dirname
 from io import UnsupportedOperation
-from os import remove
+from os import remove, rmdir
 from os.path import islink, samestat
 from pathlib import Path
 from PyQt5.QtCore import QFileSystemWatcher
@@ -21,8 +21,6 @@ if PLATFORM == 'Windows':
 	from core.fs.local.windows.rmtree import rmtree
 	from core.fs.local.windows.drives import DrivesFileSystem, DriveName
 	from core.fs.local.windows.network import NetworkFileSystem
-else:
-	from shutil import rmtree
 
 class LocalFileSystem(FileSystem):
 
@@ -111,13 +109,24 @@ class LocalFileSystem(FileSystem):
 		move_to_trash(self._url_to_os_path(path))
 		self.notify_file_removed(path)
 	def delete(self, path):
+		for task in self.prepare_delete(path):
+			task()
+	def prepare_delete(self, path):
 		if self.is_dir(path):
-			def handle_error(func, path, exc_info):
-				if not isinstance(exc_info[1], FileNotFoundError):
-					raise
-			rmtree(self._url_to_os_path(path), onerror=handle_error)
+			for name in self.iterdir(path):
+				try:
+					yield from self.prepare_delete(path + '/' + name)
+				except FileNotFoundError:
+					pass
+			delete_fn = rmdir
 		else:
-			remove(self._url_to_os_path(path))
+			delete_fn = remove
+		yield Task(
+			'Deleting ' + path.rsplit('/', 1)[-1],
+			target=self._do_delete, args=(path, delete_fn), size=1
+		)
+	def _do_delete(self, path, delete_fn):
+		delete_fn(path)
 		self.notify_file_removed(path)
 	def resolve(self, path):
 		if not path:

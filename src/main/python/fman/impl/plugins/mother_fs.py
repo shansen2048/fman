@@ -112,6 +112,9 @@ class MotherFileSystem:
 	def delete(self, url):
 		child, path = self._split(url)
 		child.delete(path)
+	def prepare_delete(self, url):
+		child, path = self._split(url)
+		return child.prepare_delete(path)
 	def resolve(self, url):
 		child, path = self._split(url)
 		return child.resolve(path)
