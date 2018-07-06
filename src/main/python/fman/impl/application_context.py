@@ -340,6 +340,12 @@ class DevelopmentApplicationContext(ApplicationContext):
 		)
 		result.setColor(QPalette.Link, Qt.white)
 		result.setColor(QPalette.LinkVisited, Qt.white)
+		# Prevent blue highlight around buttons when the window (/dialog) is in
+		# the background and thus inactive:
+		result.setColor(
+			QPalette.Inactive, QPalette.Highlight,
+			result.color(QPalette.Midlight)
+		)
 		return result
 	@cached_property
 	def user(self):
