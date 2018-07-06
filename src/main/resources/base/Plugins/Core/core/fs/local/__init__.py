@@ -18,7 +18,6 @@ from stat import S_ISDIR
 import os
 
 if PLATFORM == 'Windows':
-	from core.fs.local.windows.rmtree import rmtree
 	from core.fs.local.windows.drives import DrivesFileSystem, DriveName
 	from core.fs.local.windows.network import NetworkFileSystem
 
