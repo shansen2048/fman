@@ -287,8 +287,8 @@ class Task:
 		self._target(*self._args, **self._kwargs)
 	def get_title(self):
 		return self._title
-	def set_text(self, status):
-		self._dialog.set_text(status)
+	def set_text(self, text):
+		self._dialog.set_text(text)
 	def set_size(self, size):
 		self._size = size
 		self._dialog.set_task_size(size)
