@@ -8,7 +8,7 @@ import fman.fs
 
 class FileTreeOperation(Task):
 	def __init__(
-		self, descr_verb, ui, files, dest_dir, src_dir=None, dest_name=None,
+		self, descr_verb, files, dest_dir, src_dir=None, dest_name=None,
 		fs=fman.fs
 	):
 		if dest_name and len(files) > 1:
@@ -16,7 +16,6 @@ class FileTreeOperation(Task):
 				'Destination name can only be given when there is one file.'
 			)
 		super().__init__(self._get_title(descr_verb, files))
-		self._ui = ui
 		self._files = files
 		self._dest_dir = dest_dir
 		self._descr_verb = descr_verb
@@ -80,7 +79,7 @@ class FileTreeOperation(Task):
 						if self._can_transfer_samefile():
 							gather(self._prepare_transfer(src, dest))
 							continue
-				self._ui.show_alert(
+				self.show_alert(
 					"You cannot %s a file to itself." % self._descr_verb
 				)
 				return []
@@ -144,7 +143,7 @@ class FileTreeOperation(Task):
 		return result
 	def _should_overwrite(self, file_url):
 		if self._override_all is None:
-			choice = self._ui.show_alert(
+			choice = self.show_alert(
 				"%s exists. Do you want to overwrite it?" % basename(file_url),
 				YES | NO | YES_TO_ALL | NO_TO_ALL | ABORT, YES
 			)
@@ -173,7 +172,7 @@ class FileTreeOperation(Task):
 			buttons = YES | YES_TO_ALL | ABORT
 			default_button = YES
 			message += ' Do you want to continue?'
-		choice = self._ui.show_alert(message, buttons, default_button)
+		choice = self.show_alert(message, buttons, default_button)
 		if is_last:
 			return choice & OK
 		else:

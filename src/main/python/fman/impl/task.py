@@ -35,3 +35,5 @@ class ChildProgressDialog:
 		return self._parent.get_progress() - self._progress_start
 	def was_canceled(self):
 		return self._parent.was_canceled()
+	def show_alert(self, *args, **kwargs):
+		return self._parent.show_alert(*args, **kwargs)

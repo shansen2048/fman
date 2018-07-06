@@ -305,6 +305,8 @@ class Task:
 		self.set_text(subtask.get_title())
 		subtask._dialog = ChildProgressDialog(self._dialog)
 		subtask()
+	def show_alert(self, *args, **kwargs):
+		return self._dialog.show_alert(*args, **kwargs)
 	def __str__(self):
 		return self._title
 

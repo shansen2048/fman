@@ -568,6 +568,7 @@ class Overlay(QFrame):
 class ProgressDialog(QProgressDialog):
 
 	_MAX_C_INT = 2147483647
+	_MINIMUM_DURATION_MS = 1000
 
 	@run_in_main_thread
 	def __init__(self, parent, title, size, progress_bar_palette):
@@ -577,7 +578,7 @@ class ProgressDialog(QProgressDialog):
 		self._progress = 0
 		self._was_canceled = False
 		self.findChild(QProgressBar).setPalette(progress_bar_palette)
-		self.setMinimumDuration(1000)
+		self.setMinimumDuration(self._MINIMUM_DURATION_MS)
 		self.setAutoReset(False)
 		self.setWindowTitle(title)
 		self.set_task_size(size)
@@ -616,6 +617,14 @@ class ProgressDialog(QProgressDialog):
 		cancel_button = self.findChild(QPushButton)
 		cancel_button.setEnabled(False)
 		self._was_canceled = True
+	@run_in_main_thread
+	def show_alert(self, *args, **kwargs):
+		# Prevent the progress dialog from popping up while the alert is shown:
+		self.setMinimumDuration(self._MAX_C_INT)
+		try:
+			return self.parent().show_alert(*args, **kwargs)
+		finally:
+			self.setMinimumDuration(self._MINIMUM_DURATION_MS)
 	def was_canceled(self):
 		return self._was_canceled
 	def showEvent(self, e):

@@ -246,7 +246,7 @@ class FileTreeOperationAT:
 	def setUp(self):
 		super().setUp()
 		self._fs = StubFS()
-		self.ui = StubUI(self)
+		self._progress_dialog = MockProgressDialog(self)
 		self._tmp_dir = TemporaryDirectory()
 		self._root = as_url(self._tmp_dir.name)
 		# We need intermediate 'src-parent' for test_relative_path_parent_dir:
@@ -266,8 +266,10 @@ class FileTreeOperationAT:
 			dest_dir = self.dest
 		if src_dir == '':
 			src_dir = self.src
-		self.operation(self.ui, files, dest_dir, src_dir, dest_name, self._fs)()
-		self.ui.verify_expected_dialogs_were_shown()
+		op = self.operation(files, dest_dir, src_dir, dest_name, self._fs)
+		op._dialog = self._progress_dialog
+		op()
+		self._progress_dialog.verify_expected_dialogs_were_shown()
 	def _assert_file_contents_equal(self, url, expected_contents):
 		with self._open(url, 'r') as f:
 			self.assertEqual(expected_contents, f.read())
@@ -294,7 +296,7 @@ class FileTreeOperationAT:
 	def _readlink(self, link_url):
 		return as_url(os.readlink(as_human_readable(link_url)))
 	def _expect_alert(self, args, answer):
-		self.ui.expect_alert(args, answer)
+		self._progress_dialog.expect_alert(args, answer)
 	def _expect_files(self, files, in_dir=None):
 		if in_dir is None:
 			in_dir = self.dest
@@ -411,3 +413,32 @@ class MoveFilesTest(FileTreeOperationAT, TestCase):
 	def test_overwrite_directory_file_in_subdir(self):
 		super().test_overwrite_directory_file_in_subdir()
 		self.assertNotIn('dir1', self._fs.iterdir(self.src))
+
+class MockProgressDialog:
+	def __init__(self, test_case):
+		self._test_case = test_case
+		self._progress = 0
+		self._expected_alerts = []
+	def expect_alert(self, args, answer):
+		self._expected_alerts.append((args, answer))
+	def verify_expected_dialogs_were_shown(self):
+		self._test_case.assertEqual(
+			[], self._expected_alerts, 'Did not receive all expected alerts.'
+		)
+	def show_alert(self, *args, **_):
+		if not self._expected_alerts:
+			self._test_case.fail('Unexpected alert: %r' % args[0])
+			return
+		expected_args, answer = self._expected_alerts.pop(0)
+		self._test_case.assertEqual(expected_args, args, "Wrong alert")
+		return answer
+	def set_text(self, text):
+		pass
+	def was_canceled(self):
+		return False
+	def set_task_size(self, size):
+		pass
+	def get_progress(self):
+		return self._progress
+	def set_progress(self, progress):
+		self._progress = progress

@@ -583,11 +583,11 @@ def _split(url):
 
 class Copy(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		submit_task(CopyFiles(fman, files, dest_dir, src_dir, dest_name))
+		submit_task(CopyFiles(files, dest_dir, src_dir, dest_name))
 
 class Move(_TreeCommand):
 	def _call(self, files, dest_dir, src_dir=None, dest_name=None):
-		submit_task(MoveFiles(fman, files, dest_dir, src_dir, dest_name))
+		submit_task(MoveFiles(files, dest_dir, src_dir, dest_name))
 
 class DragAndDropListener(DirectoryPaneListener):
 	def on_files_dropped(self, file_urls, dest_dir, is_copy_not_move):
