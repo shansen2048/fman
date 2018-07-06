@@ -567,14 +567,23 @@ class Overlay(QFrame):
 
 class ProgressDialog(QProgressDialog):
 
+	"""
+	Instead of using @run_in_main_thread on #set_text(...) and
+	#set_progress(...), this class uses #_update_timer to only update the GUI
+	every 100ms. This avoids the unnecessary overhead of syncing with the main
+	thread for every status update, and thus improves performance.
+	"""
+
 	_MAX_C_INT = 2147483647
 	_MINIMUM_DURATION_MS = 1000
+	_UPDATE_INTERVAL_MS = 100
 
 	@run_in_main_thread
 	def __init__(self, parent, title, size, progress_bar_palette):
 		super().__init__(parent)
 		self._title = title
 		self._size = self.maximum()
+		self._text = ''
 		self._progress = 0
 		self._was_canceled = False
 		self.findChild(QProgressBar).setPalette(progress_bar_palette)
@@ -584,25 +593,18 @@ class ProgressDialog(QProgressDialog):
 		self.set_task_size(size)
 		self.canceled.disconnect(super().cancel)
 		self.canceled.connect(self.request_cancel)
+		self._update_timer = QTimer(self)
+		self._update_timer.timeout.connect(self._update)
 		# Ensure the progress dialog appears in 1 sec starting *now*:
-		self.set_progress(0)
-	@run_in_main_thread
+		self.setValue(0)
 	def set_text(self, text):
-		self.setLabelText(text)
+		self._text = text
 	@run_in_main_thread
 	def set_task_size(self, size):
 		self._size = size
 		self.setMaximum(min(size, self._MAX_C_INT))
-	@run_in_main_thread
 	def set_progress(self, progress):
 		self._progress = progress
-		if self._size > self._MAX_C_INT:
-			# QProgressDialog#setValue(...) can only handle ints. If `progress`
-			# is too large, we need to scale it down. If we didn't do this and
-			# pass a larger number, it would overflow to a negative value.
-			progress = self._MAX_C_INT * progress // self._size
-		self.setValue(progress)
-	@run_in_main_thread
 	def get_progress(self):
 		return self._progress
 	def reject(self):
@@ -630,4 +632,21 @@ class ProgressDialog(QProgressDialog):
 	def showEvent(self, e):
 		# Prevent the dialog from being resizable:
 		self.setFixedSize(self.size())
+		self._update()
+		self._update_timer.start(self._UPDATE_INTERVAL_MS)
 		super().showEvent(e)
+	def closeEvent(self, e):
+		self._update_timer.stop()
+		super().closeEvent(e)
+	def _update(self):
+		if self.wasCanceled():
+			return
+		self.setLabelText(self._text)
+		self._set_value(self._progress)
+	def _set_value(self, progress):
+		if self._size > self._MAX_C_INT:
+			# QProgressDialog#setValue(...) can only handle ints. If `progress`
+			# is too large, we need to scale it down. If we didn't do this and
+			# pass a larger number, it would overflow to a negative value.
+			progress = self._MAX_C_INT * progress // self._size
+		self.setValue(progress)
