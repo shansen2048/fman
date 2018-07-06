@@ -268,6 +268,10 @@ def unload_plugin(plugin_path):
 	_get_plugin_support().unload_plugin(plugin_path)
 
 class Task:
+
+	class Canceled(KeyboardInterrupt):
+		pass
+
 	def __init__(
 		self, title, target=lambda: None, args=(), kwargs=None, size=0
 	):
@@ -294,8 +298,9 @@ class Task:
 		self._dialog.set_progress(progress)
 	def get_progress(self):
 		return self._dialog.get_progress()
-	def was_canceled(self):
-		return self._dialog.was_canceled()
+	def check_canceled(self):
+		if self._dialog.was_canceled():
+			raise self.Canceled()
 	def run(self, subtask):
 		self.set_text(subtask.get_title())
 		subtask._dialog = ChildProgressDialog(self._dialog)
@@ -309,6 +314,8 @@ def submit_task(task):
 	task._dialog = dialog
 	try:
 		task()
+	except Task.Canceled:
+		pass
 	finally:
 		dialog.cancel()
 		task._dialog = dialog_before

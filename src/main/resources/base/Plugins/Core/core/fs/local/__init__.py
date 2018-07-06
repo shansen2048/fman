@@ -212,13 +212,13 @@ class CopyFile(Task):
 			with open(src, 'rb') as fsrc:
 				with open(dst, 'wb') as fdst:
 					num_written = 0
-					while not self.was_canceled():
+					while True:
+						self.check_canceled()
 						buf = fsrc.read(16 * 1024)
 						if not buf:
 							break
 						num_written += fdst.write(buf)
 						self.set_progress(num_written)
-		if not self.was_canceled():
-			copystat(src, dst, follow_symlinks=False)
+		copystat(src, dst, follow_symlinks=False)
 		if not dst_existed:
 			self._fs.notify_file_added(dst_urlpath)

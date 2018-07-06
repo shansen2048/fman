@@ -676,11 +676,10 @@ class _Rename(Task):
 			new_name = basename(self._dst_url)
 			show_alert(message % (old_name, new_name))
 		else:
-			if not self.was_canceled():
-				try:
-					self._pane.place_cursor_at(self._dst_url)
-				except ValueError as file_disappeared:
-					pass
+			try:
+				self._pane.place_cursor_at(self._dst_url)
+			except ValueError as file_disappeared:
+				pass
 
 class CreateDirectory(DirectoryPaneCommand):
 

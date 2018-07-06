@@ -36,11 +36,6 @@ class FileTreeOperation(Task):
 	def _postprocess_directory(self, src_dir_path):
 		return None
 	def __call__(self):
-		try:
-			self._execute()
-		except Canceled:
-			pass
-	def _execute(self):
 		self.set_text('Gathering files...')
 		tasks = self._gather_files()
 		self.set_size(sum(task.get_size() for task in tasks))
@@ -230,8 +225,7 @@ class FileTreeOperation(Task):
 			yield from self._walk_topdown(dir_)
 	def _iter(self, iterable):
 		for item in iterable:
-			if self.was_canceled():
-				raise Canceled()
+			self.check_canceled()
 			yield item
 	def _get_title(self, descr_verb, files):
 		verb = descr_verb.capitalize()
@@ -241,9 +235,6 @@ class FileTreeOperation(Task):
 		else:
 			result += '%d files' % len(files)
 		return result
-
-class Canceled(RuntimeError):
-	pass
 
 class CopyFiles(FileTreeOperation):
 	def __init__(self, *super_args, **super_kwargs):

@@ -271,8 +271,7 @@ class _7zipTaskWithProgress(Task):
 		# kill=True in case we `return` early when canceled:
 		with _7zip(args, kill=True, pty=True, **kwargs) as process:
 			for line in process.stdout:
-				if self.was_canceled():
-					return
+				self.check_canceled()
 				# The \r appears on Windows only:
 				match = re.match('\r? *(\\d\\d?)% ', line)
 				if match:
@@ -310,9 +309,8 @@ class AddToArchive(_7zipTaskWithProgress):
 			if PLATFORM != 'Windows':
 				args.insert(1, '-l')
 			self.run_7zip_with_progress(args, cwd=tmp_dir)
-			if not self.was_canceled():
-				dest_path = self._zip_path + '/' + self._path_in_zip
-				self._zip_fs.notify_file_added(dest_path)
+			dest_path = self._zip_path + '/' + self._path_in_zip
+			self._zip_fs.notify_file_added(dest_path)
 
 class Extract(Task):
 	def __init__(self, fman_fs, zip_path, path_in_zip, dst_ospath):
@@ -380,11 +378,10 @@ class Rename(_7zipTaskWithProgress):
 			self.run_7zip_with_progress(
 				['rn', self._zip_path, self._src_in_zip, self._dst_in_zip]
 			)
-		if not self.was_canceled():
-			zip_url = as_url(self._zip_path, self._fs.scheme)
-			src_url = join(zip_url, self._src_in_zip)
-			dst_url = join(zip_url, self._dst_in_zip)
-			self._fs.notify_file_moved(src_url, dst_url)
+		zip_url = as_url(self._zip_path, self._fs.scheme)
+		src_url = join(zip_url, self._src_in_zip)
+		dst_url = join(zip_url, self._dst_in_zip)
+		self._fs.notify_file_moved(src_url, dst_url)
 
 class MoveBetweenArchives(Task):
 	def __init__(self, fs, src_url, dst_url):
