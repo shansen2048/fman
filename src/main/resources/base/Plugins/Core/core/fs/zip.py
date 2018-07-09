@@ -357,7 +357,10 @@ class CopyBetweenArchives(Task):
 		self._path_in_dst_zip = path_in_dst_zip
 	def __call__(self):
 		with TemporaryDirectory() as tmp_dir:
-			tmp_dst_ospath = os.path.join(tmp_dir, 'tmp')
+			src_basename = self._path_in_src_zip.rsplit('/', 1)[-1]
+			# Give temp dir the same name as the source file; This leads to the
+			# correct name being displayed in the progress dialog:
+			tmp_dst_ospath = os.path.join(tmp_dir, src_basename)
 			self.run(Extract(
 				self._fman_fs, self._src_zip_path, self._path_in_src_zip,
 				tmp_dst_ospath
