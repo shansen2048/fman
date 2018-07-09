@@ -142,7 +142,6 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 	def test_file_renamed(self):
 		self.test_set_location()
 		self._stubfs.move('stub://0', 'stub://a')
-		self._fs.file_moved.trigger('stub://0', 'stub://a')
 		def rename_noticed():
 			first_column = self._get_first_column()
 			return 'a' in first_column and '0' not in first_column
@@ -150,7 +149,6 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 	def test_file_moved_in(self):
 		self.test_set_location()
 		self._stubfs.move('stub://dir/subdir', 'stub://subdir')
-		self._fs.file_moved.trigger('stub://dir/subdir', 'stub://subdir')
 		self._wait_until(
 			lambda: 'subdir' in self._get_first_column(),
 			'Did not pick up move of directory'
@@ -158,7 +156,6 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 	def test_file_moved_out(self):
 		self.test_set_location()
 		self._stubfs.move('stub://0', 'stub://dir/0')
-		self._fs.file_moved.trigger('stub://0', 'stub://dir/0')
 		self._wait_until(
 			lambda: not '0' in self._get_first_column(),
 			'Did not pick up move of file into subdirectory'
@@ -166,7 +163,6 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 	def test_rename_file_different_case(self):
 		self.test_set_location()
 		self._stubfs.move('stub://dir', 'stub://Dir')
-		self._fs.file_moved.trigger('stub://dir', 'stub://Dir')
 		def rename_noticed():
 			first_column = self._get_first_column()
 			return 'Dir' in first_column and 'dir' not in first_column

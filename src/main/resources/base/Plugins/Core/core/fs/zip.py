@@ -135,10 +135,6 @@ class _7ZipFileSystem(FileSystem):
 			result = list(self.prepare_copy(src_url, dst_url))
 			title = 'Cleaning up ' + basename(src_url)
 			result.append(Task(title, target=self._fs.delete, args=(src_url,)))
-			result.append(Task(
-				'Postprocessing', target=self.notify_file_moved,
-				args=(src_url, dst_url)
-			))
 			return result
 	def mkdir(self, path):
 		if self.exists(path):
@@ -384,9 +380,8 @@ class Rename(_7zipTaskWithProgress):
 				['rn', self._zip_path, self._src_in_zip, self._dst_in_zip]
 			)
 		zip_url = as_url(self._zip_path, self._fs.scheme)
-		src_url = join(zip_url, self._src_in_zip)
-		dst_url = join(zip_url, self._dst_in_zip)
-		self._fs.notify_file_moved(src_url, dst_url)
+		self._fs.notify_file_removed(join(zip_url, self._src_in_zip))
+		self._fs.notify_file_added(join(zip_url, self._dst_in_zip))
 
 class MoveBetweenArchives(Task):
 	def __init__(self, fs, src_url, dst_url):

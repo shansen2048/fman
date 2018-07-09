@@ -65,7 +65,6 @@ class FileSystem:
 	def __init__(self):
 		self.cache = Cache()
 		self._file_added = Event()
-		self._file_moved = Event()
 		self._file_removed = Event()
 		self._file_changed_callbacks = {}
 		self._file_changed_callbacks_lock = Lock()
@@ -96,8 +95,6 @@ class FileSystem:
 		pass
 	def notify_file_added(self, path):
 		self._file_added.trigger(self.scheme + path)
-	def notify_file_moved(self, src_url, dst_url):
-		self._file_moved.trigger(src_url, dst_url)
 	def notify_file_removed(self, path):
 		self._file_removed.trigger(self.scheme + path)
 	def notify_file_changed(self, path):

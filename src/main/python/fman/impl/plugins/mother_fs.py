@@ -7,7 +7,6 @@ class MotherFileSystem:
 	def __init__(self, icon_provider):
 		super().__init__()
 		self.file_added = Event()
-		self.file_moved = Event()
 		self.file_removed = Event()
 		self._children = {}
 		# Keep track of children being deleted so file_removed listeners can
@@ -17,13 +16,11 @@ class MotherFileSystem:
 		self._columns = {}
 	def add_child(self, scheme, child):
 		child._file_added.add_callback(self._on_file_added)
-		child._file_moved.add_callback(self._on_file_moved)
 		child._file_removed.add_callback(self._on_file_removed)
 		self._children[scheme] = child
 	def remove_child(self, scheme):
 		child = self._children.pop(scheme)
 		child._file_removed.remove_callback(self._on_file_removed)
-		child._file_moved.remove_callback(self._on_file_moved)
 		child._file_added.remove_callback(self._on_file_added)
 		self._children_being_deleted[scheme] = child
 		self.file_removed.trigger(scheme)
@@ -174,10 +171,6 @@ class MotherFileSystem:
 	def _on_file_added(self, url):
 		self._add_to_parent(url)
 		self.file_added.trigger(url)
-	def _on_file_moved(self, src_url, dst_url):
-		self._remove(src_url)
-		self._add_to_parent(dst_url)
-		self.file_moved.trigger(src_url, dst_url)
 	def _on_file_removed(self, url):
 		self._remove(url)
 		self.file_removed.trigger(url)

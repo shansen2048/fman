@@ -85,25 +85,25 @@ class LocalFileSystem(FileSystem):
 		src_path, dst_path = self._check_scheme(src_url, dst_url)
 		src_stat = self.stat(src_path)
 		dst_dir_dev = self.stat(splitscheme(dirname(dst_url))[1]).st_dev
-		os_src_path = self._url_to_os_path(src_path)
-		os_dst_path = self._url_to_os_path(dst_path)
-		notify_file_moved = Task(
-			'Postprocessing', target=self.notify_file_moved,
-			args=(src_url, dst_url)
-		)
 		if src_stat.st_dev == dst_dir_dev:
 			yield Task(
 				'Moving ' + basename(src_url),
-				target=Path(os_src_path).replace, args=(os_dst_path,), size=1
+				target=self._rename, args=(src_url, dst_url), size=1
 			)
-			yield notify_file_moved
 			return
 		yield from self._prepare_copy(src_url, dst_url, measure_size)
 		yield Task(
 			'Postprocessing ' + basename(src_url),
 			target=self.delete, args=(src_path,)
 		)
-		yield notify_file_moved
+	def _rename(self, src_url, dst_url):
+		src_path = splitscheme(src_url)[1]
+		os_src_path = self._url_to_os_path(src_path)
+		dst_path = splitscheme(dst_url)[1]
+		os_dst_path = self._url_to_os_path(dst_path)
+		Path(os_src_path).replace(os_dst_path)
+		self.notify_file_removed(src_path)
+		self.notify_file_added(dst_path)
 	def move_to_trash(self, path):
 		for task in self.prepare_trash(path):
 			task()

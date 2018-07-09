@@ -52,7 +52,8 @@ class StubFileSystem(FileSystem):
 		if src_scheme != self.scheme or dst_scheme != self.scheme:
 			raise UnsupportedOperation()
 		self._items[resolve(dst_path)] = self._items.pop(resolve(src_path))
-		self.notify_file_moved(src_url, dst_url)
+		self.notify_file_removed(src_path)
+		self.notify_file_added(dst_path)
 	def delete(self, path):
 		path = resolve(path)
 		new_items = {
