@@ -394,7 +394,9 @@ class MoveBetweenArchives(Task):
 	def __call__(self):
 		self.set_text('Preparing...')
 		with TemporaryDirectory() as tmp_dir:
-			tmp_url = as_url(os.path.join(tmp_dir, 'tmp'))
+			# Give temp dir the same name as the source file; This leads to the
+			# correct name being displayed in the progress dialog:
+			tmp_url = as_url(os.path.join(tmp_dir, basename(self._src_url)))
 			tasks = list(self._fs.prepare_move(self._src_url, tmp_url))
 			tasks.extend(self._fs.prepare_move(tmp_url, self._dst_url))
 			for task in tasks:
