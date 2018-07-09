@@ -240,7 +240,7 @@ class FileTreeOperationAT:
 		self._assert_file_contents_equal(join(self.dest, 'test.txt'), '1234')
 	def test_overwrite_directory_file_in_subdir(self):
 		self._touch(join(self.src, 'dir1', 'dir2', 'test.txt'))
-		self._makedirs(join(self.dest, 'dir1'))
+		self._makedirs(join(self.dest, 'dir1', 'dir2'))
 		self._perform_on(join(self.src, 'dir1'))
 		self._expect_files({'test.txt'}, in_dir=join(self.dest, 'dir1', 'dir2'))
 	def setUp(self):

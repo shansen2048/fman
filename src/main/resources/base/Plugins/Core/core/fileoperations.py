@@ -101,23 +101,23 @@ class FileTreeOperation(Task):
 				self._enqueue(self._prepare_transfer(src, dest))
 		return True
 	def _merge_directory(self, src):
-		parent_dirs = []
-		for parent_dir, dirs, files in self._walk_topdown(src):
-			for dir_ in self._iter(dirs):
-				dst = self._get_dest_url(dir_)
+		for file_name in self._fs.iterdir(src):
+			file_url = join(src, file_name)
+			try:
+				src_is_dir = self._fs.is_dir(file_url)
+			except OSError:
+				src_is_dir = False
+			dst = self._get_dest_url(file_url)
+			if src_is_dir:
 				try:
 					dst_is_dir = self._fs.is_dir(dst)
 				except OSError:
 					dst_is_dir = False
-				if not dst_is_dir:
-					self._enqueue([
-						Task(
-							'Creating ' + basename(dst),
-							target=self._fs.mkdir, args=(dst,)
-						)
-					])
-			for file_ in self._iter(files):
-				dst = self._get_dest_url(file_)
+				if dst_is_dir:
+					self._merge_directory(file_url)
+				else:
+					self._enqueue(self._prepare_transfer(file_url, dst))
+			else:
 				if self._fs.exists(dst):
 					should_overwrite = self._should_overwrite(dst)
 					if should_overwrite == NO:
@@ -127,16 +127,11 @@ class FileTreeOperation(Task):
 					else:
 						assert should_overwrite == YES, \
 							should_overwrite
-				self._enqueue(self._prepare_transfer(file_, dst))
-			parent_dirs.append(parent_dir)
+				self._enqueue(self._prepare_transfer(file_url, dst))
 		if self._does_postprocess_directory():
-			# Post-process the parent directories bottom-up. For
-			# Move, this ensures that each directory is empty when
-			# post-processing.
-			for parent_dir in reversed(parent_dirs):
-				self._enqueue([
-					self._postprocess_directory(parent_dir)
-				])
+			# Post-process the parent directories bottom-up. For Move, this
+			# ensures that each directory is empty when post-processing.
+			self._enqueue([self._postprocess_directory(src)])
 		return True
 	def _should_overwrite(self, file_url):
 		if self._override_all is None:
@@ -212,22 +207,6 @@ class FileTreeOperation(Task):
 				else:
 					return join(self._dest_dir, rel_path)
 		return join(self._dest_dir, dest_name)
-	def _walk_topdown(self, url):
-		dirs = []
-		nondirs = []
-		for file_name in self._fs.iterdir(url):
-			file_url = join(url, file_name)
-			try:
-				is_dir = self._fs.is_dir(file_url)
-			except OSError:
-				is_dir = False
-			if is_dir:
-				dirs.append(file_url)
-			else:
-				nondirs.append(file_url)
-		yield url, dirs, nondirs
-		for dir_ in dirs:
-			yield from self._walk_topdown(dir_)
 	def _iter(self, iterable):
 		for item in iterable:
 			self.check_canceled()
