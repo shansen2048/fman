@@ -379,9 +379,8 @@ class Rename(_7zipTaskWithProgress):
 			self.run_7zip_with_progress(
 				['rn', self._zip_path, self._src_in_zip, self._dst_in_zip]
 			)
-		zip_url = as_url(self._zip_path, self._fs.scheme)
-		self._fs.notify_file_removed(join(zip_url, self._src_in_zip))
-		self._fs.notify_file_added(join(zip_url, self._dst_in_zip))
+		self._fs.notify_file_removed(self._zip_path + '/' + self._src_in_zip)
+		self._fs.notify_file_added(self._zip_path + '/' + self._dst_in_zip)
 
 class MoveBetweenArchives(Task):
 	def __init__(self, fs, src_url, dst_url):
