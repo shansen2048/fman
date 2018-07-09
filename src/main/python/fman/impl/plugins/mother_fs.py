@@ -82,7 +82,7 @@ class MotherFileSystem:
 		dst_fs, dst_path = self._split(dst_url)
 		try:
 			src_fs.move(src_url, dst_url)
-		except UnsupportedOperation:
+		except (UnsupportedOperation, NotImplementedError):
 			if src_fs == dst_fs:
 				raise
 			else:
@@ -93,7 +93,7 @@ class MotherFileSystem:
 		dst_fs, dst_path = self._split(dst_url)
 		try:
 			return src_fs.prepare_move(src_url, dst_url)
-		except UnsupportedOperation:
+		except (UnsupportedOperation, NotImplementedError):
 			if src_fs == dst_fs:
 				raise
 			else:
@@ -127,7 +127,7 @@ class MotherFileSystem:
 		dst_fs, dst_path = self._split(dst_url)
 		try:
 			src_fs.copy(src_url, dst_url)
-		except UnsupportedOperation:
+		except (UnsupportedOperation, NotImplementedError):
 			if src_fs == dst_fs:
 				raise
 			else:
@@ -142,7 +142,7 @@ class MotherFileSystem:
 		dst_fs, dst_path = self._split(dst_url)
 		try:
 			return src_fs.prepare_copy(src_url, dst_url)
-		except UnsupportedOperation:
+		except (UnsupportedOperation, NotImplementedError):
 			if src_fs == dst_fs:
 				raise
 			else:
