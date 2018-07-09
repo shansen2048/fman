@@ -22,6 +22,8 @@ class FileTreeOperation(Task):
 		self._src_dir = src_dir
 		self._dest_name = dest_name
 		self._fs = fs
+		self._tasks = []
+		self._num_files = 0
 		self._cannot_move_to_self_shown = False
 		self._override_all = None
 	def _transfer(self, src, dest):
@@ -36,10 +38,11 @@ class FileTreeOperation(Task):
 		return None
 	def __call__(self):
 		self.set_text('Gathering files...')
-		tasks = self._gather_files()
-		self.set_size(sum(task.get_size() for task in tasks))
-		for i, task in enumerate(self._iter(tasks)):
-			is_last = i == len(tasks) - 1
+		if not self._gather_files():
+			return
+		self.set_size(sum(task.get_size() for task in self._tasks))
+		for i, task in enumerate(self._iter(self._tasks)):
+			is_last = i == len(self._tasks) - 1
 			progress_before = self.get_progress()
 			try:
 				self.run(task)
@@ -50,19 +53,8 @@ class FileTreeOperation(Task):
 					break
 				self.set_progress(progress_before + task.get_size())
 	def _gather_files(self):
-		result = []
-		num_files = [0]
-		def gather(iterable):
-			for task in self._iter(iterable):
-				if task.get_size() > 0:
-					num_files[0] += 1
-					self.set_text(
-						'Preparing to {} {:,} files.'
-							.format(self._descr_verb, num_files[0])
-					)
-				result.append(task)
 		dest_dir_url = self._get_dest_dir_url()
-		gather([Task(
+		self._enqueue([Task(
 			'Preparing ' + basename(dest_dir_url), target=self._fs.makedirs,
 			 args=(dest_dir_url,), kwargs={'exist_ok': True}
 		)])
@@ -77,12 +69,12 @@ class FileTreeOperation(Task):
 						is_samefile = False
 					if is_samefile:
 						if self._can_transfer_samefile():
-							gather(self._prepare_transfer(src, dest))
+							self._enqueue(self._prepare_transfer(src, dest))
 							continue
 				self.show_alert(
 					"You cannot %s a file to itself." % self._descr_verb
 				)
-				return []
+				return False
 			try:
 				is_dir = self._fs.is_dir(src)
 			except OSError as e:
@@ -90,57 +82,62 @@ class FileTreeOperation(Task):
 								(self._descr_verb, as_human_readable(src))
 				if self._handle_exception(error_message, is_last, e):
 					continue
-				return []
+				return False
 			if is_dir:
 				if self._fs.exists(dest):
-					# Merge the src and dest directories:
-					parent_dirs = []
-					for parent_dir, dirs, files in self._walk_topdown(src):
-						for dir_ in self._iter(dirs):
-							dst = self._get_dest_url(dir_)
-							try:
-								dst_is_dir = self._fs.is_dir(dst)
-							except OSError:
-								dst_is_dir = False
-							if not dst_is_dir:
-								gather([
-									Task(
-										'Creating ' + basename(dst),
-										target=self._fs.mkdir, args=(dst,)
-									)
-								])
-						for file_ in self._iter(files):
-							dst = self._get_dest_url(file_)
-							if self._fs.exists(dst):
-								should_overwrite = self._should_overwrite(dst)
-								if should_overwrite == NO:
-									continue
-								elif should_overwrite == ABORT:
-									return []
-								else:
-									assert should_overwrite == YES, \
-										should_overwrite
-							gather(self._prepare_transfer(file_, dst))
-						parent_dirs.append(parent_dir)
-					if self._does_postprocess_directory():
-						# Post-process the parent directories bottom-up. For
-						# Move, this ensures that each directory is empty when
-						# post-processing.
-						for parent_dir in reversed(parent_dirs):
-							gather([self._postprocess_directory(parent_dir)])
+					if not self._merge_directory(src):
+						return False
 				else:
-					gather(self._prepare_transfer(src, dest))
+					self._enqueue(self._prepare_transfer(src, dest))
 			else:
 				if self._fs.exists(dest):
 					should_overwrite = self._should_overwrite(dest)
 					if should_overwrite == NO:
 						continue
 					elif should_overwrite == ABORT:
-						return []
+						return False
 					else:
 						assert should_overwrite == YES, should_overwrite
-				gather(self._prepare_transfer(src, dest))
-		return result
+				self._enqueue(self._prepare_transfer(src, dest))
+		return True
+	def _merge_directory(self, src):
+		parent_dirs = []
+		for parent_dir, dirs, files in self._walk_topdown(src):
+			for dir_ in self._iter(dirs):
+				dst = self._get_dest_url(dir_)
+				try:
+					dst_is_dir = self._fs.is_dir(dst)
+				except OSError:
+					dst_is_dir = False
+				if not dst_is_dir:
+					self._enqueue([
+						Task(
+							'Creating ' + basename(dst),
+							target=self._fs.mkdir, args=(dst,)
+						)
+					])
+			for file_ in self._iter(files):
+				dst = self._get_dest_url(file_)
+				if self._fs.exists(dst):
+					should_overwrite = self._should_overwrite(dst)
+					if should_overwrite == NO:
+						continue
+					elif should_overwrite == ABORT:
+						return False
+					else:
+						assert should_overwrite == YES, \
+							should_overwrite
+				self._enqueue(self._prepare_transfer(file_, dst))
+			parent_dirs.append(parent_dir)
+		if self._does_postprocess_directory():
+			# Post-process the parent directories bottom-up. For
+			# Move, this ensures that each directory is empty when
+			# post-processing.
+			for parent_dir in reversed(parent_dirs):
+				self._enqueue([
+					self._postprocess_directory(parent_dir)
+				])
+		return True
 	def _should_overwrite(self, file_url):
 		if self._override_all is None:
 			choice = self.show_alert(
@@ -159,6 +156,15 @@ class FileTreeOperation(Task):
 				assert choice & ABORT, choice
 				return ABORT
 		return YES if self._override_all else NO
+	def _enqueue(self, tasks):
+		for task in self._iter(tasks):
+			if task.get_size() > 0:
+				self._num_files += 1
+				self.set_text(
+					'Preparing to {} {:,} files.'
+						.format(self._descr_verb, self._num_files)
+				)
+			self._tasks.append(task)
 	def _handle_exception(self, message, is_last, exc):
 		if exc.strerror:
 			cause = exc.strerror[0].lower() + exc.strerror[1:]
