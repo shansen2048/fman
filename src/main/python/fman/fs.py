@@ -123,36 +123,28 @@ class FileSystem:
 		Should raise FileExistsError if `path` already exists. If `path` is in
 		a directory that does not yet exist, should raise a FileNotFoundError.
 		"""
-		raise self._operation_not_supported()
+		raise self._operation_not_implemented()
 	def delete(self, path):
-		raise self._operation_not_supported()
+		raise self._operation_not_implemented()
 	def prepare_delete(self, path):
-		title = 'Deleting ' + path.rsplit('/', 1)[-1]
-		yield Task(title, target=self.delete, args=(path,))
+		raise self._operation_not_implemented()
 	def move_to_trash(self, path):
-		raise self._operation_not_supported()
+		raise self._operation_not_implemented()
 	def prepare_trash(self, path):
-		title = 'Deleting ' + path.rsplit('/', 1)[-1]
-		yield Task(title, target=self.move_to_trash, args=(path,))
+		raise self._operation_not_implemented()
 	def touch(self, path):
-		raise self._operation_not_supported()
+		raise self._operation_not_implemented()
 	def copy(self, src_url, dst_url):
-		raise self._operation_not_supported()
+		raise self._operation_not_implemented()
 	def prepare_copy(self, src_url, dst_url):
-		yield Task(
-			'Copying ' + basename(src_url),
-			target=self.copy, args=(src_url, dst_url)
-		)
+		raise self._operation_not_implemented()
 	def move(self, src_url, dst_url):
-		raise self._operation_not_supported()
+		raise self._operation_not_implemented()
 	def prepare_move(self, src_url, dst_url):
-		yield Task(
-			'Moving ' + basename(src_url),
-			target=self.move, args=(src_url, dst_url)
-		)
-	def _operation_not_supported(self):
+		raise self._operation_not_implemented()
+	def _operation_not_implemented(self):
 		message = self.__class__.__name__ + ' does not implement this function.'
-		return UnsupportedOperation(message)
+		return NotImplementedError(message)
 	def _add_file_changed_callback(self, path, callback):
 		with self._file_changed_callbacks_lock:
 			try:

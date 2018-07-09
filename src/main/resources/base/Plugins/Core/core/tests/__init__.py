@@ -1,6 +1,7 @@
 from core import LocalFileSystem
+from fman import Task
 from fman.fs import FileSystem
-from fman.url import splitscheme
+from fman.url import splitscheme, basename
 
 class StubUI:
 	def __init__(self, test_case):
@@ -66,12 +67,22 @@ class StubFS(FileSystem):
 	def copy(self, src_url, dst_url):
 		scheme = splitscheme(src_url)[0]
 		self._backends[scheme].copy(src_url, dst_url)
+	def prepare_copy(self, src_url, dst_url):
+		return [Task(
+			'Copying ' + basename(src_url),
+			target=self.copy, args=(src_url, dst_url)
+		)]
 	def delete(self, url):
 		scheme, path = splitscheme(url)
 		self._backends[scheme].delete(path)
 	def move(self, src_url, dst_url):
 		scheme = splitscheme(src_url)[0]
 		self._backends[scheme].move(src_url, dst_url)
+	def prepare_move(self, src_url, dst_url):
+		return [Task(
+			'Moving ' + basename(src_url),
+			target=self.move, args=(src_url, dst_url)
+		)]
 	def touch(self, url):
 		scheme, path = splitscheme(url)
 		self._backends[scheme].touch(path)

@@ -116,11 +116,20 @@ class _Delete(Task):
 	def __init__(self, urls, prepare_fn, fallback=None):
 		super().__init__('Deleting ' + _describe(urls))
 		self._urls = urls
+		self._num_urls_prepared = 0
 		self._prepare_fn = prepare_fn
 		self._fallback = fallback
 		self._tasks = []
 	def __call__(self):
-		self._gather_tasks()
+		try:
+			self._gather_tasks()
+		except (UnsupportedOperation, NotImplementedError):
+			failing_url = self._urls[self._num_urls_prepared]
+			self.show_alert(
+				'Deleting files in %s is not supported.'
+				% splitscheme(failing_url)[0]
+			)
+			return
 		ignore_errors = False
 		for i, task in enumerate(self._tasks):
 			self.check_canceled()
@@ -154,10 +163,11 @@ class _Delete(Task):
 		for url in self._urls:
 			try:
 				self._prepare(url, self._prepare_fn)
-			except UnsupportedOperation:
+			except (NotImplementedError, UnsupportedOperation):
 				if self._fallback is None:
 					raise
 				self._prepare(url, self._fallback)
+			self._num_urls_prepared += 1
 		self.set_size(sum(t.get_size() for t in self._tasks))
 	def _prepare(self, url, prepare_fn):
 		url_tasks = []

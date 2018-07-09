@@ -167,6 +167,11 @@ class _7ZipFileSystem(FileSystem):
 		with self._preserve_empty_parent(zip_path, path_in_zip):
 			_run_7zip(['d', zip_path, path_in_zip])
 		self.notify_file_removed(path)
+	def prepare_delete(self, path):
+		return [Task(
+			'Deleting ' + path.rsplit('/', 1)[-1],
+			target=self.delete, args=(path,), size=1
+		)]
 	def size_bytes(self, path):
 		return self._query_info_attr(path, 'size_bytes', None)
 	def modified_datetime(self, path):
