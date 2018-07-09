@@ -6,8 +6,8 @@ from core.util import strformat_dict_values, listdir_absolute, is_parent
 from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
-from fman.fs import exists, touch, mkdir, is_dir, move_to_trash, delete, \
-	samefile, copy, iterdir, resolve, prepare_copy, prepare_move, prepare_delete
+from fman.fs import exists, touch, mkdir, is_dir, delete, samefile, copy, \
+	iterdir, resolve, prepare_copy, prepare_move, prepare_delete, prepare_trash
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 	dirname
 from getpass import getuser
@@ -94,48 +94,9 @@ class MoveToTrash(DirectoryPaneCommand):
 		trash = 'Recycle Bin' if PLATFORM == 'Windows' else 'Trash'
 		msg = "Do you really want to move %s to the %s?" % (description, trash)
 		if show_alert(msg, YES | NO, YES) & YES:
-			_delete(urls, move_to_trash, delete)
+			submit_task(_Delete(urls, prepare_trash, prepare_delete))
 	def is_visible(self):
 		return bool(self.pane.get_file_under_cursor())
-
-def _describe(files, template='%d files'):
-	if len(files) == 1:
-		return basename(files[0])
-	return template % len(files)
-
-def _delete(urls, delete_fn, fallback=None):
-	ignore_errors = False
-	for i, url in enumerate(urls):
-		try:
-			try:
-				delete_fn(url)
-			except UnsupportedOperation:
-				if fallback is None:
-					raise
-				fallback(url)
-		except FileNotFoundError:
-			# Perhaps the file has already been deleted.
-			pass
-		except OSError as e:
-			if ignore_errors:
-				continue
-			message = 'Could not delete ' + basename(url)
-			reason = e.strerror or ''
-			if not reason and e.errno is not None:
-				reason = strerror(e.errno)
-			if reason:
-				message += ': ' + reason
-			message += '.'
-			is_last = i == len(urls) - 1
-			if is_last:
-				show_alert(message)
-			else:
-				message += ' Do you want to continue?'
-				choice = show_alert(message, YES | NO | YES_TO_ALL)
-				if choice & NO:
-					break
-				if choice & YES_TO_ALL:
-					ignore_errors = True
 
 class DeletePermanently(DirectoryPaneCommand):
 	def __call__(self, urls=None):
@@ -149,25 +110,19 @@ class DeletePermanently(DirectoryPaneCommand):
 			"Do you really want to PERMANENTLY delete %s? This action cannot " \
 			"be undone!" % description
 		if show_alert(message, YES | NO, YES) & YES:
-			submit_task(_Delete(urls))
+			submit_task(_Delete(urls, prepare_delete))
 
 class _Delete(Task):
-	def __init__(self, urls):
+	def __init__(self, urls, prepare_fn, fallback=None):
 		super().__init__('Deleting ' + _describe(urls))
 		self._urls = urls
+		self._prepare_fn = prepare_fn
+		self._fallback = fallback
+		self._tasks = []
 	def __call__(self):
-		tasks = []
-		for url in self._urls:
-			for task in prepare_delete(url):
-				self.check_canceled()
-				tasks.append(task)
-				if task.get_size():
-					self.set_text(
-						'Preparing to delete {:,} files.'.format(len(tasks))
-					)
-		self.set_size(sum(t.get_size() for t in tasks))
+		self._gather_tasks()
 		ignore_errors = False
-		for i, task in enumerate(tasks):
+		for i, task in enumerate(self._tasks):
 			self.check_canceled()
 			try:
 				self.run(task)
@@ -177,7 +132,7 @@ class _Delete(Task):
 			except OSError as e:
 				if ignore_errors:
 					continue
-				text = task.get_text()
+				text = task.get_title()
 				message = 'Error ' + text[0].lower() + text[1:]
 				reason = e.strerror or ''
 				if not reason and e.errno is not None:
@@ -185,7 +140,7 @@ class _Delete(Task):
 				if reason:
 					message += ': ' + reason
 				message += '.'
-				is_last = i == len(tasks) - 1
+				is_last = i == len(self._tasks) - 1
 				if is_last:
 					self.show_alert(message)
 				else:
@@ -195,6 +150,29 @@ class _Delete(Task):
 						break
 					if choice & YES_TO_ALL:
 						ignore_errors = True
+	def _gather_tasks(self):
+		for url in self._urls:
+			try:
+				self._prepare(url, self._prepare_fn)
+			except UnsupportedOperation:
+				if self._fallback is None:
+					raise
+				self._prepare(url, self._fallback)
+		self.set_size(sum(t.get_size() for t in self._tasks))
+	def _prepare(self, url, prepare_fn):
+		url_tasks = []
+		for task in prepare_fn(url):
+			self.check_canceled()
+			url_tasks.append(task)
+			if task.get_size():
+				num = len(self._tasks) + len(url_tasks)
+				self.set_text('Preparing to delete {:,} files.'.format(num))
+		self._tasks.extend(url_tasks)
+
+def _describe(files, template='%d files'):
+	if len(files) == 1:
+		return basename(files[0])
+	return template % len(files)
 
 class GoUp(DirectoryPaneCommand):
 

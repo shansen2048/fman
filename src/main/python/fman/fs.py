@@ -34,6 +34,9 @@ def prepare_move(src_url, dst_url):
 def move_to_trash(url):
 	_get_mother_fs().move_to_trash(url)
 
+def prepare_trash(url):
+	return _get_mother_fs().prepare_trash(url)
+
 def delete(url):
 	_get_mother_fs().delete(url)
 
@@ -128,6 +131,9 @@ class FileSystem:
 		yield Task(title, target=self.delete, args=(path,))
 	def move_to_trash(self, path):
 		raise self._operation_not_supported()
+	def prepare_trash(self, path):
+		title = 'Deleting ' + path.rsplit('/', 1)[-1]
+		yield Task(title, target=self.move_to_trash, args=(path,))
 	def touch(self, path):
 		raise self._operation_not_supported()
 	def copy(self, src_url, dst_url):

@@ -105,6 +105,14 @@ class LocalFileSystem(FileSystem):
 		)
 		yield notify_file_moved
 	def move_to_trash(self, path):
+		for task in self.prepare_trash(path):
+			task()
+	def prepare_trash(self, path):
+		yield Task(
+			'Deleting ' + path.rsplit('/', 1)[-1], target=self._do_trash,
+			args=(path,), size=1
+		)
+	def _do_trash(self, path):
 		move_to_trash(self._url_to_os_path(path))
 		self.notify_file_removed(path)
 	def delete(self, path):

@@ -109,6 +109,9 @@ class MotherFileSystem:
 	def move_to_trash(self, url):
 		child, path = self._split(url)
 		child.move_to_trash(path)
+	def prepare_trash(self, url):
+		child, path = self._split(url)
+		return child.prepare_trash(path)
 	def delete(self, url):
 		child, path = self._split(url)
 		child.delete(path)
