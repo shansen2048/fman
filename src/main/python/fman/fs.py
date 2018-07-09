@@ -1,10 +1,7 @@
-from fman import Task
 from fman.impl.fs_cache import Cache
 from fman.impl.util import Event
 from fman.impl.util.path import parent
-from fman.url import basename
 from functools import wraps
-from io import UnsupportedOperation
 from pathlib import PurePosixPath
 from threading import Lock
 
