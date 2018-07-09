@@ -585,7 +585,7 @@ class Run7ZipViaWinpty:
 		self._process = self._spawn([_7ZIP_BINARY] + args, cwd, env)
 		self.stdout = self.Stdout(self._process)
 	def kill(self):
-		self._process.terminate(force=True)
+		self._process.sendcontrol('c')
 	def wait(self):
 		return self._process.wait()
 	def _spawn(self, argv, cwd=None, env=None):
