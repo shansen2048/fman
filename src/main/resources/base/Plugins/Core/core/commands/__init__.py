@@ -431,6 +431,12 @@ class CreateAndEditFile(OpenWithEditor):
 						% as_human_readable(file_to_edit)
 					)
 					return
+				except (UnsupportedOperation, NotImplementedError):
+					show_alert(
+						'Sorry, creating a file for editing is not supported '
+						'here.'
+					)
+					return
 			try:
 				self.pane.place_cursor_at(file_to_edit)
 			except ValueError:
