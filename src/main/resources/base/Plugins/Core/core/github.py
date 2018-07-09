@@ -1,3 +1,4 @@
+from requests import RequestException
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
@@ -75,7 +76,10 @@ def _get(url):
 		return urlopen(url).read()
 	except URLError:
 		# Fallback: Some users get "SSL: CERTIFICATE_VERIFY_FAILED" for urlopen.
-		response = requests.get(url)
+		try:
+			response = requests.get(url)
+		except RequestException as e:
+			raise URLError(e.__class__.__name__)
 		if response.status_code != 200:
 			raise HTTPError(
 				url, response.status_code, response.reason, response.headers,

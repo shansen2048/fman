@@ -20,6 +20,7 @@ from PyQt5.QtCore import QFileInfo, QUrl
 from PyQt5.QtGui import QDesktopServices
 from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
+from urllib.error import URLError
 
 import fman
 import fman.fs
@@ -1512,7 +1513,14 @@ class InstallPlugin(ApplicationCommand):
 		else:
 			if self._plugin_repos is None:
 				with StatusMessage('Fetching available plugins...'):
-					self._plugin_repos = find_repos(topics=['fman', 'plugin'])
+					try:
+						self._plugin_repos = \
+							find_repos(topics=['fman', 'plugin'])
+					except URLError as e:
+						show_alert(
+							'Could not fetch available plugins: %s.' % e.reason
+						)
+						return
 			result = show_quicksearch(self._get_matching_repos)
 			repo = result[1] if result else None
 		if repo:
