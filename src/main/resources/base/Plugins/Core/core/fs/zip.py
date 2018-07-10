@@ -269,10 +269,13 @@ class _7ZipFileSystem(FileSystem):
 
 class _7zipTaskWithProgress(Task):
 	def run_7zip_with_progress(self, args, **kwargs):
-		# kill=True in case we `return` early when canceled:
-		with _7zip(args, kill=True, pty=True, **kwargs) as process:
+		with _7zip(args, pty=True, **kwargs) as process:
 			for line in process.stdout:
-				self.check_canceled()
+				try:
+					self.check_canceled()
+				except Task.Canceled:
+					process.kill()
+					raise
 				# The \r appears on Windows only:
 				match = re.match('\r? *(\\d\\d?)% ', line)
 				if match:
@@ -440,7 +443,7 @@ class _7zip:
 			else:
 				exit_code = self._process.wait()
 				if exit_code and exit_code != self._7ZIP_WARNING:
-					raise CalledProcessError('7-Zip returned %r' % exit_code)
+					raise CalledProcessError(exit_code, self._args)
 		finally:
 			self._process.stdout.close()
 
