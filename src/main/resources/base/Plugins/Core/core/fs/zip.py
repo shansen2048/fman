@@ -134,7 +134,7 @@ class _7ZipFileSystem(FileSystem):
 		else:
 			result = list(self.prepare_copy(src_url, dst_url))
 			title = 'Cleaning up ' + basename(src_url)
-			result.append(Task(title, target=self._fs.delete, args=(src_url,)))
+			result.append(Task(title, fn=self._fs.delete, args=(src_url,)))
 			return result
 	def mkdir(self, path):
 		if self.exists(path):
@@ -166,7 +166,7 @@ class _7ZipFileSystem(FileSystem):
 	def prepare_delete(self, path):
 		return [Task(
 			'Deleting ' + path.rsplit('/', 1)[-1],
-			target=self.delete, args=(path,), size=1
+			fn=self.delete, args=(path,), size=1
 		)]
 	def size_bytes(self, path):
 		return self._query_info_attr(path, 'size_bytes', None)

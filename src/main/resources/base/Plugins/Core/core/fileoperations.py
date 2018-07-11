@@ -55,7 +55,7 @@ class FileTreeOperation(Task):
 	def _gather_files(self):
 		dest_dir_url = self._get_dest_dir_url()
 		self._enqueue([Task(
-			'Preparing ' + basename(dest_dir_url), target=self._fs.makedirs,
+			'Preparing ' + basename(dest_dir_url), fn=self._fs.makedirs,
 			 args=(dest_dir_url,), kwargs={'exist_ok': True}
 		)])
 		for i, src in enumerate(self._iter(self._files)):
@@ -248,7 +248,7 @@ class MoveFiles(FileTreeOperation):
 	def _postprocess_directory(self, src_dir_path):
 		return Task(
 			'Postprocessing ' + basename(src_dir_path),
-			target=self._do_postprocess_directory, args=(src_dir_path,)
+			fn=self._do_postprocess_directory, args=(src_dir_path,)
 		)
 	def _do_postprocess_directory(self, src_dir_path):
 		if self._is_empty(src_dir_path):

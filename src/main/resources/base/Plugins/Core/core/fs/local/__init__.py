@@ -88,13 +88,13 @@ class LocalFileSystem(FileSystem):
 		if src_stat.st_dev == dst_dir_dev:
 			yield Task(
 				'Moving ' + basename(src_url), size=1,
-				target=self._rename, args=(src_url, dst_url)
+				fn=self._rename, args=(src_url, dst_url)
 			)
 			return
 		yield from self._prepare_copy(src_url, dst_url, measure_size)
 		yield Task(
 			'Postprocessing ' + basename(src_url),
-			target=self.delete, args=(src_path,)
+			fn=self.delete, args=(src_path,)
 		)
 	def _rename(self, src_url, dst_url):
 		src_path = splitscheme(src_url)[1]
@@ -110,7 +110,7 @@ class LocalFileSystem(FileSystem):
 	def prepare_trash(self, path):
 		yield Task(
 			'Deleting ' + path.rsplit('/', 1)[-1], size=1,
-			target=self._do_trash, args=(path,)
+			fn=self._do_trash, args=(path,)
 		)
 	def _do_trash(self, path):
 		move_to_trash(self._url_to_os_path(path))
@@ -130,7 +130,7 @@ class LocalFileSystem(FileSystem):
 			delete_fn = remove
 		yield Task(
 			'Deleting ' + path.rsplit('/', 1)[-1], size=1,
-			target=self._do_delete, args=(path, delete_fn)
+			fn=self._do_delete, args=(path, delete_fn)
 		)
 	def _do_delete(self, path, delete_fn):
 		delete_fn(path)
@@ -170,7 +170,7 @@ class LocalFileSystem(FileSystem):
 		if src_is_dir:
 			yield Task(
 				'Creating ' + basename(dst_url),
-				target=self.mkdir, args=(dst_path,)
+				fn=self.mkdir, args=(dst_path,)
 			)
 			for name in self.iterdir(src_path):
 				try:

@@ -128,7 +128,7 @@ class FileSystem:
 			raise self._operation_not_implemented()
 		return [Task(
 			'Deleting ' + path.rsplit('/', 1)[-1],
-			target=self.delete, args=(path,), size=1
+			fn=self.delete, args=(path,), size=1
 		)]
 	def move_to_trash(self, path):
 		raise self._operation_not_implemented()
@@ -138,7 +138,7 @@ class FileSystem:
 			raise self._operation_not_implemented()
 		return [Task(
 			'Deleting ' + path.rsplit('/', 1)[-1],
-			target=self.delete, args=(path,), size=1
+			fn=self.delete, args=(path,), size=1
 		)]
 	def touch(self, path):
 		raise self._operation_not_implemented()
@@ -150,7 +150,7 @@ class FileSystem:
 			raise self._operation_not_implemented()
 		return [Task(
 			'Copying ' + basename(src_url),
-			target=self.copy, args=(src_url, dst_url)
+			fn=self.copy, args=(src_url, dst_url)
 		)]
 	def move(self, src_url, dst_url):
 		raise self._operation_not_implemented()
@@ -160,7 +160,7 @@ class FileSystem:
 			raise self._operation_not_implemented()
 		return [Task(
 			'Moving ' + basename(src_url),
-			target=self.move, args=(src_url, dst_url)
+			fn=self.move, args=(src_url, dst_url)
 		)]
 	def _operation_not_implemented(self):
 		message = self.__class__.__name__ + ' does not implement this function.'

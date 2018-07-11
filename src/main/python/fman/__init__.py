@@ -272,19 +272,17 @@ class Task:
 	class Canceled(KeyboardInterrupt):
 		pass
 
-	def __init__(
-		self, title, size=0, target=lambda: None, args=(), kwargs=None
-	):
+	def __init__(self, title, size=0, fn=lambda: None, args=(), kwargs=None):
 		if kwargs is None:
 			kwargs = {}
 		self._title = title
-		self._target = target
+		self._fn = fn
 		self._args = args
 		self._kwargs = kwargs
 		self._size = size
 		self._dialog = StubProgressDialog()
 	def __call__(self):
-		self._target(*self._args, **self._kwargs)
+		self._fn(*self._args, **self._kwargs)
 	def get_title(self):
 		return self._title
 	def set_text(self, text):
