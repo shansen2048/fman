@@ -432,7 +432,7 @@ class CreateAndEditFile(OpenWithEditor):
 						% as_human_readable(file_to_edit)
 					)
 					return
-				except (UnsupportedOperation, NotImplementedError):
+				except NotImplementedError:
 					show_alert(
 						'Sorry, creating a file for editing is not supported '
 						'here.'
