@@ -168,6 +168,15 @@ class MotherFileSystem:
 	def clear_cache(self, url):
 		child, path = self._split(url)
 		child.cache.clear(path)
+	def notify_file_added(self, url):
+		child, path = self._split(url)
+		child.notify_file_added(path)
+	def notify_file_changed(self, url):
+		child, path = self._split(url)
+		child.notify_file_changed(path)
+	def notify_file_removed(self, url):
+		child, path = self._split(url)
+		child.notify_file_removed(path)
 	def _on_file_added(self, url):
 		self._add_to_parent(url)
 		self.file_added.trigger(url)

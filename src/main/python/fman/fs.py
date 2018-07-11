@@ -60,6 +60,15 @@ def query(url, fs_method_name):
 def resolve(url):
 	return _get_mother_fs().resolve(url)
 
+def notify_file_added(url):
+	_get_mother_fs().notify_file_added(url)
+
+def notify_file_changed(url):
+	_get_mother_fs().notify_file_changed(url)
+
+def notify_file_removed(url):
+	_get_mother_fs().notify_file_removed(url)
+
 class FileSystem:
 
 	scheme = ''
