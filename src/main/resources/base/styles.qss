@@ -171,6 +171,6 @@ QRadioButton::checked {
 }
 
 ProgressDialog {
-	min-width: 30em;
-	max-width: 30em;
+	min-width: 25em;
+	max-width: 25em;
 }
