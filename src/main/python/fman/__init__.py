@@ -273,7 +273,7 @@ class Task:
 		pass
 
 	def __init__(
-		self, title, target=lambda: None, args=(), kwargs=None, size=0
+		self, title, size=0, target=lambda: None, args=(), kwargs=None
 	):
 		if kwargs is None:
 			kwargs = {}

@@ -87,8 +87,8 @@ class LocalFileSystem(FileSystem):
 		dst_dir_dev = self.stat(splitscheme(dirname(dst_url))[1]).st_dev
 		if src_stat.st_dev == dst_dir_dev:
 			yield Task(
-				'Moving ' + basename(src_url),
-				target=self._rename, args=(src_url, dst_url), size=1
+				'Moving ' + basename(src_url), size=1,
+				target=self._rename, args=(src_url, dst_url)
 			)
 			return
 		yield from self._prepare_copy(src_url, dst_url, measure_size)
@@ -109,8 +109,8 @@ class LocalFileSystem(FileSystem):
 			task()
 	def prepare_trash(self, path):
 		yield Task(
-			'Deleting ' + path.rsplit('/', 1)[-1], target=self._do_trash,
-			args=(path,), size=1
+			'Deleting ' + path.rsplit('/', 1)[-1], size=1,
+			target=self._do_trash, args=(path,)
 		)
 	def _do_trash(self, path):
 		move_to_trash(self._url_to_os_path(path))
@@ -129,8 +129,8 @@ class LocalFileSystem(FileSystem):
 		else:
 			delete_fn = remove
 		yield Task(
-			'Deleting ' + path.rsplit('/', 1)[-1],
-			target=self._do_delete, args=(path, delete_fn), size=1
+			'Deleting ' + path.rsplit('/', 1)[-1], size=1,
+			target=self._do_delete, args=(path, delete_fn)
 		)
 	def _do_delete(self, path, delete_fn):
 		delete_fn(path)
