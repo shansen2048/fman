@@ -1,6 +1,8 @@
+from fman import Task
 from fman.impl.fs_cache import Cache
 from fman.impl.util import Event
 from fman.impl.util.path import parent
+from fman.url import basename
 from functools import wraps
 from pathlib import PurePosixPath
 from threading import Lock
@@ -121,21 +123,45 @@ class FileSystem:
 	def delete(self, path):
 		raise self._operation_not_implemented()
 	def prepare_delete(self, path):
-		raise self._operation_not_implemented()
+		if self.delete.__func__ is FileSystem.delete:
+			# Does not implement #delete(...):
+			raise self._operation_not_implemented()
+		return [Task(
+			'Deleting ' + path.rsplit('/', 1)[-1],
+			target=self.delete, args=(path,), size=1
+		)]
 	def move_to_trash(self, path):
 		raise self._operation_not_implemented()
 	def prepare_trash(self, path):
-		raise self._operation_not_implemented()
+		if self.move_to_trash.__func__ is FileSystem.move_to_trash:
+			# Does not implement #move_to_trash(...):
+			raise self._operation_not_implemented()
+		return [Task(
+			'Deleting ' + path.rsplit('/', 1)[-1],
+			target=self.delete, args=(path,), size=1
+		)]
 	def touch(self, path):
 		raise self._operation_not_implemented()
 	def copy(self, src_url, dst_url):
 		raise self._operation_not_implemented()
 	def prepare_copy(self, src_url, dst_url):
-		raise self._operation_not_implemented()
+		if self.copy.__func__ is FileSystem.copy:
+			# Does not implement #copy(...):
+			raise self._operation_not_implemented()
+		return [Task(
+			'Copying ' + basename(src_url),
+			target=self.copy, args=(src_url, dst_url)
+		)]
 	def move(self, src_url, dst_url):
 		raise self._operation_not_implemented()
 	def prepare_move(self, src_url, dst_url):
-		raise self._operation_not_implemented()
+		if self.move.__func__ is FileSystem.move:
+			# Does not implement #move(...):
+			raise self._operation_not_implemented()
+		return [Task(
+			'Moving ' + basename(src_url),
+			target=self.move, args=(src_url, dst_url)
+		)]
 	def _operation_not_implemented(self):
 		message = self.__class__.__name__ + ' does not implement this function.'
 		return NotImplementedError(message)
