@@ -427,6 +427,7 @@ class _7zip:
 		self._cwd = cwd
 		self._pty = pty
 		self._kill = kill
+		self._killed = False
 		self._process = None
 	def __enter__(self):
 		if PLATFORM == 'Windows':
@@ -434,7 +435,15 @@ class _7zip:
 		else:
 			cls = Run7ZipViaPty if self._pty else Popen7ZipUnix
 		self._process = cls(self._args, self._cwd)
-		return self._process
+		return self
+	@property
+	def stdout(self):
+		return self._process.stdout
+	def kill(self):
+		self._killed = True
+		self._process.kill()
+	def wait(self):
+		return self._process.wait()
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		try:
 			if self._kill:
@@ -442,7 +451,8 @@ class _7zip:
 				self._process.wait()
 			else:
 				exit_code = self._process.wait()
-				if exit_code and exit_code != self._7ZIP_WARNING:
+				if exit_code and not self._killed and \
+					exit_code != self._7ZIP_WARNING:
 					raise CalledProcessError(exit_code, self._args)
 		finally:
 			self._process.stdout.close()
