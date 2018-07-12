@@ -1963,7 +1963,7 @@ class OpenWith(DirectoryPaneCommand):
 
 	_OTHER = 'Other...'
 
-	def __call__(self):
+	def __call__(self, app=None):
 		files, error_msg = self._get_chosen_files()
 		if error_msg:
 			show_alert(error_msg)
@@ -1974,7 +1974,10 @@ class OpenWith(DirectoryPaneCommand):
 			if app:
 				_open_files_with_app(files, app)
 		else:
-			ShowAppsForOpening(files).show()
+			if app is None:
+				ShowAppsForOpening(files).show()
+			else:
+				_open_files_with_app(files, app)
 	def _get_chosen_files(self):
 		urls = self.get_chosen_files()
 		if not urls:
