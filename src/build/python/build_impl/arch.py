@@ -4,7 +4,7 @@ from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 from distutils.dir_util import copy_tree
 from fbs import path, SETTINGS
 from fbs.cmdline import command
-from fbs.freeze.arch import freeze_arch
+from fbs.freeze.linux import freeze_linux
 from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import exists, join, expanduser
@@ -19,7 +19,10 @@ _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 
 @command
 def exe():
-	freeze_arch()
+	freeze_linux(extra_pyinstaller_args=[
+		# Dependency of the Core plugin:
+		'--hidden-import', 'pty'
+	])
 	postprocess_exe()
 
 @command

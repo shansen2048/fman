@@ -189,7 +189,7 @@ def arch_docker_image():
 	arch(['/bin/bash', '-c',
 		  'python -m venv --system-site-packages venv && '
 		  'source venv/bin/activate && '
-		  'pip install -r requirements/linux.txt'
+		  'pip install -r requirements/arch.txt'
 	])
 
 @command
