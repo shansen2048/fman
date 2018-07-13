@@ -289,11 +289,10 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 			raise ValueError("Invalid index")
 		return self._rows[index.row()].url
 	def find(self, url):
-		for rownum, row in enumerate(self._rows):
-			if row.url == url:
-				break
-		else:
-			raise ValueError('%r is not in list' % url)
+		try:
+			rownum = self._rows.find(url)
+		except KeyError:
+			raise ValueError('%r is not in list' % url) from None
 		return self.index(rownum, 0)
 	def get_rows(self):
 		return self._files.values()

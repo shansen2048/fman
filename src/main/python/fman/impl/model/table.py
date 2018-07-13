@@ -4,6 +4,7 @@ from fman.impl.util.qt import DisplayRole, EditRole, DecorationRole, \
 	ToolTipRole, ItemIsDropEnabled, ItemIsSelectable, ItemIsEnabled, \
 	ItemIsEditable, ItemIsDragEnabled
 from PyQt5.QtCore import QModelIndex, QVariant, Qt
+from threading import RLock
 
 class TableModel:
 	"""
@@ -109,28 +110,82 @@ def _get_move_destination(cut_start, cut_end, insert_start):
 class Rows:
 	def __init__(self):
 		self._rows = []
+		self._keys = {}
+		self._lock = RLock()
 	def __len__(self):
 		return len(self._rows)
 	def __getitem__(self, item):
 		return self._rows[item]
-	def __setitem__(self, key, value):
-		self._rows[key] = value
+	def __setitem__(self, i, row):
+		with self._lock:
+			old_row = self._rows[i]
+			del self._keys[old_row.key]
+			self._rows[i] = row
+			self._keys[row.key] = i
+			self._check_integrity()
 	def __iter__(self):
 		return iter(self._rows)
 	def reset_to(self, new_rows):
-		self._rows = new_rows
+		new_keys = {row.key: i for i, row in enumerate(new_rows)}
+		with self._lock:
+			self._rows = new_rows
+			self._keys = new_keys
+			self._check_integrity()
 	def insert(self, rows, first_rownum):
-		self._rows = \
-			self._rows[:first_rownum] + rows + self._rows[first_rownum:]
+		new_keys = {row.key: first_rownum + i for i, row in enumerate(rows)}
+		with self._lock:
+			# Perform this check here, once we have the lock:
+			if first_rownum < 0 or first_rownum > len(self._rows):
+				raise ValueError('Invalid first_rownum')
+			num_rows = len(rows)
+			for row in self._rows[first_rownum:]:
+				self._keys[row.key] += num_rows
+			self._rows = \
+				self._rows[:first_rownum] + rows + self._rows[first_rownum:]
+			self._keys.update(new_keys)
+			self._check_integrity()
 	def move(self, cut_start, cut_end, insert_start):
-		rows = self._rows[cut_start:cut_end]
-		self._rows = self._rows[:cut_start] + self._rows[cut_end:]
-		self._rows = \
-			self._rows[:insert_start] + rows + self._rows[insert_start:]
+		with self._lock:
+			rows = self._cut(cut_start, cut_end)
+			self.insert(rows, insert_start)
+			self._check_integrity()
 	def update(self, rows, first_rownum):
-		self._rows[first_rownum: first_rownum + len(rows)] = rows
+		keys = {row.key: first_rownum + i for i, row in enumerate(rows)}
+		with self._lock:
+			for row in self._rows[first_rownum: first_rownum + len(rows)]:
+				del self._keys[row.key]
+			self._rows[first_rownum: first_rownum + len(rows)] = rows
+			self._keys.update(keys)
+			self._check_integrity()
 	def remove(self, start, end):
-		del self._rows[start:end]
+		num = end - start
+		with self._lock:
+			for row in self._rows[end:]:
+				self._keys[row.key] -= num
+			for row in self._rows[start:end]:
+				del self._keys[row.key]
+			del self._rows[start:end]
+			self._check_integrity()
+	def find(self, key):
+		return self._keys[key]
+	def _cut(self, cut_start, cut_end):
+		with self._lock:
+			num_rows = len(self._rows)
+			if cut_start < 0 or cut_start >= num_rows:
+				raise ValueError('Invalid cut_start')
+			if cut_end < 0 or cut_end > num_rows or cut_end <= cut_start:
+				raise ValueError('Invalid cut_end')
+			delta = cut_end - cut_start
+			result = self._rows[cut_start:cut_end]
+			for row in result:
+				del self._keys[row.key]
+			for row in self._rows[cut_end:]:
+				self._keys[row.key] -= delta
+			self._rows = self._rows[:cut_start] + self._rows[cut_end:]
+			return result
+	def _check_integrity(self):
+		assert len(self._rows) == len(self._keys), \
+			'Integrity error, likely caused by duplicate rows'
 
 class Row:
 	def __init__(self, key, icon, drop_enabled, cells):
