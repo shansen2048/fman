@@ -49,7 +49,7 @@ class SortFilterTableModel(TableModel):
 						index, self.index(i, index.column())
 					)
 					break
-		self._rows = new_rows
+		self._rows.reset_to(new_rows)
 		self.layoutChanged.emit([], self.VerticalSortHint)
 		self.sort_order_changed.emit(column, order)
 	def add_filter(self, filter_):

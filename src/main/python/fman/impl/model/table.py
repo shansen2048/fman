@@ -14,7 +14,7 @@ class TableModel:
 	def __init__(self, column_headers):
 		super().__init__()
 		self._column_headers = column_headers
-		self._rows = []
+		self._rows = Rows()
 	def rowCount(self, parent=QModelIndex()):
 		# According to the Qt docs for QAbstractItemModel#rowCount(...):
 		#  > When implementing a table based model, rowCount() should
@@ -73,21 +73,17 @@ class TableModel:
 		self.beginInsertRows(
 			QModelIndex(), first_rownum, first_rownum + len(rows) - 1
 		)
-		self._rows = \
-			self._rows[:first_rownum] + rows + self._rows[first_rownum:]
+		self._rows.insert(rows, first_rownum)
 		self.endInsertRows()
 	def move_rows(self, cut_start, cut_end, insert_start):
 		dst_row = _get_move_destination(cut_start, cut_end, insert_start)
 		assert self.beginMoveRows(
 			QModelIndex(), cut_start, cut_end - 1, QModelIndex(), dst_row
 		)
-		rows = self._rows[cut_start:cut_end]
-		self._rows = self._rows[:cut_start] + self._rows[cut_end:]
-		self._rows = \
-			self._rows[:insert_start] + rows + self._rows[insert_start:]
+		self._rows.move(cut_start, cut_end, insert_start)
 		self.endMoveRows()
 	def update_rows(self, rows, first_rownum):
-		self._rows[first_rownum : first_rownum + len(rows)] = rows
+		self._rows.update(rows, first_rownum)
 		top_left = self.index(first_rownum, 0)
 		bottom_right = \
 			self.index(first_rownum + len(rows) - 1, self.columnCount() - 1)
@@ -96,7 +92,7 @@ class TableModel:
 		if end == -1:
 			end = start + 1
 		self.beginRemoveRows(QModelIndex(), start, end - 1)
-		del self._rows[start:end]
+		self._rows.remove(start, end)
 		self.endRemoveRows()
 	def _index_is_valid(self, index):
 		if not index.isValid() or index.model() != self:
@@ -109,6 +105,32 @@ def _get_move_destination(cut_start, cut_end, insert_start):
 		raise ValueError('Not a move operation (%d, %d)' % (cut_start, cut_end))
 	num_rows = cut_end - cut_start
 	return insert_start + (num_rows if cut_start < insert_start else 0)
+
+class Rows:
+	def __init__(self):
+		self._rows = []
+	def __len__(self):
+		return len(self._rows)
+	def __getitem__(self, item):
+		return self._rows[item]
+	def __setitem__(self, key, value):
+		self._rows[key] = value
+	def __iter__(self):
+		return iter(self._rows)
+	def reset_to(self, new_rows):
+		self._rows = new_rows
+	def insert(self, rows, first_rownum):
+		self._rows = \
+			self._rows[:first_rownum] + rows + self._rows[first_rownum:]
+	def move(self, cut_start, cut_end, insert_start):
+		rows = self._rows[cut_start:cut_end]
+		self._rows = self._rows[:cut_start] + self._rows[cut_end:]
+		self._rows = \
+			self._rows[:insert_start] + rows + self._rows[insert_start:]
+	def update(self, rows, first_rownum):
+		self._rows[first_rownum: first_rownum + len(rows)] = rows
+	def remove(self, start, end):
+		del self._rows[start:end]
 
 class Row:
 	def __init__(self, key, icon, drop_enabled, cells):
