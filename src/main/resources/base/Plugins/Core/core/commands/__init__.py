@@ -7,7 +7,8 @@ from core.quicksearch_matchers import path_starts_with, basename_starts_with, \
 	contains_chars, contains_chars_after_separator
 from fman import *
 from fman.fs import exists, touch, mkdir, is_dir, delete, samefile, copy, \
-	iterdir, resolve, prepare_copy, prepare_move, prepare_delete, prepare_trash
+	iterdir, resolve, prepare_copy, prepare_move, prepare_delete, \
+	FileSystem, prepare_trash, query
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 	dirname
 from getpass import getuser
@@ -743,6 +744,14 @@ class CreateDirectory(DirectoryPaneCommand):
 				self.pane.place_cursor_at(dir_url)
 			except ValueError as dir_disappeared:
 				pass
+	def is_visible(self):
+		fs = splitscheme(self.pane.get_path())[0]
+		return _fs_implements(fs, 'mkdir')
+
+def _fs_implements(scheme, method_name):
+	# Using query(...) in this way is quite hacky, but works:
+	method = query(scheme + method_name, '__getattr__')
+	return method.__func__ is not getattr(FileSystem, method_name)
 
 class OpenTerminal(DirectoryPaneCommand):
 
