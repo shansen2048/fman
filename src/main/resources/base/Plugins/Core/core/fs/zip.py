@@ -464,8 +464,8 @@ class Popen7Zip:
 		# 	OSError: [WinError 6] The handle is invalid
 		# This is likely caused by https://bugs.python.org/issue3905.
 		self._process = Popen(
-			[_7ZIP_BINARY] + args, stdout=PIPE, stderr=DEVNULL, stdin=DEVNULL, cwd=cwd,
-			env=env, **kwargs
+			[_7ZIP_BINARY] + args, stdout=PIPE, stderr=DEVNULL, stdin=DEVNULL,
+			cwd=cwd, env=env, **kwargs
 		)
 		self.stdout = SourceClosingTextIOWrapper(self._process.stdout, encoding)
 	def kill(self):
