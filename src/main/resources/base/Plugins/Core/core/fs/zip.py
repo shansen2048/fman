@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import namedtuple, deque
 from core.os_ import is_arch
 from core.util import filenotfounderror
 from datetime import datetime
@@ -224,14 +224,14 @@ class _7ZipFileSystem(FileSystem):
 		exclude = (path_in_zip + '/' if path_in_zip else '') + '*/*/*/*'
 		args.append('-x!' + exclude)
 		with _7zip(args, kill=True) as process:
-			stdout = process.stdout
-			file_info = self._read_file_info(stdout)
+			stdout_lines = process.stdout_lines
+			file_info = self._read_file_info(stdout_lines)
 			if path_in_zip and not file_info:
 				raise filenotfounderror(self.scheme + path)
 			while file_info:
 				self._put_in_cache(zip_path, file_info)
 				yield file_info
-				file_info = self._read_file_info(stdout)
+				file_info = self._read_file_info(stdout_lines)
 	def _raise_filenotfounderror_if_not_exists(self, zip_path):
 		os.stat(zip_path)
 	def _read_file_info(self, stdout):
@@ -270,7 +270,7 @@ class _7ZipFileSystem(FileSystem):
 class _7zipTaskWithProgress(Task):
 	def run_7zip_with_progress(self, args, **kwargs):
 		with _7zip(args, pty=True, **kwargs) as process:
-			for line in process.stdout:
+			for line in process.stdout_lines:
 				try:
 					self.check_canceled()
 				except Task.Canceled:
@@ -429,6 +429,7 @@ class _7zip:
 		self._kill = kill
 		self._killed = False
 		self._process = None
+		self._stdout_lines = deque(maxlen=100)
 	def __enter__(self):
 		if PLATFORM == 'Windows':
 			cls = Run7ZipViaWinpty if self._pty else Popen7ZipWindows
@@ -437,8 +438,10 @@ class _7zip:
 		self._process = cls(self._args, self._cwd)
 		return self
 	@property
-	def stdout(self):
-		return self._process.stdout
+	def stdout_lines(self):
+		for line in self._process.stdout:
+			self._stdout_lines.append(line)
+			yield line
 	def kill(self):
 		self._killed = True
 		self._process.kill()
@@ -453,9 +456,19 @@ class _7zip:
 				exit_code = self._process.wait()
 				if exit_code and not self._killed and \
 					exit_code != self._7ZIP_WARNING:
-					raise CalledProcessError(exit_code, self._args)
+					raise _7zipError(
+						exit_code, self._args, ''.join(self._stdout_lines)
+					)
 		finally:
 			self._process.stdout.close()
+
+class _7zipError(CalledProcessError):
+	def __str__(self):
+		result = '7-Zip with args %r returned non-zero exit status %d' % \
+				 (self.cmd, self.returncode)
+		if self.output:
+			result += '. Output: %r' % re.sub('(\r?\n)+', ' ', self.output)
+		return result
 
 class Popen7Zip:
 	def __init__(self, args, cwd, env, encoding=None, **kwargs):
