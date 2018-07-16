@@ -68,6 +68,11 @@ class PaneCommandRegistry:
 		self._command_classes[name] = cls
 	def unregister_command(self, name):
 		del self._command_classes[name]
+		for commands in self._command_instances.values():
+			try:
+				del commands[name]
+			except KeyError:
+				pass
 	def get_commands(self):
 		return set(self._command_classes)
 	def execute_command(self, name, args, pane, file_under_cursor=_DEFAULT):

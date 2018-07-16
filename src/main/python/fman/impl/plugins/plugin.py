@@ -178,6 +178,7 @@ class ExternalPlugin(Plugin):
 					continue
 				register(cls)
 				self._add_unload_action(unregister, cls)
+			self._add_unload_action(self._unregister_package, package)
 	def _load_key_bindings(self):
 		self._configure_component_from_json(
 			self._key_bindings, 'Key Bindings.json'
@@ -221,6 +222,8 @@ class ExternalPlugin(Plugin):
 				package_name = basename(dir_)
 				loader = SourceFileLoader(package_name, init)
 				yield loader.load_module()
+	def _unregister_package(self, package):
+		del sys.modules[package.__name__]
 	def _iterate_classes(self, module):
 		for cls in [getattr(module, name) for name in dir(module)]:
 			if inspect.isclass(cls):
