@@ -359,6 +359,22 @@ class MessageBox(QMessageBox):
 	def __init__(self, parent, allow_escape=True):
 		super().__init__(parent)
 		self._allow_escape = allow_escape
+	def setStandardButtons(self, buttons):
+		super().setStandardButtons(buttons)
+		if is_mac():
+			# The shortcut keys don't work out of the box on Mac, even though
+			# they are displayed by our theme. (The standard macOS theme does 
+			# not display them.) The code below ensures that they work.
+			# We do have to perform these steps _here_ because self.button(...)
+			# returns None when called from the constructor.
+			for button, shortcut in (
+				(self.Yes, Qt.Key_Y), (self.No, Qt.Key_N),
+				(self.YesToAll, Qt.Key_A), (self.NoToAll, Qt.Key_O)
+			):
+				if buttons & button:
+					self.button(button).setShortcut(
+						QKeySequence(Qt.CTRL + shortcut)
+					)
 	def keyPressEvent(self, event):
 		if self._allow_escape or event.key() != Key_Escape:
 			super().keyPressEvent(event)
