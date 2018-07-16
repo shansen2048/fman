@@ -2212,6 +2212,13 @@ if PLATFORM == 'Mac':
 		aliases = ('Quick Look', 'Preview')
 
 		def __call__(self):
-			file_under_cursor = self.pane.get_file_under_cursor()
-			if file_under_cursor:
-				Popen(['qlmanage', '-p', as_human_readable(file_under_cursor)])
+			files = self.get_chosen_files()
+			if not files:
+				show_alert('No file is selected!')
+				return
+			if any(splitscheme(f)[0] != 'file://' for f in files):
+				show_alert('Sorry, can only preview normal files.')
+				return
+			args = ['qlmanage', '-p']
+			args.extend(map(as_human_readable, files))
+			Popen(args, stdout=DEVNULL, stderr=DEVNULL)
