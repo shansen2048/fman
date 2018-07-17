@@ -120,7 +120,14 @@ class DevelopmentApplicationContext(ApplicationContext):
 		if self.app_icon:
 			result.setWindowIcon(self.app_icon)
 		result.aboutToQuit.connect(self.on_quit)
+		# We need to instantiate this somewhere. So why not here:
+		_ = self.mac_clipboard_fix
 		return result
+	@cached_property
+	def mac_clipboard_fix(self):
+		if system.is_mac():
+			from fman.impl.mac_clipboard_fix import MacClipboardFix
+			return MacClipboardFix()
 	@cached_property
 	def command_callback(self):
 		return CommandCallback(self.metrics)
