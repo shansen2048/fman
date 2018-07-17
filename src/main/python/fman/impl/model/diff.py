@@ -75,9 +75,17 @@ class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 				self.rows += other.rows
 				return True
 		elif type_ == other_type == 'move':
-			if self.cut_start == other.cut_end:
+			# Other cut before this one:
+			if other.cut_end == self.cut_start \
+				and other.insert_start + len(other) == self.insert_start:
 				self.cut_start = other.cut_start
 				self.insert_start = other.insert_start
+				return True
+			# This cut before other one:
+			if self.cut_end == other.cut_start \
+				and self.insert_start + len(self) == other.insert_start \
+				and self.insert_start < self.cut_start:
+				self.cut_end = other.cut_end
 				return True
 		elif type_ == other_type == 'update':
 			if other.cut_start == self.cut_end:
@@ -128,3 +136,5 @@ class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 	@property
 	def _insert_end(self):
 		return self.insert_start + len(self.rows)
+	def __len__(self):
+		return (self.cut_end - self.cut_start) or len(self.rows)

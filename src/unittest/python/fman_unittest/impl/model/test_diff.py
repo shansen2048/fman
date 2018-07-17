@@ -56,6 +56,10 @@ class ComputeDiffTest(TestCase):
 			[('b', 0), ('a', 1)],
 			[(1, 2, 0, []), (0, 1, 0, [('b', 0)])]
 		)
+	def test_complex(self):
+		before = [(0, 0), (1, 1), (2, 2), (3, 3)]
+		after = [(3, 3), (1, 4), (0, 5), (2, 6)]
+		self._check_diff(before, after)
 	def setUp(self):
 		super().setUp()
 		self._a = ('a', 1)
@@ -93,19 +97,31 @@ class DiffEntryExtendByTest(TestCase):
 		self._check(
 			(-1, -1, 0, [1, 2]), (-1, -1, 2, [3]), (-1, -1, 0, [1, 2, 3])
 		)
-	def test_move(self):
-		self._check((1, 2, 11, []), (0, 1, 10, []), (0, 2, 10, []))
+	def test_move_before(self):
+		self._check((1, 3, 11, []), (0, 1, 10, []), (0, 3, 10, []))
+	def test_move_after(self):
+		self._check((5, 7, 1, []), (7, 8, 3, []), (5, 8, 1, []))
+	def test_move_before_unjoinable(self):
+		self._check((1, 3, 11, []), (0, 1, 5, []))
+	def test_move_after_unjoinable(self):
+		self._check((5, 7, 1, []), (7, 8, 4, []))
+	def test_move_before_affects_second(self):
+		self._check((0, 1, 10, []), (1, 2, 11, []))
+	def test_second_move_affects_first(self):
+		self._check((10, 11, 5, []), (9, 10, 6, []))
 	def test_update(self):
 		self._check((0, 2, 0, [1, 2]), (2, 3, 2, [3]), (0, 3, 0, [1, 2, 3]))
 	def test_remove(self):
 		self._check((1, 2, -1, []), (0, 1, -1, []), (0, 2, -1, []))
 	def test_remove_followed_by_insert(self):
 		self._check((0, 1, -1, []), (-1, -1, 0, [1]), (0, 1, 0, [1]))
-	def _check(self, first, second, expected):
+	def _check(self, first, second, expected=None):
 		first_entry = DiffEntry(*first)
 		second_entry = DiffEntry(*second)
-		self.assertEqual(True, first_entry.extend_by(second_entry))
-		self.assertEqual(DiffEntry(*expected), first_entry)
+		result = first_entry.extend_by(second_entry)
+		self.assertEqual(expected is not None, result)
+		if expected is not None:
+			self.assertEqual(DiffEntry(*expected), first_entry)
 
 def _powerset(iterable):
 	s = list(iterable)
