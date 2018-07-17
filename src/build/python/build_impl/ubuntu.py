@@ -137,13 +137,25 @@ def _upload_deb():
 			(gpg_pass, tmp_dir_remote, tmp_dir_remote)
 		)
 		deb_path_remote = tmp_dir_remote + '/' + deb_name
+		updates_dir = get_path_on_server('updates/ubuntu')
+		# Run reprepro on a temporary directory first, to not screw up its state
+		# if something goes wrong:
+		run_on_server('cp -r "%s" "%s"' % (updates_dir, tmp_dir_remote))
+		tmp_updates_dir = tmp_dir_remote + '/ubuntu'
 		run_on_server(
 			'%s/reprepro_no_pw_prompt.sh "%s" "%s" "%s/reprepro/conf" '
 			'includedeb stable "%s"' % (
-				tmp_dir_remote, gpg_pass, get_path_on_server('updates/ubuntu'),
+				tmp_dir_remote, gpg_pass, tmp_updates_dir,
 				tmp_dir_remote, deb_path_remote
 			)
 		)
+		mv = lambda src, dst: run_on_server('mv "%s" "%s"' % (src, dst))
+		updates_dir_backup = tmp_dir_remote + '/ubuntu_old'
+		mv(updates_dir, updates_dir_backup)
+		try:
+			mv(tmp_updates_dir, updates_dir)
+		except Exception:
+			mv(updates_dir_backup, updates_dir)
 	finally:
 		run_on_server('rm -rf "%s"' % tmp_dir_remote)
 
