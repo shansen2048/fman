@@ -299,26 +299,21 @@ def _open_files(urls):
 		_open_local_file(path)
 
 def _open_local_file(path):
-	cwd = os.path.dirname(path)
-	kwargs = {
-		'cwd': cwd
-	}
 	if PLATFORM == 'Windows':
-		file_name = os.path.basename(path)
-		pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
-		if any(file_name.lower().endswith(ext.lower()) for ext in pathext):
-			args = [path]
-		else:
-			# The empty arg '' is the "title of the command window".
-			# It is required:
-			args = ['start', '', '/D', cwd, file_name.replace('&', '^&')]
-			kwargs['shell'] = True
+		# Whichever implementation is used here, it should support:
+		#  * C:\picture.jpg
+		#  * C:\notepad.exe
+		#  * C:\a & b.txt
+		#  * C:\batch.bat with `pause` at the end
+		#  * \\server\share\picture.jpg
+		#  * D:\Book.pdf
+		#  * \\cryptomator-vault\app.exe
+		os.startfile(path)
 	else:
-		args = [path]
-	try:
-		Popen(args, **kwargs)
-	except (OSError, ValueError):
-		QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+		try:
+			Popen([path], cwd=os.path.dirname(path))
+		except (OSError, ValueError):
+			QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
 class OpenSelectedFiles(DirectoryPaneCommand):
 	def __call__(self):
