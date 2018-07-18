@@ -14,14 +14,14 @@ class Quicksearch(QDialog):
 	shown = pyqtSignal()
 
 	def __init__(
-		self, parent, app, theme, get_items, get_tab_completion=None, query='',
+		self, parent, app, css, get_items, get_tab_completion=None, query='',
 		item=0
 	):
 		if get_tab_completion is None:
 			get_tab_completion = lambda q, i: None
 		super().__init__(parent, FramelessWindowHint)
 		self._app = app
-		self._theme = theme
+		self._css = css
 		self._get_items = get_items
 		self._get_tab_completion = get_tab_completion
 		self._initial_query = query
@@ -46,9 +46,7 @@ class Quicksearch(QDialog):
 		self._items = QListView()
 		self._items.setUniformItemSizes(True)
 		self._items.setModel(QuicksearchListModel(self))
-		self._items.setItemDelegate(
-			QuicksearchItemDelegate(self, self._theme)
-		)
+		self._items.setItemDelegate(QuicksearchItemDelegate(self, self._css))
 		self._items.setFocusPolicy(NoFocus)
 		self._items.clicked.connect(self._on_item_clicked)
 		div = lambda widget: self._layout_vertically(Div(), widget)
@@ -170,9 +168,9 @@ class QuicksearchListModel(QAbstractListModel):
 ItemRole = UserRole
 
 class QuicksearchItemDelegate(QStyledItemDelegate):
-	def __init__(self, parent, theme):
+	def __init__(self, parent, css):
 		super().__init__(parent)
-		self._theme = theme
+		self._css = css
 	def paint(self, painter, option, index):
 		self._get_renderer(option, index).render(painter)
 	def sizeHint(self, option, index):
@@ -180,10 +178,10 @@ class QuicksearchItemDelegate(QStyledItemDelegate):
 	def _get_renderer(self, option, index):
 		item = index.data(ItemRole)
 		self.initStyleOption(option, index)
-		return QuicksearchItemRenderer(item, option, self._theme)
+		return QuicksearchItemRenderer(item, option, self._css)
 
 class QuicksearchItemRenderer:
-	def __init__(self, item, option, theme):
+	def __init__(self, item, option, css):
 		# Convert to str(...) in case the (fman API) user didn't pass a string:
 		self._title = str(item.title)
 		self._hint = str(item.hint)
@@ -191,7 +189,7 @@ class QuicksearchItemRenderer:
 
 		self._highlight = item.highlight
 		self._option = option
-		self._css = theme.get_quicksearch_item_css()
+		self._css = css
 		self._widget = option.widget
 		style = self._widget.style() if self._widget else QApplication.style()
 		self._proxy = style.proxy()

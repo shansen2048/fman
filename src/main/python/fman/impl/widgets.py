@@ -267,9 +267,9 @@ class MainWindow(QMainWindow):
 	def show_quicksearch(
 		self, get_items, get_tab_completion=None, query='', item=0
 	):
+		css = self._theme.get_quicksearch_item_css()
 		dialog = Quicksearch(
-			self, self._app, self._theme, get_items, get_tab_completion, query,
-			item
+			self, self._app, css, get_items, get_tab_completion, query, item
 		)
 		result = self.exec_dialog(dialog)
 		return result
