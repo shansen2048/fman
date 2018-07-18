@@ -5,7 +5,7 @@ from fman.impl.model.file_watcher import FileWatcher
 from fman.impl.model.table import TableModel, Cell, Row
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.util.url import is_pardir
-from fman.url import dirname
+from fman.url import dirname, splitscheme
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
 import sip
@@ -48,7 +48,14 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 					raise
 				error_urls.add(url)
 	def _set_location(self, url, sort_column, ascending, callback):
-		url = self._fs.resolve(url)
+		url_resolved = self._fs.resolve(url)
+		if splitscheme(url_resolved)[0] != splitscheme(url)[0]:
+			# In general, we do not want to simply rewrite the URL to its
+			# resolved form. This is for instance because we don't want to
+			# rewrite C:\Windows\System32 -> ...\SysWOW64. However, if the
+			# file system changes, we do need to follow the rewrite to support
+			# cases such as zip:/// resolving to file:///.
+			url = url_resolved
 		old_model = self.sourceModel()
 		if old_model:
 			if url == old_model.get_location():

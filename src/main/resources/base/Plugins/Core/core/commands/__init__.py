@@ -1933,15 +1933,17 @@ class RememberSortSettings(DirectoryPaneListener):
 			# zip:/// - which resolves to file:///. The sort settings will have
 			# been saved for this latter URL. So we have to resolve(...) to go
 			# from the former to the latter:
-			url = resolve(url)
+			url_resolved = resolve(url)
 		except OSError:
-			pass
+			url_resolved = url
 		settings = load_json('Sort Settings.json', default={})
 		try:
-			data = settings[url]
+			data = settings[url_resolved]
 		except KeyError:
 			return
 		remembered_col, remembered_asc = data['column'], data['is_ascending']
+		# Note that we return `url` here, not `url_resolved`. This is eg. because
+		# we don't want to rewrite C:\Windows\System32 -> ...\SysWOW64.
 		return url, remembered_col, remembered_asc
 
 class Minimize(ApplicationCommand):
