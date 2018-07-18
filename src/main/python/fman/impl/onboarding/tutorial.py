@@ -470,15 +470,11 @@ def _get_navigation_steps(
 			dst_url, src_url, is_hidden, showing_hidden_files
 		)
 	dst_path = as_human_readable(dst_url)
-	src_scheme = splitscheme(src_url)[0]
-	if src_scheme == 'file://':
-		src_path = as_human_readable(src_url)
-	else:
-		src_path = splitscheme(src_url)[1]
 	dst_drive = splitdrive(dst_path)[0]
 	dst_is_unc = dst_drive.startswith(r'\\')
 	dst_drive_path = \
 		(dst_drive + ('' if dst_is_unc else '\\')) if is_windows() else '/'
+	src_scheme = splitscheme(src_url)[0]
 	if src_scheme == 'drives://':
 		if dst_is_unc:
 			from core.fs.local.windows.drives import DrivesFileSystem
@@ -490,6 +486,7 @@ def _get_navigation_steps(
 			unc_parts = dst_drive[2:].split('\\')
 			server = unc_parts[0]
 			assert server == server.upper(), server
+			src_path = splitscheme(src_url)[1]
 			if not src_path:
 				return [('open', server)] + continue_from('network://' + server)
 			src_server = src_path.split('/')[0]
@@ -502,6 +499,7 @@ def _get_navigation_steps(
 	if src_scheme != 'file://':
 		return [('go to', dst_drive_path)] +\
 			   continue_from(as_url(dst_drive_path))
+	src_path = as_human_readable(src_url)
 	src_drive = splitdrive(src_path)[0]
 	if dst_drive != src_drive:
 		return [('show drives', '')] + continue_from('drives://')
