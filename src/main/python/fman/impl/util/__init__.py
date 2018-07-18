@@ -1,4 +1,3 @@
-from fbs_runtime.application_context import is_frozen
 from getpass import getuser
 from os import listdir, strerror
 from os.path import join, basename, expanduser, dirname, realpath, relpath, \
@@ -26,9 +25,6 @@ def parse_version(version_str):
 	if version_str.endswith('-SNAPSHOT'):
 		version_str = version_str[:-len('-SNAPSHOT')]
 	return tuple(map(int, version_str.split('.')))
-
-def is_debug():
-	return not is_frozen()
 
 class MixinBase:
 

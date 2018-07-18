@@ -1,5 +1,6 @@
+from fbs_runtime.application_context import is_frozen
 from fman.impl.theme import ThemeError
-from fman.impl.util import is_below_dir, is_debug
+from fman.impl.util import is_below_dir
 from os.path import dirname, basename
 from traceback import StackSummary, _some_str, extract_tb, TracebackException, \
 	print_exception
@@ -32,7 +33,7 @@ class PluginErrorHandler:
 		if exc is None:
 			exc = sys.exc_info()[1]
 		if exc:
-			if is_debug():
+			if not is_frozen():
 				# The steps further below only show a pruned stack trace. During
 				# development, it's useful if we also see the full stack trace:
 				print_exception(type(exc), exc, exc.__traceback__)
