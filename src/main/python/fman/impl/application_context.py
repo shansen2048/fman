@@ -82,6 +82,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 		_ = self.main_window
 		for plugin_dir in plugin_dirs:
 			self.plugin_support.load_plugin(plugin_dir)
+		self.theme.enable_updates()
 	@property
 	def fman_version(self):
 		return self.constants['version']

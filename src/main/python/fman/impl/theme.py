@@ -23,6 +23,7 @@ class Theme:
 		self._extra_qss_from_css = OrderedDict()
 		self._quicksearch_item_css = ''
 		self._css_engine = None
+		self._updates_enabled = False
 	def load(self, css_file_path):
 		with open(css_file_path, 'rb') as f:
 			f_contents = f.read()
@@ -49,6 +50,16 @@ class Theme:
 		self._update_app()
 	def get_quicksearch_item_css(self):
 		return self._quicksearch_item_css
+	def enable_updates(self):
+		"""
+		Performance optimization: Updating our app's style sheet to reflect
+		theme changes is a potentially expensive operation. So we don't want to
+		do it after each plugin is loaded when fman starts. Instead, we disable
+		updates in the beginning and only enable them once all plugins have been
+		loaded.
+		"""
+		self._updates_enabled = True
+		self._update_app()
 	def _get_quicksearch_item_css(self):
 		self._css_engine = \
 			CSSEngine([r for rs in self._css_rules.values() for r in rs])
@@ -104,6 +115,8 @@ class Theme:
 				continue
 		return result
 	def _update_app(self):
+		if not self._updates_enabled:
+			return
 		qss = self._qss_base + ''.join(self._extra_qss_from_css.values())
 		self._app.set_style_sheet(qss)
 	def _parse_border_width(self, selector, declaration):
