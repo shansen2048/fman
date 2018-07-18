@@ -58,22 +58,17 @@ class GetNavigationStepsTest(TestCase):
 			as_url(r'\\B\Folder'), 'network://A'
 		)
 	def test_hidden_directory(self):
-		is_hidden = lambda url: True
 		dst_url = self._root
 		src_url = dirname(dst_url)
 		dir_name = basename(dst_url)
 		self._expect(
 			[('toggle hidden files', dir_name), ('open', dir_name)],
-			dst_url, src_url, is_hidden, False
+			dst_url, src_url,
+			is_hidden=lambda url: True, showing_hidden_files=False
 		)
 	def setUp(self):
 		super().setUp()
 		self._root = dirname(as_url(__file__))
-	def _expect(
-		self, result, dst_url, src_url,
-		is_hidden=lambda url: False, showing_hidden_files=True
-	):
-		actual = _get_navigation_steps(
-			dst_url, src_url, is_hidden, showing_hidden_files
-		)
+	def _expect(self, result, dst_url, src_url, **kwargs):
+		actual = _get_navigation_steps(dst_url, src_url, **kwargs)
 		self.assertEqual(result, actual)
