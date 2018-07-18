@@ -75,13 +75,22 @@ class ResizeColumnsToContents(UniformRowHeights):
 		The present iteration is faster still: Displaying 5000 files and
 		scrolling page down four times cost 3 seconds. With the current
 		implementation (which seems to provide the same results), this is down
-		to 0.00s.
+		to 0.00s. At the same time, this implementation should(!) return exactly
+		the same results as QHeaderView#visualIndexAt(...).
 		"""
 		header = self.verticalHeader()
 		if not header.count():
-			# Mimic #visualIndexAt(y):
+			# Mimic header.visualIndexAt(y):
 			return -1
-		return (y + header.offset()) // self.get_row_height()
+		else:
+			y_abs = y + header.offset()
+			row_height = self.get_row_height()
+			total_height = self.model().rowCount() * row_height
+			if y_abs >= total_height:
+				# Mimic header.visualIndexAt(y):
+				return -1
+			else:
+				return y_abs // row_height
 	def _get_width_excl_scrollbar(self):
 		return self.width() - self._get_vertical_scrollbar_width()
 	def _get_vertical_scrollbar_width(self):
