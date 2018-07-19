@@ -308,7 +308,13 @@ def _open_local_file(path):
 		#  * \\server\share\picture.jpg
 		#  * D:\Book.pdf
 		#  * \\cryptomator-vault\app.exe
-		os.startfile(path)
+		try:
+			os.startfile(path)
+		except OSError:
+			# This for instance happens when the file is an .exe that requires
+			# Admin privileges, but the user cancels the UAC "do you want to run
+			# this file?" dialog.
+			pass
 	else:
 		try:
 			Popen([path], cwd=os.path.dirname(path))
