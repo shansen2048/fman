@@ -25,6 +25,54 @@ class UniformRowHeights(QTableView):
 		# the calculated row height. So invalidate:
 		self._row_height = None
 		super().changeEvent(event)
+	def dataChanged(self, top, bottom, roles):
+		if top != bottom or not top.isValid(): # As in super().dataChanged(...)
+			visible = self.get_visible_row_range()
+			if top.row() > visible.stop or bottom.row() < visible.start:
+				# Performance improvement: QTableView's default implementation
+				# issues a full repaint for any multi-cell change. Avoid this if
+				# the affected rows aren't even visible:
+				return
+		super().dataChanged(top, bottom, roles)
+	def get_visible_row_range(self):
+		header = self.verticalHeader()
+		start = self._get_row_at(0)
+		if start == -1:
+			start = 0
+		stop = self._get_row_at(header.viewport().height()) + 1
+		if stop == 0:
+			stop = self.model().rowCount()
+		return range(start, stop)
+	def _get_row_at(self, y):
+		"""
+		The implementation of this method has gone through several iterations:
+
+		First, QHeaderView#logicalIndexAt(...) was used.
+
+		To improve performance, QHeaderView#visualIndexAt(...) was then used
+		instead because (at least at the time of this writing) we don't have
+		hidden rows. This was roughly twice as fast as logicalIndexAt(...) and
+		saved a few hundred ms.
+
+		The present iteration is faster still: Displaying 5000 files and
+		scrolling page down four times cost 3 seconds. With the current
+		implementation (which seems to provide the same results), this is down
+		to 0.00s. At the same time, this implementation should(!) return exactly
+		the same results as QHeaderView#visualIndexAt(...).
+		"""
+		header = self.verticalHeader()
+		if not header.count():
+			# Mimic header.visualIndexAt(y):
+			return -1
+		else:
+			y_abs = y + header.offset()
+			row_height = self.get_row_height()
+			total_height = self.model().rowCount() * row_height
+			if y_abs >= total_height:
+				# Mimic header.visualIndexAt(y):
+				return -1
+			else:
+				return y_abs // row_height
 	def _get_cell_heights(self, row=0):
 		self.ensurePolished()
 		option = self.viewOptions()
