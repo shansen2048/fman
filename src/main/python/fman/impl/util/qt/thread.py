@@ -15,6 +15,21 @@ def run_in_thread(thread_fn):
 def _main_thread():
 	return QApplication.instance().thread()
 
+"""
+To debug how the main thread spends its time, add the code below.
+
+At module level:
+	from timer_cm import Timer
+	import atexit
+	_TIMER = Timer('run_in_main_thread')
+	atexit.register(_TIMER.print_results)
+
+In Task#__call__():
+	...
+	with _TIMER.child(self._fn.__name__):
+		self._result = self._fn(*self._args, **self._kwargs)
+	...
+"""
 run_in_main_thread = run_in_thread(_main_thread)
 
 def is_in_main_thread():
