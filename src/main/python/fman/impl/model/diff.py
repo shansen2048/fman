@@ -37,7 +37,7 @@ class ComputeDiff:
 				self._update_row(i, new_row)
 		if self._old_keys != self._new_keys:
 			raise AssertionError('%r != %r' % (self._old_keys, self._new_keys))
-		return self._join_adjacent()
+		return join(self._result)
 	def _remove_row(self, i):
 		self._result.append(DiffEntry(i, i + 1, -1, []))
 		self._old_rows.pop(i)
@@ -54,18 +54,34 @@ class ComputeDiff:
 		self._result.append(DiffEntry(i, i + 1, i, [row]))
 		self._old_rows[i] = row
 		assert self._key_fn(row) == self._old_keys[i]
-	def _join_adjacent(self):
-		if not self._result:
-			return []
-		result = [self._result[0]]
-		for entry in self._result[1:]:
-			if not result[-1].extend_by(entry):
-				result.append(entry)
-		return result
+
+def join(diff_entries):
+	if not diff_entries:
+		return []
+	result = [diff_entries[0]]
+	for entry in diff_entries[1:]:
+		if not result[-1].extend_by(entry):
+			result.append(entry)
+	return result
 
 class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 
 	_FIELDS = ('cut_start', 'cut_end', 'insert_start', 'rows')
+
+	@classmethod
+	def insert(cls, insert_start, rows):
+		return cls(-1, -1, insert_start, rows)
+	@classmethod
+	def update(cls, rownum_start, rows):
+		return cls(rownum_start, rownum_start + len(rows), rownum_start, rows)
+	@classmethod
+	def move(cls, src, dst, rows):
+		return cls(src, src + len(rows), dst, rows)
+	@classmethod
+	def remove(cls, start, end=None):
+		if end is None:
+			end = start + 1
+		return cls(start, end, -1, [])
 
 	def extend_by(self, other):
 		type_ = self._type
@@ -138,3 +154,16 @@ class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 		return self.insert_start + len(self.rows)
 	def __len__(self):
 		return (self.cut_end - self.cut_start) or len(self.rows)
+	def __str__(self):
+		t = self._type
+		if t == 'update':
+			return 'update %d rows, starting at %d' % \
+				   (len(self), self.insert_start)
+		if t == 'move':
+			return 'move %d rows from %d to %d' % \
+				   (len(self), self.cut_start, self.insert_start)
+		if t == 'remove':
+			return 'remove %d rows, starting at %d' % \
+				   (len(self), self.cut_start)
+		if t == 'insert':
+			return 'insert %d rows at %s' % (len(self), self.insert_start)

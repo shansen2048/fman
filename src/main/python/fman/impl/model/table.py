@@ -63,6 +63,8 @@ class TableModel:
 		return result
 	def set_rows(self, rows):
 		diff = ComputeDiff(self._rows, rows, key_fn=lambda row: row.key)()
+		self._apply_diff(diff)
+	def _apply_diff(self, diff):
 		for entry in diff:
 			entry.apply(
 				self.insert_rows, self.move_rows, self.update_rows,

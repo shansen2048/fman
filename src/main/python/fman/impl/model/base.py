@@ -1,3 +1,6 @@
+from bisect import bisect
+from fman.impl.model.diff import DiffEntry
+from fman.impl.model.diff import join as join_diff
 from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.file_watcher import FileWatcher
 from fman.impl.model.sorted_table import SortFilterTableModel
@@ -180,17 +183,120 @@ class BaseModel(SortFilterTableModel, DragAndDrop):
 		"""
 		Tells the model that the given `files` exist and the URLs given in
 		`disappeared` do not exist.
+
+		This method is complicated because it is optimised for performance. A
+		simpler (but slower) implementation would be (pseudo-code):
+
+			for url in disappeared:
+				del self._files[url]
+			for file_ in files:
+				self._files[file_.url] = file_
+			self.set_rows(self._sorted(self._filter(self.get_rows())))
+
+		This implementation should produce the same result as the above code.
 		"""
 		if disappeared is None:
 			disappeared = []
-		for url in disappeared:
+		self._remove_files(disappeared)
+		to_update = []
+		to_remove = []
+		to_move = []
+		to_insert = []
+		for file_ in files:
+			try:
+				old_file = self._files[file_.url]
+			except KeyError:
+				if self._accepts(file_):
+					to_insert.append(file_)
+			else:
+				try:
+					rownum = self._rows.find(file_.url)
+				except KeyError:
+					if self._accepts(file_):
+						to_insert.append(file_)
+				else:
+					if not self._accepts(file_):
+						to_remove.append(rownum)
+						continue
+					old_sortval = self._get_sortval(old_file)
+					new_sortval = self._get_sortval(file_)
+					if old_sortval == new_sortval:
+						to_update.append((rownum, file_))
+					else:
+						new_rownum = self._get_rownum_for_sortval(new_sortval)
+						to_move.append((rownum, new_rownum, file_))
+			self._files[file_.url] = file_
+		diff = []
+		# First update rows because it doesn't change any row numbers. Sort by
+		# rownum to make it possible to join adjacent updates in the diff:
+		to_update.sort()
+		for rownum, file_ in to_update:
+			diff.append(DiffEntry.update(rownum, [file_]))
+		# Next move rows because it doesn't change the number of rows. Again,
+		# sort by rownum to make it possible to join individual row diffs:
+		to_move.sort()
+		moved = []
+		def get_rownum_after_moves(orig_rownum):
+			result = orig_rownum
+			for src, dst in moved:
+				if src < orig_rownum:
+					result -= 1
+				if dst >= orig_rownum:
+					result += 1
+			return result
+		for old_rownum, new_rownum, file_ in to_move:
+			src = get_rownum_after_moves(old_rownum)
+			dst = get_rownum_after_moves(new_rownum)
+			diff.append(DiffEntry.move(src, dst, [file_]))
+			moved.append((src, dst))
+		# Then remove rows because effect on rownums is simple. Sort by rownum
+		# then reverse so later removals are not affected by earlier ones:
+		to_remove.sort()
+		for rownum in reversed(to_remove):
+			diff.append(DiffEntry.remove(get_rownum_after_moves(rownum)))
+		# Flush:
+		self._apply_diff(join_diff(diff))
+		diff = []
+		# Finally, insert rows. In reverse order so later inserts are not
+		# affected by earlier ones:
+		insert_sortvals = ((self._get_sortval(f), f) for f in to_insert)
+		for sortval, f in sorted(insert_sortvals, reverse=True):
+			rownum = self._get_rownum_for_sortval(sortval)
+			diff.append(DiffEntry.insert(rownum, [f]))
+		self._apply_diff(join_diff(diff))
+	def _remove_files(self, files):
+		rownums = []
+		for url in files:
 			try:
 				del self._files[url]
 			except KeyError:
 				pass
-		for file_ in files:
-			self._files[file_.url] = file_
-		self.update()
+			else:
+				try:
+					rownums.append(self._rows.find(url))
+				except KeyError:
+					pass
+		rownums.sort()
+		if rownums:
+			delete_end = prev = rownums[-1]
+			# Delete in reverse order so the indices to be deleted don't change:
+			for rownum in rownums[-2:0:-1]:
+				if rownum != prev - 1:
+					self.remove_rows(prev, delete_end + 1)
+					delete_end = rownum
+				prev = rownum
+			rownum = rownums[0]
+			if rownum == prev - 1:
+				self.remove_rows(prev, delete_end + 1)
+			else:
+				self.remove_rows(rownum, rownum + 1)
+	def _get_rownum_for_sortval(self, sort_value):
+		class SortValues:
+			def __len__(_):
+				return len(self._rows)
+			def __getitem__(_, item):
+				return self._get_sortval(self._rows[item])
+		return bisect(SortValues(), sort_value)
 	@transaction(priority=3)
 	def sort(self, column, order=Qt.AscendingOrder):
 		ascending = order == Qt.AscendingOrder
