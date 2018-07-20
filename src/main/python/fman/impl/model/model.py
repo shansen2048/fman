@@ -34,7 +34,7 @@ def transaction(priority, synchronous=False):
 		return result
 	return decorator
 
-class BaseModel(SortFilterTableModel, DragAndDrop):
+class Model(SortFilterTableModel, DragAndDrop):
 
 	"""
 	The thread safety of this class works as follows: There is one (and only

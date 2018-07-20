@@ -1,4 +1,4 @@
-from fman.impl.model.base import BaseModel
+from fman.impl.model.model import Model
 from fman.impl.model.drag_and_drop import DragAndDrop
 from fman.impl.model.diff import ComputeDiff
 from fman.impl.model.file_watcher import FileWatcher
@@ -90,7 +90,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		old_model = self.sourceModel()
 		if old_model:
 			self._disconnect_signals(old_model)
-		new_model = BaseModel(
+		new_model = Model(
 			self._fs, url, columns, sort_col_index, ascending,
 			self._num_rows_to_preload
 		)
