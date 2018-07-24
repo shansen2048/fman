@@ -218,13 +218,18 @@ class Model(SortFilterTableModel, DragAndDrop):
 					if not self._accepts(file_):
 						to_remove.append(rownum)
 						continue
+					if file_ != old_file:
+						to_update.append((rownum, file_))
 					old_sortval = self._get_sortval(old_file)
 					new_sortval = self._get_sortval(file_)
-					if old_sortval == new_sortval:
-						to_update.append((rownum, file_))
-					else:
+					if old_sortval != new_sortval:
 						new_rownum = self._get_rownum_for_sortval(new_sortval)
-						to_move.append((rownum, new_rownum, file_))
+						# At this point, new_rownum is the *insertion* index.
+						# But in a move, we are removing the row first before
+						# re-adding it. This can change the index:
+						if new_rownum > rownum:
+							new_rownum -= 1
+						to_move.append((rownum, new_rownum))
 			self._files[file_.url] = file_
 		diff = []
 		# First update rows because it doesn't change any row numbers. Sort by
@@ -244,10 +249,10 @@ class Model(SortFilterTableModel, DragAndDrop):
 				if dst >= orig_rownum:
 					result += 1
 			return result
-		for old_rownum, new_rownum, file_ in to_move:
+		for old_rownum, new_rownum in to_move:
 			src = get_rownum_after_moves(old_rownum)
 			dst = get_rownum_after_moves(new_rownum)
-			diff.append(DiffEntry.move(src, dst, [file_]))
+			diff.append(DiffEntry.move(src, dst))
 			moved.append((src, dst))
 		# Then remove rows because effect on rownums is simple. Sort by rownum
 		# then reverse so later removals are not affected by earlier ones:
@@ -276,20 +281,11 @@ class Model(SortFilterTableModel, DragAndDrop):
 					rownums.append(self._rows.find(url))
 				except KeyError:
 					pass
-		rownums.sort()
-		if rownums:
-			delete_end = prev = rownums[-1]
-			# Delete in reverse order so the indices to be deleted don't change:
-			for rownum in rownums[-2:0:-1]:
-				if rownum != prev - 1:
-					self.remove_rows(prev, delete_end + 1)
-					delete_end = rownum
-				prev = rownum
-			rownum = rownums[0]
-			if rownum == prev - 1:
-				self.remove_rows(prev, delete_end + 1)
-			else:
-				self.remove_rows(rownum, rownum + 1)
+		diff = [
+			# Sort rownums reverse so earlier removals don't affect later ones:
+			DiffEntry.remove(rownum) for rownum in sorted(rownums, reverse=True)
+		]
+		self._apply_diff(join_diff(diff))
 	def _get_rownum_for_sortval(self, sort_value):
 		class SortValues:
 			def __len__(_):

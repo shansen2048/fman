@@ -1,7 +1,7 @@
 from functools import wraps
 from PyQt5.QtCore import pyqtSignal, QObject, QThread
 from PyQt5.QtWidgets import QApplication
-from threading import Event
+from threading import Event, get_ident
 
 def run_in_thread(thread_fn):
 	def decorator(f):
@@ -13,7 +13,13 @@ def run_in_thread(thread_fn):
 	return decorator
 
 def _main_thread():
-	return QApplication.instance().thread()
+	app = QApplication.instance()
+	if app:
+		return app.thread()
+	# We reach here in tests that don't (want to) create a QApplication.
+	if int(QThread.currentThreadId()) == get_ident():
+		return QThread.currentThread()
+	raise RuntimeError('Could not determine main thread')
 
 """
 To debug how the main thread spends its time, add the code below.

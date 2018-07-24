@@ -75,8 +75,8 @@ class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 	def update(cls, rownum_start, rows):
 		return cls(rownum_start, rownum_start + len(rows), rownum_start, rows)
 	@classmethod
-	def move(cls, src, dst, rows):
-		return cls(src, src + len(rows), dst, rows)
+	def move(cls, src, dst):
+		return cls(src, src + 1, dst, [])
 	@classmethod
 	def remove(cls, start, end=None):
 		if end is None:
