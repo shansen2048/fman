@@ -59,7 +59,6 @@ class ModelRecordFilesTest(TestCase):
 			f('s://a', [c('a', 5)]),
 		], ['s://d'])
 		self._expect_data([('b',), ('c',), ('e',), ('a',)])
-
 	def setUp(self):
 		super().setUp()
 		self._app = StubApp()
