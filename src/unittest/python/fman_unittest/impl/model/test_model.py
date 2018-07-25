@@ -47,18 +47,31 @@ class ModelRecordFilesTest(TestCase):
 		self._model._record_files([], ['s://c', 's://b'])
 		self._expect_data([('a',)])
 	def test_complex(self):
+		e = f('s://e', [c('e', 4)])
 		self._model._record_files([
 			f('s://a', [c('a', 0)]),
 			f('s://b', [c('b', 1)]),
 			f('s://d', [c('d', 2)]),
-			f('s://e', [c('e', 4)]),
+			e
 		])
 		self._expect_data([('a',), ('b',), ('d',), ('e',)])
+		# Simulate e having fallen out of the filter:
+		self._model._filters.append(lambda url: url != e.url)
 		self._model._record_files([
 			f('s://c', [c('c', 3)]),
 			f('s://a', [c('a', 5)]),
+			e
 		], ['s://d'])
-		self._expect_data([('b',), ('c',), ('e',), ('a',)])
+		self._expect_data([('b',), ('c',), ('a',)])
+	def test_many_moves(self):
+		files = [f('s://%d' % i, [c(str(i), i)]) for i in range(5)]
+		self._model._record_files(files)
+		self._expect_data([(str(i),) for i in range(5)])
+		order_after = [4, 0, 3, 2, 1]
+		self._model._record_files(
+			[f('s://%d' % j, [c(str(j), i)]) for i, j in enumerate(order_after)]
+		)
+		self._expect_data([(str(i),) for i in order_after])
 	def setUp(self):
 		super().setUp()
 		self._app = StubApp()

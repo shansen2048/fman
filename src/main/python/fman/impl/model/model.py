@@ -223,13 +223,7 @@ class Model(SortFilterTableModel, DragAndDrop):
 					old_sortval = self._get_sortval(old_file)
 					new_sortval = self._get_sortval(file_)
 					if old_sortval != new_sortval:
-						new_rownum = self._get_rownum_for_sortval(new_sortval)
-						# At this point, new_rownum is the *insertion* index.
-						# But in a move, we are removing the row first before
-						# re-adding it. This can change the index:
-						if new_rownum > rownum:
-							new_rownum -= 1
-						to_move.append((rownum, new_rownum))
+						to_move.append((rownum, new_sortval))
 			self._files[file_.url] = file_
 		diff = []
 		# First update rows because it doesn't change any row numbers. Sort by
@@ -237,26 +231,35 @@ class Model(SortFilterTableModel, DragAndDrop):
 		to_update.sort()
 		for rownum, file_ in to_update:
 			diff.append(DiffEntry.update(rownum, [file_]))
-		# Next move rows because it doesn't change the number of rows. Again,
-		# sort by rownum to make it possible to join individual row diffs:
-		to_move.sort()
+		# Next move rows because it doesn't change the number of rows:
+		to_move.sort(key=lambda tpl: tpl[1])
 		moved = []
-		def get_rownum_after_moves(orig_rownum):
-			result = orig_rownum
-			for src, dst in moved:
-				if src < orig_rownum:
-					result -= 1
-				if dst >= orig_rownum:
-					result += 1
-			return result
-		for old_rownum, new_rownum in to_move:
-			src = get_rownum_after_moves(old_rownum)
-			dst = get_rownum_after_moves(new_rownum)
+		for old_rownum, sortval in reversed(to_move):
+			# Account for previous moves. Because we're processing in reverse
+			# sorted order, only need to include moves _out of_ lower region.
+			moves_affecting_src = [s for s, _ in moved if s < old_rownum]
+			src = old_rownum - len(moves_affecting_src)
+			dst = self._get_rownum_for_sortval(sortval)
+			if dst > src:
+				# A move is a cut followed by an insert. If dst > src, then dst
+				# is affected by the cut. Account for this:
+				dst -= 1
+			if src == dst:
+				# Already in the right spot.
+				continue
 			diff.append(DiffEntry.move(src, dst))
 			moved.append((src, dst))
 		# Then remove rows because effect on rownums is simple. Sort by rownum
 		# then reverse so later removals are not affected by earlier ones:
 		to_remove.sort()
+		def get_rownum_after_moves(orig_rownum):
+			result = orig_rownum
+			for src, dst in moved:
+				if src < orig_rownum:
+					result -= 1
+				if dst < orig_rownum:
+					result += 1
+			return result
 		for rownum in reversed(to_remove):
 			diff.append(DiffEntry.remove(get_rownum_after_moves(rownum)))
 		# Flush:
