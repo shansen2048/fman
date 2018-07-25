@@ -1,4 +1,4 @@
-from bisect import bisect
+from bisect import bisect_left
 from fman.impl.model.diff import DiffEntry
 from fman.impl.model.diff import join as join_diff
 from fman.impl.model.drag_and_drop import DragAndDrop
@@ -232,18 +232,21 @@ class Model(SortFilterTableModel, DragAndDrop):
 		for rownum, file_ in to_update:
 			diff.append(DiffEntry.update(rownum, [file_]))
 		# Next move rows because it doesn't change the number of rows:
-		to_move.sort(key=lambda tpl: tpl[1])
 		moved = []
-		for old_rownum, sortval in reversed(to_move):
-			# Account for previous moves. Because we're processing in reverse
-			# sorted order, only need to include moves _out of_ lower region.
-			moves_affecting_src = [s for s, _ in moved if s < old_rownum]
-			src = old_rownum - len(moves_affecting_src)
+		def get_rownum_after_moves(orig_rownum):
+			result = orig_rownum
+			for src, dst in moved:
+				if src <= result:
+					result -= 1
+				if dst <= result:
+					result += 1
+			return result
+		# Process in reverse order so earlier moves don't affect later ones:
+		for orig_src, sortval in sorted(
+			to_move, key=lambda tpl: tpl[1], reverse=True
+		):
+			src = get_rownum_after_moves(orig_src)
 			dst = self._get_rownum_for_sortval(sortval)
-			if dst > src:
-				# A move is a cut followed by an insert. If dst > src, then dst
-				# is affected by the cut. Account for this:
-				dst -= 1
 			if src == dst:
 				# Already in the right spot.
 				continue
@@ -252,14 +255,6 @@ class Model(SortFilterTableModel, DragAndDrop):
 		# Then remove rows because effect on rownums is simple. Sort by rownum
 		# then reverse so later removals are not affected by earlier ones:
 		to_remove.sort()
-		def get_rownum_after_moves(orig_rownum):
-			result = orig_rownum
-			for src, dst in moved:
-				if src < orig_rownum:
-					result -= 1
-				if dst < orig_rownum:
-					result += 1
-			return result
 		for rownum in reversed(to_remove):
 			diff.append(DiffEntry.remove(get_rownum_after_moves(rownum)))
 		# Flush:
@@ -295,7 +290,7 @@ class Model(SortFilterTableModel, DragAndDrop):
 				return len(self._rows)
 			def __getitem__(_, item):
 				return self._get_sortval(self._rows[item])
-		return bisect(SortValues(), sort_value)
+		return bisect_left(SortValues(), sort_value)
 	@transaction(priority=3)
 	def sort(self, column, order=Qt.AscendingOrder):
 		ascending = order == Qt.AscendingOrder

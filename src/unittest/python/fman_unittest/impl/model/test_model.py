@@ -2,9 +2,13 @@ from fman.fs import Column
 from fman.impl.model import Model, Cell
 from fman.impl.model.model import File, _NOT_LOADED
 from fman.impl.util.qt.thread import Executor
+from fman.url import splitscheme
 from fman_unittest.impl.model import StubFileSystem
 from PyQt5.QtCore import QObject, pyqtSignal
+from random import shuffle, random
 from unittest import TestCase
+
+import random
 
 class ModelRecordFilesTest(TestCase):
 	def test_load_file(self):
@@ -72,6 +76,53 @@ class ModelRecordFilesTest(TestCase):
 			[f('s://%d' % j, [c(str(j), i)]) for i, j in enumerate(order_after)]
 		)
 		self._expect_data([(str(i),) for i in order_after])
+	def test_reverse(self, num=3):
+		files = [f('s://%d' % i, [c(str(i), i)]) for i in range(num)]
+		self._model._record_files(files)
+		self._expect_data([(str(i),) for i in range(num)])
+		new_files = [
+			f('s://%d' % i, [c(str(i), j)])
+			for j, i in enumerate(reversed(range(num)))
+		]
+		self._model._record_files(new_files)
+		self._expect_data([(str(i),) for i in reversed(range(num))])
+	def test_move_last(self):
+		files = [f('s://%d' % i, [c(str(i), i)]) for i in range(3)]
+		self._model._record_files(files)
+		self._expect_data([(str(i),) for i in range(3)])
+		order_after = [2, 0, 1]
+		self._model._record_files(
+			[f('s://%d' % j, [c(str(j), i)]) for i, j in enumerate(order_after)]
+		)
+		self._expect_data([(str(i),) for i in order_after])
+	def test_random(self, num=3):
+		to_url = lambda i: 's://%d' % i
+		from_url = lambda url: int(splitscheme(url)[1])
+		files = [f(to_url(i), [c(str(i), i)]) for i in range(num)]
+		self._model._record_files(files)
+		self._expect_data([(str(i),) for i in range(num)])
+		random_state = random.getstate()
+		order = list(range(num))
+		shuffle(order)
+		filtered_out = {i for i in order if random.random() < .2}
+		filter_ = lambda url: from_url(url) not in filtered_out
+		disappeared = []
+		for index in range(len(order) - 1, -1 -1):
+			i = order[index]
+			if i not in filtered_out and random.random() < .1:
+				order.pop(index)
+				disappeared.append(to_url(i))
+		new_files = [f(to_url(j), [c(str(j), i)]) for i, j in enumerate(order)]
+		self._model._filters.append(filter_)
+		self._model._record_files(new_files, disappeared)
+		message = 'random.getstate() was %r' % (random_state,)
+		self._expect_data([
+			(str(i),) for i in order if i not in filtered_out
+		], message)
+	def test_random_5(self):
+		self.test_random(5)
+	def test_random_100(self):
+		self.test_random(100)
 	def setUp(self):
 		super().setUp()
 		self._app = StubApp()
@@ -79,17 +130,18 @@ class ModelRecordFilesTest(TestCase):
 		Executor._INSTANCE = Executor(self._app)
 		self._fs = StubFileSystem({})
 		self._model = Model(self._fs, 'null://', [Column()])
+		self.maxDiff = None
 	def tearDown(self):
 		self._app.aboutToQuit.emit()
 		Executor._INSTANCE = self._executor_before
 		super().tearDown()
-	def _expect_data(self, expected):
+	def _expect_data(self, expected, message=None):
 		m = self._model
 		actual = [
 			tuple(m.data(m.index(i, j)) for j in range(m.columnCount()))
 			for i in range(m.rowCount())
 		]
-		self.assertEqual(expected, actual)
+		self.assertEqual(expected, actual, message)
 
 def f(url, cells, is_loaded=False, is_dir=False):
 	return File(url, None, is_dir, cells, is_loaded)
