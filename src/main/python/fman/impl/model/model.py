@@ -220,10 +220,12 @@ class Model(SortFilterTableModel, DragAndDrop):
 						continue
 					if file_ != old_file:
 						to_update.append((rownum, file_))
-					old_sortval = self._get_sortval(old_file)
-					new_sortval = self._get_sortval(file_)
-					if old_sortval != new_sortval:
-						to_move.append((rownum, new_sortval))
+					# We need to add all existing files to `to_move` even if
+					# their sort value might not have changed. The reason for
+					# this is that a row's position may change during other
+					# moves, and the implementation below may need to "re-move"
+					# it to its correct location.
+					to_move.append((rownum, self._get_sortval(file_)))
 			self._files[file_.url] = file_
 		diff = []
 		# First update rows because it doesn't change any row numbers. Sort by
@@ -254,9 +256,9 @@ class Model(SortFilterTableModel, DragAndDrop):
 			moved.append((src, dst))
 		# Then remove rows because effect on rownums is simple. Sort by rownum
 		# then reverse so later removals are not affected by earlier ones:
-		to_remove.sort()
-		for rownum in reversed(to_remove):
-			diff.append(DiffEntry.remove(get_rownum_after_moves(rownum)))
+		rs = sorted(map(get_rownum_after_moves, to_remove), reverse=True)
+		for rownum in rs:
+			diff.append(DiffEntry.remove(rownum))
 		# Flush:
 		self._apply_diff(join_diff(diff))
 		diff = []

@@ -95,7 +95,12 @@ class ModelRecordFilesTest(TestCase):
 			[f('s://%d' % j, [c(str(j), i)]) for i, j in enumerate(order_after)]
 		)
 		self._expect_data([(str(i),) for i in order_after])
-	def test_random(self, num=3):
+	def test_random(self):
+		for num in list(range(6)) + [100]:
+			self._test_random(num)
+			self.tearDown()
+			self.setUp()
+	def _test_random(self, num=3):
 		to_url = lambda i: 's://%d' % i
 		from_url = lambda url: int(splitscheme(url)[1])
 		files = [f(to_url(i), [c(str(i), i)]) for i in range(num)]
@@ -115,14 +120,10 @@ class ModelRecordFilesTest(TestCase):
 		new_files = [f(to_url(j), [c(str(j), i)]) for i, j in enumerate(order)]
 		self._model._filters.append(filter_)
 		self._model._record_files(new_files, disappeared)
-		message = 'random.getstate() was %r' % (random_state,)
+		message = 'num was %d, random.getstate() was %r' % (num, random_state)
 		self._expect_data([
 			(str(i),) for i in order if i not in filtered_out
 		], message)
-	def test_random_5(self):
-		self.test_random(5)
-	def test_random_100(self):
-		self.test_random(100)
 	def setUp(self):
 		super().setUp()
 		self._app = StubApp()

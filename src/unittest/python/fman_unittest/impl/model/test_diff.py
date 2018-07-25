@@ -115,6 +115,8 @@ class DiffEntryExtendByTest(TestCase):
 		self._check((1, 2, -1, []), (0, 1, -1, []), (0, 2, -1, []))
 	def test_remove_followed_by_insert(self):
 		self._check((0, 1, -1, []), (-1, -1, 0, [1]), (0, 1, 0, [1]))
+	def test_consecutive_moves(self):
+		self._check((4, 5, 2, []), (3, 4, 1, []))
 	def _check(self, first, second, expected=None):
 		first_entry = DiffEntry(*first)
 		second_entry = DiffEntry(*second)

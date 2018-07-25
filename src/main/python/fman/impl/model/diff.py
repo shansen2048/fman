@@ -93,7 +93,8 @@ class DiffEntry(ConstructorMixin, EqMixin, ReprMixin):
 		elif type_ == other_type == 'move':
 			# Other cut before this one:
 			if other.cut_end == self.cut_start \
-				and other.insert_start + len(other) == self.insert_start:
+				and other.insert_start + len(other) == self.insert_start \
+				and self.insert_start > other.cut_end:
 				self.cut_start = other.cut_start
 				self.insert_start = other.insert_start
 				return True
