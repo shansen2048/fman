@@ -138,7 +138,7 @@ class Rows:
 		with self._lock:
 			# Perform this check here, once we have the lock:
 			if first_rownum < 0 or first_rownum > len(self._rows):
-				raise ValueError('Invalid first_rownum')
+				raise ValueError('Invalid first_rownum: %d' % first_rownum)
 			num_rows = len(rows)
 			for row in self._rows[first_rownum:]:
 				self._keys[row.key] += num_rows
