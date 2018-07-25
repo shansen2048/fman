@@ -174,9 +174,9 @@ class Rows:
 		with self._lock:
 			num_rows = len(self._rows)
 			if cut_start < 0 or cut_start >= num_rows:
-				raise ValueError('Invalid cut_start')
+				raise ValueError('Invalid cut_start: %d' % cut_start)
 			if cut_end < 0 or cut_end > num_rows or cut_end <= cut_start:
-				raise ValueError('Invalid cut_end')
+				raise ValueError('Invalid cut_end: %d' % cut_end)
 			delta = cut_end - cut_start
 			result = self._rows[cut_start:cut_end]
 			for row in result:
