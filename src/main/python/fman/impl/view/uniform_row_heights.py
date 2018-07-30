@@ -28,10 +28,19 @@ class UniformRowHeights(QTableView):
 	def dataChanged(self, top, bottom, roles):
 		if top != bottom or not top.isValid(): # As in super().dataChanged(...)
 			visible = self.get_visible_row_range()
-			if top.row() > visible.stop or bottom.row() < visible.start:
-				# Performance improvement: QTableView's default implementation
-				# issues a full repaint for any multi-cell change. Avoid this if
-				# the affected rows aren't even visible:
+			# Performance improvement: QTableView's default implementation
+			# issues a full repaint for any multi-cell change. Avoid this if
+			# the affected rows aren't even visible.
+			# We use `top.row() >= ...` instead of just `>` because
+			# `visible.stop` is exclusive, while `top.row()` is inclusive.
+			if top.row() >= visible.stop or bottom.row() < visible.start:
+				# Without _any_ call to super().dataChanged(...), there are
+				# delays when opening a directory with many files and scrolling
+				# page-down a few times. Maybe this is because the associated
+				# row updates are swallowed? Either way, do call
+				# dataChanged(...) but with a single cell to not trigger Qt's
+				# full repaint:
+				super().dataChanged(top, top, roles)
 				return
 		super().dataChanged(top, bottom, roles)
 	def get_visible_row_range(self):
