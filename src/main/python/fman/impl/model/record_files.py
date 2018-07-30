@@ -17,10 +17,17 @@ class RecordFiles:
 	It saves ~1s when displaying a directory with 5k files and scrolling
 	page-down four times.
 	"""
-	def __init__(self, model, files, disappeared):
-		self._model = model
+	def __init__(
+		self, files, disappeared,
+		m_files, m_rows, m_accepts, m_sortval, m_apply_diff
+	):
 		self._files = files
 		self._disappeared = disappeared
+		self._m_files = m_files
+		self._m_rows = m_rows
+		self._m_accepts = m_accepts
+		self._m_sortval = m_sortval
+		self._m_apply_diff = m_apply_diff
 	def __call__(self):
 		self._remove_files(self._disappeared)
 		to_update = []
@@ -29,27 +36,27 @@ class RecordFiles:
 		to_insert = []
 		for file_ in self._files:
 			try:
-				old_file = self._model._files[file_.url]
+				old_file = self._m_files[file_.url]
 			except KeyError:
-				if self._model._accepts(file_):
+				if self._m_accepts(file_):
 					to_insert.append(file_)
 			else:
 				try:
-					rownum = self._model._rows.find(file_.url)
+					rownum = self._m_rows.find(file_.url)
 				except KeyError:
-					if self._model._accepts(file_):
+					if self._m_accepts(file_):
 						to_insert.append(file_)
 				else:
-					if not self._model._accepts(file_):
+					if not self._m_accepts(file_):
 						to_remove.append(rownum)
 						continue
 					if file_ != old_file:
 						to_update.append((rownum, file_))
-					old_sortval = self._model._get_sortval(old_file)
-					new_sortval = self._model._get_sortval(file_)
+					old_sortval = self._m_sortval(old_file)
+					new_sortval = self._m_sortval(file_)
 					if old_sortval != new_sortval:
 						to_move.append((rownum, new_sortval))
-			self._model._files[file_.url] = file_
+			self._m_files[file_.url] = file_
 		diff = []
 		# First update rows because it doesn't change any row numbers. Sort by
 		# rownum to make it possible to join adjacent updates in the diff:
@@ -80,8 +87,8 @@ class RecordFiles:
 		We then compute and apply the moves required for rearranging level 0
 		into the goal.
 		"""
-		sort_values = \
-			Lvl1SortValues(self._model, (rownum for rownum, _ in to_move))
+		lvl2_rows = (rownum for rownum, _ in to_move)
+		sort_values = Lvl1SortValues(self._m_rows, self._m_sortval, lvl2_rows)
 		goal = []
 		to_move.sort(key=lambda tpl: tpl[1])
 
@@ -111,51 +118,52 @@ class RecordFiles:
 		for rownum in rs:
 			diff.append(DiffEntry.remove(rownum))
 		# Flush:
-		self._model._apply_diff(join_diff(diff))
+		self._m_apply_diff(join_diff(diff))
 		diff = []
 		# Finally, insert rows. In reverse order so later inserts are not
 		# affected by earlier ones:
-		insert_sortvals = ((self._model._get_sortval(f), f) for f in to_insert)
+		insert_sortvals = ((self._m_sortval(f), f) for f in to_insert)
 		for sortval, f in sorted(insert_sortvals, reverse=True):
 			rownum = self._get_rownum_for_sortval(sortval)
 			diff.append(DiffEntry.insert(rownum, [f]))
-		self._model._apply_diff(join_diff(diff))
+		self._m_apply_diff(join_diff(diff))
 	def _remove_files(self, files):
 		rownums = []
 		for url in files:
 			try:
-				del self._model._files[url]
+				del self._m_files[url]
 			except KeyError:
 				pass
 			else:
 				try:
-					rownums.append(self._model._rows.find(url))
+					rownums.append(self._m_rows.find(url))
 				except KeyError:
 					pass
 		diff = [
 			# Sort rownums reverse so earlier removals don't affect later ones:
 			DiffEntry.remove(rownum) for rownum in sorted(rownums, reverse=True)
 		]
-		self._model._apply_diff(join_diff(diff))
+		self._m_apply_diff(join_diff(diff))
 	def _get_rownum_for_sortval(self, sort_value):
 		class SortValues:
 			def __len__(_):
-				return len(self._model._rows)
+				return len(self._m_rows)
 			def __getitem__(_, item):
-				return self._model._get_sortval(self._model._rows[item])
+				return self._m_sortval(self._m_rows[item])
 		return bisect_left(SortValues(), sort_value)
 
 class Lvl1SortValues:
-	def __init__(self, model, lvl2_rownums):
-		self._model = model
+	def __init__(self, m_rows, m_sortval, lvl2_rownums):
+		self._m_rows = m_rows
+		self._m_sortval = m_sortval
 		self._lvl2_rownums = set(lvl2_rownums)
 	def get_lvl1_rownum_for(self, sortval):
 		return bisect_left(self, sortval)
 	def __len__(self):
-		return len(self._model._rows) - len(self._lvl2_rownums)
+		return len(self._m_rows) - len(self._lvl2_rownums)
 	def __getitem__(self, item):
 		i = self._get_original_index(item)
-		return self._model._get_sortval(self._model._rows[i])
+		return self._m_sortval(self._m_rows[i])
 	def _get_original_index(self, i):
 		result = -1
 		for _ in range(i + 1):

@@ -7,7 +7,7 @@ import re
 
 class Lvl1SortValuesTest(TestCase):
 	def test_first_removed(self):
-		s = Lvl1SortValues(None, [0])
+		s = Lvl1SortValues(None, None, [0])
 		self.assertEqual(1, s._get_original_index(0))
 		self.assertEqual(2, s._get_original_index(1))
 

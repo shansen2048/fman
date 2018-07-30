@@ -184,7 +184,10 @@ class Model(SortFilterTableModel, DragAndDrop):
 		"""
 		if disappeared is None:
 			disappeared = []
-		RecordFiles(self, files, disappeared)()
+		RecordFiles(
+			files, disappeared, self._files,
+			self._rows, self._accepts, self._get_sortval, self._apply_diff
+		)()
 	@transaction(priority=3)
 	def sort(self, column, order=Qt.AscendingOrder):
 		ascending = order == Qt.AscendingOrder
