@@ -2,5 +2,5 @@
 	"environment": "${environment}",
 	"version": "${version}",
 	"server_url": "${server_url}",
-	"rollbar_token": "8b15d3ef41864b34a4be209dd0126754"
+	"rollbar_token": "a51f2ba9f66340ccb75b454655df8fc5"
 }
