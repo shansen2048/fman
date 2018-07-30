@@ -1,6 +1,7 @@
 from collections import namedtuple
 from fbs_runtime.application_context import cached_property
 from fman.impl.util import os_
+from time import time
 
 import rollbar
 import sys
@@ -100,6 +101,7 @@ class RollbarExcepthook(Excepthook):
 		self._environment = environment
 		self._fman_version = fman_version
 		self._user = None
+		self._rate_limiter = RateLimiter(60, 10)
 	def install(self):
 		rollbar.init(
 			self._rollbar_token, self._environment,
@@ -111,10 +113,11 @@ class RollbarExcepthook(Excepthook):
 		self._user = user
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
 		super()._handle_nonplugin_error(exc_type, exc_value, exc_tb)
-		request = RollbarRequest(self._user) if self._user else None
-		rollbar.report_exc_info(
-			(exc_type, exc_value, exc_tb), request, self._extra_data
-		)
+		if self._rate_limiter.please():
+			request = RollbarRequest(self._user) if self._user else None
+			rollbar.report_exc_info(
+				(exc_type, exc_value, exc_tb), request, self._extra_data
+			)
 	@cached_property
 	def _extra_data(self):
 		return {
@@ -124,6 +127,23 @@ class RollbarExcepthook(Excepthook):
 				'distribution': os_.distribution()
 			}
 		}
+
+class RateLimiter:
+	def __init__(self, interval_secs, allowance, time_fn=time):
+		self._interval = interval_secs
+		self._allowance = allowance
+		self._time_fn = time_fn
+		self._last_request = time_fn()
+		self._num_requests = 0
+	def please(self):
+		now = self._time_fn()
+		if now > self._last_request + self._interval:
+			self._num_requests = 0
+		if self._num_requests < self._allowance:
+			self._num_requests += 1
+			self._last_request = now
+			return True
+		return False
 
 fake_tb = \
 	namedtuple('fake_tb', ('tb_frame', 'tb_lasti', 'tb_lineno', 'tb_next'))
