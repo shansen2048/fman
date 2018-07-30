@@ -28,8 +28,48 @@ class RecordFiles:
 		self._m_accepts = m_accepts
 		self._m_sortval = m_sortval
 		self._m_apply_diff = m_apply_diff
+		self._moved = []
 	def __call__(self):
-		self._remove_files(self._disappeared)
+		self._flush(self._remove_disappeared())
+		to_update, to_remove, to_move, to_insert = self._preprocess_existing()
+		# First update rows because it doesn't change any row numbers. Sort by
+		# rownum to make it possible to join adjacent updates in the diff:
+		diff = [
+			DiffEntry.update(rownum, [file_])
+			for rownum, file_ in sorted(to_update)
+		]
+		# Next move rows because it doesn't change their total number:
+		diff.extend(self._move_rows(to_move))
+		# Then remove rows because effect on rownums is simple. Sort by rownum
+		# then reverse so later removals are not affected by earlier ones:
+		rem = sorted(map(self._get_rownum_after_moves, to_remove), reverse=True)
+		diff.extend(DiffEntry.remove(rownum) for rownum in rem)
+		# Flush because rownums have changed:
+		self._flush(diff)
+		# Finally, insert rows. In reverse order so later inserts are not
+		# affected by earlier ones:
+		insert_sortvals = ((self._m_sortval(f), f) for f in to_insert)
+		for sortval, f in sorted(insert_sortvals, reverse=True):
+			rownum = self._get_rownum_for_sortval(sortval)
+			diff.append(DiffEntry.insert(rownum, [f]))
+		self._flush(diff)
+	def _remove_disappeared(self):
+		rownums = []
+		for url in self._disappeared:
+			try:
+				del self._m_files[url]
+			except KeyError:
+				pass
+			else:
+				try:
+					rownums.append(self._m_rows.find(url))
+				except KeyError:
+					pass
+		return [
+			# Sort rownums reverse so earlier removals don't affect later ones:
+			DiffEntry.remove(rownum) for rownum in sorted(rownums, reverse=True)
+		]
+	def _preprocess_existing(self):
 		to_update = []
 		to_remove = []
 		to_move = []
@@ -57,14 +97,10 @@ class RecordFiles:
 					if old_sortval != new_sortval:
 						to_move.append((rownum, new_sortval))
 			self._m_files[file_.url] = file_
-		diff = []
-		# First update rows because it doesn't change any row numbers. Sort by
-		# rownum to make it possible to join adjacent updates in the diff:
-		for rownum, file_ in sorted(to_update):
-			diff.append(DiffEntry.update(rownum, [file_]))
+		return to_update, to_remove, to_move, to_insert
+	def _move_rows(self, to_move):
 		"""
-		Next move rows because it doesn't change their total number. We do this
-		as follows: Say the existing rows are
+		We move rows as follows: Say the existing rows are
 
 			***F*****D***E***H*B*AC****G**    <- "level 0"
 
@@ -91,59 +127,22 @@ class RecordFiles:
 		sort_values = Lvl1SortValues(self._m_rows, self._m_sortval, lvl2_rows)
 		goal = []
 		to_move.sort(key=lambda tpl: tpl[1])
-
 		for num_inserted, (lvl0_rownum, sortval) in enumerate(to_move):
 			lvl1 = sort_values.get_lvl1_rownum_for(sortval)
 			src = lvl1 + num_inserted
 			goal.append((src, lvl0_rownum))
 		lvl0 = [(rownum, rownum) for rownum, _ in to_move]
-
-		moved = []
 		for src, dst in get_moves_for_transforming(lvl0, goal):
-			diff.append(DiffEntry.move(src, dst))
-			moved.append((src, dst))
-
-		def get_rownum_after_moves(orig_rownum):
-			result = orig_rownum
-			for src, dst in moved:
-				if src <= result:
-					result -= 1
-				if dst <= result:
-					result += 1
-			return result
-
-		# Then remove rows because effect on rownums is simple. Sort by rownum
-		# then reverse so later removals are not affected by earlier ones:
-		rs = sorted(map(get_rownum_after_moves, to_remove), reverse=True)
-		for rownum in rs:
-			diff.append(DiffEntry.remove(rownum))
-		# Flush:
-		self._m_apply_diff(join_diff(diff))
-		diff = []
-		# Finally, insert rows. In reverse order so later inserts are not
-		# affected by earlier ones:
-		insert_sortvals = ((self._m_sortval(f), f) for f in to_insert)
-		for sortval, f in sorted(insert_sortvals, reverse=True):
-			rownum = self._get_rownum_for_sortval(sortval)
-			diff.append(DiffEntry.insert(rownum, [f]))
-		self._m_apply_diff(join_diff(diff))
-	def _remove_files(self, files):
-		rownums = []
-		for url in files:
-			try:
-				del self._m_files[url]
-			except KeyError:
-				pass
-			else:
-				try:
-					rownums.append(self._m_rows.find(url))
-				except KeyError:
-					pass
-		diff = [
-			# Sort rownums reverse so earlier removals don't affect later ones:
-			DiffEntry.remove(rownum) for rownum in sorted(rownums, reverse=True)
-		]
-		self._m_apply_diff(join_diff(diff))
+			self._moved.append((src, dst))
+			yield DiffEntry.move(src, dst)
+	def _get_rownum_after_moves(self, orig_rownum):
+		result = orig_rownum
+		for src, dst in self._moved:
+			if src <= result:
+				result -= 1
+			if dst <= result:
+				result += 1
+		return result
 	def _get_rownum_for_sortval(self, sort_value):
 		class SortValues:
 			def __len__(_):
@@ -151,6 +150,9 @@ class RecordFiles:
 			def __getitem__(_, item):
 				return self._m_sortval(self._m_rows[item])
 		return bisect_left(SortValues(), sort_value)
+	def _flush(self, diff):
+		self._m_apply_diff(join_diff(diff))
+		diff.clear()
 
 class Lvl1SortValues:
 	def __init__(self, m_rows, m_sortval, lvl2_rownums):
