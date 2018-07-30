@@ -220,21 +220,56 @@ class Model(SortFilterTableModel, DragAndDrop):
 						continue
 					if file_ != old_file:
 						to_update.append((rownum, file_))
-					# We need to add all existing files to `to_move` even if
-					# their sort value might not have changed. The reason for
-					# this is that a row's position may change during other
-					# moves, and the implementation below may need to "re-move"
-					# it to its correct location.
-					to_move.append((rownum, self._get_sortval(file_)))
+					old_sortval = self._get_sortval(old_file)
+					new_sortval = self._get_sortval(file_)
+					if old_sortval != new_sortval:
+						to_move.append((rownum, new_sortval))
 			self._files[file_.url] = file_
 		diff = []
 		# First update rows because it doesn't change any row numbers. Sort by
 		# rownum to make it possible to join adjacent updates in the diff:
-		to_update.sort()
-		for rownum, file_ in to_update:
+		for rownum, file_ in sorted(to_update):
 			diff.append(DiffEntry.update(rownum, [file_]))
-		# Next move rows because it doesn't change the number of rows:
+		"""
+		Next move rows because it doesn't change their total number. We do this
+		as follows: Say the existing rows are
+
+		    ***F*****D***E***H*B*AC****G**    <- "level 0"
+
+		Where * are unchanged rows and A-H are rows to be moved. Split the two:
+
+		    *** ***** *** *** * *  **** **    <- "level 1"
+		       ^     ^   ^   ^ ^ ^^    ^
+		       F     D   E   H B AC    G      <- "level 2"
+
+		Then, we sort level 2. This gives new insertion points:
+
+		    * *** ** *  ***** **** ******
+		     ^   ^  ^ ^^     ^    ^      ^
+		     A   B  C DE     F    G      H
+
+		That is:
+		
+		    *A****B***C**DE*****F*G******H    <- "goal"
+		
+		We then compute and apply the moves required for rearranging level 0
+		into the goal.
+		"""
+		sort_values = Lvl1SortValues(self, (rownum for rownum, _ in to_move))
+		goal = []
+		to_move.sort(key=lambda tpl: tpl[1])
+
+		for num_inserted, (lvl0_rownum, sortval) in enumerate(to_move):
+			lvl1 = sort_values.get_lvl1_rownum_for(sortval)
+			src = lvl1 + num_inserted
+			goal.append((src, lvl0_rownum))
+		lvl0 = [(rownum, rownum) for rownum, _ in to_move]
+
 		moved = []
+		for src, dst in get_moves_for_transforming(lvl0, goal):
+			diff.append(DiffEntry.move(src, dst))
+			moved.append((src, dst))
+
 		def get_rownum_after_moves(orig_rownum):
 			result = orig_rownum
 			for src, dst in moved:
@@ -243,17 +278,7 @@ class Model(SortFilterTableModel, DragAndDrop):
 				if dst <= result:
 					result += 1
 			return result
-		# Process in reverse order so earlier moves don't affect later ones:
-		for orig_src, sortval in sorted(
-			to_move, key=lambda tpl: tpl[1], reverse=True
-		):
-			src = get_rownum_after_moves(orig_src)
-			dst = self._get_rownum_for_sortval(sortval)
-			if src == dst:
-				# Already in the right spot.
-				continue
-			diff.append(DiffEntry.move(src, dst))
-			moved.append((src, dst))
+
 		# Then remove rows because effect on rownums is simple. Sort by rownum
 		# then reverse so later removals are not affected by earlier ones:
 		rs = sorted(map(get_rownum_after_moves, to_remove), reverse=True)
@@ -468,6 +493,111 @@ class Model(SortFilterTableModel, DragAndDrop):
 		self._shutdown = True
 		self._file_watcher.shutdown()
 		self._worker.shutdown()
+
+class Lvl1SortValues:
+	def __init__(self, model, lvl2_rownums):
+		self._model = model
+		self._lvl2_rownums = set(lvl2_rownums)
+	def get_lvl1_rownum_for(self, sortval):
+		return bisect_left(self, sortval)
+	def __len__(self):
+		return len(self._model._rows) - len(self._lvl2_rownums)
+	def __getitem__(self, item):
+		i = self._get_original_index(item)
+		return self._model._get_sortval(self._model._rows[i])
+	def _get_original_index(self, i):
+		result = -1
+		for _ in range(i + 1):
+			result += 1
+			while result in self._lvl2_rownums:
+				result += 1
+		return result
+
+def get_moves_for_transforming(curr, goal):
+	"""
+	Get the index moves [(src, dst), ...] to rearrange a sparse list. Eg.:
+
+	    ***F*****D***E***H*B*AC****G**
+
+	                 to
+
+	    *A****B***C**DE*****F*G******H
+
+	The two parameters are given as lists (index, value). In the above example:
+
+	    curr = [(3, 'F'), (9, 'D'), ...]
+	    goal = [(1, 'A'), (6, 'B'), ...]
+
+	The result is the sequence of required moves. In the example, it could be:
+
+	    [(17, 29), (27, 23), ...]
+
+	Visually:
+
+	    ***F*****D***E***H*B*AC****G**
+	                     |___________
+	                                 |    (17, 29)
+	    ***F*****D***E****B*AC****G**H
+	                           ___|
+	                          |           (27, 23)
+	    ***F*****D***E****B*ACG******H
+
+	                 ...
+
+	    *A****B***C**DE*****F*G******H
+	"""
+	return GetMovesForTransforming(curr, goal)()
+
+class GetMovesForTransforming:
+	def __init__(self, curr, goal):
+		self._curr = sorted(curr)
+		self._goal = sorted(goal)
+		self._curr_indices = [index for index, _ in self._curr]
+		self._curr_map = {key: index for index, key in self._curr}
+		self._goal_map = {key: index for index, key in self._goal}
+		self._result = []
+	def __call__(self):
+		c_i = g_i = len(self._curr) - 1
+		while c_i >= 0 or g_i >= 0:
+			if g_i >= 0:
+				g_index, g_key = self._goal[g_i]
+				if c_i < 0 or g_index >= self._curr[c_i][0]:
+					src = self._curr_map[g_key]
+					self._move(src, g_index)
+					g_i -= 1
+					continue
+			c_index, c_key = self._curr[c_i]
+			dst = self._goal_map[c_key]
+			self._move(c_index, dst)
+			if dst >= c_index:
+				c_i -= 1
+		return self._result
+	def _move(self, src, dst):
+		if src == dst:
+			return
+		self._result.append((src, dst))
+		curr_index, key = self._pop(src)
+		self._insert(dst, key)
+	def _pop(self, src):
+		s = bisect_left(self._curr_indices, src)
+		result = self._curr.pop(s)
+		self._curr_indices.pop(s)
+		self._curr_map.pop(result[1])
+		for i, (index, key) in enumerate(self._curr[s:], s):
+			self._curr[i] = (index - 1, key)
+			self._curr_indices[i] = index - 1
+			self._curr_map[key] = index - 1
+		return result
+	def _insert(self, dst, key):
+		insert_point = bisect_left(self._curr_indices, dst)
+		self._curr.insert(insert_point, (dst, key))
+		self._curr_indices.insert(insert_point, dst)
+		self._curr_map[key] = dst
+		i_start = insert_point + 1
+		for i, (index, k) in enumerate(self._curr[i_start:], i_start):
+			self._curr[i] = (index + 1, k)
+			self._curr_indices[i] = index + 1
+			self._curr_map[k] = index + 1
 
 _NOT_LOADED = object()
 
