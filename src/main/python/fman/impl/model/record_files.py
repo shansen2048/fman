@@ -8,7 +8,10 @@ class RecordFiles:
 	is faster than the following naive approach:
 
 		for url in _disappeared:
-			del model._files[url]
+			try:
+				del model._files[url]
+			except KeyError:
+				pass
 		for file_ in files:
 			model._files[file_.url] = file_
 		model.set_rows(model._sorted(model._filter(model.get_rows())))
