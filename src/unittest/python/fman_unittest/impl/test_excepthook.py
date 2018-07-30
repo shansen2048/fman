@@ -4,8 +4,12 @@ from unittest import TestCase
 class RateLimiterTest(TestCase):
 	def test_allowed_at_start(self):
 		self.assertTrue(self._limiter.please())
-	def test_exceed_limit(self):
+	def test_complex(self):
 		self.assertTrue(self._limiter.please())
+		self._time += 1
+		self.assertTrue(self._limiter.please())
+		self._time += 2
+		self.assertTrue(self._limiter.please(), 'should have reset interval')
 		self.assertTrue(self._limiter.please())
 		self.assertFalse(self._limiter.please())
 		self._time += 3

@@ -133,15 +133,15 @@ class RateLimiter:
 		self._interval = interval_secs
 		self._allowance = allowance
 		self._time_fn = time_fn
-		self._last_request = time_fn()
+		self._interval_start = time_fn()
 		self._num_requests = 0
 	def please(self):
 		now = self._time_fn()
-		if now > self._last_request + self._interval:
+		if now > self._interval_start + self._interval:
 			self._num_requests = 0
+			self._interval_start = now
 		if self._num_requests < self._allowance:
 			self._num_requests += 1
-			self._last_request = now
 			return True
 		return False
 
