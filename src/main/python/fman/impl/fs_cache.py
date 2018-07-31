@@ -21,7 +21,7 @@ class Cache:
 
 class CacheItem:
 	def __init__(self):
-		self._children = defaultdict(CacheItem)
+		self._children = {}
 		self._attrs = {}
 		self._attr_locks = defaultdict(Lock)
 	def put(self, attr, value):
@@ -35,21 +35,23 @@ class CacheItem:
 			try:
 				return self._attrs[attr]
 			except KeyError:
-				value = compute_value()
-				self._attrs[attr] = value
-				return value
+				result = self._attrs[attr] = compute_value()
+				return result
 	def get_child(self, path):
-		parts = path.split('/', 1)
-		child = self._children[parts[0]]
-		if len(parts) == 1:
-			return child
-		return child.get_child(parts[1])
+		children = self._children
+		for part in path.split('/'):
+			child = children[part]
+			children = child._children
+		return child
 	def update_child(self, path):
-		parts = path.split('/', 1)
-		child = self._children[parts[0]]
-		if len(parts) == 1:
-			return child
-		return child.update_child(parts[1])
+		children = self._children
+		for part in path.split('/'):
+			try:
+				child = children[part]
+			except KeyError:
+				child = children[part] = CacheItem()
+			children = child._children
+		return child
 	def delete_child(self, path):
 		parts = path.split('/', 1)
 		if len(parts) == 1:
