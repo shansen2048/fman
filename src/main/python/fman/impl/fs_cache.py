@@ -21,7 +21,7 @@ class Cache:
 
 class CacheItem:
 	def __init__(self):
-		self._children = {}
+		self._children = defaultdict(CacheItem)
 		self._attrs = {}
 		self._attr_locks = defaultdict(Lock)
 	def put(self, attr, value):
@@ -46,7 +46,7 @@ class CacheItem:
 		return child.get_child(parts[1])
 	def update_child(self, path):
 		parts = path.split('/', 1)
-		child = self._children.setdefault(parts[0], CacheItem())
+		child = self._children[parts[0]]
 		if len(parts) == 1:
 			return child
 		return child.update_child(parts[1])
