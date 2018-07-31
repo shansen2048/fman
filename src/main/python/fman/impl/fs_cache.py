@@ -1,5 +1,5 @@
-from threading import RLock
-from weakref import WeakValueDictionary
+from collections import defaultdict
+from threading import Lock
 
 class Cache:
 	def __init__(self):
@@ -23,13 +23,15 @@ class CacheItem:
 	def __init__(self):
 		self._children = {}
 		self._attrs = {}
-		self._attr_locks = WeakValueDictionary()
+		self._attr_locks = defaultdict(Lock)
 	def put(self, attr, value):
 		self._attrs[attr] = value
 	def get(self, attr):
 		return self._attrs[attr]
 	def query(self, attr, compute_value):
-		with self._attr_locks.setdefault(attr, RLock()):
+		# Because `defaultdict` and `Lock` are implemented in C, they do not
+		# release the GIL and the dict access is atomic:
+		with self._attr_locks[attr]:
 			try:
 				return self._attrs[attr]
 			except KeyError:
