@@ -33,8 +33,8 @@ class LocalFileSystem(FileSystem):
 	def exists(self, path):
 		return Path(self._url_to_os_path(path)).exists()
 	def iterdir(self, path):
-		for entry in Path(self._url_to_os_path(path)).iterdir():
-			yield entry.name
+		# Use os.listdir(...) instead of Path(...).iterdir() for performance:
+		return os.listdir(self._url_to_os_path(path))
 	def is_dir(self, existing_path):
 		# Like Python's isdir(...) except raises FileNotFoundError if the file
 		# does not exist and OSError if there is another error.
