@@ -1,6 +1,6 @@
 from fbs_runtime.system import is_windows
 from fman.impl.util.path import parent
-from pathlib import PurePath, PurePosixPath
+from pathlib import PurePath
 
 import posixpath
 import re
@@ -43,11 +43,12 @@ def basename(url):
 	return path.rsplit('/', 1)[-1]
 
 def join(url, *paths):
-	scheme, path = splitscheme(url)
-	result_path = PurePosixPath(path, *paths).as_posix()
-	if result_path == '.':
-		# This for instance happens when all paths were equal to ''
-		result_path = ''
+	scheme, result_path = splitscheme(url)
+	for path in paths:
+		if path:
+			if result_path and not result_path.endswith('/'):
+				result_path += '/'
+			result_path += path
 	return scheme + result_path
 
 def relpath(target, base):
