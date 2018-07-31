@@ -4,7 +4,6 @@ from fman.impl.util import Event
 from fman.impl.util.path import parent
 from fman.url import basename
 from functools import wraps
-from pathlib import PurePosixPath
 from threading import Lock
 
 import fman.impl.util.path
@@ -85,7 +84,7 @@ class FileSystem:
 		"""
 		Displayed by the Name column.
 		"""
-		return PurePosixPath(path).name
+		return path.rsplit('/', 1)[-1]
 	def is_dir(self, existing_path):
 		"""
 		N.B.: Should raise FileNotFoundError if the given path does not exist.
