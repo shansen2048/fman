@@ -41,6 +41,7 @@ Quicksearch #items-container {
 }
 
 Quicksearch QListView {
+	min-width: 150ex;
 	margin-left: .8ex;
 	margin-right: .8ex;
 }
