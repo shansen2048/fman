@@ -73,6 +73,10 @@ QLineEdit {
 	border: 1px solid #2c2c2c;
 }
 
+Prompt QLineEdit {
+	min-width: 20em;
+}
+
 Quicksearch {
 	background-color: #404040;
 }
