@@ -48,9 +48,10 @@ class _7ZipFileSystem(FileSystem):
 	def resolve(self, path):
 		for suffix in self._suffixes:
 			if suffix in path.lower():
-				# Return zip:// + path:
+				if not self.exists(path):
+					raise FileNotFoundError(self.scheme + path)
 				return super().resolve(path)
-		return as_url(path)
+		return self._fs.resolve(as_url(path))
 	def iterdir(self, path):
 		path_in_zip = self._split(path)[1]
 		already_yielded = set()

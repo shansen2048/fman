@@ -98,6 +98,8 @@ class FileSystem:
 			return False
 		return True
 	def resolve(self, path):
+		if not self.exists(path):
+			raise FileNotFoundError(self.scheme + path)
 		return self.scheme + fman.impl.util.path.resolve(path)
 	def watch(self, path):
 		pass
