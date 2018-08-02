@@ -76,7 +76,7 @@ def _build_launcher(dest):
 	)
 	copy(path('src/main/icons/Icon.ico'), path('target/go/src/launcher'))
 	_run_go('generate', 'launcher')
-	_run_go('build', '-o', dest, '-ldflags', '-H windowsgui', 'launcher')
+	_run_go('build', '-o', dest, 'launcher')
 
 def _run_go(*args):
 	env = dict(os.environ)

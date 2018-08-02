@@ -28,7 +28,10 @@ import (
 	"winutil"
 )
 
-type Version [3]int
+type Version struct {
+	number [3]int
+	name string
+}
 type Versions []Version
 
 func main() {
@@ -69,13 +72,15 @@ func getLatestVersion(versionsDir string) (string, error) {
 
 func parseVersionString(version string) (Version, error) {
 	var result Version
+	result.name = version
 	err := error(nil)
+	version = strings.TrimSuffix(version, "-SNAPSHOT")
 	parts := strings.Split(version, ".")
-	if len(parts) != len(result) {
+	if len(parts) != len(result.number) {
 		err = errors.New("Wrong number of parts.")
 	} else {
 		for i, partStr := range parts {
-			result[i], err = strconv.Atoi(partStr)
+			result.number[i], err = strconv.Atoi(partStr)
 			if err != nil {
 				break
 			}
@@ -89,8 +94,8 @@ func (arr Versions) Len() int {
 }
 
 func (arr Versions) Less(i, j int) bool {
-	for k, left := range arr[i] {
-		right := arr[j][k]
+	for k, left := range arr[i].number {
+		right := arr[j].number[k]
 		if left > right {
 			return false
 		} else if left < right {
@@ -108,11 +113,7 @@ func (arr Versions) Swap(i, j int) {
 }
 
 func (version Version) String() string {
-	parts := make([]string, len(version))
-	for i, part := range version {
-		parts[i] = strconv.Itoa(part)
-	}
-	return strings.Join(parts, ".")
+	return version.name
 }
 
 func check(e error) {
