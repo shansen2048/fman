@@ -1948,8 +1948,8 @@ class RememberSortSettings(DirectoryPaneListener):
 		except KeyError:
 			return
 		remembered_col, remembered_asc = data['column'], data['is_ascending']
-		# Note that we return `url` here, not `url_resolved`. This is eg. because
-		# we don't want to rewrite C:\Windows\System32 -> ...\SysWOW64.
+		# Note that we return `url` here, not `url_resolved`. This is eg.
+		# because we don't want to rewrite C:\Windows\System32 -> ...\SysWOW64.
 		return url, remembered_col, remembered_asc
 
 class Minimize(ApplicationCommand):
