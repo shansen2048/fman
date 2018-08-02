@@ -1907,8 +1907,6 @@ class SortByColumn(DirectoryPaneCommand):
 			else:
 				ascending = True
 			self.pane.set_sort_column(column, ascending)
-			path = self.pane.get_path()
-			self._remember_settings(path, column, ascending)
 	def _get_items(self, columns, query):
 		result = [[] for _ in self._MATCHERS]
 		for col_qual_name in columns:
@@ -1920,20 +1918,10 @@ class SortByColumn(DirectoryPaneCommand):
 					result[i].append(item)
 					break
 		return chain.from_iterable(result)
-	def _remember_settings(self, url, column, is_ascending):
-		settings = load_json('Sort Settings.json', default={})
-		default = (self.pane.get_columns()[0], True)
-		if (column, is_ascending) == default:
-			settings.pop(url, None)
-		else:
-			settings[url] = {
-				'column': column,
-				'is_ascending': is_ascending
-			}
-		save_json('Sort Settings.json')
 
 class RememberSortSettings(DirectoryPaneListener):
 	def before_location_change(self, url, sort_column='', ascending=True):
+		self._remember_curr_sort_column()
 		try:
 			# Consider: We're at zip:///foo.zip and go up. This moves us to
 			# zip:/// - which resolves to file:///. The sort settings will have
@@ -1951,6 +1939,19 @@ class RememberSortSettings(DirectoryPaneListener):
 		# Note that we return `url` here, not `url_resolved`. This is eg.
 		# because we don't want to rewrite C:\Windows\System32 -> ...\SysWOW64.
 		return url, remembered_col, remembered_asc
+	def _remember_curr_sort_column(self):
+		column, is_ascending = self.pane.get_sort_column()
+		url = self.pane.get_path()
+		settings = load_json('Sort Settings.json', default={})
+		default = (self.pane.get_columns()[0], True)
+		if (column, is_ascending) == default:
+			settings.pop(url, None)
+		else:
+			settings[url] = {
+				'column': column,
+				'is_ascending': is_ascending
+			}
+		save_json('Sort Settings.json')
 
 class Minimize(ApplicationCommand):
 	def __call__(self):
