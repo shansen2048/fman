@@ -42,11 +42,8 @@ class Controller:
 				else:
 					self._plugin_support.run_application_command(cmd_name, args)
 				return True
-		if not key_event.is_modifier_only() and \
-			not key_event.is_letter_only() and \
-			not key_event.is_digit_only():
-			if self._nonexistent_shortcut_handler(key_event, pane):
-				return True
+		if self._nonexistent_shortcut_handler(key_event, pane):
+			return True
 		event.ignore()
 		return False
 	def on_doubleclicked(self, pane_widget, file_path):

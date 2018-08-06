@@ -1,7 +1,6 @@
 from fbs_runtime.system import is_mac
 from fman.impl.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, \
-	Key_Right, Key_Return, Key_Enter, Key_Shift, Key_Control, Key_Meta, \
-	Key_Alt, Key_AltGr, Key_CapsLock, Key_NumLock, Key_ScrollLock, ShiftModifier
+	Key_Right, Key_Return, Key_Enter
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 
@@ -34,16 +33,6 @@ class QtKeyEvent:
 		else:
 			result += '0x%02x' % self.key
 		return result
-	def is_modifier_only(self):
-		return self.key in (
-			Key_Shift, Key_Control, Key_Meta, Key_Alt, Key_AltGr, Key_CapsLock,
-			Key_NumLock, Key_ScrollLock
-		)
-	def is_letter_only(self):
-		return not self.modifiers & ~ShiftModifier and \
-			   Qt.Key_A <= self.key <= Qt.Key_Z
-	def is_digit_only(self):
-		return not self.modifiers and Qt.Key_0 <= self.key <= Qt.Key_9
 	def _alias_return_and_enter(self, modifiers, keys):
 		# Qt has Key_Enter and Key_Return. The former is the Enter key on the
 		# numpad. The latter is next to the characters. We want the user to
