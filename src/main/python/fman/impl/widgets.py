@@ -156,7 +156,12 @@ class DirectoryPaneWidget(QWidget):
 	def _on_doubleclicked(self, index):
 		self._controller.on_doubleclicked(self, self._model.url(index))
 	def _on_key_pressed(self, file_view, event):
-		return self._controller.on_key_pressed(self, event)
+		if self._controller.handle_shortcut(self, event):
+			return True
+		if self._controller.handle_nonexistent_shortcut(self, event):
+			return True
+		event.ignore()
+		return False
 	def _on_file_renamed(self, *args):
 		self._controller.on_file_renamed(self, *args)
 	def _on_files_dropped(self, *args):

@@ -22,6 +22,8 @@ class NonexistentShortcutHandler:
 		self._settings = settings
 		self._metrics = metrics
 	def __call__(self, key_event, pane):
+		if key_event.is_modifier_only():
+			return False
 		self._metrics.track('UsedNonexistentShortcut', {
 			'shortcut': str(key_event)
 		})

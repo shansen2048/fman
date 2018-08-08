@@ -1,13 +1,14 @@
 from fbs_runtime.system import is_mac
 from fman.impl.util.qt import KeypadModifier, Key_Down, Key_Up, Key_Left, \
-	Key_Right, Key_Return, Key_Enter
+	Key_Right, Key_Return, Key_Enter, Key_Shift, Key_Control, Key_Meta, \
+	Key_Alt, Key_AltGr, Key_CapsLock, Key_NumLock, Key_ScrollLock
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 
 class QtKeyEvent:
-	def __init__(self, key, modifiers):
-		self.key = key
-		self.modifiers = modifiers
+	def __init__(self, qkeyevent):
+		self.key = qkeyevent.key()
+		self.modifiers = qkeyevent.modifiers()
 	def matches(self, keys):
 		if is_mac():
 			keys = self._replace(keys, {'Cmd': 'Ctrl', 'Ctrl': 'Meta'})
@@ -22,6 +23,11 @@ class QtKeyEvent:
 			modifiers &= ~KeypadModifier
 		key, modifiers, keys = self._alias_return_and_enter(modifiers, keys)
 		return QKeySequence(modifiers | key).matches(QKeySequence(keys))
+	def is_modifier_only(self):
+		return self.key in (
+			Key_Shift, Key_Control, Key_Meta, Key_Alt, Key_AltGr, Key_CapsLock,
+			Key_NumLock, Key_ScrollLock
+		)
 	def __str__(self):
 		result = ''
 		if self.modifiers:

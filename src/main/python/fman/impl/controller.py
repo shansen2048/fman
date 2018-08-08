@@ -29,9 +29,9 @@ class Controller:
 		pane = self._panes[pane_widget]
 		if not self._usage_helper.on_location_bar_clicked(pane, past_events):
 			pane._broadcast('on_location_bar_clicked')
-	def on_key_pressed(self, pane_widget, event):
+	def handle_shortcut(self, pane_widget, qkeyevent):
 		pane = self._panes[pane_widget]
-		key_event = QtKeyEvent(event.key(), event.modifiers())
+		key_event = QtKeyEvent(qkeyevent)
 		for key_binding in self._plugin_support.get_sanitized_key_bindings():
 			keys = key_binding['keys']
 			if key_event.matches(keys[0]):
@@ -42,10 +42,14 @@ class Controller:
 				else:
 					self._plugin_support.run_application_command(cmd_name, args)
 				return True
-		if self._nonexistent_shortcut_handler(key_event, pane):
-			return True
-		event.ignore()
 		return False
+	def handle_nonexistent_shortcut(self, pane_widget, qkeyevent):
+		is_single_char = qkeyevent.text() and not qkeyevent.modifiers()
+		if is_single_char:
+			return False
+		pane = self._panes[pane_widget]
+		key_event = QtKeyEvent(qkeyevent)
+		return self._nonexistent_shortcut_handler(key_event, pane)
 	def on_doubleclicked(self, pane_widget, file_path):
 		past_events = self._metrics.past_events[::]
 		self._metrics.track('DoubleclickedFile')
