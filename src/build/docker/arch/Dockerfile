@@ -21,6 +21,19 @@ RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen && \
 
 ADD .bashrc /root/.bashrc
 
+# Install Python 3.5. We need a separate user ("build-python35") for this
+# because `makepkg` cannot be run as root.
+RUN useradd -m --shell /bin/bash build-python35 && \
+    echo 'build-python35 ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+USER build-python35
+WORKDIR /home/build-python35
+ADD python35 /home/build-python35
+RUN makepkg -si --noconfirm
+USER root
+WORKDIR /root
+RUN userdel -r build-python35 && \
+    sed -i '/build-python35 ALL=(ALL) NOPASSWD: ALL/d' /etc/sudoers
+
 RUN pacman -S --noconfirm p7zip
 
 RUN pacman -S --noconfirm ruby ruby-rdoc && \
