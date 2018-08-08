@@ -993,6 +993,12 @@ class GoTo(DirectoryPaneCommand):
 			query, suggested_dir = result
 			path = suggested_dir or expanduser(query.rstrip())
 			url = as_url(path)
+			if PLATFORM == 'Windows' and re.match(r'\\[^\\]', path):
+				# Resolve '\Some\dir' to 'C:\Some\dir'.
+				try:
+					url = resolve(url)
+				except OSError:
+					pass
 			try:
 				isdir = is_dir(url)
 			except OSError:
