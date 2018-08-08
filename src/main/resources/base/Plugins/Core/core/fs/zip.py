@@ -416,7 +416,7 @@ def _run_7zip(args, cwd=None, pty=False):
 
 def _create_temp_dir_next_to(path):
 	return TemporaryDirectory(
-		dir=str(PurePosixPath(path).parent), prefix='', suffix='.tmp'
+		dir=str(Path(path).parent), prefix='', suffix='.tmp'
 	)
 
 class _7zip:
