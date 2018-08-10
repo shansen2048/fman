@@ -23,6 +23,7 @@ from subprocess import Popen, DEVNULL, PIPE
 from tempfile import TemporaryDirectory
 from urllib.error import URLError
 
+import errno
 import fman
 import fman.fs
 import json
@@ -282,8 +283,14 @@ def _open_files(urls):
 	for url in urls:
 		try:
 			url = resolve(url)
-		except OSError:
+		except FileNotFoundError:
+			# No sense to try to open a file that does not exist.
 			continue
+		except OSError as e:
+			# Not all OSErrors need prevent us from opening the file.
+			# So only skip this file if it does not exist:
+			if e.errno == errno.ENOENT:
+				continue
 		scheme = splitscheme(url)[0]
 		if scheme != 'file://':
 			show_alert(
