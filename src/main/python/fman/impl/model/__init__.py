@@ -49,7 +49,6 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 					raise
 				error_urls.add(url)
 	def _set_location(self, url, sort_column, ascending, callback):
-		url_resolved = self._fs.resolve(url)
 		try:
 			url_resolved = self._fs.resolve(url)
 		except FileNotFoundError:
