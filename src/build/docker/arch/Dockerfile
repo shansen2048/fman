@@ -15,7 +15,7 @@ RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen && \
 
 ADD .bashrc /root/.bashrc
 
-RUN pacman -S --noconfirm p7zip python-pyqt5
+RUN pacman -S --noconfirm p7zip python
 
 RUN pacman -S --noconfirm ruby ruby-rdoc && \
     # Avoid error "cannot load such file -- ubygems":
