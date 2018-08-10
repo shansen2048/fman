@@ -20,9 +20,20 @@ class DragAndDrop(QAbstractTableModel):
 			return False
 		if not data.hasUrls():
 			return False
+		urls = []
+		for qurl in data.urls():
+			try:
+				url = from_qurl(qurl)
+			except ValueError:
+				# This can for instance happen for QUrl(''), which we sometimes
+				# do encounter.
+				continue
+			urls.append(url)
+		if not urls:
+			return False
 		dest_dir = self._get_drop_dest(parent)
-		is_in_dest_dir = lambda url: dirname(from_qurl(url)) == dest_dir
-		return not all(map(is_in_dest_dir, data.urls()))
+		is_in_dest_dir = lambda url: dirname(url) == dest_dir
+		return not all(map(is_in_dest_dir, urls))
 	def mimeTypes(self):
 		"""
 		List the MIME types used by our drag and drop implementation.
