@@ -8,6 +8,7 @@ from fman.impl.util.url import is_pardir
 from fman.url import dirname, splitscheme
 from PyQt5.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
+import errno
 import sip
 
 class SortedFileSystemModel(QSortFilterProxyModel):
@@ -49,6 +50,19 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 				error_urls.add(url)
 	def _set_location(self, url, sort_column, ascending, callback):
 		url_resolved = self._fs.resolve(url)
+		try:
+			url_resolved = self._fs.resolve(url)
+		except FileNotFoundError:
+			raise
+		except OSError as e:
+			if e.errno == errno.ENOENT:
+				raise
+			# For example: On Windows, Path(...).resolve()'ing on a directory
+			# in a Cryptomator mapped drive gives:
+			# 	OSError: [WinError 1] Incorrect function
+			# But we can still list the dir's contents and do everything else
+			# that's required. So ignore the error and continue:
+			url_resolved = url
 		if splitscheme(url_resolved)[0] != splitscheme(url)[0]:
 			# In general, we do not want to simply rewrite the URL to its
 			# resolved form. This is for instance because we don't want to
