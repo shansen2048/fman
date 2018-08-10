@@ -1,16 +1,10 @@
-FROM base/devel
+# We use an old Arch image on purpose: Glibc is backward-compatible, but not
+# forward-compatible. If we always built on the most recent Arch image, then
+# older versions may not be able to run fman when Glibc was updated.
+FROM base/devel:2018.04.01
 
-# The mirrorlist from the default Docker image only lists a single mirror.
-# If that mirror has problems, this image cannot be built. Avoid this by using
-# the full list of mirrors:
-RUN curl -o /etc/pacman.d/mirrorlist "https://www.archlinux.org/mirrorlist/?protocol=http&protocol=https&ip_version=4&use_mirror_status=on" && \
-    sed -i 's/^#Server/Server/' /etc/pacman.d/mirrorlist && \
-    pacman -Syyu --noconfirm
-
-# Choose the best mirror:
-RUN pacman -S --noconfirm reflector && \
-    reflector --latest 10 --protocol http --protocol https --sort rate --save /etc/pacman.d/mirrorlist && \
-    pacman -Syyu --noconfirm
+RUN echo 'Server=https://archive.archlinux.org/repos/2018/04/01/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
+    pacman -Syy
 
 ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
 RUN gpgconf --kill gpg-agent
@@ -21,20 +15,7 @@ RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen && \
 
 ADD .bashrc /root/.bashrc
 
-# Install Python 3.5. We need a separate user ("build-python35") for this
-# because `makepkg` cannot be run as root.
-RUN useradd -m --shell /bin/bash build-python35 && \
-    echo 'build-python35 ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-USER build-python35
-WORKDIR /home/build-python35
-ADD python35 /home/build-python35
-RUN makepkg -si --noconfirm
-USER root
-WORKDIR /root
-RUN userdel -r build-python35 && \
-    sed -i '/build-python35 ALL=(ALL) NOPASSWD: ALL/d' /etc/sudoers
-
-RUN pacman -S --noconfirm p7zip
+RUN pacman -S --noconfirm p7zip python-pyqt5
 
 RUN pacman -S --noconfirm ruby ruby-rdoc && \
     # Avoid error "cannot load such file -- ubygems":
