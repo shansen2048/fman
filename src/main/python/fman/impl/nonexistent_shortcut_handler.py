@@ -176,9 +176,12 @@ class NonexistentShortcutHandler:
 			return
 		title = 'The shortcut %s is not defined. ' \
 				'What do you want to do?' % highlight('F2')
-		options = [(
-			'Rename', 'Rename "%s"' % basename(pane.get_file_under_cursor())
-		)]
+		options = []
+		fuc = pane.get_file_under_cursor()
+		if fuc:
+			options.append(('Rename', 'Rename "%s"' % basename(fuc)))
+		if not options:
+			return
 		choice = self._show_suggestions(dialog_id, title, options)
 		if choice != 'Rename':
 			return
