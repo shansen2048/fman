@@ -67,7 +67,11 @@ class PaneCommandRegistry:
 	def register_command(self, name, cls):
 		self._command_classes[name] = cls
 	def unregister_command(self, name):
-		del self._command_classes[name]
+		try:
+			del self._command_classes[name]
+		except KeyError:
+			# fman's API requires us to raise ValueError, not KeyError:
+			raise ValueError('Command %r is not registered' % name) from None
 		for commands in self._command_instances.values():
 			try:
 				del commands[name]
