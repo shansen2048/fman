@@ -31,7 +31,7 @@ class Controller:
 			pane._broadcast('on_location_bar_clicked')
 	def handle_shortcut(self, pane_widget, qkeyevent):
 		pane = self._panes[pane_widget]
-		key_event = QtKeyEvent(qkeyevent)
+		key_event = QtKeyEvent(qkeyevent.key(), qkeyevent.modifiers())
 		for key_binding in self._plugin_support.get_sanitized_key_bindings():
 			keys = key_binding['keys']
 			if key_event.matches(keys[0]):
@@ -48,7 +48,7 @@ class Controller:
 		if is_single_char:
 			return False
 		pane = self._panes[pane_widget]
-		key_event = QtKeyEvent(qkeyevent)
+		key_event = QtKeyEvent(qkeyevent.key(), qkeyevent.modifiers())
 		return self._nonexistent_shortcut_handler(key_event, pane)
 	def on_doubleclicked(self, pane_widget, file_path):
 		past_events = self._metrics.past_events[::]

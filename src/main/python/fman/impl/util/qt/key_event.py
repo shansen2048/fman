@@ -6,9 +6,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 
 class QtKeyEvent:
-	def __init__(self, qkeyevent):
-		self.key = qkeyevent.key()
-		self.modifiers = qkeyevent.modifiers()
+	def __init__(self, key, modifiers):
+		self.key = key
+		self.modifiers = modifiers
 	def matches(self, keys):
 		if is_mac():
 			keys = self._replace(keys, {'Cmd': 'Ctrl', 'Ctrl': 'Meta'})
