@@ -22,7 +22,8 @@ class QtKeyEvent:
 			# [1]: http://doc.qt.io/qt-5/qt.html#KeyboardModifier-enum
 			modifiers &= ~KeypadModifier
 		key, modifiers, keys = self._alias_return_and_enter(modifiers, keys)
-		return QKeySequence(modifiers | key).matches(QKeySequence(keys))
+		return QKeySequence(modifiers | key).matches(QKeySequence(keys)) \
+			   == QKeySequence.ExactMatch
 	def is_modifier_only(self):
 		return self.key in (
 			Key_Shift, Key_Control, Key_Meta, Key_Alt, Key_AltGr, Key_CapsLock,
