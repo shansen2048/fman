@@ -997,17 +997,10 @@ class GoTo(DirectoryPaneCommand):
 		get_items = SuggestLocations(self._get_visited_paths())
 		result = show_quicksearch(get_items, self._get_tab_completion, query)
 		if result:
-			url, isdir = self._get_target_location(*result)
+			url = self._get_target_location(*result)
 			if url:
-				if isdir:
-					self.pane.set_path(url)
-				else:
-					def callback():
-						try:
-							self.pane.place_cursor_at(url)
-						except ValueError as url_disappeared:
-							pass
-				self.pane.set_path(dirname(url), callback=callback)
+				# Use OpenDirectory because it handles errors gracefully:
+				self.pane.run_command('open_directory', {'url': url})
 	def _get_target_location(self, query, suggested_dir):
 		query = expanduser(query.rstrip())
 		# Try `query` first (ie. prioritize it over `suggested_dir`) because the
@@ -1017,25 +1010,16 @@ class GoTo(DirectoryPaneCommand):
 		# suggested_dir is \\other-server\folder. But we do want to open
 		# \\server\folder if it exists. By trying `query` first, the
 		# implementation below ensures that this happens.
-		url = self._get_url(query)
-		try:
-			return url, is_dir(url)
-		except OSError:
-			# This for instance happens when the URL does not exist.
-			url = as_url(suggested_dir)
-			try:
-				return url, is_dir(url)
-			except OSError:
-				return None, None
-	def _get_url(self, query):
-		result = as_url(query)
+		url = as_url(query)
 		if PLATFORM == 'Windows' and re.match(r'\\[^\\]', query):
 			# Resolve '\Some\dir' to 'C:\Some\dir'.
 			try:
-				result = resolve(result)
+				url = resolve(url)
 			except OSError:
 				pass
-		return result
+		if exists(url):
+			return url
+		return as_url(suggested_dir)
 	def _get_tab_completion(self, query, curr_item):
 		if curr_item:
 			result = curr_item.title

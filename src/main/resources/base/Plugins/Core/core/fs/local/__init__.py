@@ -31,7 +31,7 @@ class LocalFileSystem(FileSystem):
 	def get_default_columns(self, path):
 		return 'core.Name', 'core.Size', 'core.Modified'
 	def exists(self, path):
-		return Path(self._url_to_os_path(path)).exists()
+		return path and Path(self._url_to_os_path(path)).exists()
 	def iterdir(self, path):
 		# Use os.listdir(...) instead of Path(...).iterdir() for performance:
 		return os.listdir(self._url_to_os_path(path))
