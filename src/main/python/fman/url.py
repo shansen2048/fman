@@ -19,7 +19,11 @@ def as_url(local_file_path, scheme='file://'):
 	# code base would get unnecessarily complicated if it had to escape URL
 	# characters like %20 all the time. So we do not escape URLs and return
 	# "file:///a b" instead:
-	result = scheme + PurePath(local_file_path).as_posix()
+	path = PurePath(local_file_path).as_posix()
+	if path == '.':
+		# This for instance happens when local_file_path == ''.
+		path = ''
+	result = scheme + path
 	# On Windows, PurePath(\\server\folder).as_posix() ends with a slash.
 	# Get rid of it:
 	return re.sub(r'([^/])/$', r'\1', result)

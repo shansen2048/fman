@@ -13,6 +13,8 @@ class AsFileUrlTest(TestCase):
 			self.assertEqual('file://C:', as_url('C:\\'))
 		else:
 			self.assertEqual('file:///', as_url('/'))
+	def test_empty(self):
+		self.assertEqual('file://', as_url(''))
 	@skipIf(not is_windows(), 'Skipping Windows-only test')
 	def test_network_share(self):
 		self.assertEqual('file:////HERRWIN7/Users', as_url(r'\\HERRWIN7\Users'))
