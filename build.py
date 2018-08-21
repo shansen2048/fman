@@ -67,6 +67,9 @@ def publish():
 
 @command
 def release():
+	if 'working directory clean' not in git('status'):
+		print('There are uncommitted changes. Aborting.')
+		return
 	clean()
 	activate_profile('release')
 	version = SETTINGS['version']
