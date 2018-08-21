@@ -270,8 +270,12 @@ class ReportExceptions:
 		if isinstance(exc_val, SystemExit):
 			exc_code = 0 if exc_val.code is None else exc_val.code
 			self._error_handler.handle_system_exit(exc_code)
-		elif exc_type not in self._exclude:
+		for exclude_class in self._exclude:
+			if isinstance(exc_val, exclude_class):
+				break
+		else:
 			self._error_handler.report(self._message, exc_val)
+			return True
 
 class ListenerWrapper(Wrapper):
 	def __init__(self, listener, error_handler):
@@ -285,17 +289,11 @@ class ListenerWrapper(Wrapper):
 	def on_files_dropped(self, *args):
 		self._notify_listener('on_files_dropped', *args)
 	def on_command(self, command, args):
-		try:
-			with self._report_exceptions():
-				return self._wrapped.on_command(command, args)
-		except Exception:
-			return None
+		with self._report_exceptions():
+			return self._wrapped.on_command(command, args)
 	def before_location_change(self, *args):
-		try:
-			with self._report_exceptions():
-				return self._wrapped.before_location_change(*args)
-		except Exception:
-			return None
+		with self._report_exceptions():
+			return self._wrapped.before_location_change(*args)
 	def on_location_bar_clicked(self, *args):
 		self._notify_listener('on_location_bar_clicked', *args)
 	def _notify_listener(self, *args):
@@ -304,11 +302,8 @@ class ListenerWrapper(Wrapper):
 		).start()
 	def _notify_listener_in_thread(self, event, *args):
 		listener_method = getattr(self._wrapped, event)
-		try:
-			with self._report_exceptions():
-				listener_method(*args)
-		except Exception:
-			pass
+		with self._report_exceptions():
+			listener_method(*args)
 
 class FileSystemWrapper(Wrapper):
 	def __init__(self, file_system, mother_fs, error_handler):
@@ -316,10 +311,9 @@ class FileSystemWrapper(Wrapper):
 		self._mother_fs = mother_fs
 	def get_default_columns(self, path):
 		result_on_error = 'core.Name',
-		try:
-			with self._report_exceptions():
-				result = self._wrapped.get_default_columns(path)
-		except Exception:
+		with self._report_exceptions() as cm:
+			result = self._wrapped.get_default_columns(path)
+		if cm.exception:
 			return result_on_error
 		available_columns = self._mother_fs.get_registered_column_names()
 		for col_name in result:
@@ -343,47 +337,40 @@ class FileSystemWrapper(Wrapper):
 				exc=False
 			)
 		else:
+			with self._report_exceptions(exclude={OSError}) as cm:
+				result = iterdir(path)
+			if cm.exception:
+				return
 			try:
-				with self._report_exceptions():
-					result = iterdir(path)
-			except Exception:
-				pass
+				iterable = iter(result)
+			except TypeError:
+				self._error_handler.report(
+					"Error: %s.iterdir(...) returned %r instead of an "
+					"iterable such as ['a.txt', 'b.jpg']." %
+					(self._class_name, result),
+					exc=False
+				)
 			else:
-				try:
-					iterable = iter(result)
-				except TypeError:
-					self._error_handler.report(
-						"Error: %s.iterdir(...) returned %r instead of an "
-						"iterable such as ['a.txt', 'b.jpg']." %
-						(self._class_name, result),
-						exc=False
-					)
-				else:
-					showed_error = False
-					while True:
-						try:
-							with self._report_exceptions(
-								exclude={StopIteration, FileNotFoundError}
-							):
-								item = next(iterable)
-						except FileNotFoundError:
-							# Let caller know that `path` disappeared.
-							raise
-						except Exception: # Includes StopIteration
-							break
+				showed_error = False
+				while True:
+					try:
+						with self._report_exceptions(
+							exclude={StopIteration, FileNotFoundError}
+						):
+							item = next(iterable)
+					except StopIteration:
+						break
+					else:
+						if isinstance(item, str):
+							yield item
 						else:
-							if isinstance(item, str):
-								yield item
-							else:
-								if not showed_error:
-									self._error_handler.report(
-										"Error: %s.iterdir(...) yielded %r "
-										"instead of a string such as "
-										"'file.txt'." % (
-											self._class_name, item),
-											exc=False
-										)
-									showed_error = True
+							if not showed_error:
+								self._error_handler.report(
+									"Error: %s.iterdir(...) yielded %r instead "
+									"of a string such as 'file.txt'." %
+									(self._class_name, item), exc=False
+								)
+								showed_error = True
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)
 
@@ -391,19 +378,15 @@ class ColumnWrapper(Wrapper):
 	def __init__(self, wrapped, error_handler):
 		super().__init__(wrapped, 'Column', error_handler)
 	def get_str(self, url):
-		try:
-			with self._report_exceptions(exclude={FileNotFoundError}):
-				return self._wrapped.get_str(url)
-		except Exception:
-			return ''
+		with self._report_exceptions(exclude={FileNotFoundError}):
+			return self._wrapped.get_str(url)
+		return ''
 	def get_sort_value(self, url, is_ascending):
 		# We always return a tuple (error occurred, sort value) to ensure
 		# comparisons can be performed even when errors occur and there is no
 		# sort value.
-		try:
-			with self._report_exceptions(exclude={FileNotFoundError}):
-				return False, self._wrapped.get_sort_value(url, is_ascending)
-		except Exception:
-			return True, 0
+		with self._report_exceptions(exclude={FileNotFoundError}):
+			return False, self._wrapped.get_sort_value(url, is_ascending)
+		return True, 0
 	def __getattr__(self, item):
 		return getattr(self._wrapped, item)
