@@ -17,15 +17,13 @@ def app():
 		# Dependency of the Core plugin:
 		'--hidden-import', 'pty'
 	])
-	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/linux'))
-	rmtree(path('${freeze_dir}/Contents/Resources/Plugins/Core/bin/windows'))
+	rmtree(path('${core_plugin_in_freeze_dir}/bin/linux'))
+	rmtree(path('${core_plugin_in_freeze_dir}/bin/windows'))
 	copy_framework(
 		path('lib/mac/Sparkle-1.18.1/Sparkle.framework'),
 		path('${freeze_dir}/Contents/Frameworks/Sparkle.framework')
 	)
-	copy_python_library(
-		'osxtrash', path('${freeze_dir}/Contents/Resources/Plugins/Core')
-	)
+	copy_python_library('osxtrash', path('${core_plugin_in_freeze_dir}'))
 
 @command
 def sign_app():

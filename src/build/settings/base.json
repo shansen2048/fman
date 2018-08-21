@@ -31,5 +31,7 @@
 	"aws_access_key_id": "AKIAIWTB3R6KKMMTWXEA",
 	"aws_secret_access_key": "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",
 	"aws_bucket": "fman",
-	"aws_distribution_id": "E36JGR8Q7NMYHR"
+	"aws_distribution_id": "E36JGR8Q7NMYHR",
+	"core_plugin_github_url": "git@github.com:fman-users/Core.git",
+	"core_plugin_in_freeze_dir": "${freeze_dir}/Plugins/Core"
 }

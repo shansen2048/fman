@@ -1,3 +1,4 @@
 {
-	"freeze_dir": "target/fman.app"
+	"freeze_dir": "target/fman.app",
+	"core_plugin_in_freeze_dir": "${freeze_dir}/Contents/Resources/Plugins/Core"
 }

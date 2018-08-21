@@ -1,10 +1,11 @@
 from fbs import SETTINGS, path
 from fbs.platform import is_windows, is_mac, is_linux
 from importlib import import_module
-from os import makedirs, readlink, symlink, remove
+from os import makedirs, readlink, symlink, remove, getcwd, chdir, listdir
 from os.path import dirname, join, islink, isdir, basename
-from shutil import copy, copytree
+from shutil import copy, copytree, rmtree
 from subprocess import run, check_output, PIPE
+from tempfile import TemporaryDirectory
 from time import time
 
 import re
@@ -133,6 +134,43 @@ def _get_aws_credentials():
 		'aws_access_key_id': SETTINGS['aws_access_key_id'],
 		'aws_secret_access_key': SETTINGS['aws_secret_access_key']
 	}
+
+def upload_core_to_github():
+	with TemporaryDirectory() as tmp_dir:
+		cwd_before = getcwd()
+		chdir(tmp_dir)
+		try:
+			git('clone', SETTINGS['core_plugin_github_url'], '.')
+			with open('.extrafiles', 'r') as f:
+				extra_files = {
+					line.rstrip() for line in f
+					if not line.startswith('#') and line.rstrip()
+				}
+			for name in listdir(tmp_dir):
+				if name not in extra_files:
+					if isdir(name):
+						rmtree(name)
+					else:
+						remove(name)
+			core_src_dir = path('src/main/resources/base/Plugins/Core')
+			for name in listdir(core_src_dir):
+				p = join(core_src_dir, name)
+				if isdir(p):
+					copytree(p, join(tmp_dir, name))
+				else:
+					copy(p, tmp_dir)
+			git('add', '-A')
+			version = SETTINGS['version']
+			git(
+				'commit', '-m',
+				'Source code of the Core plugin in fman ' + version
+			)
+			git('push', '-u', 'origin', 'master')
+			tag = 'v' + version
+			git('tag', tag)
+			git('push', 'origin', tag)
+		finally:
+			chdir(cwd_before)
 
 def record_release_on_server():
 	import requests

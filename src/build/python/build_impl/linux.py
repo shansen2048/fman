@@ -11,9 +11,9 @@ FMAN_AUTHOR = 'Michael Herrmann'
 FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
 
 def postprocess_exe():
-	rmtree(path('${freeze_dir}/Plugins/Core/bin/mac'))
-	rmtree(path('${freeze_dir}/Plugins/Core/bin/windows'))
-	copy_python_library('send2trash', path('${freeze_dir}/Plugins/Core'))
+	rmtree(path('${core_plugin_in_freeze_dir}/bin/mac'))
+	rmtree(path('${core_plugin_in_freeze_dir}/bin/windows'))
+	copy_python_library('send2trash', path('${core_plugin_in_freeze_dir}'))
 
 def copy_linux_package_resources(root_path):
 	source_dir = 'src/main/resources/linux-package'

@@ -43,9 +43,9 @@ def exe():
 		'--hidden-import', 'winpty'
 	])
 	_copy_winpty_files()
-	rmtree(path('${freeze_dir}/Plugins/Core/bin/mac'))
-	rmtree(path('${freeze_dir}/Plugins/Core/bin/linux'))
-	copy_python_library('send2trash', path('${freeze_dir}/Plugins/Core'))
+	rmtree(path('${core_plugin_in_freeze_dir}/bin/mac'))
+	rmtree(path('${core_plugin_in_freeze_dir}/bin/linux'))
+	copy_python_library('send2trash', path('${core_plugin_in_freeze_dir}'))
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('${freeze_dir}/fman.exe'))
 	_generate_uninstaller()
