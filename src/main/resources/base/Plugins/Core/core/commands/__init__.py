@@ -1019,7 +1019,8 @@ class GoTo(DirectoryPaneCommand):
 				pass
 		if exists(url):
 			return url
-		return as_url(suggested_dir)
+		if suggested_dir: # Can be None if no dir suggested
+			return as_url(suggested_dir)
 	def _get_tab_completion(self, query, curr_item):
 		if curr_item:
 			result = curr_item.title
