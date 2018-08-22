@@ -54,7 +54,10 @@ def from_qurl(qurl):
 	result = qurl.toString()
 	scheme, path = result.split(':', 1)
 	if not path.startswith('//'):
-		assert path.startswith('/')
+		if not path.startswith('/'):
+			# Once saw QUrl('ftp:user:pass@123.45.67.89/dir') on the clipboard
+			# on Linux.
+			raise ValueError('Invalid URL: %r' % result)
 		path = ('/' if is_windows() else '//') + path
 	return ':'.join([scheme, path])
 
