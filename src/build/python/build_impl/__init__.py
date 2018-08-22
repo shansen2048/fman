@@ -108,6 +108,9 @@ def git(cmd, *args):
 	)
 	return completed_process.stdout
 
+def git_has_changes():
+	return 'nothing to commit' not in git('status')
+
 def upload_to_s3(src_path, dest_path):
 	import boto3
 	s3 = boto3.resource('s3', **_get_aws_credentials())
@@ -159,13 +162,14 @@ def upload_core_to_github():
 					copytree(p, join(tmp_dir, name))
 				else:
 					copy(p, tmp_dir)
-			git('add', '-A')
 			version = SETTINGS['version']
-			git(
-				'commit', '-m',
-				'Source code of the Core plugin in fman ' + version
-			)
-			git('push', '-u', 'origin', 'master')
+			if git_has_changes():
+				git('add', '-A')
+				git(
+					'commit', '-m',
+					'Source code of the Core plugin in fman ' + version
+				)
+				git('push', '-u', 'origin', 'master')
 			tag = 'v' + version
 			git('tag', tag)
 			git('push', 'origin', tag)

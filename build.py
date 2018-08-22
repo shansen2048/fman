@@ -3,7 +3,7 @@ import sys
 sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
 
 from build_impl import git, create_cloudfront_invalidation, \
-	record_release_on_server, upload_core_to_github
+	record_release_on_server, upload_core_to_github, git_has_changes
 from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean, installer
 from fbs.cmdline import command
@@ -67,7 +67,7 @@ def publish():
 
 @command
 def release():
-	if 'nothing to commit' not in git('status'):
+	if git_has_changes():
 		print('There are uncommitted changes. Aborting.')
 		return
 	clean()
