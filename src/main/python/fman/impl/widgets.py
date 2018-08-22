@@ -495,32 +495,7 @@ class SplashScreen(QDialog):
 		layout.setContentsMargins(20, 20, 20, 20)
 
 		label = QLabel(self)
-		p_styles = ['line-height: 115%']
-		if is_windows():
-			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
-		p_style = '; '.join(p_styles)
-		# Make buy link more enticing on (roughly) every 10th run:
-		if randrange(10):
-			buy_link_style = ""
-		else:
-			buy_link_style = " style='color: #00ff00;'"
-		label.setText(
-			"<center style='line-height: 130%'>"
-				"<h2>Welcome to fman!</h2>"
-			"</center>"
-			"<p style='" + p_style + "'>"
-				"To remove this annoying popup, please "
-				"<a href='https://fman.io/buy?s=f'" + buy_link_style + ">"
-					"obtain a license"
-				"</a>."
-				"<br/>"
-				"It only takes a minute and you'll never be bothered again!"
-			"</p>"
-			"<p style='" + p_style + "'>"
-				"To continue without a license for now, press button "
-				+ button_to_press + "."
-			"</p>"
-		)
+		label.setText(self._get_label_text(button_to_press))
 		label.setOpenExternalLinks(True)
 		layout.addWidget(label)
 
@@ -537,6 +512,32 @@ class SplashScreen(QDialog):
 
 		self.setLayout(layout)
 		self.finished.connect(self._finished)
+	def _get_label_text(self, button_to_press):
+		p_styles = ['line-height: 115%']
+		if is_windows():
+			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
+		p_style = '; '.join(p_styles)
+		# Make buy link more enticing on (roughly) every 10th run:
+		if randrange(10):
+			buy_link_style = ""
+		else:
+			buy_link_style = " style='color: #00ff00;'"
+		return \
+			"<center style='line-height: 130%'>" \
+				"<h2>Welcome to fman!</h2>" \
+			"</center>" \
+			"<p style='" + p_style + "'>" \
+				"To remove this annoying popup, please " \
+				"<a href='https://fman.io/buy?s=f'" + buy_link_style + ">" \
+					"obtain a license" \
+				"</a>." \
+				"<br/>" \
+				"It only takes a minute and you'll never be bothered again!" \
+			"</p>" \
+			"<p style='" + p_style + "'>" \
+				"To continue without a license for now, press button " \
+				+ button_to_press + "." \
+			"</p>"
 	def keyPressEvent(self, event):
 		if event.matches(QKeySequence.Quit):
 			self.app.exit(0)
