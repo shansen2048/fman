@@ -311,12 +311,17 @@ def _open_local_file(path):
 		#  * C:\picture.jpg
 		#  * C:\notepad.exe
 		#  * C:\a & b.txt
-		#  * C:\batch.bat with `pause` at the end
+		#  * C:\batch.bat should print the current dir:
+		#        echo %cd%
+		#        pause
 		#  * \\server\share\picture.jpg
 		#  * D:\Book.pdf
 		#  * \\cryptomator-vault\app.exe
 		try:
-			os.startfile(path)
+			from win32api import ShellExecute
+			from win32con import SW_SHOWNORMAL
+			cwd = os.path.dirname(path)
+			ShellExecute(0, None, path, None, cwd, SW_SHOWNORMAL)
 		except OSError:
 			# This for instance happens when the file is an .exe that requires
 			# Admin privileges, but the user cancels the UAC "do you want to run
