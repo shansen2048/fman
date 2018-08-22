@@ -998,29 +998,22 @@ class GoTo(DirectoryPaneCommand):
 		result = show_quicksearch(get_items, self._get_tab_completion, query)
 		if result:
 			url = self._get_target_location(*result)
-			if url:
+			if exists(url):
 				# Use OpenDirectory because it handles errors gracefully:
 				self.pane.run_command('open_directory', {'url': url})
 	def _get_target_location(self, query, suggested_dir):
-		query = expanduser(query.rstrip())
-		# Try `query` first (ie. prioritize it over `suggested_dir`) because the
-		# user may have entered a path that does exist but was not automatically
-		# suggested. A known case where this currently occurs is for UNC paths
-		# on Windows. Eg.: \\server\folder. It can happen in this case that
-		# suggested_dir is \\other-server\folder. But we do want to open
-		# \\server\folder if it exists. By trying `query` first, the
-		# implementation below ensures that this happens.
-		url = as_url(query)
+		if suggested_dir:
+			# The suggested_dir is for instance set when the user clicks on it
+			# with the mouse. If set, it always takes precedence. So return it:
+			return as_url(suggested_dir)
+		url = as_url(expanduser(query.rstrip()))
 		if PLATFORM == 'Windows' and re.match(r'\\[^\\]', query):
 			# Resolve '\Some\dir' to 'C:\Some\dir'.
 			try:
 				url = resolve(url)
 			except OSError:
 				pass
-		if exists(url):
-			return url
-		if suggested_dir: # Can be None if no dir suggested
-			return as_url(suggested_dir)
+		return url
 	def _get_tab_completion(self, query, curr_item):
 		if curr_item:
 			result = curr_item.title
