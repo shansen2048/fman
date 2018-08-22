@@ -13,16 +13,19 @@ class User:
 		self.email = email
 		self.key = key
 	def is_licensed(self, fman_version):
+		return self.has_license() and \
+			   self.license_is_valid_for_curr_version(fman_version)
+	def has_license(self):
 		if self.email in DEACTIVATED_KEYS:
 			return False
 		if 'email' not in self._key_data:
 			return False
 		if self._key_data['email'] != self.email:
 			return False
-		max_version = self._key_data.get('max_version', fman_version)
-		if parse_version(fman_version) > parse_version(max_version):
-			return False
 		return True
+	def license_is_valid_for_curr_version(self, fman_version):
+		max_version = self._key_data.get('max_version', fman_version)
+		return parse_version(fman_version) <= parse_version(max_version)
 	def is_entitled_to_updates(self):
 		return 'max_version' not in self._key_data
 	@property

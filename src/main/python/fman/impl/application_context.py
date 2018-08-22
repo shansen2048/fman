@@ -231,7 +231,14 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return Config(PLATFORM)
 	@cached_property
 	def splash_screen(self):
-		return SplashScreen(self.main_window, self.app)
+		user = self.user
+		license_expired = user.has_license() and \
+						  not user.license_is_valid_for_curr_version(
+							  self.fman_version
+						  )
+		return SplashScreen(
+			self.main_window, self.app, license_expired, user.email
+		)
 	@cached_property
 	def tour_controller(self):
 		return TourController()

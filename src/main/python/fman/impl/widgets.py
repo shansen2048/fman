@@ -482,7 +482,7 @@ class Splitter(QSplitter):
 			self.moveSplitter(i * width_increment - handle_width // 2, i)
 
 class SplashScreen(QDialog):
-	def __init__(self, parent, app):
+	def __init__(self, parent, app, license_expired, user_email):
 		super().__init__(parent, Qt.CustomizeWindowHint | Qt.WindowTitleHint)
 		self.app = app
 		self.setWindowTitle('fman')
@@ -495,7 +495,9 @@ class SplashScreen(QDialog):
 		layout.setContentsMargins(20, 20, 20, 20)
 
 		label = QLabel(self)
-		label.setText(self._get_label_text(button_to_press))
+		label.setText(
+			self._get_label_text(button_to_press, license_expired, user_email)
+		)
 		label.setOpenExternalLinks(True)
 		layout.addWidget(label)
 
@@ -512,31 +514,47 @@ class SplashScreen(QDialog):
 
 		self.setLayout(layout)
 		self.finished.connect(self._finished)
-	def _get_label_text(self, button_to_press):
+	def _get_label_text(self, button_to_press, license_expired, email):
 		p_style = 'line-height: 115%;'
 		if is_windows():
 			p_style += ' margin-left: 2px; text-indent: -2px;'
-		# Make buy link more enticing on (roughly) every 10th run:
-		if randrange(10):
-			buy_link_style = ""
-		else:
-			buy_link_style = " style='color: #00ff00;'"
-		return \
+		result = \
 			"<center style='line-height: 130%'>" \
 				"<h2>Welcome to fman!</h2>" \
-			"</center>" \
-			"<p style='" + p_style + "'>" \
-				"To remove this annoying popup, please " \
-				"<a href='https://fman.io/buy?s=f'" + buy_link_style + ">" \
-					"obtain a license" \
-				"</a>." \
-				"<br/>" \
-				"It only takes a minute and you'll never be bothered again!" \
-			"</p>" \
-			"<p style='" + p_style + "'>" \
-				"To continue without a license for now, press button " \
-				+ button_to_press + "." \
-			"</p>"
+			"</center>"
+		if license_expired:
+			paragraphs = [
+				'<span style="color: red;">'
+					'Your license is not valid for this version of fman.'
+				'</span>'
+				'<br/>'
+				'For more information, please '
+				'<a href="https://fman.io/account/login?email=' + email + '">'
+					'log in to fman.io'
+				'</a>.',
+				"To continue without a license, press button %s."
+				% button_to_press
+			]
+		else:
+			# Make buy link more enticing on (roughly) every 10th run:
+			if randrange(10):
+				buy_link_style = ""
+			else:
+				buy_link_style = " style='color: #00ff00;'"
+			paragraphs = [
+				"To remove this annoying popup, please "
+				"<a href='https://fman.io/buy?s=f'" + buy_link_style + ">"
+					"obtain a license"
+				"</a>."
+				"<br/>"
+				"It only takes a minute and you'll never be bothered again!",
+				"To continue without a license for now, press button %s."
+				% button_to_press
+			]
+		result += ''.join(
+			"<p style='" + p_style + "'>" + p + "</p>" for p in paragraphs
+		)
+		return result
 	def keyPressEvent(self, event):
 		if event.matches(QKeySequence.Quit):
 			self.app.exit(0)
