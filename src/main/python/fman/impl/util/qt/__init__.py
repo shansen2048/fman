@@ -41,8 +41,10 @@ def as_qurl(url):
 	scheme, path = splitscheme(url)
 	if scheme == 'file://':
 		path = as_human_readable(url)
-	result = QUrl.fromLocalFile(path)
-	result.setScheme(scheme[:-len('://')])
+		result = QUrl.fromLocalFile(path)
+	else:
+		result = QUrl('ftp://' + path)
+		result.setScheme(scheme[:-len('://')])
 	return result
 
 def from_qurl(qurl):
