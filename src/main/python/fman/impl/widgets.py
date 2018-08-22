@@ -513,10 +513,9 @@ class SplashScreen(QDialog):
 		self.setLayout(layout)
 		self.finished.connect(self._finished)
 	def _get_label_text(self, button_to_press):
-		p_styles = ['line-height: 115%']
+		p_style = 'line-height: 115%;'
 		if is_windows():
-			p_styles.extend(['margin-left: 2px', 'text-indent: -2px'])
-		p_style = '; '.join(p_styles)
+			p_style += ' margin-left: 2px; text-indent: -2px;'
 		# Make buy link more enticing on (roughly) every 10th run:
 		if randrange(10):
 			buy_link_style = ""
