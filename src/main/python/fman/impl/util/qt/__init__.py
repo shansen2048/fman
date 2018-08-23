@@ -1,5 +1,6 @@
 from fbs_runtime.system import is_windows
 from fman.url import splitscheme, as_human_readable, as_url
+from pathlib import PureWindowsPath
 from PyQt5.QtCore import Qt, QObject, QEvent, QUrl
 
 def connect_once(signal, slot):
@@ -43,7 +44,10 @@ def as_qurl(url):
 		path = as_human_readable(url)
 		result = QUrl.fromLocalFile(path)
 	else:
-		result = QUrl('ftp://' + path)
+		if is_windows() and PureWindowsPath(path).is_absolute():
+			result = QUrl.fromLocalFile(path)
+		else:
+			result = QUrl('ftp://' + path)
 		result.setScheme(scheme[:-len('://')])
 	return result
 
