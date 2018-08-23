@@ -68,7 +68,6 @@ class Model(SortFilterTableModel, DragAndDrop):
 		self._worker = Worker()
 		self._shutdown = False
 	def start(self, callback):
-		connect_once(self.location_loaded, lambda _: self._file_watcher.start())
 		self._worker.start()
 		self._init(callback)
 	@transaction(priority=1)
@@ -114,6 +113,17 @@ class Model(SortFilterTableModel, DragAndDrop):
 		# change the cursor position.
 		callback()
 		self.location_loaded.emit(self._location)
+		# Start the file watcher here, not in the main thread. This avoids a
+		# deadlock: FileWatcher indirectly calls FileSystem#_add/
+		# _remove_file_changed_callback(...). These are guarded by a Lock.
+		# Moreover, the latter calls LocalFileSystem#unwatch(...). This is run
+		# in the main thread. Now, if:
+		#  1. _remove_file_changed_callback(...) obtains the lock and
+		#  2. FileSystem#_add_file_changed_callback(...) is called from the main
+		#     thread,
+		# then _remove_... is waiting for the main thread and _add_... is
+		# waiting for the lock. Deadlock.
+		self._file_watcher.start()
 		self._load_remaining_files()
 	def _init_file(self, url):
 		# Load the first column because it is used as an "anchor" when the user
@@ -360,6 +370,11 @@ class Model(SortFilterTableModel, DragAndDrop):
 		if not all_loaded:
 			self._load_remaining_files()
 	def shutdown(self):
+		# Similarly to why we don't want to call FileWatcher#start() from the
+		# main thread, we also don't want to call #shutdown() from it to avoid
+		# potential deadlocks:
+		assert not is_in_main_thread(), \
+			'Should not be called from the main thread to avoid deadlocks'
 		self._shutdown = True
 		self._file_watcher.shutdown()
 		self._worker.shutdown()
