@@ -5,7 +5,7 @@ from fbs import path
 from fbs.cmdline import command
 from fbs.freeze.mac import freeze_mac
 from glob import glob
-from os import makedirs
+from os import makedirs, remove
 from os.path import basename, join, exists, splitext
 from shutil import copy, rmtree
 from subprocess import run
@@ -19,6 +19,16 @@ def app():
 	])
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/linux'))
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/windows'))
+	# Open Sans is only used on Linux. Further, it fails to load on some users'
+	# Windows systems (see fman issue #480). Remove it to avoid problems,
+	# improve startup performance and decrease fman's download size.
+	# (Also note that a more elegant solution would be to only place
+	# Open Sans.ttf in src/main/resources/*linux*/Plugins/Core. But the current
+	# implementation cannot handle multiple dirs .../resources/main,
+	# .../resources/linux for one plugin.)
+	remove(path('${core_plugin_in_freeze_dir}/Open Sans.ttf'))
+	# Similarly for Roboto Bold.ttf. It is only used on Windows:
+	remove(path('${core_plugin_in_freeze_dir}/Roboto Bold.ttf'))
 	copy_framework(
 		path('lib/mac/Sparkle-1.18.1/Sparkle.framework'),
 		path('${freeze_dir}/Contents/Frameworks/Sparkle.framework')

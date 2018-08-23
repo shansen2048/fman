@@ -1,5 +1,6 @@
 from fman import DirectoryPaneCommand, DirectoryPaneListener, ApplicationCommand
 from fman.fs import FileSystem, Column
+from fman.impl.font_database import FontError
 from fman.impl.util import listdir_absolute
 from glob import glob
 from importlib.machinery import SourceFileLoader
@@ -147,8 +148,12 @@ class ExternalPlugin(Plugin):
 		self._config.add_dir(self._path)
 		self._add_unload_action(self._config.remove_dir, self._path)
 	def _load_font(self, font):
-		self._font_database.load(font)
-		self._add_unload_action(self._font_database.unload, font)
+		try:
+			self._font_database.load(font)
+		except FontError:
+			self._error_handler.report('Could not load font ' + font)
+		else:
+			self._add_unload_action(self._font_database.unload, font)
 	def _load_css_file(self, css_file):
 		self._theme.load(css_file)
 		self._add_unload_action(self._theme.unload, css_file)

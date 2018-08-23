@@ -4,7 +4,7 @@ from fbs.cmdline import command
 from fbs.freeze.windows import freeze_windows
 from fbs.resources import copy_with_filtering
 from datetime import date
-from os import rename, makedirs
+from os import rename, makedirs, remove
 from os.path import join, splitext, dirname, basename
 from shutil import copy, rmtree
 from subprocess import call, DEVNULL, run
@@ -45,6 +45,14 @@ def exe():
 	_copy_winpty_files()
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/mac'))
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/linux'))
+	# Open Sans is only used on Linux. Further, it fails to load on some users'
+	# Windows systems (see fman issue #480). Remove it to avoid problems,
+	# improve startup performance and decrease fman's download size.
+	# (Also note that a more elegant solution would be to only place
+	# Open Sans.ttf in src/main/resources/*linux*/Plugins/Core. But the current
+	# implementation cannot handle multiple dirs .../resources/main,
+	# .../resources/linux for one plugin.)
+	remove(path('${core_plugin_in_freeze_dir}/Open Sans.ttf'))
 	copy_python_library('send2trash', path('${core_plugin_in_freeze_dir}'))
 	_move_pyinstaller_output_to_version_subdir()
 	_build_launcher(dest=path('${freeze_dir}/fman.exe'))
