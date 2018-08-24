@@ -360,12 +360,14 @@ class FileSystemWrapper(Wrapper):
 				while True:
 					try:
 						with self._report_exceptions(
-							exclude={StopIteration, FileNotFoundError}
-						):
+							exclude={FileNotFoundError, StopIteration}
+						) as cm:
 							item = next(iterable)
 					except StopIteration:
 						break
 					else:
+						if cm.exception:
+							break
 						if isinstance(item, str):
 							yield item
 						else:
