@@ -4,6 +4,7 @@ from http.client import HTTPException
 from os import makedirs
 from os.path import dirname, exists
 from queue import Queue
+from ssl import CertificateError
 from threading import Thread
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
@@ -120,7 +121,7 @@ class ServerBackend:
 		try:
 			with urlopen(request, context=ssl_context) as response:
 				resp_body = response.read()
-		except (OSError, HTTPException) as e:
+		except (OSError, HTTPException, CertificateError) as e:
 			raise MetricsError() from e
 		if response.status // 100 != 2:
 			raise MetricsError('Unexpected HTTP status %d.' % response.status)
