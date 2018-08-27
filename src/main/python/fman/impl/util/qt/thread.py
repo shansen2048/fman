@@ -77,7 +77,7 @@ class Executor:
 			# `sender.signal.emit()` gives spurious RuntimeErrors
 			# "wrapped C/C++ object of type Sender has been deleted".
 			# Split the line into its individual components - accessing .signal,
-			# accessing .emit and invoking emit(), to see in the stack trace
+			# accessing .emit and invoking emit() - to see in the stack trace
 			# which of them actually raises the error:
 			signal = sender.signal
 			emit = signal.emit
