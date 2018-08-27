@@ -4,7 +4,7 @@ from fman.impl.model.record_files import RecordFiles
 from fman.impl.model.sorted_table import SortFilterTableModel
 from fman.impl.model.table import Cell, Row
 from fman.impl.model.worker import Worker
-from fman.impl.util.qt import EditRole, connect_once
+from fman.impl.util.qt import EditRole
 from fman.impl.util.qt.thread import run_in_main_thread, is_in_main_thread
 from fman.url import join, dirname
 from functools import wraps, lru_cache
