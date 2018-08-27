@@ -176,5 +176,9 @@ QRadioButton::checked {
 
 ProgressDialog {
 	min-width: 25em;
-	max-width: 25em;
+	/*
+	 * Make max-width at least a little wider than min-width.
+	 * Otherwise, there sometimes seem to be visual artifacts.
+	 */
+	max-width: 30em;
 }

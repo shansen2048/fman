@@ -619,7 +619,8 @@ class ProgressDialog(QProgressDialog):
 
 	@run_in_main_thread
 	def __init__(self, parent, title, size, progress_bar_palette):
-		super().__init__(parent)
+		flags = Qt.MSWindowsFixedSizeDialogHint if is_windows() else 0
+		super().__init__(parent, flags)
 		self._title = title
 		self._size = self.maximum()
 		self._text = ''
@@ -669,14 +670,17 @@ class ProgressDialog(QProgressDialog):
 	def was_canceled(self):
 		return self._was_canceled
 	def showEvent(self, e):
-		# Prevent the dialog from being resizable:
-		self.setFixedSize(self.size())
 		self._update()
 		self._update_timer.start(self._UPDATE_INTERVAL_MS)
 		super().showEvent(e)
 	def closeEvent(self, e):
 		self._update_timer.stop()
 		super().closeEvent(e)
+	def resizeEvent(self, e):
+		super().resizeEvent(e)
+		# Prevent the dialog from being resizable:
+		if not is_windows():
+			self.setFixedSize(self.size())
 	def _update(self):
 		if self.wasCanceled():
 			return
