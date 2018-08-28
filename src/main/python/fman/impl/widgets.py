@@ -619,6 +619,9 @@ class ProgressDialog(QProgressDialog):
 
 	@run_in_main_thread
 	def __init__(self, parent, title, size, progress_bar_palette):
+		# Would like the dialog to be non-resizable on all platforms, but only
+		# Windows supports it as a flag. On other platforms, we use
+		# setFixedSize(...). See #resizeEvent(...) below.
 		args = (Qt.MSWindowsFixedSizeDialogHint,) if is_windows() else ()
 		super().__init__(parent, *args)
 		self._title = title
