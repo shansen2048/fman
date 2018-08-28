@@ -619,8 +619,8 @@ class ProgressDialog(QProgressDialog):
 
 	@run_in_main_thread
 	def __init__(self, parent, title, size, progress_bar_palette):
-		flags = Qt.MSWindowsFixedSizeDialogHint if is_windows() else 0
-		super().__init__(parent, flags)
+		args = (Qt.MSWindowsFixedSizeDialogHint,) if is_windows() else ()
+		super().__init__(parent, *args)
 		self._title = title
 		self._size = self.maximum()
 		self._text = ''
