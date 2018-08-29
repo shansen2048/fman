@@ -78,7 +78,13 @@ def _place_on_clipboard(file_urls, extra_data):
 	urls = [as_qurl(url) for url in file_urls]
 	new_clipboard_data = QMimeData()
 	new_clipboard_data.setUrls(urls)
-	new_clipboard_data.setText('\n'.join(map(basename, file_urls)))
+	# We overwrite the "URLs" part of the clipboard, but we do want to keep the
+	# text. This for instance allows for the following use case:
+	#  1) Copy a file name
+	#  2) Ctrl+C another file
+	#  3) Ctrl+V to paste (=duplicate) the file
+	#  4) Ctrl+V in the dialog to paste the file name we copied in 1).
+	new_clipboard_data.setText(get_text())
 	for key, value in extra_data.items():
 		new_clipboard_data.setData(key, value)
 	_clipboard().setMimeData(new_clipboard_data)
