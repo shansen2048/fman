@@ -1,6 +1,6 @@
-from fbs_runtime.system import is_mac
+from fbs_runtime.system import is_mac, is_windows
 from fman.impl.util.qt import MoveAction, NoButton, AltModifier, \
-	ControlModifier, CopyAction
+	ShiftModifier, ControlModifier, CopyAction
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtWidgets import QTableView, QAbstractItemView
 
@@ -64,8 +64,13 @@ class DragAndDrop(QTableView):
 				self.selectionModel().select(selection, QISM.ClearAndSelect)
 				self.selectionModel().setCurrentIndex(current, QISM.NoUpdate)
 	def dropEvent(self, event):
-		copy_modifier = AltModifier if is_mac() else ControlModifier
-		do_copy = event.keyboardModifiers() & copy_modifier
+		modifiers = event.keyboardModifiers()
+		if is_mac():
+			do_copy = modifiers & AltModifier
+		elif is_windows():
+			do_copy = not (modifiers & ShiftModifier)
+		else:
+			do_copy = modifiers & ControlModifier
 		action = CopyAction if do_copy else MoveAction
 		event.setDropAction(action)
 		super().dropEvent(event)
