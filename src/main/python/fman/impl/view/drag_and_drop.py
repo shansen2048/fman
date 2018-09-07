@@ -67,10 +67,8 @@ class DragAndDrop(QTableView):
 		modifiers = event.keyboardModifiers()
 		if is_mac():
 			do_copy = modifiers & AltModifier
-		elif is_windows():
-			do_copy = not (modifiers & ShiftModifier)
 		else:
-			do_copy = modifiers & ControlModifier
+			do_copy = not (modifiers & ShiftModifier)
 		action = CopyAction if do_copy else MoveAction
 		event.setDropAction(action)
 		super().dropEvent(event)
