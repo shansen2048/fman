@@ -74,3 +74,7 @@ class DragAndDrop(QTableView):
 		action = CopyAction if do_copy else MoveAction
 		event.setDropAction(action)
 		super().dropEvent(event)
+		if action == MoveAction and is_windows():
+			# If we accept the event (which super().dropEvent(...) does above),
+			# then Windows moves the file to the Recycle Bin!!! Avoid this:
+			event.ignore()
