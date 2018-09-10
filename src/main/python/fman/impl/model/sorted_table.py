@@ -5,11 +5,13 @@ class SortFilterTableModel(TableModel):
 
 	sort_order_changed = pyqtSignal(int, int)
 
-	def __init__(self, column_headers, sort_column=0, ascending=True):
+	def __init__(
+		self, column_headers, sort_column=0, ascending=True, filters=None
+	):
 		super().__init__(column_headers)
 		self._sort_column = sort_column
 		self._sort_ascending = ascending
-		self._filters = []
+		self._filters = [] if filters is None else list(filters)
 	def get_rows(self):
 		"""
 		Implement to give this class the unfiltered, unsorted rows.

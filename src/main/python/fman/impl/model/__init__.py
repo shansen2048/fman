@@ -100,10 +100,8 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 			self._disconnect_signals(old_model)
 		new_model = Model(
 			self._fs, url, columns, sort_col_index, ascending,
-			self._num_rows_to_preload
+			self._num_rows_to_preload, self._filters
 		)
-		for filter_ in self._filters:
-			new_model.add_filter(filter_)
 		self.setSourceModel(new_model)
 		self._connect_signals(new_model)
 		new_model.start(callback)

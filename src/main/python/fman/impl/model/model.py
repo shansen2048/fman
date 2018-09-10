@@ -55,10 +55,10 @@ class Model(SortFilterTableModel, DragAndDrop):
 
 	def __init__(
 		self, fs, location, columns, sort_column=0, ascending=True,
-		num_rows_to_preload=0
+		num_rows_to_preload=0, filters=None
 	):
 		column_headers = [column.display_name for column in columns]
-		super().__init__(column_headers, sort_column, ascending)
+		super().__init__(column_headers, sort_column, ascending, filters)
 		self._fs = fs
 		self._location = location
 		self._columns = columns
