@@ -76,18 +76,13 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 				return
 			old_model.shutdown()
 		columns = self._fs.get_columns(url)
+		sort_col_index = 0
 		if sort_column:
 			column_names = [col.get_qualified_name() for col in columns]
 			try:
 				sort_col_index = column_names.index(sort_column)
 			except ValueError:
-				# fman 0.8.7 switched to qualified column names
-				# ("Size" vs "core.Size"). This exception can happen when fman
-				# is run with settings from an older version.
-				# TODO: Remove this migration in July 2018.
-				sort_col_index = 0
-		else:
-			sort_col_index = 0
+				pass
 		if url in self._already_visited:
 			orig_callback = callback
 			def callback():
