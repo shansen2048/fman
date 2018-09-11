@@ -20,7 +20,7 @@ class FileListView(
 	def __init__(self, parent, get_context_menu):
 		super().__init__(parent)
 		self._get_context_menu = get_context_menu
-		self.key_press_event_filter = lambda source, event: False
+		self.key_press_event_filter = lambda event: False
 		self.setShowGrid(False)
 		self.setSortingEnabled(True)
 		self.setAttribute(WA_MacShowFocusRect, 0)
@@ -116,7 +116,7 @@ class FileListView(
 			# Enter, we don't want that key stroke to propagate because it's
 			# already "handled" by the editor closing. So "ignore" the event:
 			return
-		if not self.key_press_event_filter(self, event):
+		if not self.key_press_event_filter(event):
 			super().keyPressEvent(event)
 	def setModel(self, model):
 		old_model = self.model()

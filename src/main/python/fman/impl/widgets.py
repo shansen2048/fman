@@ -164,7 +164,7 @@ class DirectoryPaneWidget(QWidget):
 			self._file_view.setColumnWidth(i, width)
 	def _on_doubleclicked(self, index):
 		self._controller.on_doubleclicked(self, self._model.url(index))
-	def _on_key_pressed(self, file_view, event):
+	def _on_key_pressed(self, event):
 		if self._controller.handle_shortcut(self, event):
 			return True
 		if self._search_bar.handle_keypress(event):
@@ -230,7 +230,7 @@ class SearchBar(QFrame):
 		# self._input.
 		self.hide()
 		if event.key() != Key_Escape:
-			self.parent()._on_key_pressed(None, event)
+			self.parent()._on_key_pressed(event)
 	def clear(self):
 		self._input.setText('')
 	def show(self):
