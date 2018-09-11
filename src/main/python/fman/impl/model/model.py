@@ -186,18 +186,24 @@ class Model(SortFilterTableModel, DragAndDrop):
 		icon = self._fs.icon(url) or _get_empty_icon()
 		cells = self._load_cells(url)
 		return File(url, icon, is_dir, cells, True)
-	@run_in_main_thread
 	def _record_files(self, files, disappeared=None):
+		# Only burden the main thread if there are actual changes:
+		if files or disappeared:
+			self._record_files_main(files, disappeared)
+	@run_in_main_thread
+	def _record_files_main(self, files, disappeared=None):
 		"""
 		Tells the model that the given `files` exist and the URLs given in
 		`disappeared` do not exist.
 		"""
 		if disappeared is None:
 			disappeared = []
+		self._begin_transaction()
 		RecordFiles(
 			files, disappeared, self._files,
 			self._rows, self._accepts, self._get_sortval, self._apply_diff
 		)()
+		self._end_transaction()
 	@transaction(priority=3)
 	def sort(self, column, order=Qt.AscendingOrder):
 		ascending = order == Qt.AscendingOrder

@@ -18,6 +18,8 @@ class TableModel:
 		self.transaction_ended = Event()
 		self._column_headers = column_headers
 		self._rows = Rows()
+		self._transaction_level = 0
+		self._transaction_made_changes = False
 	def rowCount(self, parent=QModelIndex()):
 		# According to the Qt docs for QAbstractItemModel#rowCount(...):
 		#  > When implementing a table based model, rowCount() should
@@ -67,12 +69,14 @@ class TableModel:
 		diff = ComputeDiff(self._rows, rows, key_fn=lambda row: row.key)()
 		self._apply_diff(diff)
 	def _apply_diff(self, diff):
+		self._begin_transaction()
 		for entry in diff:
 			entry.apply(
 				self.insert_rows, self.move_rows, self.update_rows,
 				self.remove_rows
 			)
-		self.transaction_ended.trigger()
+			self._transaction_made_changes = True
+		self._end_transaction()
 	def insert_rows(self, rows, first_rownum=-1):
 		if first_rownum == -1:
 			first_rownum = len(self._rows)
@@ -105,6 +109,13 @@ class TableModel:
 			return False
 		return 0 <= index.row() < self.rowCount() and \
 			   0 <= index.column() < self.columnCount()
+	def _begin_transaction(self):
+		self._transaction_level += 1
+	def _end_transaction(self):
+		self._transaction_level -= 1
+		if self._transaction_made_changes and not self._transaction_level:
+			self._transaction_made_changes = False
+			self.transaction_ended.trigger()
 
 def _get_move_destination(cut_start, cut_end, insert_start):
 	if cut_start == insert_start:
