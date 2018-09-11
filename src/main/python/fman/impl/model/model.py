@@ -107,7 +107,7 @@ class Model(SortFilterTableModel, DragAndDrop):
 		if files:
 			self._on_rows_inited(files, preloaded_files)
 		# Invoke the callback before emitting location_loaded. The reason is
-		# that the default location_loaded handler places the cursor - if is has
+		# that the default location_loaded handler places the cursor - if it has
 		# not been placed yet. If the callback does place it, ugly "flickering"
 		# effects happen because first the callback and then location_loaded
 		# change the cursor position.
