@@ -18,6 +18,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 	file_renamed = pyqtSignal(str, str)
 	files_dropped = pyqtSignal(list, str, bool)
 	sort_order_changed = pyqtSignal(int, int)
+	transaction_ended = pyqtSignal()
 
 	def __init__(self, parent, fs, null_location):
 		super().__init__(parent)
@@ -163,6 +164,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		model.file_renamed.connect(self._emit_file_renamed)
 		model.files_dropped.connect(self._emit_files_dropped)
 		model.sort_order_changed.connect(self._emit_sort_order_changed)
+		model.transaction_ended.add_callback(self._emit_transaction_ended)
 	def _disconnect_signals(self, model):
 		# Would prefer signal.disconnect(self.signal.emit) here. But PyQt
 		# doesn't support it. So we need Python wrappers "_emit_...":
@@ -171,6 +173,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		model.file_renamed.disconnect(self._emit_file_renamed)
 		model.files_dropped.disconnect(self._emit_files_dropped)
 		model.sort_order_changed.disconnect(self._emit_sort_order_changed)
+		model.transaction_ended.remove_callback(self._emit_transaction_ended)
 	def _emit_location_loaded(self, location):
 		self.location_loaded.emit(location)
 	def _emit_file_renamed(self, old, new):
@@ -179,5 +182,7 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		self.files_dropped.emit(urls, dest, is_copy)
 	def _emit_sort_order_changed(self, column, order):
 		self.sort_order_changed.emit(column, order)
+	def _emit_transaction_ended(self):
+		self.transaction_ended.emit()
 	def __str__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.get_location())

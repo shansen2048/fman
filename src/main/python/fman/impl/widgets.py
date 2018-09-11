@@ -6,8 +6,9 @@ from fman.impl.util.qt import disable_window_animations_mac, Key_Escape
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.view.location_bar import LocationBar
 from fman.impl.view import FileListView, Layout, set_selection
-from fman.url import as_human_readable
-from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent
+from fman.url import as_human_readable, basename
+from fnmatch import fnmatchcase
+from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent, QSize
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QMessageBox, QInputDialog, QLineEdit, QFileDialog, QLabel, QDialog, \
@@ -64,6 +65,14 @@ class DirectoryPaneWidget(QWidget):
 		self._location_bar.clicked.connect(
 			lambda: self.location_bar_clicked.emit(self)
 		)
+		self._search_bar = SearchBar(self, self._file_view)
+		self._model.add_filter(self._search_bar.accepts)
+		self._search_bar.text_changed.connect(self._on_search_changed)
+	def resizeEvent(self, e):
+		super().resizeEvent(e)
+		padding = QSize(5, 5)
+		new_size = self.size() - self._search_bar.size() - padding
+		self._search_bar.move(padding.width(), new_size.height())
 	@run_in_main_thread
 	def move_cursor_up(self, toggle_selection=False):
 		self._file_view.move_cursor_up(toggle_selection)
@@ -158,21 +167,79 @@ class DirectoryPaneWidget(QWidget):
 	def _on_key_pressed(self, file_view, event):
 		if self._controller.handle_shortcut(self, event):
 			return True
+		if self._search_bar.handle_keypress(event):
+			return True
 		if self._controller.handle_nonexistent_shortcut(self, event):
 			return True
 		event.ignore()
 		return False
+	def _on_search_changed(self):
+		self._model.sourceModel().update()
 	def _on_file_renamed(self, *args):
 		self._controller.on_file_renamed(self, *args)
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
 	def _on_location_changed(self, url):
+		self._search_bar.clear()
 		self._location_bar.setText(as_human_readable(url))
 	def _on_location_loaded(self, url):
 		if not self.get_file_under_cursor():
 			self.move_cursor_home()
 		self._file_view.resizeColumnsToContents()
 		self.location_changed.emit(self)
+
+class SearchBar(QFrame):
+
+	text_changed = pyqtSignal()
+
+	def __init__(self, parent, file_view):
+		super().__init__(parent)
+		self.setVisible(False)
+		self._file_view = file_view
+		self._input = QLineEdit(self)
+		self._input.textChanged.connect(lambda _: self.text_changed.emit())
+		self.setFrameShape(QFrame.Box)
+		self.setFrameShadow(QFrame.Raised)
+		layout = QVBoxLayout()
+		layout.addWidget(self._input)
+		layout.setContentsMargins(0, 0, 0, 0)
+		self.setLayout(layout)
+		self.setFocusProxy(self._input)
+	def accepts(self, url):
+		query = self._input.text().lower()
+		name = basename(url).lower()
+		return fnmatchcase(name, query + '*')
+	def handle_keypress(self, event):
+		if event.key() == Key_Escape:
+			if self._input.text():
+				self.clear()
+				return True
+			else:
+				# We don't want Escape to wake up the search bar. The check for
+				# event.text() below does not correctly handle it: text()
+				# returns '\x1b' in this case. So handle Escape separately here:
+				return False
+		if event.text():
+			self.show()
+			self.setFocus()
+			self._input.keyPressEvent(event)
+			return True
+		return False
+	def keyPressEvent(self, event):
+		# This is only called for key presses that are not handled by
+		# self._input.
+		self.hide()
+		if event.key() != Key_Escape:
+			self.parent()._on_key_pressed(None, event)
+	def clear(self):
+		self._input.setText('')
+	def show(self):
+		super().show()
+		self._file_view.setFocusProxy(self)
+	def hide(self):
+		super().hide()
+		self._file_view.setFocusProxy(None)
+		self.parent().setFocus()
 
 class MainWindow(QMainWindow):
 

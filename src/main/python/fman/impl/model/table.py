@@ -1,5 +1,6 @@
 from collections import namedtuple
 from fman.impl.model.diff import ComputeDiff
+from fman.impl.util import Event
 from fman.impl.util.qt import DisplayRole, EditRole, DecorationRole, \
 	ToolTipRole, ItemIsDropEnabled, ItemIsSelectable, ItemIsEnabled, \
 	ItemIsEditable, ItemIsDragEnabled
@@ -14,6 +15,7 @@ class TableModel:
 	"""
 	def __init__(self, column_headers):
 		super().__init__()
+		self.transaction_ended = Event()
 		self._column_headers = column_headers
 		self._rows = Rows()
 	def rowCount(self, parent=QModelIndex()):
@@ -70,6 +72,7 @@ class TableModel:
 				self.insert_rows, self.move_rows, self.update_rows,
 				self.remove_rows
 			)
+		self.transaction_ended.trigger()
 	def insert_rows(self, rows, first_rownum=-1):
 		if first_rownum == -1:
 			first_rownum = len(self._rows)

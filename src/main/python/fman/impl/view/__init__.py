@@ -121,11 +121,36 @@ class FileListView(
 	def setModel(self, model):
 		old_model = self.model()
 		if old_model:
-			old_model.sort_order_changed.disconnect(self._on_sort_order_changed)
+			self._disconnect_signals(old_model)
 		super().setModel(model)
+		self._connect_signals(model)
+	def _connect_signals(self, model):
 		model.sort_order_changed.connect(self._on_sort_order_changed)
+		model.transaction_ended.connect(self._on_transaction_ended)
+	def _disconnect_signals(self, model):
+		model.sort_order_changed.disconnect(self._on_sort_order_changed)
+		model.transaction_ended.disconnect(self._on_transaction_ended)
 	def _on_sort_order_changed(self, column, order):
 		self.sortByColumn(column, order)
+	def _on_transaction_ended(self):
+		if self.model().rowCount() > 0:
+			current = self.currentIndex()
+			if not current.isValid():
+				# This can for instance occur when the file list was previously
+				# empty and a filter was removed so now there are files. Ensure
+				# we have a valid cursor in this case:
+				self.move_cursor_home()
+			else:
+				# Need to execute the layout or else _is_row_visible(...)
+				# sometimes gives the wrong result. Also, without re-layouting,
+				# scrollTo(...) has no effect when there are now more rows than
+				# before so that `current` has been scrolled out of view.
+				self.executeDelayedItemsLayout()
+				if not self._is_row_visible(current.row()):
+					self.scrollTo(current, self.PositionAtTop)
+	def _is_row_visible(self, i):
+		visible = self.get_visible_row_range()
+		return visible.start <= i < visible.stop
 	def paintEvent(self, event):
 		missing_rows, missing_urls = self._get_rows_to_load()
 		if missing_rows:

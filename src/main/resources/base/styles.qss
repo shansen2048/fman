@@ -70,7 +70,9 @@ QMessageBox QLabel {
 QLineEdit {
 	color: white;
 	background-color: #303030;
-	border: 1px solid #2c2c2c;
+	border: 1px solid #363731;
+	border-left-color: #272822;
+	border-top-color: #272822;
 }
 
 Prompt QLineEdit {
@@ -155,6 +157,17 @@ Overlay {
 
 Overlay QPushButton {
 	max-width: 10em;
+}
+
+SearchBar {
+	background-color: #272822;
+	border: 1px solid #7d7d7d;
+	min-width: 30ex;
+	padding: .25ex .5ex;
+}
+
+SearchBar QLineEdit {
+	font-size: 9pt;
 }
 
 NonexistentShortcutDialog {
