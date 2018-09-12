@@ -196,7 +196,7 @@ class SearchBar(QFrame):
 		super().__init__(parent)
 		self.setVisible(False)
 		self._file_view = file_view
-		self._input = QLineEdit(self)
+		self._input = QLineEdit()
 		self._input.textChanged.connect(lambda _: self.text_changed.emit())
 		self.setFrameShape(QFrame.Box)
 		self.setFrameShadow(QFrame.Raised)
