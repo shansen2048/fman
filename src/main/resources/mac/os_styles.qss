@@ -24,3 +24,7 @@ QMenu::separator {
 	background: #e5e5e5;
 	margin: .75ex 0;
 }
+
+SearchBar QLineEdit {
+	font-size: 12pt;
+}
