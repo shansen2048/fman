@@ -104,14 +104,12 @@ class Model(SortFilterTableModel, DragAndDrop):
 				preloaded_files[i] = self._load_file(preloaded_files[i].url)
 			except FileNotFoundError:
 				pass
-		if files:
-			self._on_rows_inited(files, preloaded_files)
 		# Invoke the callback before emitting location_loaded. The reason is
 		# that the default location_loaded handler places the cursor - if it has
 		# not been placed yet. If the callback does place it, ugly "flickering"
 		# effects happen because first the callback and then location_loaded
 		# change the cursor position.
-		callback()
+		self._on_rows_inited(files, preloaded_files, callback)
 		self.location_loaded.emit(self._location)
 		# Start the file watcher here, not in the main thread. This avoids a
 		# deadlock: FileWatcher indirectly calls FileSystem#_add/
@@ -146,14 +144,35 @@ class Model(SortFilterTableModel, DragAndDrop):
 					sort_val_desc = sort_value
 			result.append(Cell(str_, sort_val_asc, sort_val_desc))
 		return result
+	def _on_rows_inited(self, rows, preloaded_rows, callback):
+		if rows:
+			# Invoke the callback in the main thread. If it places the cursor,
+			# this avoids flickering effects. For further details, see the
+			# comment in #_on_rows_inited_main(...).
+			self._on_rows_inited_main(rows, preloaded_rows, callback)
+		else:
+			callback()
 	@run_in_main_thread
-	def _on_rows_inited(self, rows, preloaded_rows):
+	def _on_rows_inited_main(self, rows, preloaded_rows, callback):
 		self._files = {
 			row.url: row for row in rows
 		}
 		for preloaded_row in preloaded_rows:
 			self._files[preloaded_row.url] = preloaded_row
+		# We have a transaction_ended listener that ensures we have a cursor.
+		# It is used for example when a filter's conditions were relaxed, so
+		# there are now visible files when previously there were none. However,
+		# when the rows are inited, we do not want this listener to place the
+		# cursor. The reason for this is that `callback` may also place the
+		# cursor so we'd end up placing it twice. To avoid this, we invoke the
+		# callback
+		#  a) here, in the main thread and
+		#  b) inside a transaction. This prevents the transaction listener from
+		#     firing before the callback.
+		self._begin_transaction()
 		self.set_rows(preloaded_rows)
+		callback()
+		self._end_transaction()
 	def row_is_loaded(self, rownum):
 		return self._rows[rownum].is_loaded
 	def load_rows(self, rownums, callback=None):
