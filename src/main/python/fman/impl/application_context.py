@@ -118,8 +118,6 @@ class DevelopmentApplicationContext(ApplicationContext):
 		result.setApplicationName('fman')
 		result.setStyle(self.style)
 		result.setPalette(self.palette)
-		if self.app_icon:
-			result.setWindowIcon(self.app_icon)
 		result.aboutToQuit.connect(self.on_quit)
 		# We need to instantiate this somewhere. So why not here:
 		_ = self.mac_clipboard_fix
