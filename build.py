@@ -190,10 +190,10 @@ def arch_docker_image():
 	copy(path('conf/ssh/id_rsa'), build_dir)
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/arch', build_dir, path('cache/arch'))
-	arch(['/bin/bash', '-c',
-		  'python -m venv venv && '
-		  'source venv/bin/activate && '
-		  'pip install -r requirements/arch.txt'
+	_run_arch(['/bin/bash', '-c',
+		'python -m venv venv && '
+		'source venv/bin/activate && '
+		'pip install -r requirements/arch.txt'
 	])
 
 @command
@@ -205,18 +205,24 @@ def ubuntu_docker_image():
 	copy(path('conf/ssh/id_rsa'), build_dir)
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	_build_docker_image('fman/ubuntu', build_dir, path('cache/ubuntu'))
-	ubuntu(['/bin/bash', '-c',
+	_run_ubuntu(['/bin/bash', '-c',
 		'python3.5 -m venv venv && '
 		'source venv/bin/activate && '
 		'pip install -r requirements/ubuntu.txt'
 	])
 
 @command
-def ubuntu(extra_args=None):
+def ubuntu():
+	_run_ubuntu()
+
+def _run_ubuntu(extra_args=None):
 	_run_docker_image('fman/ubuntu', path('cache/ubuntu'), extra_args)
 
 @command
-def arch(extra_args=None):
+def arch():
+	_run_arch()
+
+def _run_arch(extra_args=None):
 	_run_docker_image('fman/arch', path('cache/arch'), extra_args)
 
 def _build_docker_image(image_name, context_dir, cache_dir):
