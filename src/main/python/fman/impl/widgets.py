@@ -72,7 +72,7 @@ class DirectoryPaneWidget(QWidget):
 		super().resizeEvent(e)
 		padding = QSize(5, 5)
 		new_size = self.size() - self._search_bar.size() - padding
-		self._search_bar.move(padding.width(), new_size.height())
+		self._search_bar.move(new_size.width(), new_size.height())
 	@run_in_main_thread
 	def move_cursor_up(self, toggle_selection=False):
 		self._file_view.move_cursor_up(toggle_selection)
