@@ -213,7 +213,7 @@ class SearchBar(QFrame):
 	def accepts(self, url):
 		query = self._input.text().lower()
 		name = basename(url).lower()
-		return fnmatchcase(name, query + '*')
+		return fnmatchcase(name, '*' + query + '*')
 	def handle_keypress(self, event):
 		if event.key() == Key_Escape:
 			self.close()
