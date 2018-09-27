@@ -105,11 +105,16 @@ class SortedFileSystemModel(QSortFilterProxyModel):
 		)
 		self.setSourceModel(new_model)
 		self._connect_signals(new_model)
-		new_model.start(callback)
 		self._already_visited.add(url)
 		self.location_changed.emit(url)
 		order = Qt.AscendingOrder if ascending else Qt.DescendingOrder
 		self.sort_order_changed.emit(sort_col_index, order)
+		# Start model at the very end to ensure the above signals, in particular
+		# location_changed, are processed beforehand. The motivation for this is
+		# that the SearchBar relies on this signal to clear its filter. If we
+		# start the model before the SearchBar has had a chance to do this, then
+		# the model may start loading files with the wrong filter.
+		new_model.start(callback)
 	def setSourceModel(self, model):
 		# Without this call, #sourceModel() sometimes returns None on Arch:
 		sip.transferto(model, None)

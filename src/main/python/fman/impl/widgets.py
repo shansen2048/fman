@@ -2,7 +2,8 @@ from fbs_runtime.system import is_windows, is_mac
 from fman import OK
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.quicksearch import Quicksearch
-from fman.impl.util.qt import disable_window_animations_mac, Key_Escape
+from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
+	NoFocus, Key_Backspace
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.view.location_bar import LocationBar
 from fman.impl.view import FileListView, Layout, set_selection
@@ -165,6 +166,9 @@ class DirectoryPaneWidget(QWidget):
 	def _on_doubleclicked(self, index):
 		self._controller.on_doubleclicked(self, self._model.url(index))
 	def _on_key_pressed(self, event):
+		if self._search_bar.isVisible() and event.key() == Key_Backspace:
+			self._search_bar.handle_keypress(event)
+			return True
 		if self._controller.handle_shortcut(self, event):
 			return True
 		if self._search_bar.handle_keypress(event):
@@ -180,7 +184,7 @@ class DirectoryPaneWidget(QWidget):
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
 	def _on_location_changed(self, url):
-		self._search_bar.clear()
+		self._search_bar.close()
 		self._location_bar.setText(as_human_readable(url))
 	def _on_location_loaded(self, url):
 		if not self.get_file_under_cursor():
@@ -204,42 +208,24 @@ class SearchBar(QFrame):
 		layout.addWidget(self._input)
 		layout.setContentsMargins(0, 0, 0, 0)
 		self.setLayout(layout)
-		self.setFocusProxy(self._input)
+		self.setFocusPolicy(NoFocus)
+		self._input.setFocusPolicy(NoFocus)
 	def accepts(self, url):
 		query = self._input.text().lower()
 		name = basename(url).lower()
 		return fnmatchcase(name, query + '*')
 	def handle_keypress(self, event):
 		if event.key() == Key_Escape:
-			if self._input.text():
-				self.clear()
-				return True
-			else:
-				# We don't want Escape to wake up the search bar. The check for
-				# event.text() below does not correctly handle it: text()
-				# returns '\x1b' in this case. So handle Escape separately here:
-				return False
+			self.close()
+			return True
 		if event.text():
 			self.show()
-			self.setFocus()
 			self._input.keyPressEvent(event)
 			return True
 		return False
-	def keyPressEvent(self, event):
-		# This is only called for key presses that are not handled by
-		# self._input.
+	def close(self):
 		self.hide()
-		if event.key() != Key_Escape:
-			self.parent()._on_key_pressed(event)
-	def clear(self):
 		self._input.setText('')
-	def show(self):
-		super().show()
-		self._file_view.setFocusProxy(self)
-	def hide(self):
-		super().hide()
-		self._file_view.setFocusProxy(None)
-		self.parent().setFocus()
 
 class MainWindow(QMainWindow):
 
