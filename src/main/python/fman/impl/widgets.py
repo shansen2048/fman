@@ -435,7 +435,7 @@ class MessageBox(QMessageBox):
 		super().setStandardButtons(buttons)
 		if is_mac():
 			# The shortcut keys don't work out of the box on Mac, even though
-			# they are displayed by our theme. (The standard macOS theme does 
+			# they are displayed by our theme. (The standard macOS theme does
 			# not display them.) The code below ensures that they work.
 			# We do have to perform these steps _here_ because self.button(...)
 			# returns None when called from the constructor.
