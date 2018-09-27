@@ -8,7 +8,6 @@ from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.view.location_bar import LocationBar
 from fman.impl.view import FileListView, Layout, set_selection
 from fman.url import as_human_readable, basename
-from fnmatch import fnmatchcase
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt, QEvent, QSize
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
@@ -16,6 +15,8 @@ from PyQt5.QtWidgets import QWidget, QMainWindow, QSplitter, QStatusBar, \
 	QHBoxLayout, QPushButton, QVBoxLayout, QSplitterHandle, QApplication, \
 	QFrame, QAction, QSizePolicy, QProgressDialog, QProgressBar
 from random import randint, randrange
+
+import re
 
 class Application(QApplication):
 	def __init__(self, *args, **kwargs):
@@ -201,7 +202,7 @@ class SearchBar(QFrame):
 		self.setVisible(False)
 		self._file_view = file_view
 		self._input = QLineEdit()
-		self._input.textChanged.connect(lambda _: self.text_changed.emit())
+		self._input.textChanged.connect(self._on_text_changed)
 		self.setFrameShape(QFrame.Box)
 		self.setFrameShadow(QFrame.Raised)
 		layout = QVBoxLayout()
@@ -210,10 +211,9 @@ class SearchBar(QFrame):
 		self.setLayout(layout)
 		self.setFocusPolicy(NoFocus)
 		self._input.setFocusPolicy(NoFocus)
+		self._filter_re = re.compile('', re.I)
 	def accepts(self, url):
-		query = self._input.text().lower()
-		name = basename(url).lower()
-		return fnmatchcase(name, '*' + query + '*')
+		return bool(self._filter_re.search(basename(url)))
 	def handle_keypress(self, event):
 		if event.key() == Key_Escape:
 			self.close()
@@ -226,6 +226,10 @@ class SearchBar(QFrame):
 	def close(self):
 		self.hide()
 		self._input.setText('')
+	def _on_text_changed(self, _):
+		text_re = '.*'.join(map(re.escape, self._input.text().split('*')))
+		self._filter_re = re.compile(text_re, re.I)
+		self.text_changed.emit()
 
 class MainWindow(QMainWindow):
 
