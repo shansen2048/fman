@@ -2266,3 +2266,17 @@ if PLATFORM == 'Mac':
 			args = ['qlmanage', '-p']
 			args.extend(map(as_human_readable, files))
 			Popen(args, stdout=DEVNULL, stderr=DEVNULL)
+
+if PLATFORM == 'Windows':
+	class GoToRootOfCurrentDrive(DirectoryPaneCommand):
+		def __call__(self):
+			url = self.pane.get_path()
+			scheme = splitscheme(url)[0]
+			if scheme == 'file://':
+				dest = as_url(PurePath(as_human_readable(url)).anchor)
+			else:
+				dest = scheme
+			try:
+				self.pane.set_path(dest)
+			except FileNotFoundError:
+				pass
