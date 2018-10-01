@@ -222,6 +222,8 @@ class SearchBar(QFrame):
 		self._input.keyPressEvent(event)
 		text = self._input.text()
 		result = text != text_before
+		# Prevent Arrow-Left/-Right from changing the cursor position:
+		self._input.setCursorPosition(len(text))
 		self.setVisible(bool(text))
 		return result
 	def close(self):
