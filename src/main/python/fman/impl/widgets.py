@@ -218,11 +218,12 @@ class SearchBar(QFrame):
 		if event.key() == Key_Escape:
 			self.close()
 			return True
-		if event.text():
-			self.show()
-			self._input.keyPressEvent(event)
-			return True
-		return False
+		text_before = self._input.text()
+		self._input.keyPressEvent(event)
+		text = self._input.text()
+		result = text != text_before
+		self.setVisible(bool(text))
+		return result
 	def close(self):
 		self.hide()
 		self._input.setText('')
