@@ -162,12 +162,12 @@ Overlay QPushButton {
 SearchBar {
 	background-color: #272822;
 	border: 1px solid #7d7d7d;
-	min-width: 11em;
+	min-width: 8em;
 }
 
 SearchBar QLineEdit {
 	font-size: 9pt;
-	width: 10em;
+	width: 7em;
 	margin: 0 .25em;
 }
 
