@@ -41,6 +41,9 @@ func main() {
 		updateVersionInRegistry(isUserInstall)
 		removeOldVersions(installDir)
 	} else {
+		// Offline installer.
+		// We don't know whether we're being executed with Admin privileges.
+		// It's also not easy to determine. So perform user install:
 		isUserInstall = true
 		installDir = getDefaultInstallDir()
 		extractAssets(installDir)
