@@ -83,3 +83,12 @@ QMenu::separator {
 	background: #bfbfbf;
 	margin-left: 10ex;
 }
+
+SearchBar {
+	min-height: 5ex;
+	padding: .25em;
+}
+
+SearchBar QLineEdit {
+	margin: 0;
+}
