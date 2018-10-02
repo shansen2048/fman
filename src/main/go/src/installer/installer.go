@@ -26,24 +26,26 @@ func main() {
 	flag.Parse()
 
 	var installDir string
+	isUserInstall := strings.HasPrefix(os.Args[0], os.Getenv("LOCALAPPDATA"))
 	if *doInstallPtr {
 		installDir = getInstallDirWhenManagedByOmaha()
 		extractAssets(installDir)
-		createRegistryKeysForUninstaller(installDir)
-		addContextMenuEntriesToExplorer(installDir)
-		updateVersionInRegistry()
-		createStartMenuShortcut(installDir)
+		createRegistryKeysForUninstaller(installDir, isUserInstall)
+		addContextMenuEntriesToExplorer(installDir, isUserInstall)
+		updateVersionInRegistry(isUserInstall)
+		createStartMenuShortcut(installDir, isUserInstall)
 		launchFman(installDir)
 	} else if *doUpdatePtr {
 		installDir = getInstallDirWhenManagedByOmaha()
 		extractAssets(installDir)
-		updateVersionInRegistry()
+		updateVersionInRegistry(isUserInstall)
 		removeOldVersions(installDir)
 	} else {
+		isUserInstall = true
 		installDir = getDefaultInstallDir()
 		extractAssets(installDir)
-		createRegistryKeysForUninstaller(installDir)
-		createStartMenuShortcut(installDir)
+		createRegistryKeysForUninstaller(installDir, isUserInstall)
+		createStartMenuShortcut(installDir, isUserInstall)
 		launchFman(installDir)
 	}
 }
@@ -91,19 +93,15 @@ func extractAssets(installDir string) {
 	}
 }
 
-func isUserInstall() bool {
-	return strings.HasPrefix(os.Args[0], os.Getenv("LOCALAPPDATA"))
-}
-
-func createRegistryKeysForUninstaller(installDir string) {
-	regRoot := getRegistryRoot()
+func createRegistryKeysForUninstaller(installDir string, isUserInstall bool) {
+	regRoot := getRegistryRoot(isUserInstall)
 	uninstKey := `Software\Microsoft\Windows\CurrentVersion\Uninstall\fman`
 	writeRegStr(regRoot, uninstKey, "", installDir)
 	writeRegStr(regRoot, uninstKey, "DisplayName", "fman")
 	writeRegStr(regRoot, uninstKey, "Publisher", "Michael Herrmann")
 	uninstaller := filepath.Join(installDir, "uninstall.exe")
 	uninstString := `"` + uninstaller + `"`
-	if isUserInstall() {
+	if isUserInstall {
 		uninstString += " /CurrentUser"
 	} else {
 		uninstString += " /AllUsers"
@@ -111,29 +109,29 @@ func createRegistryKeysForUninstaller(installDir string) {
 	writeRegStr(regRoot, uninstKey, "UninstallString", uninstString)
 }
 
-func addContextMenuEntriesToExplorer(installDir string) {
+func addContextMenuEntriesToExplorer(installDir string, isUserInstall bool) {
 	fmanExe := getFmanExePath(installDir)
-	addExplorerContextMenuEntryForFolders("Open in fman", fmanExe)
-	addExplorerContextMenuEntryInFolders("Open fman here", fmanExe)
-	addExplorerContextMenuEntryForFiles("Highlight in fman", fmanExe)
+	addExplorerContextMenuEntryForFolders("Open in fman", fmanExe, isUserInstall)
+	addExplorerContextMenuEntryInFolders("Open fman here", fmanExe, isUserInstall)
+	addExplorerContextMenuEntryForFiles("Highlight in fman", fmanExe, isUserInstall)
 }
 
-func addExplorerContextMenuEntryForFolders(title string, executable string) {
-	addExplorerContextMenuEntry(`directory\shell\` + title, executable)
+func addExplorerContextMenuEntryForFolders(title string, executable string, isUserInstall bool) {
+	addExplorerContextMenuEntry(`directory\shell\` + title, executable, isUserInstall)
 }
 
-func addExplorerContextMenuEntryInFolders(title string, executable string) {
-	addExplorerContextMenuEntry(`directory\Background\shell\` + title, executable)
+func addExplorerContextMenuEntryInFolders(title string, executable string, isUserInstall bool) {
+	addExplorerContextMenuEntry(`directory\Background\shell\` + title, executable, isUserInstall)
 }
 
-func addExplorerContextMenuEntryForFiles(title string, executable string) {
-	addExplorerContextMenuEntry(`*\shell\` + title, executable)
+func addExplorerContextMenuEntryForFiles(title string, executable string, isUserInstall bool) {
+	addExplorerContextMenuEntry(`*\shell\` + title, executable, isUserInstall)
 }
 
-func addExplorerContextMenuEntry(regKey string, executable string) {
+func addExplorerContextMenuEntry(regKey string, executable string, isUserInstall bool) {
 	var regRoot registry.Key
 	var parentRegKey string
-	if isUserInstall() {
+	if isUserInstall {
 		regRoot = registry.CURRENT_USER
 		parentRegKey = `Software\Classes\`
 	} else {
@@ -144,15 +142,15 @@ func addExplorerContextMenuEntry(regKey string, executable string) {
 	writeRegStr(regRoot, parentRegKey + regKey, "icon", executable)
 }
 
-func updateVersionInRegistry() {
-	regRoot := getRegistryRoot()
+func updateVersionInRegistry(isUserInstall bool) {
+	regRoot := getRegistryRoot(isUserInstall)
 	updateKey := `Software\fman\Update\Clients\` + ProductId
 	writeRegStr(regRoot, updateKey, "pv", Version + ".0")
 	writeRegStr(regRoot, updateKey, "name", "fman")
 }
 
-func getRegistryRoot() registry.Key {
-	if isUserInstall() {
+func getRegistryRoot(isUserInstall bool) registry.Key {
+	if isUserInstall {
 		return registry.CURRENT_USER
 	}
 	return registry.LOCAL_MACHINE
@@ -166,15 +164,15 @@ func writeRegStr(regRoot registry.Key, keyPath string, valueName string, value s
 	check(key.SetStringValue(valueName, value))
 }
 
-func createStartMenuShortcut(installDir string) {
-	startMenuDir := getStartMenuDir()
+func createStartMenuShortcut(installDir string, isUserInstall bool) {
+	startMenuDir := getStartMenuDir(isUserInstall)
 	linkPath := filepath.Join(startMenuDir, "Programs", "fman.lnk")
 	targetPath := filepath.Join(installDir, "fman.exe")
 	createShortcut(linkPath, targetPath)
 }
 
-func getStartMenuDir() string {
-	if isUserInstall() {
+func getStartMenuDir(isUserInstall bool) string {
+	if isUserInstall {
 		usr, err := user.Current()
 		check(err)
 		return usr.HomeDir + `\AppData\Roaming\Microsoft\Windows\Start Menu`
