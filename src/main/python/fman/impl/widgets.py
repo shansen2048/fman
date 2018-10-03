@@ -67,14 +67,14 @@ class DirectoryPaneWidget(QWidget):
 		self._location_bar.clicked.connect(
 			lambda: self.location_bar_clicked.emit(self)
 		)
-		self._search_bar = SearchBar(self, self._file_view)
-		self._model.add_filter(self._search_bar.accepts)
-		self._search_bar.text_changed.connect(self._on_search_changed)
+		self._filter_bar = FilterBar(self, self._file_view)
+		self._model.add_filter(self._filter_bar.accepts)
+		self._filter_bar.text_changed.connect(self._on_search_changed)
 	def resizeEvent(self, e):
 		super().resizeEvent(e)
 		padding = QSize(5, 5)
-		new_size = self.size() - self._search_bar.size() - padding
-		self._search_bar.move(new_size.width(), new_size.height())
+		new_size = self.size() - self._filter_bar.size() - padding
+		self._filter_bar.move(new_size.width(), new_size.height())
 	@run_in_main_thread
 	def move_cursor_up(self, toggle_selection=False):
 		self._file_view.move_cursor_up(toggle_selection)
@@ -167,12 +167,12 @@ class DirectoryPaneWidget(QWidget):
 	def _on_doubleclicked(self, index):
 		self._controller.on_doubleclicked(self, self._model.url(index))
 	def _on_key_pressed(self, event):
-		if self._search_bar.isVisible() and event.key() == Key_Backspace:
-			self._search_bar.handle_keypress(event)
+		if self._filter_bar.isVisible() and event.key() == Key_Backspace:
+			self._filter_bar.handle_keypress(event)
 			return True
 		if self._controller.handle_shortcut(self, event):
 			return True
-		if self._search_bar.handle_keypress(event):
+		if self._filter_bar.handle_keypress(event):
 			return True
 		if self._controller.handle_nonexistent_shortcut(self, event):
 			return True
@@ -185,7 +185,7 @@ class DirectoryPaneWidget(QWidget):
 	def _on_files_dropped(self, *args):
 		self._controller.on_files_dropped(self, *args)
 	def _on_location_changed(self, url):
-		self._search_bar.close()
+		self._filter_bar.close()
 		self._location_bar.setText(as_human_readable(url))
 	def _on_location_loaded(self, url):
 		if not self.get_file_under_cursor():
@@ -193,7 +193,7 @@ class DirectoryPaneWidget(QWidget):
 		self._file_view.resizeColumnsToContents()
 		self.location_changed.emit(self)
 
-class SearchBar(QFrame):
+class FilterBar(QFrame):
 
 	text_changed = pyqtSignal()
 

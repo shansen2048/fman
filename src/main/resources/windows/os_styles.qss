@@ -84,11 +84,11 @@ QMenu::separator {
 	margin-left: 10ex;
 }
 
-SearchBar {
+FilterBar {
 	min-height: 5ex;
 	padding: .25em;
 }
 
-SearchBar QLineEdit {
+FilterBar QLineEdit {
 	margin: 0;
 }
