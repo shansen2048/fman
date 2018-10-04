@@ -67,7 +67,7 @@ class DirectoryPaneWidget(QWidget):
 		self._location_bar.clicked.connect(
 			lambda: self.location_bar_clicked.emit(self)
 		)
-		self._filter_bar = FilterBar(self, self._file_view)
+		self._filter_bar = FilterBar(self)
 		self._model.add_filter(self._filter_bar.accepts)
 		self._filter_bar.text_changed.connect(self._on_search_changed)
 	def resizeEvent(self, e):
@@ -197,10 +197,9 @@ class FilterBar(QFrame):
 
 	text_changed = pyqtSignal()
 
-	def __init__(self, parent, file_view):
+	def __init__(self, parent):
 		super().__init__(parent)
 		self.setVisible(False)
-		self._file_view = file_view
 		self._input = QLineEdit()
 		self._input.textChanged.connect(self._on_text_changed)
 		self.setFrameShape(QFrame.Box)
