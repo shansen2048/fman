@@ -67,14 +67,10 @@ class DirectoryPaneWidget(QWidget):
 		self._location_bar.clicked.connect(
 			lambda: self.location_bar_clicked.emit(self)
 		)
-		self._filter_bar = FilterBar(self)
-		self._model.add_filter(self._filter_bar.accepts)
-		self._filter_bar.text_changed.connect(self._on_search_changed)
+		self._filter_bar = FilterBar(self, self._model, self._file_view)
 	def resizeEvent(self, e):
 		super().resizeEvent(e)
-		padding = QSize(5, 5)
-		new_size = self.size() - self._filter_bar.size() - padding
-		self._filter_bar.move(new_size.width(), new_size.height())
+		self._filter_bar.reposition()
 	@run_in_main_thread
 	def move_cursor_up(self, toggle_selection=False):
 		self._file_view.move_cursor_up(toggle_selection)
@@ -178,8 +174,6 @@ class DirectoryPaneWidget(QWidget):
 			return True
 		event.ignore()
 		return False
-	def _on_search_changed(self):
-		self._model.sourceModel().update()
 	def _on_file_renamed(self, *args):
 		self._controller.on_file_renamed(self, *args)
 	def _on_files_dropped(self, *args):
@@ -194,11 +188,10 @@ class DirectoryPaneWidget(QWidget):
 		self.location_changed.emit(self)
 
 class FilterBar(QFrame):
-
-	text_changed = pyqtSignal()
-
-	def __init__(self, parent):
+	def __init__(self, parent, model, file_view):
 		super().__init__(parent)
+		self._model = model
+		self._file_view = file_view
 		self.setVisible(False)
 		self._input = QLineEdit()
 		self._input.textChanged.connect(self._on_text_changed)
@@ -211,8 +204,10 @@ class FilterBar(QFrame):
 		self.setFocusPolicy(NoFocus)
 		self._input.setFocusPolicy(NoFocus)
 		self._filter_re = re.compile('', re.I)
-	def accepts(self, url):
-		return bool(self._filter_re.search(basename(url)))
+		self._model.add_filter(self._accepts)
+		file_view.verticalScrollBar().rangeChanged.connect(
+			self._on_scroll_range_changed
+		)
 	def handle_keypress(self, event):
 		if event.key() == Key_Escape:
 			self.close()
@@ -228,10 +223,23 @@ class FilterBar(QFrame):
 	def close(self):
 		self.hide()
 		self._input.setText('')
-	def _on_text_changed(self, _):
-		text_re = '.*'.join(map(re.escape, self._input.text().split('*')))
+	def reposition(self, scroll_bar_visible=None):
+		padding = QSize(5, 5)
+		pos = self.parent().size() - self.size() - padding
+		scroll_bar = self._file_view.verticalScrollBar()
+		if scroll_bar_visible is None:
+			scroll_bar_visible = scroll_bar.isVisible()
+		if scroll_bar_visible:
+			pos -= QSize(scroll_bar.width(), 0)
+		self.move(pos.width(), pos.height())
+	def _on_scroll_range_changed(self, min_, max_):
+		self.reposition(scroll_bar_visible=min_ or max_)
+	def _on_text_changed(self, text):
+		text_re = '.*'.join(map(re.escape, text.split('*')))
 		self._filter_re = re.compile(text_re, re.I)
-		self.text_changed.emit()
+		self._model.sourceModel().update()
+	def _accepts(self, url):
+		return bool(self._filter_re.search(basename(url)))
 
 class MainWindow(QMainWindow):
 
