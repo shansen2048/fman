@@ -4,19 +4,16 @@ sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
 
 from build_impl import git, create_cloudfront_invalidation, \
 	record_release_on_server, upload_core_to_github, git_has_changes
+from build_impl.docker import build_docker_image, run_docker_image
 from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean, installer
 from fbs.cmdline import command
-from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_arch_linux
-from os import listdir, makedirs
-from os.path import join, isdir, dirname, exists
-from shutil import copytree, copy, rmtree
-from subprocess import DEVNULL
+from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_fedora, \
+	is_arch_linux
+from os.path import dirname
 
 import fbs.cmdline
 import re
-import subprocess
-import sys
 
 if is_windows():
 	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
@@ -29,6 +26,8 @@ elif is_linux():
 		from build_impl.ubuntu import exe, deb, upload
 	elif is_arch_linux():
 		from build_impl.arch import exe, pkg, sign_pkg, repo, pkgbuild, upload
+	elif is_fedora():
+		from build_impl.fedora import exe
 	else:
 		raise NotImplementedError()
 
@@ -183,83 +182,27 @@ def _replace_re_group(pattern, string, group_replacement):
 
 @command
 def arch_docker_image():
-	build_dir = path('target/arch-docker-image')
-	if exists(build_dir):
-		rmtree(build_dir)
-	copytree(path('src/build/docker/arch'), build_dir)
-	copy(path('conf/ssh/id_rsa'), build_dir)
-	copy(path('conf/ssh/id_rsa.pub'), build_dir)
-	_build_docker_image('fman/arch', build_dir, path('cache/arch'))
-	_run_arch(['/bin/bash', '-c',
-		'python -m venv venv && '
-		'source venv/bin/activate && '
-		'pip install -r requirements/arch.txt'
-	])
+	build_docker_image('arch', 'python')
 
 @command
 def ubuntu_docker_image():
-	build_dir = path('target/ubuntu-docker-image')
-	if exists(build_dir):
-		rmtree(build_dir)
-	copytree(path('src/build/docker/ubuntu'), build_dir)
-	copy(path('conf/ssh/id_rsa'), build_dir)
-	copy(path('conf/ssh/id_rsa.pub'), build_dir)
-	_build_docker_image('fman/ubuntu', build_dir, path('cache/ubuntu'))
-	_run_ubuntu(['/bin/bash', '-c',
-		'python3.5 -m venv venv && '
-		'source venv/bin/activate && '
-		'pip install -r requirements/ubuntu.txt'
-	])
+	build_docker_image('ubuntu', 'python3.5')
+
+@command
+def fedora_docker_image():
+	build_docker_image('fedora', 'python3')
 
 @command
 def ubuntu():
-	_run_ubuntu()
-
-def _run_ubuntu(extra_args=None):
-	_run_docker_image('fman/ubuntu', path('cache/ubuntu'), extra_args)
+	run_docker_image('fman/ubuntu', path('cache/ubuntu'))
 
 @command
 def arch():
-	_run_arch()
+	run_docker_image('fman/arch', path('cache/arch'))
 
-def _run_arch(extra_args=None):
-	_run_docker_image('fman/arch', path('cache/arch'), extra_args)
-
-def _build_docker_image(image_name, context_dir, cache_dir):
-	if isdir(cache_dir):
-		subprocess.run(['sudo', 'rm', '-rf', cache_dir])
-	subprocess.run(
-		['docker', 'build', '--pull', '-t', image_name, context_dir], check=True
-	)
-	makedirs(cache_dir, exist_ok=True)
-
-def _run_docker_image(image_name, cache_dir, extra_args=None):
-	if extra_args is None:
-		extra_args = sys.argv[2:]
-	args = ['docker', 'run', '-it']
-	for item in _get_docker_mounts(image_name, cache_dir).items():
-		args.append('-v')
-		args.append('%s:%s' % item)
-	args.append(image_name)
-	args.extend(extra_args)
-	subprocess.run(args)
-
-def _get_docker_mounts(image_name, cache_dir):
-	target_subdir = path('target/' + image_name.split('/')[1])
-	result = {
-		target_subdir: '/root/dev/fman/target',
-		join(cache_dir, 'venv'): '/root/dev/fman/venv'
-	}
-	for file_name in listdir(path('.')):
-		file_path = path(file_name)
-		if _is_in_gitignore(file_path):
-			continue
-		result[file_path] = '/root/dev/fman/' + file_name
-	return result
-
-def _is_in_gitignore(file_path):
-	process = subprocess.run(['git', 'check-ignore', file_path], stdout=DEVNULL)
-	return not process.returncode
+@command
+def fedora():
+	run_docker_image('fman/fedora', path('cache/fedora'), ['/bin/bash'])
 
 if __name__ == '__main__':
 	project_dir = dirname(__file__)
