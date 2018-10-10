@@ -6,7 +6,7 @@ from build_impl import git, create_cloudfront_invalidation, \
 	record_release_on_server, upload_core_to_github, git_has_changes
 from build_impl.docker import build_docker_image, run_docker_image
 from fbs import path, activate_profile, SETTINGS
-from fbs.builtin_commands import clean, installer
+from fbs.builtin_commands import clean
 from fbs.cmdline import command
 from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_fedora, \
 	is_arch_linux
@@ -16,48 +16,44 @@ import fbs.cmdline
 import re
 
 if is_windows():
-	from build_impl.windows import exe, installer, sign_exe, sign_installer, \
-		add_installer_manifest, upload
+	from build_impl.windows import freeze, sign, installer, sign_installer, \
+		upload
 elif is_mac():
-	from build_impl.mac import app, sign_app, sign_installer, upload, \
-		create_autoupdate_files
+	from build_impl.mac import freeze, sign, sign_installer, upload
+	from fbs.builtin_commands import installer
 elif is_linux():
 	if is_ubuntu():
-		from build_impl.ubuntu import exe, deb, upload
+		from build_impl.ubuntu import freeze, installer, upload
 	elif is_arch_linux():
-		from build_impl.arch import exe, pkg, sign_pkg, repo, pkgbuild, upload
+		from build_impl.arch import freeze, installer, sign_installer, upload
 	elif is_fedora():
-		from build_impl.fedora import exe
+		from build_impl.fedora import freeze
 	else:
 		raise NotImplementedError()
 
 @command
 def publish():
 	if is_windows():
-		exe()
-		sign_exe()
+		freeze()
+		sign()
 		installer()
-		add_installer_manifest()
 		sign_installer()
 		upload()
 	elif is_mac():
-		app()
-		sign_app()
+		freeze()
+		sign()
 		installer()
 		sign_installer()
-		create_autoupdate_files()
 		upload()
 	elif is_linux():
 		if is_ubuntu():
-			exe()
-			deb()
+			freeze()
+			installer()
 			upload()
 		elif is_arch_linux():
-			exe()
-			pkg()
-			sign_pkg()
-			repo()
-			pkgbuild()
+			freeze()
+			installer()
+			sign_installer()
 			upload()
 		else:
 			raise NotImplementedError()

@@ -31,7 +31,7 @@ def _install_go_dependencies():
 	go_get('github.com/jteeuwen/go-bindata/...')
 
 @command
-def exe():
+def freeze():
 	freeze_windows(extra_pyinstaller_args=[
 		# Required by send2trash, which is used in the Core plugin:
 		'--hidden-import', 'ctypes.wintypes',
@@ -93,7 +93,7 @@ def _run_go(*args):
 	run(['go'] + list(args), env=env, check=True)
 
 @command
-def sign_exe():
+def sign():
 	for subdir, _, files in os.walk(path('${freeze_dir}')):
 		for file_ in files:
 			extension = splitext(file_)[1]
@@ -136,6 +136,7 @@ def installer():
 		args.extend(['-ldflags', '-H windowsgui'])
 	args.append(path('target/go/src/installer/installer.go'))
 	_run_go(*args)
+	_add_installer_manifest()
 
 def _repl_in_file(file_path, bytes_, replacement):
 	if len(bytes_) != len(replacement):
@@ -166,8 +167,7 @@ class StateMachine:
 			self.i = 0
 		return self.i == len(self.bytes) - 1
 
-@command
-def add_installer_manifest():
+def _add_installer_manifest():
 	"""
 	If an .exe name contains "installer", "setup" etc., then at least Windows 10
 	automatically opens a UAC prompt upon opening it. This can be avoided by

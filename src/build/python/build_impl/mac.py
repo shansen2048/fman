@@ -1,6 +1,6 @@
-from build_impl import copy_framework, get_canonical_os_name, SETTINGS, \
-	copy_python_library, upload_file, run_on_server, check_output_decode, \
-	get_path_on_server, upload_installer_to_aws
+from build_impl import copy_framework, SETTINGS, copy_python_library, \
+	upload_file, run_on_server, check_output_decode, get_path_on_server, \
+	upload_installer_to_aws
 from fbs import path
 from fbs.cmdline import command
 from fbs.freeze.mac import freeze_mac
@@ -11,8 +11,10 @@ from shutil import copy, rmtree
 from subprocess import run
 from tempfile import TemporaryDirectory
 
+_UPDATES_DIR = 'updates/mac'
+
 @command
-def app():
+def freeze():
 	freeze_mac(extra_pyinstaller_args=[
 		# Dependency of the Core plugin:
 		'--hidden-import', 'pty'
@@ -36,7 +38,7 @@ def app():
 	copy_python_library('osxtrash', path('${core_plugin_in_freeze_dir}'))
 
 @command
-def sign_app():
+def sign():
 	run([
 		'codesign', '--deep', '--verbose',
 		'-s', "Developer ID Application: Michael Herrmann",
@@ -51,7 +53,18 @@ def sign_installer():
 		path('target/fman.dmg')
 	], check=True)
 
-def create_autoupdate_files():
+@command
+def upload():
+	_create_autoupdate_files()
+	upload_file(
+		path('target/autoupdate/%s.zip' % SETTINGS['version']), _UPDATES_DIR
+	)
+	for patch_file in glob(path('target/autoupdate/*.delta')):
+		upload_file(patch_file, _UPDATES_DIR)
+	if SETTINGS['release']:
+		upload_installer_to_aws('fman.dmg')
+
+def _create_autoupdate_files():
 	run([
 		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
 		path('${freeze_dir}'),
@@ -108,7 +121,7 @@ def _sync_cache_with_server():
 	return result
 
 def _get_versions_on_server():
-	updates_dir = get_path_on_server(_get_updates_dir())
+	updates_dir = get_path_on_server(_UPDATES_DIR)
 	hash_cmd = ' ; '.join([
 		# Prevent literal string ".../*.zip" from being passed to for loop below
 		# when there is no .zip file:
@@ -148,20 +161,3 @@ def _download_from_server(file_path, dest_dir):
 
 def _version_str_to_tuple(version_str):
 	return tuple(map(int, version_str.split('.')))
-
-def _version_tuple_to_str(version_tuple):
-	return '.'.join(map(str, version_tuple))
-
-@command
-def upload():
-	updates_dir = _get_updates_dir()
-	upload_file(
-		path('target/autoupdate/%s.zip' % SETTINGS['version']), updates_dir
-	)
-	for patch_file in glob(path('target/autoupdate/*.delta')):
-		upload_file(patch_file, updates_dir)
-	if SETTINGS['release']:
-		upload_installer_to_aws('fman.dmg')
-
-def _get_updates_dir():
-	return 'updates/' + get_canonical_os_name()

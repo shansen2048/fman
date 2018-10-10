@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 import re
 
 @command
-def exe():
+def freeze():
 	freeze_linux(extra_pyinstaller_args=[
 		'--hidden-import', 'pgi.overrides.GObject',
 		'--hidden-import', 'pgi.overrides.GLib',
@@ -66,7 +66,7 @@ def _remove_gtk_dependencies():
 				remove_if_exists(path('${freeze_dir}/' + so_name))
 
 @command
-def deb():
+def installer():
 	if exists(path('target/deb')):
 		rmtree(path('target/deb'))
 	if exists(path('target/deb-config')):

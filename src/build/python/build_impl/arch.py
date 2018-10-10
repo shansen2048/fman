@@ -1,7 +1,6 @@
 from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
 from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
 	copy_linux_package_resources, copy_icons, postprocess_exe
-from distutils.dir_util import copy_tree
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
@@ -18,7 +17,7 @@ _ARCH_DEPENDENCIES = ('qt5-base', 'p7zip')
 _ARCH_OPT_DEPENDENCIES = ('qt5-svg',)
 
 @command
-def exe():
+def freeze():
 	freeze_linux(extra_pyinstaller_args=[
 		# Dependency of the Core plugin:
 		'--hidden-import', 'pty'
@@ -26,7 +25,7 @@ def exe():
 	postprocess_exe()
 
 @command
-def pkg():
+def installer():
 	if exists(path('target/arch-pkg')):
 		rmtree(path('target/arch-pkg'))
 	copytree(path('${freeze_dir}'), path('target/arch-pkg/opt/fman'))
@@ -53,7 +52,7 @@ def pkg():
 	run(args, check=True)
 
 @command
-def sign_pkg():
+def sign_installer():
 	gpg_pw = SETTINGS['gpg_pass']
 	run([
 		'gpg', '--batch', '--yes', '--passphrase', gpg_pw,
@@ -75,7 +74,14 @@ def sign_pkg():
 		raise CalledProcessError(process.returncode, cmd, stdout, stderr)
 
 @command
-def repo():
+def upload():
+	_generate_repo()
+	upload_file(path('target/arch-repo/arch'), get_path_on_server('updates'))
+	if SETTINGS['release']:
+		upload_installer_to_aws('fman.pkg.tar.xz')
+		_upload_to_AUR()
+
+def _generate_repo():
 	if exists(path('target/arch-repo')):
 		rmtree(path('target/arch-repo'))
 	repo_dir = path('target/arch-repo/arch')
@@ -90,8 +96,24 @@ def repo():
 	# Ensure the permissions on the server are correct:
 	run(['chmod', 'g-w', '-R', repo_dir], check=True)
 
-@command
-def pkgbuild():
+def _upload_to_AUR():
+	if exists(path('target/AUR')):
+		rmtree(path('target/AUR'))
+	makedirs(path('target/AUR'))
+	env = dict(os.environ)
+	env['GIT_SSH_COMMAND'] = 'ssh -i ' + SETTINGS['ssh_key']
+	cwd = path('target/AUR')
+	def git(*args):
+		run(['git'] + list(args), cwd=cwd, env=env, check=True)
+	_add_to_known_hosts('aur.archlinux.org')
+	git('clone', 'ssh://aur@aur.archlinux.org/fman.git')
+	_generate_pkgbuild(path('target/AUR/fman'))
+	cwd = path('target/AUR/fman')
+	git('add', '-A')
+	git('commit', '-m', 'Changes for fman ' + SETTINGS['version'])
+	git('push', '-u', 'origin', 'master')
+
+def _generate_pkgbuild(dest_dir):
 	with open(path(SETTINGS['arch_pkg']), 'rb') as f:
 		sha256 = hashlib.sha256(f.read()).hexdigest()
 	pkgbuild = path('src/main/resources/linux-AUR/PKGBUILD')
@@ -104,41 +126,13 @@ def pkgbuild():
 		'opt_deps': ' '.join(map(repr, _ARCH_OPT_DEPENDENCIES)),
 		'sha256': sha256
 	}
-	copy_with_filtering(
-		pkgbuild, path('target/pkgbuild'), context, files_to_filter=[pkgbuild]
-	)
+	copy_with_filtering(pkgbuild, dest_dir, context, files_to_filter=[pkgbuild])
 	srcinfo = path('src/main/resources/linux-AUR/.SRCINFO')
 	context['deps'] = \
 		'\n\t'.join('depends = ' + dep for dep in _ARCH_DEPENDENCIES)
 	context['opt_deps'] = \
 		'\n\t'.join('optdepends = ' + dep for dep in _ARCH_OPT_DEPENDENCIES)
-	copy_with_filtering(
-		srcinfo, path('target/pkgbuild'), context, files_to_filter=[srcinfo]
-	)
-
-@command
-def upload():
-	upload_file(path('target/arch-repo/arch'), get_path_on_server('updates'))
-	if SETTINGS['release']:
-		upload_installer_to_aws('fman.pkg.tar.xz')
-		_publish_to_AUR()
-
-def _publish_to_AUR():
-	if exists(path('target/AUR')):
-		rmtree(path('target/AUR'))
-	makedirs(path('target/AUR'))
-	env = dict(os.environ)
-	env['GIT_SSH_COMMAND'] = 'ssh -i ' + SETTINGS['ssh_key']
-	cwd = path('target/AUR')
-	def git(*args):
-		run(['git'] + list(args), cwd=cwd, env=env, check=True)
-	_add_to_known_hosts('aur.archlinux.org')
-	git('clone', 'ssh://aur@aur.archlinux.org/fman.git')
-	copy_tree(path('target/pkgbuild'), path('target/AUR/fman'))
-	cwd = path('target/AUR/fman')
-	git('add', '-A')
-	git('commit', '-m', 'Changes for fman ' + SETTINGS['version'])
-	git('push', '-u', 'origin', 'master')
+	copy_with_filtering(srcinfo, dest_dir, context, files_to_filter=[srcinfo])
 
 def _add_to_known_hosts(host):
 	p = run(['ssh-keyscan', '-H', host], stdout=PIPE, stderr=PIPE)

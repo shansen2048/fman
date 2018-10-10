@@ -5,7 +5,7 @@ from fbs.freeze.linux import freeze_linux
 from os import remove
 
 @command
-def exe():
+def freeze():
 	freeze_linux(extra_pyinstaller_args=[
 		'--hidden-import', 'pgi.overrides.GObject',
 		'--hidden-import', 'pgi.overrides.GLib',

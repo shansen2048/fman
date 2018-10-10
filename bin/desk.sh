@@ -31,12 +31,10 @@ function build {
 }
 
 alias clean='python build.py clean'
-alias exe='python build.py exe'
+alias freeze='python build.py freeze'
 alias installer='python build.py installer'
 alias publish='python build.py publish'
 alias release='python build.py release'
-alias app='python build.py app'
-alias deb='python build.py deb'
 alias test='python build.py test'
 alias arch-docker-image='python build.py arch_docker_image'
 alias arch='python build.py arch'
