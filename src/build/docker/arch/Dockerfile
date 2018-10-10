@@ -9,18 +9,10 @@ RUN echo 'Server=https://archive.archlinux.org/repos/2018/04/01/$repo/os/$arch' 
 ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
 RUN gpgconf --kill gpg-agent
 
-# Support locale en_US.UTF-8. This is then activated in .bashrc.
-RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen && \
-    locale-gen
-
-ADD .bashrc /root/.bashrc
-
 RUN pacman -S --noconfirm p7zip python
 
 RUN pacman -S --noconfirm ruby ruby-rdoc && \
-    # Avoid error "cannot load such file -- ubygems":
-    sed -i.bak "s/ -rubygems//g" ~/.bashrc && \
-    source ~/.bashrc && \
+    export PATH=$PATH:$(ruby -e "puts Gem.user_dir")/bin && \
     gem update && \
     gem install --no-ri --no-rdoc fpm
 
@@ -37,5 +29,11 @@ RUN pacman -S --noconfirm openssh && \
     chmod 600 ~/.ssh/known_hosts
 
 RUN pacman -S --noconfirm rsync
+
+# Support locale en_US.UTF-8. This is then activated in .bashrc.
+RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen && \
+    locale-gen
+
+ADD .bashrc /root/.bashrc
 
 WORKDIR /root/dev/fman
