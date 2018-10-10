@@ -1,12 +1,27 @@
 from contextlib import contextmanager
 from fman.impl.plugins.plugin import ReportExceptions
-from threading import Thread
+from threading import Thread, get_ident
 from weakref import WeakKeyDictionary
 
 import re
 
-class ApplicationCommandRegistry:
+class CommandRegistry:
+	def __init__(self, main_thread_id=None):
+		if main_thread_id is None:
+			main_thread_id = get_ident()
+		self._main_thread = main_thread_id
+	def _run_outside_main_thread(self, f, args):
+		if get_ident() == self._main_thread:
+			Thread(target=f, args=args, daemon=True).start()
+		else:
+			f(*args)
+
+class ApplicationCommandRegistry(CommandRegistry):
+	"""
+	Assumed to be instantiated in main thread - see CommandRegistry#__init__().
+	"""
 	def __init__(self, window, error_handler, callback):
+		super().__init__()
 		self._window = window
 		self._error_handler = error_handler
 		self._callback = callback
@@ -32,8 +47,7 @@ class ApplicationCommandRegistry:
 		if args is None:
 			args = {}
 		command = self._commands[name]
-		Thread(target=self._execute_command, args=(command, args), daemon=True)\
-			.start()
+		self._run_outside_main_thread(self._execute_command, (command, args))
 	def get_command_aliases(self, name):
 		command = self._commands[name]
 		try:
@@ -55,11 +69,16 @@ class ApplicationCommandRegistry:
 		else:
 			self._callback.after_command(class_name)
 
-class PaneCommandRegistry:
+class PaneCommandRegistry(CommandRegistry):
+
+	"""
+	Assumed to be instantiated in main thread - see CommandRegistry#__init__().
+	"""
 
 	_DEFAULT = object()
 
 	def __init__(self, error_handler, callback):
+		super().__init__()
 		self._error_handler = error_handler
 		self._callback = callback
 		self._command_classes = {}
@@ -85,8 +104,7 @@ class PaneCommandRegistry:
 			# Command could not be instantiated.
 			return
 		thread_args = (command, args, pane, file_under_cursor)
-		Thread(target=self._execute_command, args=thread_args, daemon=True)\
-			.start()
+		self._run_outside_main_thread(self._execute_command, thread_args)
 	def get_command_aliases(self, name):
 		command_class = self._command_classes[name]
 		try:
