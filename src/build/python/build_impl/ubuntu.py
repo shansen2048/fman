@@ -103,7 +103,6 @@ def installer():
 		'-p', path('target/fman.deb'),
 		'-f', '-C', path('target/deb')
 	], check=True)
-	run(['chmod', 'g-r', '-R', path('target/deb')], check=True)
 
 @command
 def upload():

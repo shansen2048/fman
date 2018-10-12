@@ -40,4 +40,3 @@ def installer():
 		'-p', path('target/fman.rpm'),
 		'-f', '-C', dest_dir
 	], check=True)
-	run(['chmod', 'g-r', '-R', dest_dir], check=True)
