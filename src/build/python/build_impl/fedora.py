@@ -1,3 +1,4 @@
+from build_impl import upload_installer_to_aws
 from build_impl.linux import postprocess_exe, copy_linux_package_resources, \
 	copy_icons, FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL
 from fbs import path, SETTINGS
@@ -48,6 +49,11 @@ def sign_installer():
 	# Prevent GPG from prompting us for the passphrase when signing:
 	_preload_gpg_passphrase()
 	run(['rpm', '--addsign', path('target/fman.rpm')])
+
+@command
+def upload():
+	if SETTINGS['release']:
+		upload_installer_to_aws('fman.rpm')
 
 def _preload_gpg_passphrase():
 	keygrip = _get_keygrip(SETTINGS['gpg_key'])

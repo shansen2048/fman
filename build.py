@@ -27,7 +27,7 @@ elif is_linux():
 	elif is_arch_linux():
 		from build_impl.arch import freeze, installer, sign_installer, upload
 	elif is_fedora():
-		from build_impl.fedora import freeze, installer
+		from build_impl.fedora import freeze, installer, sign_installer, upload
 	else:
 		raise NotImplementedError()
 
@@ -51,6 +51,11 @@ def publish():
 			installer()
 			upload()
 		elif is_arch_linux():
+			freeze()
+			installer()
+			sign_installer()
+			upload()
+		elif is_fedora():
 			freeze()
 			installer()
 			sign_installer()
@@ -130,7 +135,9 @@ def post_release():
 	version = SETTINGS['version']
 	assert not version.endswith(snapshot_suffix)
 	cloudfront_items_to_invalidate = []
-	for item in ('fman.pkg.tar.xz', 'fman.deb', 'fman.dmg', 'fmanSetup.exe'):
+	for item in (
+		'fmanSetup.exe', 'fman.dmg', 'fman.deb', 'fman.pkg.tar.xz', 'fman.rpm'
+	):
 		cloudfront_items_to_invalidate.append('/' + item)
 		cloudfront_items_to_invalidate.append('/%s/%s' % (version, item))
 	create_cloudfront_invalidation(cloudfront_items_to_invalidate)
