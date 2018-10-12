@@ -27,7 +27,7 @@ elif is_linux():
 	elif is_arch_linux():
 		from build_impl.arch import freeze, installer, sign_installer, upload
 	elif is_fedora():
-		from build_impl.fedora import freeze
+		from build_impl.fedora import freeze, installer
 	else:
 		raise NotImplementedError()
 
