@@ -30,9 +30,11 @@ function build {
 	python build.py "$@"
 }
 
+alias run='python build.py run'
 alias clean='python build.py clean'
 alias freeze='python build.py freeze'
 alias installer='python build.py installer'
+alias sign_installer='python build.py sign_installer'
 alias publish='python build.py publish'
 alias release='python build.py release'
 alias test='python build.py test'
@@ -42,4 +44,3 @@ alias ubuntu-docker-image='python build.py ubuntu_docker_image'
 alias ubuntu='python build.py ubuntu'
 alias fedora-docker-image='python build.py fedora_docker_image'
 alias fedora='python build.py fedora'
-alias run='python build.py run'
