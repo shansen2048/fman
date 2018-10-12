@@ -10,6 +10,21 @@ RUN dnf install -y ruby-devel gcc make rpm-build libffi-devel && \
 # Required for Python dependency pgi:
 RUN dnf install -y gobject-introspection
 
-ADD .bashrc /root/.bashrc
+ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
+
+RUN chmod -R 600 /root/.gnupg
+
+ADD private.gpg-key public.gpg-key /tmp/
+
+WORKDIR /tmp
+
+RUN dnf install -y gpg rpm-sign && \
+    gpg --batch --yes --passphrase ${gpg_pass} --import private.gpg-key public.gpg-key && \
+    rpm --import public.gpg-key && \
+    rm private.gpg-key public.gpg-key
+
+ADD .rpmmacros /root
+
+ADD .bashrc /root
 
 WORKDIR /root/dev/fman

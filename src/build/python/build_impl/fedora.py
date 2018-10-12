@@ -6,7 +6,9 @@ from fbs.freeze.linux import freeze_linux
 from os import remove
 from os.path import exists, join
 from shutil import rmtree, copytree
-from subprocess import run
+from subprocess import run, PIPE
+
+import re
 
 @command
 def freeze():
@@ -40,3 +42,31 @@ def installer():
 		'-p', path('target/fman.rpm'),
 		'-f', '-C', dest_dir
 	], check=True)
+
+@command
+def sign_installer():
+	# Prevent GPG from prompting us for the passphrase when signing:
+	_preload_gpg_passphrase()
+	run(['rpm', '--addsign', path('target/fman.rpm')])
+
+def _preload_gpg_passphrase():
+	keygrip = _get_keygrip(SETTINGS['gpg_key'])
+	_run(
+		'/usr/libexec/gpg-preset-passphrase', '--passphrase',
+		 SETTINGS['gpg_pass'], '--preset', keygrip
+	)
+
+def _get_keygrip(pubkey_id):
+	output = _run('gpg2', '--with-keygrip', '-K', pubkey_id)
+	lines = output.split('\n')
+	for i, line in enumerate(lines):
+		if line.endswith('[S]'):
+			keygrip_line = lines[i + 1]
+			m = re.match(r' +Keygrip = ([A-Z0-9]{40})', keygrip_line)
+			if not m:
+				raise RuntimeError('Unexpected output: ' + keygrip_line)
+			return m.group(1)
+	raise RuntimeError('Keygrip not found. Output was:\n' + output)
+
+def _run(*command):
+	return run(command, stdout=PIPE, universal_newlines=True, check=True).stdout

@@ -1,13 +1,19 @@
 from fbs import path
+from fbs.resources import copy_with_filtering
 from os import makedirs, listdir
 from os.path import exists, isdir, join
-from shutil import rmtree, copytree, copy
+from shutil import rmtree, copy
 from subprocess import DEVNULL
 
 import subprocess
 import sys
 
-def build_docker_image(name, python_executable):
+def build_docker_image(
+	name, python_executable, extra_files=None, files_to_filter=None,
+	replacements=None
+):
+	if extra_files is None:
+		extra_files = []
 	build_dir = path('target/%s-docker-image' % name)
 	src_dir = path('src/build/docker/' + name)
 	image_name = 'fman/' + name
@@ -19,8 +25,9 @@ def build_docker_image(name, python_executable):
 	if isdir(cache_dir):
 		subprocess.run(['sudo', 'rm', '-rf', cache_dir])
 
-	copytree(src_dir, build_dir)
-	copy(path('conf/ssh/id_rsa'), build_dir)
+	copy_with_filtering(src_dir, build_dir, replacements, files_to_filter)
+	for f in extra_files:
+		copy(f, build_dir)
 	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	subprocess.run(
 		['docker', 'build', '--pull', '-t', image_name, build_dir], check=True

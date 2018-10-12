@@ -178,15 +178,34 @@ def _replace_re_group(pattern, string, group_replacement):
 
 @command
 def arch_docker_image():
-	build_docker_image('arch', 'python')
+	build_docker_image(
+		'arch', 'python',
+		extra_files=[path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')]
+	)
 
 @command
 def ubuntu_docker_image():
-	build_docker_image('ubuntu', 'python3.5')
+	build_docker_image(
+		'ubuntu', 'python3.5',
+		extra_files=[path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')]
+	)
 
 @command
 def fedora_docker_image():
-	build_docker_image('fedora', 'python3')
+	build_docker_image(
+		'fedora', 'python3', extra_files=[
+			path('conf/linux/private.gpg-key'),
+			path('conf/linux/public.gpg-key')
+		],
+		files_to_filter=[
+			path('src/build/docker/fedora/Dockerfile'),
+			path('src/build/docker/fedora/.rpmmacros'),
+		],
+		replacements={
+			'gpg_pass': SETTINGS['gpg_pass'],
+			'gpg_name': SETTINGS['gpg_name']
+		}
+	)
 
 @command
 def ubuntu():

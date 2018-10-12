@@ -27,6 +27,7 @@
 		"src/main/resources/mac-frozen/Contents/SharedSupport/bin/fman"
 	],
 	"gpg_key": "B015FE599CFAF7EB",
+	"gpg_name": "Michael Herrmann",
 	"gpg_pass": "fenst4r",
 	"aws_access_key_id": "AKIAIWTB3R6KKMMTWXEA",
 	"aws_secret_access_key": "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",
