@@ -1,0 +1,6 @@
+[fman]
+name=fman
+baseurl=http://download.fman.io/rpm
+enabled=1
+gpgcheck=1
+gpgkey=http://download.fman.io/rpm/public.gpg

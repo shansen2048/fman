@@ -54,7 +54,8 @@ def _get_docker_mounts(image_name, cache_dir):
 	target_subdir = path('target/' + image_name.split('/')[1])
 	result = {
 		target_subdir: '/root/dev/fman/target',
-		join(cache_dir, 'venv'): '/root/dev/fman/venv'
+		join(cache_dir, 'venv'): '/root/dev/fman/venv',
+		join(cache_dir, 'cache'): '/root/dev/fman/cache'
 	}
 	for file_name in listdir(path('.')):
 		file_path = path(file_name)

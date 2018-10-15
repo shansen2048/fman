@@ -139,8 +139,8 @@ def post_release():
 	for item in (
 		'fmanSetup.exe', 'fman.dmg', 'fman.deb', 'fman.pkg.tar.xz', 'fman.rpm'
 	):
-		cloudfront_items_to_invalidate.append('/' + item)
-		cloudfront_items_to_invalidate.append('/%s/%s' % (version, item))
+		cloudfront_items_to_invalidate.append(item)
+		cloudfront_items_to_invalidate.append('%s/%s' % (version, item))
 	create_cloudfront_invalidation(cloudfront_items_to_invalidate)
 	record_release_on_server()
 	upload_core_to_github()
