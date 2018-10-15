@@ -1,3 +1,4 @@
+from build_impl.aws import upload_to_s3
 from fbs import SETTINGS, path
 from fbs.platform import is_windows, is_mac, is_linux
 from importlib import import_module
@@ -6,7 +7,6 @@ from os.path import dirname, join, islink, isdir, basename
 from shutil import copy, copytree, rmtree
 from subprocess import run, check_output, PIPE
 from tempfile import TemporaryDirectory
-from time import time
 
 import re
 import sys
@@ -110,33 +110,6 @@ def git(cmd, *args):
 
 def git_has_changes():
 	return 'nothing to commit' not in git('status')
-
-def upload_to_s3(src_path, dest_path):
-	import boto3
-	s3 = boto3.resource('s3', **_get_aws_credentials())
-	s3.Bucket(SETTINGS['aws_bucket']).upload_file(
-		src_path, dest_path, ExtraArgs={'ACL': 'public-read'}
-	)
-
-def create_cloudfront_invalidation(items):
-	import boto3
-	cloudfront = boto3.client('cloudfront', **_get_aws_credentials())
-	cloudfront.create_invalidation(
-		DistributionId=SETTINGS['aws_distribution_id'],
-		InvalidationBatch={
-			'Paths': {
-				'Quantity': len(items),
-				'Items': items
-			},
-			'CallerReference': str(int(time()))
-		}
-	)
-
-def _get_aws_credentials():
-	return {
-		'aws_access_key_id': SETTINGS['aws_access_key_id'],
-		'aws_secret_access_key': SETTINGS['aws_secret_access_key']
-	}
 
 def upload_core_to_github():
 	with TemporaryDirectory() as tmp_dir:
