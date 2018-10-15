@@ -2,8 +2,9 @@ from os.path import dirname, join
 import sys
 sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
 
-from build_impl import git, create_cloudfront_invalidation, \
-	record_release_on_server, upload_core_to_github, git_has_changes
+from build_impl import git, record_release_on_server, upload_core_to_github, \
+	git_has_changes
+from build_impl.aws import create_cloudfront_invalidation
 from build_impl.docker import build_docker_image, run_docker_image
 from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean
