@@ -20,6 +20,8 @@ class Quicksearch(QDialog):
 		if get_tab_completion is None:
 			get_tab_completion = lambda q, i: None
 		super().__init__(parent, FramelessWindowHint)
+		# For accessibility / screen readers:
+		self.setWindowTitle('Quicksearch')
 		self._app = app
 		self._css = css
 		self._get_items = get_items
