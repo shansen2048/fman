@@ -1,7 +1,7 @@
 from fbs_runtime.system import is_mac
 from fman.impl.util.qt import Key_Tab, Key_Down, Key_Up, Key_PageDown, \
 	Key_Home, Key_End, Key_PageUp, UserRole, AlignRight, AlignVCenter, \
-	NoFocus, FramelessWindowHint, AlignTop
+	NoFocus, FramelessWindowHint, AlignTop, AccessibleTextRole
 from PyQt5.QtCore import QAbstractListModel, QVariant, QModelIndex, QSize, \
 	QPointF, QRectF, QPoint, pyqtSignal
 from PyQt5.QtGui import QFont, QTextLayout, QTextCharFormat, QBrush, \
@@ -161,8 +161,11 @@ class QuicksearchListModel(QAbstractListModel):
 		if not index.isValid():
 			return QVariant()
 		row = index.row()
-		if row < self.rowCount() and role == ItemRole:
-			return self._items[row]
+		if row < self.rowCount():
+			if role == ItemRole:
+				return self._items[row]
+			elif role == AccessibleTextRole:
+				return self._items[row].title
 		return QVariant()
 
 ItemRole = UserRole

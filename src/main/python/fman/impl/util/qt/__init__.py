@@ -124,6 +124,7 @@ ItemIsSelectable = Qt.ItemIsSelectable
 EditRole = Qt.EditRole
 DisplayRole = Qt.DisplayRole
 ToolTipRole = Qt.ToolTipRole
+AccessibleTextRole = Qt.AccessibleTextRole
 UserRole = Qt.UserRole
 SizeHintRole = Qt.SizeHintRole
 DecorationRole = Qt.DecorationRole
