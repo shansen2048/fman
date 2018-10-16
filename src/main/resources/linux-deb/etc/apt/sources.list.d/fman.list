@@ -1,1 +1,0 @@
-deb [arch=amd64] ${server_url}/updates/ubuntu/ stable main

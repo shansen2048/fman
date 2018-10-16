@@ -72,20 +72,10 @@ def installer():
 	if exists(path('target/deb-config')):
 		rmtree(path('target/deb-config'))
 	copytree(path('${freeze_dir}'), path('target/deb/opt/fman'))
-	deb_resource = \
-		lambda relpath: path('src/main/resources/linux-deb' + relpath)
 	copy_with_filtering(
-		path('src/main/resources/linux-deb'), path('target/deb'),
-		files_to_filter=[deb_resource('/etc/apt/sources.list.d/fman.list')]
+		path('src/main/resources/linux-deb'), path('target/deb')
 	)
 	copy_linux_package_resources(path('target/deb'))
-	copy_with_filtering(
-		path('src/main/resources/linux-deb-config'), path('target/deb-config'),
-		files_to_filter=[
-			path('src/main/resources/linux-deb-config/after-install.sh')
-		]
-	)
-	copy(path('conf/linux/public.gpg-key'), path('target/deb/opt/fman'))
 	copy_icons(path('target/deb'))
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',
@@ -94,12 +84,6 @@ def installer():
 		'-m', '%s <%s>' % (FMAN_AUTHOR, FMAN_AUTHOR_EMAIL),
 		'--vendor', FMAN_AUTHOR,
 		'--url', 'https://fman.io',
-		'--after-install', path('target/deb-config/after-install.sh'),
-		'--after-upgrade', path('src/main/resources/fpm/after-upgrade.sh'),
-		# Avoid warning "The postinst maintainerscript of the package fman seems
-		# to use apt-key (provided by apt) without depending on gnupg or
-		# gnupg2.":
-		'-d', 'gnupg',
 		'-p', path('target/fman.deb'),
 		'-f', '-C', path('target/deb')
 	], check=True)
