@@ -1,5 +1,9 @@
 FROM fedora:25
 
+# The `release` build command calls git to check for uncommitted changes. So we
+# need git:
+RUN dnf install -y git
+
 # Absolute minimum requirements for building a PyQt5 app with PyInstaller:
 RUN dnf install -y libstdc++ freetype binutils
 
@@ -17,6 +21,8 @@ RUN chmod -R 600 /root/.gnupg
 ADD private.gpg-key public.gpg-key /tmp/
 
 WORKDIR /tmp
+
+RUN dnf install -y createrepo_c
 
 RUN dnf install -y gpg rpm-sign && \
     gpg --batch --yes --passphrase ${gpg_pass} --import private.gpg-key public.gpg-key && \
