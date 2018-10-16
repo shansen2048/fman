@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_mac, is_windows
+from fbs_runtime.system import is_mac, is_windows, is_linux
 from fman.impl.util.qt import MoveAction, NoButton, AltModifier, \
 	ShiftModifier, ControlModifier, CopyAction
 from PyQt5.QtCore import QItemSelectionModel as QISM
@@ -67,6 +67,8 @@ class DragAndDrop(QTableView):
 		modifiers = event.keyboardModifiers()
 		if is_mac():
 			do_copy = modifiers & AltModifier
+		elif is_linux():
+			do_copy = (modifiers & ControlModifier) or (modifiers & AltModifier)
 		else:
 			do_copy = not (modifiers & ShiftModifier)
 		action = CopyAction if do_copy else MoveAction
