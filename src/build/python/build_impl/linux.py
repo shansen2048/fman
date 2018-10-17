@@ -20,10 +20,10 @@ def postprocess_exe():
 	remove(path('${core_plugin_in_freeze_dir}/Roboto Bold.ttf'))
 	copy_python_library('send2trash', path('${core_plugin_in_freeze_dir}'))
 
-def copy_linux_package_resources(root_path):
-	source_dir = 'src/main/resources/linux-package'
+def copy_global_linux_resources(dest_dir):
+	source_dir = 'src/main/resources/linux-global'
 	copy_with_filtering(
-		path('src/main/resources/linux-package'), root_path,
+		path(source_dir), dest_dir,
 		files_to_filter=[
 			path(source_dir + '/usr/bin/fman'),
 			path(source_dir + '/usr/share/applications/fman.desktop')

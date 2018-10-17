@@ -1,6 +1,6 @@
 from build_impl import check_output_decode, remove_if_exists, SETTINGS, \
 	upload_installer_to_aws, upload_file, run_on_server, get_path_on_server
-from build_impl.linux import copy_linux_package_resources, copy_icons, \
+from build_impl.linux import copy_global_linux_resources, copy_icons, \
 	postprocess_exe
 from fbs import path
 from fbs.cmdline import command
@@ -73,7 +73,7 @@ def installer():
 	copy_with_filtering(
 		path('src/main/resources/linux-deb'), path('target/deb')
 	)
-	copy_linux_package_resources(path('target/deb'))
+	copy_global_linux_resources(path('target/deb'))
 	copy_icons(path('target/deb'))
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',

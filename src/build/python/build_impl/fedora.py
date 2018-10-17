@@ -1,7 +1,7 @@
 from build_impl import upload_installer_to_aws
 from build_impl.aws import list_files_on_s3, download_file_from_s3, \
 	upload_directory_contents, create_cloudfront_invalidation
-from build_impl.linux import postprocess_exe, copy_linux_package_resources, \
+from build_impl.linux import postprocess_exe, copy_global_linux_resources, \
 	copy_icons
 from fbs import path, SETTINGS
 from fbs.cmdline import command
@@ -34,7 +34,7 @@ def installer():
 	if exists(dest_dir):
 		rmtree(dest_dir)
 	copytree(path('${freeze_dir}'), join(dest_dir, 'opt', 'fman'))
-	copy_linux_package_resources(dest_dir)
+	copy_global_linux_resources(dest_dir)
 	copy_icons(dest_dir)
 	run([
 		'fpm', '-s', 'dir', '-t', 'rpm', '-n', 'fman',
