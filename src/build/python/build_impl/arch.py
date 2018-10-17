@@ -1,6 +1,6 @@
 from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
-from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
-	copy_linux_package_resources, copy_icons, postprocess_exe
+from build_impl.linux import copy_linux_package_resources, copy_icons, \
+	postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
@@ -38,9 +38,9 @@ def installer():
 	args = [
 		'fpm', '-s', 'dir', '-t', 'pacman', '-n', 'fman',
 		'-v', version,
-		'--description', FMAN_DESCRIPTION,
-		'-m', '%s <%s>' % (FMAN_AUTHOR, FMAN_AUTHOR_EMAIL),
-		'--vendor', FMAN_AUTHOR,
+		'--description', SETTINGS['description'],
+		'-m', '%s <%s>' % (SETTINGS['author'], SETTINGS['author_email']),
+		'--vendor', SETTINGS['author'],
 		'--url', 'https://fman.io',
 	]
 	for dep in _ARCH_DEPENDENCIES:
@@ -118,10 +118,10 @@ def _generate_pkgbuild(dest_dir):
 		sha256 = hashlib.sha256(f.read()).hexdigest()
 	pkgbuild = path('src/main/resources/linux-AUR/PKGBUILD')
 	context = {
-		'author': FMAN_AUTHOR,
-		'author_email': FMAN_AUTHOR_EMAIL,
+		'author': SETTINGS['author'],
+		'author_email': SETTINGS['author_email'],
 		'version': SETTINGS['version'],
-		'description': FMAN_DESCRIPTION,
+		'description': SETTINGS['description'],
 		'deps': ' '.join(map(repr, _ARCH_DEPENDENCIES)),
 		'opt_deps': ' '.join(map(repr, _ARCH_OPT_DEPENDENCIES)),
 		'sha256': sha256

@@ -1,7 +1,7 @@
 from build_impl import check_output_decode, remove_if_exists, SETTINGS, \
 	upload_installer_to_aws, upload_file, run_on_server, get_path_on_server
-from build_impl.linux import FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL, \
-	copy_linux_package_resources, copy_icons, postprocess_exe
+from build_impl.linux import copy_linux_package_resources, copy_icons, \
+	postprocess_exe
 from fbs import path
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
@@ -80,9 +80,9 @@ def installer():
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',
 		'-v', SETTINGS['version'],
-		'--description', FMAN_DESCRIPTION,
-		'-m', '%s <%s>' % (FMAN_AUTHOR, FMAN_AUTHOR_EMAIL),
-		'--vendor', FMAN_AUTHOR,
+		'--description', SETTINGS['description'],
+		'-m', '%s <%s>' % (SETTINGS['author'], SETTINGS['author_email']),
+		'--vendor', SETTINGS['author'],
 		'--url', 'https://fman.io',
 		'-p', path('target/fman.deb'),
 		'-f', '-C', path('target/deb')
@@ -155,6 +155,6 @@ def _generate_reprepro_distributions_file(dest_dir):
 			'Codename: stable',
 			'Architectures: amd64',
 			'Components: main',
-			'Description: ' + FMAN_DESCRIPTION,
+			'Description: ' + SETTINGS['description'],
 			'SignWith: ' + SETTINGS['gpg_key']
 		]) + '\n\n')

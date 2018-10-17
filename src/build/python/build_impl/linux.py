@@ -5,11 +5,6 @@ from os import makedirs, remove
 from os.path import join, dirname
 from shutil import copy, rmtree
 
-FMAN_DESCRIPTION = \
-	'A modern file manager for power users. Beautiful, fast and extensible'
-FMAN_AUTHOR = 'Michael Herrmann'
-FMAN_AUTHOR_EMAIL = 'michael+removethisifyouarehuman@herrmann.io'
-
 def postprocess_exe():
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/mac'))
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/windows'))

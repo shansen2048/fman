@@ -2,7 +2,7 @@ from build_impl import upload_installer_to_aws
 from build_impl.aws import list_files_on_s3, download_file_from_s3, \
 	upload_directory_contents, create_cloudfront_invalidation
 from build_impl.linux import postprocess_exe, copy_linux_package_resources, \
-	copy_icons, FMAN_DESCRIPTION, FMAN_AUTHOR, FMAN_AUTHOR_EMAIL
+	copy_icons
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
@@ -39,9 +39,9 @@ def installer():
 	run([
 		'fpm', '-s', 'dir', '-t', 'rpm', '-n', 'fman',
 		'-v', SETTINGS['version'],
-		'--description', FMAN_DESCRIPTION,
-		'-m', '%s <%s>' % (FMAN_AUTHOR, FMAN_AUTHOR_EMAIL),
-		'--vendor', FMAN_AUTHOR,
+		'--description', SETTINGS['description'],
+		'-m', '%s <%s>' % (SETTINGS['author'], SETTINGS['author_email']),
+		'--vendor', SETTINGS['author'],
 		'--url', 'https://fman.io',
 		'-p', path('target/fman.rpm'),
 		'-f', '-C', dest_dir
