@@ -71,7 +71,7 @@ def installer():
 		rmtree(path('target/deb'))
 	copytree(path('${freeze_dir}'), path('target/deb/opt/fman'))
 	copy_with_filtering(
-		path('src/main/resources/linux-deb'), path('target/deb')
+		path('src/main/resources/ubuntu-global'), path('target/deb')
 	)
 	copy_global_linux_resources(path('target/deb'))
 	copy_icons(path('target/deb'))
