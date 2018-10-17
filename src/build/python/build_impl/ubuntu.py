@@ -69,8 +69,6 @@ def _remove_gtk_dependencies():
 def installer():
 	if exists(path('target/deb')):
 		rmtree(path('target/deb'))
-	if exists(path('target/deb-config')):
-		rmtree(path('target/deb-config'))
 	copytree(path('${freeze_dir}'), path('target/deb/opt/fman'))
 	copy_with_filtering(
 		path('src/main/resources/linux-deb'), path('target/deb')
