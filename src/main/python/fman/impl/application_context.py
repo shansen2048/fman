@@ -1,6 +1,6 @@
-from fbs_runtime import system
 from fbs_runtime import application_context as fbs_appctxt
 from fbs_runtime.application_context import cached_property, ApplicationContext
+from fbs_runtime.platform import is_mac
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.controller import Controller
 from fman.impl.excepthook import Excepthook, RollbarExcepthook
@@ -124,7 +124,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return result
 	@cached_property
 	def mac_clipboard_fix(self):
-		if system.is_mac():
+		if is_mac():
 			from fman.impl.mac_clipboard_fix import MacClipboardFix
 			return MacClipboardFix()
 	@cached_property
@@ -176,7 +176,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return 'fman' if self.is_licensed else 'fman – NOT REGISTERED'
 	@cached_property
 	def help_menu_actions(self):
-		if system.is_mac():
+		if is_mac():
 			def app_command(name):
 				return lambda _: \
 					self.plugin_support.run_application_command(name)
@@ -470,7 +470,7 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 			self.fman_version, self.plugin_error_handler
 		)
 	def _should_auto_update(self):
-		if not system.is_mac():
+		if not is_mac():
 			# On Windows and Linux, auto-updates are handled by external
 			# technologies. No need for fman itself to update:
 			return False

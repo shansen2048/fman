@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_mac, is_windows
+from fbs_runtime.platform import is_mac, is_windows
 from fman import load_json
 from fman.impl.onboarding import Tour, TourStep
 from fman.impl.util import is_below_dir

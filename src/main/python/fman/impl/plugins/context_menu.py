@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from fbs_runtime.system import is_mac
+from fbs_runtime.platform import is_mac
 from fman.impl.plugins.util import describe_type, ordered_set
 
 import json

@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_windows
+from fbs_runtime.platform import is_windows
 from fman.url import as_url, dirname, relpath, as_human_readable
 from unittest import TestCase, skipIf
 

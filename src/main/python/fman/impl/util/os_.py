@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_windows, is_mac, is_linux
+from fbs_runtime.platform import is_windows, is_mac, is_linux
 
 import platform
 

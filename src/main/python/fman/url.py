@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_windows
+from fbs_runtime.platform import is_windows
 from fman.impl.util.path import parent
 from pathlib import PurePath
 

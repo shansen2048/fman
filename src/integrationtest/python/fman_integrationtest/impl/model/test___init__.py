@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from core import Name, Size
-from fbs_runtime.system import is_linux
+from fbs_runtime.platform import is_linux
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.plugins.builtin import NullFileSystem, NullColumn
 from fman.impl.plugins.mother_fs import MotherFileSystem

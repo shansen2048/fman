@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_mac
+from fbs_runtime.platform import is_mac
 from fman.impl.util.qt.key_event import QtKeyEvent
 from PyQt5.QtCore import Qt
 from unittest import TestCase

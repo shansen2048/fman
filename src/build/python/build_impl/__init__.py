@@ -1,6 +1,6 @@
 from build_impl.aws import upload_to_s3
 from fbs import SETTINGS, path
-from fbs.platform import is_windows, is_mac, is_linux
+from fbs_runtime.platform import is_windows, is_mac, is_linux
 from importlib import import_module
 from os import makedirs, readlink, symlink, remove, getcwd, chdir, listdir
 from os.path import dirname, join, islink, isdir, basename

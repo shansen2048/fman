@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_mac
+from fbs_runtime.platform import is_mac
 from fman.impl.util.qt import WA_MacShowFocusRect, Key_Home, Key_End, \
 	ShiftModifier, Key_Return, Key_Enter, ToolTipRole, connect_once
 from fman.impl.view.drag_and_drop import DragAndDrop

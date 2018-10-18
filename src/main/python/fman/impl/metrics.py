@@ -1,5 +1,5 @@
 from collections import deque
-from fbs_runtime.system import is_linux
+from fbs_runtime.platform import is_linux
 from http.client import HTTPException
 from os import makedirs
 from os.path import dirname, exists

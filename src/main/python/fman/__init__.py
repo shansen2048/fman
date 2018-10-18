@@ -2,7 +2,7 @@ from . import clipboard
 from .url import dirname
 from .impl.task import StubProgressDialog, ChildProgressDialog
 from contextlib import contextmanager
-from fbs_runtime import system
+from fbs_runtime import platform
 from os import getenv
 from os.path import join, expanduser
 from PyQt5.QtWidgets import QMessageBox
@@ -33,7 +33,7 @@ CANCEL = QMessageBox.Cancel
 
 FMAN_VERSION = ''
 
-PLATFORM = system.name()
+PLATFORM = platform.name()
 
 if PLATFORM == 'Windows':
 	DATA_DIRECTORY = join(getenv('APPDATA'), 'fman')

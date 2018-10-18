@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_mac
+from fbs_runtime.platform import is_mac
 from fman.impl.onboarding import Tour, TourStep
 from fman.url import basename
 

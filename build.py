@@ -9,8 +9,8 @@ from build_impl.docker import build_docker_image, run_docker_image
 from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean
 from fbs.cmdline import command
-from fbs.platform import is_windows, is_mac, is_linux, is_ubuntu, is_fedora, \
-	is_arch_linux
+from fbs_runtime.platform import is_windows, is_mac, is_linux, is_ubuntu, \
+	is_fedora, is_arch_linux
 from os.path import dirname
 
 import fbs.cmdline

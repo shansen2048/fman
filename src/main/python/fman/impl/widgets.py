@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_windows, is_mac
+from fbs_runtime.platform import is_windows, is_mac
 from fman import OK
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.quicksearch import Quicksearch

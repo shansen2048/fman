@@ -1,5 +1,5 @@
 from fbs import SETTINGS
-from fbs.platform import is_windows
+from fbs_runtime.platform import is_windows
 from os.path import join, relpath
 from time import time
 

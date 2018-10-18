@@ -1,4 +1,4 @@
-from fbs_runtime.system import is_mac
+from fbs_runtime.platform import is_mac
 from fman import show_alert, YES, NO, run_application_command, load_json, \
 	save_json, DATA_DIRECTORY, unload_plugin, load_plugin
 from fman.fs import is_dir
