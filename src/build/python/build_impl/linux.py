@@ -1,9 +1,7 @@
 from build_impl import copy_python_library
 from fbs import path
-from fbs.resources import copy_with_filtering, get_icons
-from os import makedirs, remove
-from os.path import join, dirname
-from shutil import copy, rmtree
+from os import remove
+from shutil import rmtree
 
 def postprocess_exe():
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/mac'))
@@ -19,22 +17,3 @@ def postprocess_exe():
 	# .../resources/linux for one plugin.)
 	remove(path('${core_plugin_in_freeze_dir}/Roboto Bold.ttf'))
 	copy_python_library('send2trash', path('${core_plugin_in_freeze_dir}'))
-
-def copy_global_linux_resources(dest_dir):
-	source_dir = 'src/main/resources/linux-global'
-	copy_with_filtering(
-		path(source_dir), dest_dir,
-		files_to_filter=[
-			path(source_dir + '/usr/bin/fman'),
-			path(source_dir + '/usr/share/applications/fman.desktop')
-		]
-	)
-	_copy_icons(dest_dir)
-
-def _copy_icons(root_path):
-	icons_root = join(root_path, 'usr', 'share', 'icons', 'hicolor')
-	makedirs(icons_root)
-	for size, icon_path in get_icons():
-		dest_path = join(icons_root, '%dx%d' % (size, size), 'apps', 'fman.png')
-		makedirs(dirname(dest_path))
-		copy(icon_path, dest_path)

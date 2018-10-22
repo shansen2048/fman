@@ -1,12 +1,13 @@
 from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
-from build_impl.linux import copy_global_linux_resources, postprocess_exe
+from build_impl.linux import postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
+from fbs.installer.linux import generate_installer_files
 from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import exists, join, expanduser
-from shutil import rmtree, copytree, copy
+from shutil import rmtree, copy
 from subprocess import run, Popen, PIPE, TimeoutExpired, CalledProcessError
 
 import hashlib
@@ -25,10 +26,7 @@ def freeze():
 
 @command
 def installer():
-	if exists(path('target/installer')):
-		rmtree(path('target/installer'))
-	copytree(path('${freeze_dir}'), path('target/installer/opt/fman'))
-	copy_global_linux_resources(path('target/installer'))
+	generate_installer_files()
 	copy(path('conf/linux/public.gpg-key'), path('target/installer/opt/fman'))
 	# Avoid pacman warning "directory permissions differ" when installing:
 	run(['chmod', 'g-w', '-R', path('target/installer')], check=True)

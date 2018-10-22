@@ -1,13 +1,13 @@
 from build_impl import check_output_decode, remove_if_exists, SETTINGS, \
 	upload_installer_to_aws, upload_file, run_on_server, get_path_on_server
-from build_impl.linux import copy_global_linux_resources, postprocess_exe
+from build_impl.linux import postprocess_exe
 from fbs import path
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
-from fbs.resources import copy_with_filtering
+from fbs.installer.linux import generate_installer_files
 from os import makedirs
-from os.path import exists, join, basename
-from shutil import rmtree, copytree, copy
+from os.path import join, basename
+from shutil import copy
 from subprocess import run
 from tempfile import TemporaryDirectory
 
@@ -66,13 +66,7 @@ def _remove_gtk_dependencies():
 
 @command
 def installer():
-	if exists(path('target/installer')):
-		rmtree(path('target/installer'))
-	copytree(path('${freeze_dir}'), path('target/installer/opt/fman'))
-	copy_with_filtering(
-		path('src/main/resources/ubuntu-global'), path('target/installer')
-	)
-	copy_global_linux_resources(path('target/installer'))
+	generate_installer_files()
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',
 		'-v', SETTINGS['version'],
