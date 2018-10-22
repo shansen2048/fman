@@ -1,6 +1,5 @@
 from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
-from build_impl.linux import copy_global_linux_resources, copy_icons, \
-	postprocess_exe
+from build_impl.linux import copy_global_linux_resources, postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
@@ -31,7 +30,6 @@ def installer():
 	copytree(path('${freeze_dir}'), path('target/arch-pkg/opt/fman'))
 	copy_global_linux_resources(path('target/arch-pkg'))
 	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
-	copy_icons(path('target/arch-pkg'))
 	# Avoid pacman warning "directory permissions differ" when installing:
 	run(['chmod', 'g-w', '-R', path('target/arch-pkg')], check=True)
 	version = SETTINGS['version']

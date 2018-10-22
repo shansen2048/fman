@@ -29,8 +29,9 @@ def copy_global_linux_resources(dest_dir):
 			path(source_dir + '/usr/share/applications/fman.desktop')
 		]
 	)
+	_copy_icons(dest_dir)
 
-def copy_icons(root_path):
+def _copy_icons(root_path):
 	icons_root = join(root_path, 'usr', 'share', 'icons', 'hicolor')
 	makedirs(icons_root)
 	for size, icon_path in get_icons():
