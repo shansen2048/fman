@@ -66,13 +66,13 @@ def _remove_gtk_dependencies():
 
 @command
 def installer():
-	if exists(path('target/deb')):
-		rmtree(path('target/deb'))
-	copytree(path('${freeze_dir}'), path('target/deb/opt/fman'))
+	if exists(path('target/installer')):
+		rmtree(path('target/installer'))
+	copytree(path('${freeze_dir}'), path('target/installer/opt/fman'))
 	copy_with_filtering(
-		path('src/main/resources/ubuntu-global'), path('target/deb')
+		path('src/main/resources/ubuntu-global'), path('target/installer')
 	)
-	copy_global_linux_resources(path('target/deb'))
+	copy_global_linux_resources(path('target/installer'))
 	run([
 		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',
 		'-v', SETTINGS['version'],
@@ -81,7 +81,7 @@ def installer():
 		'--vendor', SETTINGS['author'],
 		'--url', 'https://fman.io',
 		'-p', path('target/fman.deb'),
-		'-f', '-C', path('target/deb')
+		'-f', '-C', path('target/installer')
 	], check=True)
 
 @command

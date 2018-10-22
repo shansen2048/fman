@@ -25,13 +25,13 @@ def freeze():
 
 @command
 def installer():
-	if exists(path('target/arch-pkg')):
-		rmtree(path('target/arch-pkg'))
-	copytree(path('${freeze_dir}'), path('target/arch-pkg/opt/fman'))
-	copy_global_linux_resources(path('target/arch-pkg'))
-	copy(path('conf/linux/public.gpg-key'), path('target/arch-pkg/opt/fman'))
+	if exists(path('target/installer')):
+		rmtree(path('target/installer'))
+	copytree(path('${freeze_dir}'), path('target/installer/opt/fman'))
+	copy_global_linux_resources(path('target/installer'))
+	copy(path('conf/linux/public.gpg-key'), path('target/installer/opt/fman'))
 	# Avoid pacman warning "directory permissions differ" when installing:
-	run(['chmod', 'g-w', '-R', path('target/arch-pkg')], check=True)
+	run(['chmod', 'g-w', '-R', path('target/installer')], check=True)
 	version = SETTINGS['version']
 	args = [
 		'fpm', '-s', 'dir', '-t', 'pacman', '-n', 'fman',
@@ -45,7 +45,7 @@ def installer():
 		args.extend(['-d', dep])
 	args.extend([
 		'-p', path(SETTINGS['arch_pkg']),
-		'-f', '-C', path('target/arch-pkg')
+		'-f', '-C', path('target/installer')
 	])
 	run(args, check=True)
 

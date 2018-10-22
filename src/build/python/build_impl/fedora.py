@@ -29,7 +29,7 @@ def freeze():
 
 @command
 def installer():
-	dest_dir = path('target/rpm')
+	dest_dir = path('target/installer')
 	if exists(dest_dir):
 		rmtree(dest_dir)
 	copytree(path('${freeze_dir}'), join(dest_dir, 'opt', 'fman'))
