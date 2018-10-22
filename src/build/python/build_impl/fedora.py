@@ -5,7 +5,6 @@ from build_impl.linux import postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
-from fbs.installer.linux import generate_installer_files
 from fnmatch import fnmatch
 from os import remove, makedirs
 from os.path import exists, join, dirname
@@ -27,20 +26,6 @@ def freeze():
 	remove(path('${freeze_dir}/libgio-2.0.so.0'))
 	remove(path('${freeze_dir}/libglib-2.0.so.0'))
 	postprocess_exe()
-
-@command
-def installer():
-	generate_installer_files()
-	run([
-		'fpm', '-s', 'dir', '-t', 'rpm', '-n', 'fman',
-		'-v', SETTINGS['version'],
-		'--description', SETTINGS['description'],
-		'-m', '%s <%s>' % (SETTINGS['author'], SETTINGS['author_email']),
-		'--vendor', SETTINGS['author'],
-		'--url', 'https://fman.io',
-		'-p', path('target/fman.rpm'),
-		'-f', '-C', path('target/installer')
-	], check=True)
 
 @command
 def sign_installer():

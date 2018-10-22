@@ -8,7 +8,6 @@ from fbs.installer.linux import generate_installer_files
 from os import makedirs
 from os.path import join, basename
 from shutil import copy
-from subprocess import run
 from tempfile import TemporaryDirectory
 
 import re
@@ -63,20 +62,6 @@ def _remove_gtk_dependencies():
 			# can run on Ubuntu 17.04+:
 			if so_name != 'libpng12.so.0':
 				remove_if_exists(path('${freeze_dir}/' + so_name))
-
-@command
-def installer():
-	generate_installer_files()
-	run([
-		'fpm', '-s', 'dir', '-t', 'deb', '-n', 'fman',
-		'-v', SETTINGS['version'],
-		'--description', SETTINGS['description'],
-		'-m', '%s <%s>' % (SETTINGS['author'], SETTINGS['author_email']),
-		'--vendor', SETTINGS['author'],
-		'--url', 'https://fman.io',
-		'-p', path('target/fman.deb'),
-		'-f', '-C', path('target/installer')
-	], check=True)
 
 @command
 def upload():

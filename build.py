@@ -23,12 +23,13 @@ elif is_mac():
 	from build_impl.mac import freeze, sign, sign_installer, upload
 	from fbs.builtin_commands import installer
 elif is_linux():
+	from fbs.builtin_commands import installer
 	if is_ubuntu():
-		from build_impl.ubuntu import freeze, installer, upload
+		from build_impl.ubuntu import freeze, upload
 	elif is_arch_linux():
-		from build_impl.arch import freeze, installer, sign_installer, upload
+		from build_impl.arch import freeze, sign_installer, upload
 	elif is_fedora():
-		from build_impl.fedora import freeze, installer, sign_installer, upload
+		from build_impl.fedora import freeze, sign_installer, upload
 	else:
 		raise NotImplementedError()
 
