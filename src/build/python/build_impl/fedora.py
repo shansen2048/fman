@@ -4,9 +4,9 @@ from build_impl.aws import list_files_on_s3, download_file_from_s3, \
 from build_impl.linux import postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
-from fbs.freeze.linux import freeze_linux
+from fbs.freeze.fedora import freeze_fedora
 from fnmatch import fnmatch
-from os import remove, makedirs
+from os import makedirs
 from os.path import exists, join, dirname
 from shutil import rmtree, copytree, copy
 from subprocess import run, PIPE
@@ -15,16 +15,12 @@ import re
 
 @command
 def freeze():
-	freeze_linux(extra_pyinstaller_args=[
+	freeze_fedora(extra_pyinstaller_args=[
 		'--hidden-import', 'pgi.overrides.GObject',
 		'--hidden-import', 'pgi.overrides.GLib',
 		# Dependency of the Core plugin:
 		'--hidden-import', 'pty'
 	])
-	# Force Fedora to use the system's Gnome libraries. This avoids warnings
-	# when starting fman on the command line.
-	remove(path('${freeze_dir}/libgio-2.0.so.0'))
-	remove(path('${freeze_dir}/libglib-2.0.so.0'))
 	postprocess_exe()
 
 @command

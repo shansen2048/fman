@@ -3,7 +3,7 @@ from build_impl import check_output_decode, remove_if_exists, SETTINGS, \
 from build_impl.linux import postprocess_exe
 from fbs import path
 from fbs.cmdline import command
-from fbs.freeze.linux import freeze_linux
+from fbs.freeze.ubuntu import freeze_ubuntu
 from os import makedirs
 from os.path import join, basename
 from shutil import copy
@@ -13,24 +13,13 @@ import re
 
 @command
 def freeze():
-	freeze_linux(extra_pyinstaller_args=[
+	freeze_ubuntu(extra_pyinstaller_args=[
 		'--hidden-import', 'pgi.overrides.GObject',
 		'--hidden-import', 'pgi.overrides.GLib',
 		# Dependency of the Core plugin:
 		'--hidden-import', 'pty'
 	])
 	postprocess_exe()
-	# When we build on Ubuntu on 14.04 and run on 17.10, fman fails to start
-	# with the following error:
-	#
-	#     This application failed to start because it could not find or load the
-	#     Qt platform plugin "xcb" in "". Available platform plugins are:
-	#     eglfs, linuxfb, minimal, minimalegl, offscreen, vnc, xcb.
-	#
-	# Interestingly, the error does not occur when building on Ubuntu 16.04.
-	# The difference between the two build outputs seems to be
-	# libgpg-error.so.0. Removing it fixes the problem:
-	remove_if_exists(path('${freeze_dir}/libgpg-error.so.0'))
 	# We're using Python library `pgi` instead of `gi`, `GObject` or other more
 	# well-known alternatives. PyInstaller does not know how to handle this
 	# properly and includes .so files it shouldn't include. In particular, we
