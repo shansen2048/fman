@@ -4,7 +4,6 @@ from build_impl.linux import postprocess_exe
 from fbs import path
 from fbs.cmdline import command
 from fbs.freeze.linux import freeze_linux
-from fbs.installer.linux import generate_installer_files
 from os import makedirs
 from os.path import join, basename
 from shutil import copy
