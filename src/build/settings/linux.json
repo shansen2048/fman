@@ -1,3 +1,7 @@
 {
-	"hidden_imports": ["pty"]
+	"hidden_imports": ["pty"],
+	"resources_to_filter": [
+		"src/main/resources/linux-global/usr/bin/fman",
+		"src/main/resources/linux-global/usr/share/applications/fman.desktop"
+	]
 }

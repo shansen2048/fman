@@ -10,24 +10,17 @@
 	"test_dirs": [
 		"src/main/resources/base/Plugins/Core"
 	],
-	"mac_bundle_identifier": "io.fman.fman",
 	"release": false,
 	"environment": "local",
 	"server_url": "http://127.0.0.1:8000",
-	"appcast_url": "${server_url}/updates/Appcast.xml",
 	"record_release_url": "${server_url}/api/record-release/",
 	"server_api_secret": "k92XhhhmOf8rD7QJ",
-	"info_plist_extra": "<key>NSAppTransportSecurity</key>\n\t<dict>\n\t\t<key>NSAllowsArbitraryLoads</key>\n\t\t<true/>\n\t</dict>",
 	"local_media_dir": "../fman.io/media",
 	"server_media_dir": "/home/fman/src/media",
 	"server_user": "fman@fman.io",
 	"ssh_key": "conf/ssh/id_rsa",
 	"resources_to_filter": [
-		"src/main/resources/base/constants.json",
-		"src/main/resources/mac-frozen/Contents/Info.plist",
-		"src/main/resources/mac-frozen/Contents/SharedSupport/bin/fman",
-		"src/main/resources/linux-global/usr/bin/fman",
-		"src/main/resources/linux-global/usr/share/applications/fman.desktop"
+		"src/main/resources/base/constants.json"
 	],
 	"gpg_key": "B015FE599CFAF7EB",
 	"gpg_name": "Michael Herrmann",
