@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from core import Name, Size
 from fbs_runtime.platform import is_linux
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.plugins.builtin import NullFileSystem, NullColumn
@@ -219,6 +218,11 @@ class SortedFileSystemModelAT: # Instantiated in fman_integrationtest.test_qt
 			files, default_columns=('core.Name', 'core.Size')
 		)
 		self._fs.add_child('stub://', self._stubfs)
+		# Import late to avoid ImportError. The reason it occurs is that fbs's
+		# `test` command adds fman_integrationtest to sys.path before Core.
+		# That's fair; It's actually unclean for this test to depend on Core.
+		# But it is also very useful as a kind of end-to-end test. So we do it.
+		from core import Name, Size
 		self._name_column = Name(self._fs)
 		self._register_column(self._name_column)
 		self._size_column = Size(self._fs)
