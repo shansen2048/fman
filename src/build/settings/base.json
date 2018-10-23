@@ -8,9 +8,7 @@
 	"main_module": "src/main/python/fman/main.py",
 	"freeze_dir": "target/${app_name}",
 	"test_dirs": [
-		"src/unittest/python",
-		"src/main/resources/base/Plugins/Core",
-		"src/integrationtest/python"
+		"src/main/resources/base/Plugins/Core"
 	],
 	"mac_bundle_identifier": "io.fman.fman",
 	"release": false,
