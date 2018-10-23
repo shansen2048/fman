@@ -423,9 +423,6 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return join(DATA_DIRECTORY, 'Local', *rel_path)
 
 class FrozenApplicationContext(DevelopmentApplicationContext):
-	def __init__(self):
-		super().__init__()
-		self._updater = None
 	def init_logging(self):
 		logging.basicConfig(level=logging.CRITICAL)
 	def on_main_window_shown(self):
