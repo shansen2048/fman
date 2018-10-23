@@ -15,10 +15,7 @@ _UPDATES_DIR = 'updates/mac'
 
 @command
 def freeze():
-	freeze_mac(extra_pyinstaller_args=[
-		# Dependency of the Core plugin:
-		'--hidden-import', 'pty'
-	])
+	freeze_mac()
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/linux'))
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/windows'))
 	# Open Sans is only used on Linux. Further, it fails to load on some users'

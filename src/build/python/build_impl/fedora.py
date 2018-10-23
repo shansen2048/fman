@@ -15,12 +15,7 @@ import re
 
 @command
 def freeze():
-	freeze_fedora(extra_pyinstaller_args=[
-		'--hidden-import', 'pgi.overrides.GObject',
-		'--hidden-import', 'pgi.overrides.GLib',
-		# Dependency of the Core plugin:
-		'--hidden-import', 'pty'
-	])
+	freeze_fedora()
 	postprocess_exe()
 
 @command

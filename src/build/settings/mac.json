@@ -1,4 +1,5 @@
 {
 	"freeze_dir": "target/fman.app",
-	"core_plugin_in_freeze_dir": "${freeze_dir}/Contents/Resources/Plugins/Core"
+	"core_plugin_in_freeze_dir": "${freeze_dir}/Contents/Resources/Plugins/Core",
+	"hidden_imports": ["pty"]
 }

@@ -1,0 +1,6 @@
+{
+	"hidden_imports": [
+		"ctypes.wintypes", "adodbapi", "win32com.shell.shell",
+		"win32com.shell.shellcon", "win32gui", "winpty"
+	]
+}

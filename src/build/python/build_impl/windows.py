@@ -32,16 +32,7 @@ def _install_go_dependencies():
 
 @command
 def freeze():
-	freeze_windows(extra_pyinstaller_args=[
-		# Required by send2trash, which is used in the Core plugin:
-		'--hidden-import', 'ctypes.wintypes',
-		# Required by the Core plugin:
-		'--hidden-import', 'adodbapi',
-		'--hidden-import', 'win32com.shell.shell',
-		'--hidden-import', 'win32com.shell.shellcon',
-		'--hidden-import', 'win32gui',
-		'--hidden-import', 'winpty'
-	])
+	freeze_windows()
 	_copy_winpty_files()
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/mac'))
 	rmtree(path('${core_plugin_in_freeze_dir}/bin/linux'))

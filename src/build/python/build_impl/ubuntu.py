@@ -13,12 +13,7 @@ import re
 
 @command
 def freeze():
-	freeze_ubuntu(extra_pyinstaller_args=[
-		'--hidden-import', 'pgi.overrides.GObject',
-		'--hidden-import', 'pgi.overrides.GLib',
-		# Dependency of the Core plugin:
-		'--hidden-import', 'pty'
-	])
+	freeze_ubuntu()
 	postprocess_exe()
 	# We're using Python library `pgi` instead of `gi`, `GObject` or other more
 	# well-known alternatives. PyInstaller does not know how to handle this

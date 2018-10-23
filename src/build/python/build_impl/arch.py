@@ -2,7 +2,7 @@ from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
 from build_impl.linux import postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
-from fbs.freeze.linux import freeze_linux
+from fbs.freeze.arch import freeze_arch
 from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import exists, join, expanduser
@@ -14,10 +14,7 @@ import os
 
 @command
 def freeze():
-	freeze_linux(extra_pyinstaller_args=[
-		# Dependency of the Core plugin:
-		'--hidden-import', 'pty'
-	])
+	freeze_arch()
 	postprocess_exe()
 
 @command
