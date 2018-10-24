@@ -1,7 +1,7 @@
 from build_impl import upload_installer_to_aws
 from build_impl.aws import list_files_on_s3, download_file_from_s3, \
 	upload_directory_contents, create_cloudfront_invalidation
-from build_impl.linux import postprocess_exe
+from build_impl.linux import postprocess_exe, preset_gpg_passphrase
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.fedora import freeze_fedora
@@ -9,9 +9,7 @@ from fnmatch import fnmatch
 from os import makedirs
 from os.path import exists, join, dirname
 from shutil import rmtree, copytree, copy
-from subprocess import run, PIPE
-
-import re
+from subprocess import check_call, DEVNULL
 
 @command
 def freeze():
@@ -21,27 +19,8 @@ def freeze():
 @command
 def sign_installer():
 	# Prevent GPG from prompting us for the passphrase when signing:
-	_preload_gpg_passphrase()
-	run(['rpm', '--addsign', path('target/fman.rpm')])
-
-def _preload_gpg_passphrase():
-	keygrip = _get_keygrip(SETTINGS['gpg_key'])
-	_run(
-		'/usr/libexec/gpg-preset-passphrase', '--passphrase',
-		 SETTINGS['gpg_pass'], '--preset', keygrip
-	)
-
-def _get_keygrip(pubkey_id):
-	output = _run('gpg2', '--with-keygrip', '-K', pubkey_id)
-	lines = output.split('\n')
-	for i, line in enumerate(lines):
-		if line.endswith('[S]'):
-			keygrip_line = lines[i + 1]
-			m = re.match(r' +Keygrip = ([A-Z0-9]{40})', keygrip_line)
-			if not m:
-				raise RuntimeError('Unexpected output: ' + keygrip_line)
-			return m.group(1)
-	raise RuntimeError('Keygrip not found. Output was:\n' + output)
+	preset_gpg_passphrase()
+	check_call(['rpm', '--addsign', path('target/fman.rpm')], stdout=DEVNULL)
 
 @command
 def upload():
@@ -62,9 +41,9 @@ def _create_rpm_repo():
 	except FileNotFoundError:
 		makedirs(path('target/server'))
 	makedirs(path('target/server/rpm'), exist_ok=True)
-	run(
+	check_call(
 		['createrepo_c', '-o', 'rpm', '--location-prefix', '..', '.'],
-		check=True, cwd=(path('target/server'))
+		cwd=(path('target/server'))
 	)
 	copy(path('src/build/rpm/fman.repo'), path('target/server/rpm'))
 	copy(
@@ -80,6 +59,3 @@ def _download_missing_files_from_aws(pattern, dest):
 		if not exists(dest_path):
 			makedirs(dirname(dest_path), exist_ok=True)
 			download_file_from_s3(file_path, dest_path)
-
-def _run(*command):
-	return run(command, stdout=PIPE, universal_newlines=True, check=True).stdout

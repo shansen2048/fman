@@ -1,4 +1,5 @@
 {
 	"depends": ["qt5-base", "p7zip"],
-	"depends_opt": ["qt5-svg"]
+	"depends_opt": ["qt5-svg"],
+	"gpg_preset_passphrase": "/usr/lib/gnupg/gpg-preset-passphrase"
 }

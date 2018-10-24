@@ -1,5 +1,5 @@
 from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
-from build_impl.linux import postprocess_exe
+from build_impl.linux import postprocess_exe, preset_gpg_passphrase
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.arch import freeze_arch
@@ -7,7 +7,7 @@ from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import exists, join, expanduser
 from shutil import rmtree, copy
-from subprocess import run, Popen, PIPE, TimeoutExpired, CalledProcessError
+from subprocess import check_call, run, PIPE, DEVNULL
 
 import hashlib
 import os
@@ -19,19 +19,14 @@ def freeze():
 
 @command
 def sign_installer():
+	# Prevent GPG from prompting us for the passphrase when signing:
+	preset_gpg_passphrase()
 	pkg_file = path('target/${installer}')
-	cmd = [
-		'gpg', '--batch', '--yes', '--pinentry-mode', 'loopback',
-		'--passphrase-fd', '0', '-u', '0x%s!' % SETTINGS['gpg_key'],
-		'--output', pkg_file + '.sig', '--detach-sig', pkg_file
-	]
-	process = Popen(cmd, stdin=PIPE, universal_newlines=True)
-	try:
-		process.communicate(('%s\n' % SETTINGS['gpg_pass']) * 2, timeout=15)
-	except TimeoutExpired:
-		process.kill()
-		stdout, stderr = process.communicate()
-		raise CalledProcessError(process.returncode, cmd, stdout, stderr)
+	check_call(
+		['gpg', '--batch', '--yes', '-u', '0x%s!' % SETTINGS['gpg_key'],
+		'--output', pkg_file + '.sig', '--detach-sig', pkg_file],
+		stdout=DEVNULL
+	)
 
 @command
 def upload():
@@ -50,11 +45,11 @@ def _generate_repo():
 	pkg_file = path('target/${installer}')
 	copy(pkg_file, join(repo_dir, pkg_file_versioned))
 	copy(pkg_file + '.sig', join(repo_dir, pkg_file_versioned + '.sig'))
-	run([
+	check_call([
 		'repo-add', 'fman.db.tar.gz', pkg_file_versioned
-	], cwd=repo_dir, check=True)
+	], cwd=repo_dir)
 	# Ensure the permissions on the server are correct:
-	run(['chmod', 'g-w', '-R', repo_dir], check=True)
+	check_call(['chmod', 'g-w', '-R', repo_dir])
 
 def _upload_to_AUR():
 	if exists(path('target/AUR')):
@@ -64,7 +59,7 @@ def _upload_to_AUR():
 	env['GIT_SSH_COMMAND'] = 'ssh -i ' + SETTINGS['ssh_key']
 	cwd = path('target/AUR')
 	def git(*args):
-		run(['git'] + list(args), cwd=cwd, env=env, check=True)
+		check_call(['git'] + list(args), cwd=cwd, env=env)
 	_add_to_known_hosts('aur.archlinux.org')
 	git('clone', 'ssh://aur@aur.archlinux.org/fman.git')
 	_generate_pkgbuild(path('target/AUR/fman'))
