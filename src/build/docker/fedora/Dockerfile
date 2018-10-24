@@ -25,7 +25,7 @@ WORKDIR /tmp
 RUN dnf install -y createrepo_c
 
 RUN dnf install -y gpg rpm-sign && \
-    gpg --batch --yes --passphrase ${gpg_pass} --import private.gpg-key public.gpg-key && \
+    gpg -q --batch --yes --passphrase ${gpg_pass} --import private.gpg-key public.gpg-key && \
     rpm --import public.gpg-key && \
     rm private.gpg-key public.gpg-key
 
