@@ -45,7 +45,10 @@ def _create_rpm_repo():
 		['createrepo_c', '-o', 'rpm', '--location-prefix', '..', '.'],
 		cwd=(path('target/server'))
 	)
-	copy(path('src/build/rpm/fman.repo'), path('target/server/rpm'))
+	copy(
+		path('src/main/resources/fedora-repo/fman.repo'),
+		path('target/server/rpm')
+	)
 	copy(
 		path('conf/linux/public.gpg-key'),
 		path('target/server/rpm/public.gpg')
