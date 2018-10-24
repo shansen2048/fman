@@ -4,6 +4,7 @@ from build_impl.linux import postprocess_exe
 from fbs import path
 from fbs.cmdline import command
 from fbs.freeze.ubuntu import freeze_ubuntu
+from fbs.resources import copy_with_filtering
 from os import makedirs
 from os.path import join, basename
 from shutil import copy
@@ -67,7 +68,12 @@ def _upload_deb():
 			path('src/main/resources/linux-deb-upload/reprepro_no_pw_prompt.sh'),
 			tmp_dir_local
 		)
-		_generate_reprepro_distributions_file(tmp_dir_local)
+		distr_file = path('src/main/resources/ubuntu-repo/distributions')
+		distr_file_dest_dir = join(tmp_dir_local, 'reprepro', 'conf')
+		makedirs(distr_file_dest_dir)
+		copy_with_filtering(
+			distr_file, distr_file_dest_dir, files_to_filter=[distr_file]
+		)
 		upload_file(tmp_dir_local, '/tmp')
 		tmp_dir_remote = '/tmp/' + basename(tmp_dir_local)
 	try:
@@ -102,17 +108,3 @@ def _upload_deb():
 
 def _get_deb_name(architecture='amd64'):
 	return 'fman_%s_%s.deb' % (SETTINGS['version'], architecture)
-
-def _generate_reprepro_distributions_file(dest_dir):
-	conf_dir = join(dest_dir, 'reprepro', 'conf')
-	makedirs(conf_dir)
-	with open(join(conf_dir, 'distributions'), 'w') as f:
-		f.write('\n'.join([
-			'Origin: fman',
-			'Label: fman',
-			'Codename: stable',
-			'Architectures: amd64',
-			'Components: main',
-			'Description: ' + SETTINGS['description'],
-			'SignWith: ' + SETTINGS['gpg_key']
-		]) + '\n\n')
