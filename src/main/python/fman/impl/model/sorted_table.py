@@ -38,7 +38,7 @@ class SortFilterTableModel(TableModel):
 	def _accepts(self, row):
 		return all(f(row.key) for f in self._filters)
 	def sort(self, column, order=Qt.AscendingOrder):
-		ascending = order == Qt. AscendingOrder
+		ascending = order == Qt.AscendingOrder
 		if (column, ascending) == (self._sort_column, self._sort_ascending):
 			return
 		self.layoutAboutToBeChanged.emit([], self.VerticalSortHint)
