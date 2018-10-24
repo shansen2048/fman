@@ -19,12 +19,6 @@ def freeze():
 
 @command
 def sign_installer():
-	gpg_pw = SETTINGS['gpg_pass']
-	run([
-		'gpg', '--batch', '--yes', '--passphrase', gpg_pw,
-		'--import', path('conf/linux/private.gpg-key'),
-		path('conf/linux/public.gpg-key')
-	]) # Don't check=True because the call fails if the key is already installed
 	pkg_file = path('target/${installer}')
 	cmd = [
 		'gpg', '--batch', '--yes', '--pinentry-mode', 'loopback',
@@ -33,7 +27,7 @@ def sign_installer():
 	]
 	process = Popen(cmd, stdin=PIPE, universal_newlines=True)
 	try:
-		process.communicate(('%s\n' % gpg_pw) * 2, timeout=15)
+		process.communicate(('%s\n' % SETTINGS['gpg_pass']) * 2, timeout=15)
 	except TimeoutExpired:
 		process.kill()
 		stdout, stderr = process.communicate()

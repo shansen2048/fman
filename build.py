@@ -189,7 +189,14 @@ def _replace_re_group(pattern, string, group_replacement):
 def arch_docker_image():
 	build_docker_image(
 		'arch', 'python',
-		extra_files=[path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')]
+		extra_files=[
+			path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub'),
+			path('conf/linux/private.gpg-key'),
+			path('conf/linux/public.gpg-key')
+		],
+		files_to_filter=[
+			path('src/build/docker/arch/Dockerfile')
+		]
 	)
 
 @command
