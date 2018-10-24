@@ -71,7 +71,7 @@ def _upload_to_AUR():
 def _generate_pkgbuild(dest_dir):
 	with open(path('target/${installer}'), 'rb') as f:
 		sha256 = hashlib.sha256(f.read()).hexdigest()
-	pkgbuild = path('src/main/resources/linux-AUR/PKGBUILD')
+	pkgbuild = path('src/main/resources/arch-repo/PKGBUILD')
 	context = {
 		'author': SETTINGS['author'],
 		'author_email': SETTINGS['author_email'],
@@ -82,7 +82,7 @@ def _generate_pkgbuild(dest_dir):
 		'sha256': sha256
 	}
 	copy_with_filtering(pkgbuild, dest_dir, context, files_to_filter=[pkgbuild])
-	srcinfo = path('src/main/resources/linux-AUR/.SRCINFO')
+	srcinfo = path('src/main/resources/arch-repo/.SRCINFO')
 	context['deps'] = \
 		'\n\t'.join('depends = ' + dep for dep in SETTINGS['depends'])
 	context['opt_deps'] = \
