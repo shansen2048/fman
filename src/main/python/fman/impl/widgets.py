@@ -3,7 +3,7 @@ from fman import OK
 from fman.impl.model import SortedFileSystemModel
 from fman.impl.quicksearch import Quicksearch
 from fman.impl.util.qt import disable_window_animations_mac, Key_Escape, \
-	NoFocus, Key_Backspace
+	NoFocus, Key_Backspace, DisplayRole
 from fman.impl.util.qt.thread import run_in_main_thread
 from fman.impl.view.location_bar import LocationBar
 from fman.impl.view import FileListView, Layout, set_selection
@@ -212,14 +212,30 @@ class FilterBar(QFrame):
 		if event.key() == Key_Escape:
 			self.close()
 			return True
-		text_before = self._input.text()
+		query_before = self._input.text()
 		self._input.keyPressEvent(event)
-		text = self._input.text()
-		result = text != text_before
+		query = self._input.text()
+		result = query != query_before
 		# Prevent Arrow-Left/-Right from changing the cursor position:
-		self._input.setCursorPosition(len(text))
-		self.setVisible(bool(text))
+		self._input.setCursorPosition(len(query))
+		self.setVisible(bool(query))
+		if result:
+			self._select_row_with_prefix(query)
 		return result
+	def _select_row_with_prefix(self, query):
+		query_lower = query.lower()
+		m = self._model
+		def has_required_prefix(index):
+			return m.data(index, DisplayRole).lower().startswith(query_lower)
+		curr = self._file_view.currentIndex()
+		if curr.isValid() and has_required_prefix(curr):
+			# We're already at a row with the required prefix. Nothing to do.
+			return
+		for i in range(m.rowCount()):
+			idx = m.index(i, 0)
+			if has_required_prefix(idx):
+				self._file_view.setCurrentIndex(idx)
+				break
 	def close(self):
 		self.hide()
 		self._input.setText('')
