@@ -26,9 +26,13 @@ def build_docker_image(
 		subprocess.run(['sudo', 'rm', '-rf', cache_dir])
 
 	copy_with_filtering(src_dir, build_dir, replacements, files_to_filter)
+	for p in (
+		'conf/ssh/id_rsa.pub', 'conf/linux/private.gpg-key',
+		'conf/linux/public.gpg-key'
+	):
+		copy(path(p), build_dir)
 	for f in extra_files:
 		copy(f, build_dir)
-	copy(path('conf/ssh/id_rsa.pub'), build_dir)
 	subprocess.run(
 		['docker', 'build', '--pull', '-t', image_name, build_dir], check=True
 	)

@@ -190,9 +190,7 @@ def arch_docker_image():
 	build_docker_image(
 		'arch', 'python',
 		extra_files=[
-			path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub'),
-			path('conf/linux/private.gpg-key'),
-			path('conf/linux/public.gpg-key')
+			path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')
 		],
 		files_to_filter=[
 			path('src/build/docker/arch/Dockerfile')
@@ -203,24 +201,22 @@ def arch_docker_image():
 def ubuntu_docker_image():
 	build_docker_image(
 		'ubuntu', 'python3.5',
-		extra_files=[path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')]
+		extra_files=[
+			path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')
+		],
+		files_to_filter=[
+			path('src/build/docker/ubuntu/Dockerfile')
+		]
 	)
 
 @command
 def fedora_docker_image():
 	build_docker_image(
-		'fedora', 'python3', extra_files=[
-			path('conf/linux/private.gpg-key'),
-			path('conf/linux/public.gpg-key')
-		],
+		'fedora', 'python3',
 		files_to_filter=[
 			path('src/build/docker/fedora/Dockerfile'),
 			path('src/build/docker/fedora/.rpmmacros'),
-		],
-		replacements={
-			'gpg_pass': SETTINGS['gpg_pass'],
-			'gpg_name': SETTINGS['gpg_name']
-		}
+		]
 	)
 
 @command

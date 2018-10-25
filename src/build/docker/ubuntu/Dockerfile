@@ -3,6 +3,13 @@ FROM ubuntu:14.04
 RUN apt-get update && \
     apt-get upgrade -y
 
+# Required for our use of reprepro:
+ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
+RUN apt-get install reprepro gnupg-agent gnupg2 -y
+ADD private.gpg-key public.gpg-key /tmp/
+RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private.gpg-key /tmp/public.gpg-key && \
+    rm /tmp/private.gpg-key /tmp/public.gpg-key
+
 RUN DEBIAN_FRONTEND=noninteractive apt-get install software-properties-common -y && \
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get update && \
@@ -30,9 +37,6 @@ RUN apt-get install gobject-introspection libgtk-3-0 -y
 
 # Add missing file libGL.so.1 for PyQt5.QtGui:
 RUN apt-get install libgl1-mesa-glx -y
-
-# Required for our use of reprepro:
-RUN apt-get install reprepro expect -y
 
 RUN locale-gen en_US.UTF-8
 ADD .bashrc /root/.bashrc
