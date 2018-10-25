@@ -6,7 +6,7 @@ RUN apt-get update && \
 # Required for our use of reprepro:
 ADD gpg-agent.conf gpg.conf /root/.gnupg/
 # Avoid GPG warning "unsafe permissions":
-RUN chmod -r 600 /root/.gnupg/
+RUN chmod -R 600 /root/.gnupg/
 RUN apt-get install reprepro gnupg-agent gnupg2 -y
 ADD private.gpg-key public.gpg-key /tmp/
 RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private.gpg-key /tmp/public.gpg-key && \
