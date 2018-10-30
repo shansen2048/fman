@@ -50,7 +50,7 @@ fmanSetup.exe (Google Omaha installer)
 ======================================
 1)
 hammer -c
-set TIMESTAMP_SERVER=http://tsa.startssl.com/rfc3161
+set TIMESTAMP_SERVER=http://sha256timestamp.ws.symantec.com/sha256/timestamp
 set SHA1_TIMESTAMP_SERVER=%TIMESTAMP_SERVER%
 set SHA2_TIMESTAMP_SERVER=%TIMESTAMP_SERVER%
 set AUTHENTICODE_FILE="c:\Users\Michael\dev\fman\conf\windows\michaelherrmann.pfx"
