@@ -3,6 +3,7 @@ from fman.fs import FileSystem, Column
 from fman.impl.plugins.plugin import Plugin
 from fman.impl.util import filenotfounderror
 from fman.impl.util.qt.thread import run_in_main_thread
+from PyQt5.QtCore import Qt
 
 class BuiltinPlugin(Plugin):
 	def __init__(
@@ -42,20 +43,10 @@ class TourCommand(DirectoryPaneCommand):
 		self._controller.start(self._tour_factory(self.pane), step)
 
 class ToggleFullscreen(ApplicationCommand):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._was_maximized = None
 	@run_in_main_thread
 	def __call__(self):
-		window = self.window._widget
-		if window.isFullScreen():
-			if self._was_maximized:
-				window.showMaximized()
-			else:
-				window.showNormal()
-		else:
-			self._was_maximized = window.isMaximized()
-			window.showFullScreen()
+		w = self.window._widget
+		w.setWindowState(w.windowState() ^ Qt.WindowFullScreen)
 
 class NullFileSystem(FileSystem):
 
