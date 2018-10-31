@@ -1,7 +1,8 @@
-from fman import DirectoryPaneCommand
+from fman import ApplicationCommand, DirectoryPaneCommand
 from fman.fs import FileSystem, Column
 from fman.impl.plugins.plugin import Plugin
 from fman.impl.util import filenotfounderror
+from fman.impl.util.qt.thread import run_in_main_thread
 
 class BuiltinPlugin(Plugin):
 	def __init__(
@@ -25,6 +26,7 @@ class BuiltinPlugin(Plugin):
 
 		self._register_directory_pane_command(Tutorial)
 		self._register_directory_pane_command(CleanupGuide)
+		self._register_application_command(ToggleFullscreen)
 		self._register_file_system(NullFileSystem)
 		self._register_column(NullColumn)
 	@property
@@ -38,6 +40,22 @@ class TourCommand(DirectoryPaneCommand):
 		self._tour_factory = tour_factory
 	def __call__(self, step=0):
 		self._controller.start(self._tour_factory(self.pane), step)
+
+class ToggleFullscreen(ApplicationCommand):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._was_maximized = None
+	@run_in_main_thread
+	def __call__(self):
+		window = self.window._widget
+		if window.isFullScreen():
+			if self._was_maximized:
+				window.showMaximized()
+			else:
+				window.showNormal()
+		else:
+			self._was_maximized = window.isMaximized()
+			window.showFullScreen()
 
 class NullFileSystem(FileSystem):
 
