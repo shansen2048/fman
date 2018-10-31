@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=fman
-Type=Application
-Exec=/opt/fman/fman
-Terminal=false
-NoDisplay=false
-Categories=FileManager;FileTools;Utility;
-Version=${version}
-Icon=fman

@@ -94,7 +94,7 @@ def sign():
 					_sign(file_path)
 
 def _generate_uninstaller():
-	uninstaller_nsi = path('src/main/Uninstaller.nsi')
+	uninstaller_nsi = path('src/installer/windows/Uninstaller.nsi')
 	copy_with_filtering(
 		uninstaller_nsi, path('target'), {'version': SETTINGS['version']},
 		files_to_filter=[uninstaller_nsi]
@@ -165,7 +165,8 @@ def _add_installer_manifest():
 	adding a compatibility manifest to the .exe.
 	"""
 	run([
-		'mt.exe', '-manifest', path('src/main/fmanSetup.exe.manifest'),
+		'mt.exe', '-manifest',
+		path('src/installer/windows/fmanSetup.exe.manifest'),
 		'-outputresource:%s;1' % path('target/fmanSetup.exe')
 	], check=True)
 

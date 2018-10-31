@@ -46,7 +46,7 @@ def _create_rpm_repo():
 		cwd=(path('target/server'))
 	)
 	copy(
-		path('src/main/resources/fedora-repo/fman.repo'),
+		path('src/repo/fedora/fman.repo'),
 		path('target/server/rpm')
 	)
 	copy(

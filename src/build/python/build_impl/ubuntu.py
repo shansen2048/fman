@@ -62,7 +62,7 @@ def _generate_repo():
 	if exists(path('target/upload')):
 		rmtree(path('target/upload'))
 	makedirs(path('target/repo'))
-	distr_file = path('src/main/resources/ubuntu-repo/distributions')
+	distr_file = path('src/repo/ubuntu/distributions')
 	copy_with_filtering(
 		distr_file, path('target/repo'), files_to_filter=[distr_file]
 	)
