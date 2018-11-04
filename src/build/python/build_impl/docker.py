@@ -2,15 +2,14 @@ from fbs import path
 from fbs.resources import copy_with_filtering
 from os import makedirs, listdir
 from os.path import exists, isdir, join
-from shutil import rmtree, copy
+from shutil import rmtree, copy, copytree
 from subprocess import DEVNULL
 
 import subprocess
 import sys
 
 def build_docker_image(
-	name, python_executable, extra_files=None, files_to_filter=None,
-	replacements=None
+	name, extra_files=None, files_to_filter=None, replacements=None
 ):
 	if extra_files is None:
 		extra_files = []
@@ -18,7 +17,6 @@ def build_docker_image(
 	src_dir = path('src/build/docker/' + name)
 	image_name = 'fman/' + name
 	cache_dir = path('cache/' + name)
-	requirements_txt = name + '.txt'
 
 	if exists(build_dir):
 		rmtree(build_dir)
@@ -31,17 +29,13 @@ def build_docker_image(
 		'conf/linux/public.gpg-key'
 	):
 		copy(path(p), build_dir)
+	copytree(path('requirements'), join(build_dir, 'requirements'))
 	for f in extra_files:
 		copy(f, build_dir)
 	subprocess.run(
 		['docker', 'build', '--pull', '-t', image_name, build_dir], check=True
 	)
 	makedirs(cache_dir, exist_ok=True)
-	run_docker_image(image_name, cache_dir, ['/bin/bash', '-c',
-	   python_executable + ' -m venv venv && '
-	   'source venv/bin/activate && '
-	   'python -m pip install -r requirements/' + requirements_txt
-	])
 
 def run_docker_image(image_name, cache_dir, extra_args=None):
 	if extra_args is None:
@@ -58,7 +52,6 @@ def _get_docker_mounts(image_name, cache_dir):
 	target_subdir = path('target/' + image_name.split('/')[1])
 	result = {
 		target_subdir: '/root/dev/fman/target',
-		join(cache_dir, 'venv'): '/root/dev/fman/venv',
 		join(cache_dir, 'cache'): '/root/dev/fman/cache'
 	}
 	for file_name in listdir(path('.')):

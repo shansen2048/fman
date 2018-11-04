@@ -44,3 +44,9 @@ RUN locale-gen en_US.UTF-8
 ADD .bashrc /root/.bashrc
 
 WORKDIR /root/dev/fman
+
+ADD requirements/ /tmp/requirements
+
+RUN python3.5 -m venv venv && \
+    venv/bin/python -m pip install -r /tmp/requirements/ubuntu.txt && \
+    rm -rf /tmp/requirements/

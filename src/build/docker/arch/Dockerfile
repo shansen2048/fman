@@ -41,3 +41,9 @@ RUN sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen && \
 ADD .bashrc /root/.bashrc
 
 WORKDIR /root/dev/fman
+
+ADD requirements/ /tmp/requirements
+
+RUN python -m venv venv && \
+    venv/bin/python -m pip install -r /tmp/requirements/arch.txt && \
+    rm -rf /tmp/requirements/
