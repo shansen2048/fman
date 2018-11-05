@@ -36,7 +36,7 @@ def _create_rpm_repo():
 	copy(path('target/fman.rpm'), path('target/upload/${version}/fman.rpm'))
 	makedirs(path('target/upload/rpm'))
 	check_call(
-		['createrepo_c', '-o', 'rpm', '--location-prefix', '..', '.'],
+		['createrepo_c', '-o', 'rpm', '-u', 'https://download.fman.io', '.'],
 		cwd=(path('target/upload'))
 	)
 	copy(

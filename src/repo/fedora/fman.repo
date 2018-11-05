@@ -2,5 +2,4 @@
 name=fman
 baseurl=https://download.fman.io/rpm
 enabled=1
-gpgcheck=1
-gpgkey=https://download.fman.io/rpm/public.gpg
+gpgcheck=0
