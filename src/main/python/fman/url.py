@@ -1,7 +1,8 @@
 from fbs_runtime.platform import is_windows
-from fman.impl.util.path import parent, resolve
+from fman.impl.util.path import parent
 from pathlib import PurePath
 
+import fman.impl.util.path
 import posixpath
 import re
 
@@ -65,6 +66,6 @@ def relpath(dst, src):
 		)
 	return posixpath.relpath(dst_path, start=src_path)
 
-def resolve_syntactically(url):
+def normalize(url):
 	scheme, path = splitscheme(url)
-	return scheme + resolve(path)
+	return scheme + fman.impl.util.path.normalize(path)

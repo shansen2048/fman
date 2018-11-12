@@ -10,7 +10,7 @@ from fman.fs import exists, touch, mkdir, is_dir, delete, samefile, copy, \
 	iterdir, resolve, prepare_copy, prepare_move, prepare_delete, \
 	FileSystem, prepare_trash, query, makedirs
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
-	dirname, relpath, resolve_syntactically
+	dirname, relpath, normalize
 from getpass import getuser
 from io import UnsupportedOperation
 from itertools import chain, islice
@@ -778,13 +778,13 @@ class CreateDirectory(DirectoryPaneCommand):
 				makedirs(dir_url)
 			except FileExistsError:
 				show_alert("A file with this name already exists!")
-			# Resolve *syntactically* to avoid the following problem:
-			# Say c/ is a symlink to a/b/. We're inside c/ and create d. Then
-			# resolve(c/d) would give a/b/d and the relative path further down
-			# would be ../a/b/d. We could not place the cursor at that. If on
-			# the other hand, we resolve syntactically, then we compute the
-			# relpath from c -> c/d, which does work.
-			effective_url = resolve_syntactically(dir_url)
+			# Use normalize(...) instead of resolve(...) to avoid the following
+			# problem: Say c/ is a symlink to a/b/. We're inside c/ and create
+			# d. Then # resolve(c/d) would give a/b/d and the relative path
+			# further down # would be ../a/b/d. We could not place the cursor at
+			# that. If on # the other hand, we use normalize(...), then we
+			# compute the relpath from c -> c/d, which does work.
+			effective_url = normalize(dir_url)
 			select = relpath(effective_url, base_url).split('/')[0]
 			if select != '..':
 				try:

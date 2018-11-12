@@ -1,5 +1,5 @@
 from fbs_runtime.platform import is_windows
-from fman.impl.util.path import make_absolute, resolve
+from fman.impl.util.path import make_absolute, normalize
 from os.path import join, expanduser
 from unittest import TestCase, skipUnless
 
@@ -27,17 +27,17 @@ class MakeAbsoluteTest(TestCase):
 	def _get_root_dir(self):
 		return 'C:\\' if is_windows() else '/'
 
-class ResolveTest(TestCase):
+class NormalizeTest(TestCase):
 	def test_fine(self):
 		path = '/home/a/b'
-		self.assertEqual(path, resolve(path))
+		self.assertEqual(path, normalize(path))
 	def test_trailing_dot(self):
-		self.assertEqual('a', resolve('a/.'))
+		self.assertEqual('a', normalize('a/.'))
 	def test_single_dot_between(self):
-		self.assertEqual('a/b', resolve('a/./b'))
+		self.assertEqual('a/b', normalize('a/./b'))
 	def test_trailing_double_dot(self):
-		self.assertEqual('', resolve('a/..'))
+		self.assertEqual('', normalize('a/..'))
 	def test_single_dot_only(self):
-		self.assertEqual('', resolve('.'))
+		self.assertEqual('', normalize('.'))
 	def test_pardir_of_subdir(self):
-		self.assertEqual('a', resolve('a/b/..'))
+		self.assertEqual('a', normalize('a/b/..'))

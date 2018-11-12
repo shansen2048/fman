@@ -2,7 +2,7 @@ from fman import Task
 from fman.impl.fs_cache import Cache
 from fman.impl.util import Event
 from fman.impl.util.path import parent
-from fman.url import basename, resolve_syntactically
+from fman.url import basename, normalize
 from functools import wraps
 from threading import Lock
 
@@ -98,7 +98,7 @@ class FileSystem:
 	def resolve(self, path):
 		if not self.exists(path):
 			raise FileNotFoundError(self.scheme + path)
-		return resolve_syntactically(self.scheme + path)
+		return normalize(self.scheme + path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):

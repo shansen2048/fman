@@ -1,6 +1,6 @@
 from fman.fs import FileSystem, cached
 from fman.impl.util import filenotfounderror
-from fman.impl.util.path import resolve
+from fman.impl.util.path import normalize
 from fman.url import splitscheme, basename, dirname
 from io import UnsupportedOperation
 
@@ -15,16 +15,16 @@ class StubFileSystem(FileSystem):
 	def get_default_columns(self, path):
 		return self._default_columns
 	def exists(self, path):
-		return resolve(path) in self._items
+		return normalize(path) in self._items
 	def iterdir(self, path):
 		try:
-			items = self._items[resolve(path)]
+			items = self._items[normalize(path)]
 		except KeyError:
 			raise FileNotFoundError(path) from None
 		return list(items.get('files', []))
 	@cached # Mirror a typical implementation
 	def is_dir(self, existing_path):
-		path_resolved = resolve(existing_path)
+		path_resolved = normalize(existing_path)
 		try:
 			item = self._items[path_resolved]
 		except KeyError:
@@ -32,30 +32,30 @@ class StubFileSystem(FileSystem):
 		return item.get('is_dir', False)
 	@cached # Mirror a typical implementation
 	def size_bytes(self, path):
-		return self._items[resolve(path)].get('size', 1)
+		return self._items[normalize(path)].get('size', 1)
 	@cached # Mirror a typical implementation
 	def modified_datetime(self, path):
-		return self._items[resolve(path)].get('mtime', 1473339041.0)
+		return self._items[normalize(path)].get('mtime', 1473339041.0)
 	def touch(self, path):
 		file_existed = self.exists(path)
-		self._items[resolve(path)] = {}
+		self._items[normalize(path)] = {}
 		if not file_existed:
 			self.notify_file_added(path)
 	def mkdir(self, path):
 		if self.exists(path):
 			raise FileExistsError(path)
-		self._items[resolve(path)] = {'is_dir': True}
+		self._items[normalize(path)] = {'is_dir': True}
 		self.notify_file_added(path)
 	def move(self, src_url, dst_url):
 		src_scheme, src_path = splitscheme(src_url)
 		dst_scheme, dst_path = splitscheme(dst_url)
 		if src_scheme != self.scheme or dst_scheme != self.scheme:
 			raise UnsupportedOperation()
-		self._items[resolve(dst_path)] = self._items.pop(resolve(src_path))
+		self._items[normalize(dst_path)] = self._items.pop(normalize(src_path))
 		self.notify_file_removed(src_path)
 		self.notify_file_added(dst_path)
 	def delete(self, path):
-		path = resolve(path)
+		path = normalize(path)
 		new_items = {
 			other_path: value for other_path, value in self._items.items()
 			if other_path != path and not other_path.startswith(path)

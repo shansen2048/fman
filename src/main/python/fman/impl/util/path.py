@@ -28,7 +28,7 @@ def parent(path): # Copied from Core plugin
 	result = str(PurePosixPath(path).parent) if path else ''
 	return '' if result == '.' else result
 
-def resolve(path_):
+def normalize(path_):
 	# Resolve a/./b and a//b:
 	path_ = str(PurePosixPath(path_))
 	if path_ == '.':
