@@ -2265,6 +2265,44 @@ class RemoveApp(QuicksearchScreen):
 	def on_cancelled(self):
 		Configure(self._files).show()
 
+class CompareDirectories(DirectoryPaneCommand):
+	def __call__(self):
+		this = self.pane
+		panes = this.window.get_panes()
+		this_index = panes.index(this)
+		other_index = (this_index + 1) % len(panes)
+		left = panes[min(this_index, other_index)]
+		right = panes[max(this_index, other_index)]
+		res_left = self._select_nonexistent_in_other(left, right)
+		res_right = self._select_nonexistent_in_other(right, left)
+		if res_left == res_right == 0:
+			message = 'The directories contain the same file <em>names</em>.' \
+			          '<br/>(Did not compare contents, Size or Modified.)'
+		else:
+			msg_parts = []
+			def report(count, l, r):
+				if count:
+					msg_parts.append(
+						'The %s pane contains %d file%s not present on the %s.'
+						% (l, count, '' if count == 1 else 's', r)
+					)
+			report(res_left, 'left', 'right')
+			report(res_right, 'right', 'left')
+			message = '<br/>'.join(msg_parts)
+		show_alert(message)
+	def _select_nonexistent_in_other(self, this, other):
+		result = 0
+		this.clear_selection()
+		other_files = set(iterdir(other.get_path()))
+		for f in iterdir(this.get_path()):
+			if f not in other_files:
+				try:
+					this.toggle_selection(join(this.get_path(), f))
+					result += 1
+				except ValueError:
+					pass
+		return result
+
 class none(DirectoryPaneCommand):
 	"""
 	Assign key bindings to this command to effectively deactivate them.
