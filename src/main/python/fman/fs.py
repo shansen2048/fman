@@ -2,11 +2,9 @@ from fman import Task
 from fman.impl.fs_cache import Cache
 from fman.impl.util import Event
 from fman.impl.util.path import parent
-from fman.url import basename
+from fman.url import basename, resolve_syntactically
 from functools import wraps
 from threading import Lock
-
-import fman.impl.util.path
 
 def exists(url):
 	return _get_mother_fs().exists(url)
@@ -100,7 +98,7 @@ class FileSystem:
 	def resolve(self, path):
 		if not self.exists(path):
 			raise FileNotFoundError(self.scheme + path)
-		return self.scheme + fman.impl.util.path.resolve(path)
+		return resolve_syntactically(self.scheme + path)
 	def watch(self, path):
 		pass
 	def unwatch(self, path):

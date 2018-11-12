@@ -1,5 +1,5 @@
 from fbs_runtime.platform import is_windows
-from fman.impl.util.path import parent
+from fman.impl.util.path import parent, resolve
 from pathlib import PurePath
 
 import posixpath
@@ -55,12 +55,16 @@ def join(url, *paths):
 			result_path += path
 	return scheme + result_path
 
-def relpath(target, base):
-	target_scheme, target_path = splitscheme(target)
-	base_scheme, base_path = splitscheme(base)
-	if base_scheme != target_scheme:
+def relpath(dst, src):
+	dst_scheme, dst_path = splitscheme(dst)
+	src_scheme, src_path = splitscheme(src)
+	if src_scheme != dst_scheme:
 		raise ValueError(
 			"Cannot construct a relative path across different URL schemes "
-			"(%s -> %s)" % (base_scheme, target_scheme)
+			"(%s -> %s)" % (src_scheme, dst_scheme)
 		)
-	return posixpath.relpath(target_path, start=base_path)
+	return posixpath.relpath(dst_path, start=src_path)
+
+def resolve_syntactically(url):
+	scheme, path = splitscheme(url)
+	return scheme + resolve(path)

@@ -1,5 +1,6 @@
 from fbs_runtime.platform import is_windows
-from fman.url import as_url, dirname, relpath, as_human_readable
+from fman.url import as_url, dirname, relpath, as_human_readable, \
+	resolve_syntactically
 from unittest import TestCase, skipIf
 
 class AsFileUrlTest(TestCase):
@@ -91,3 +92,13 @@ class RelpathTest(TestCase):
 		self._check('file:///a/b.txt', 'file:///a', 'b.txt')
 	def _check(self, target, base, expected):
 		self.assertEqual(expected, relpath(target, base))
+
+class ResolveSyntacticallyTest(TestCase):
+	def test_same(self):
+		self.assertEqual('file:///a', resolve_syntactically('file:///a'))
+	def test_double_dot(self):
+		self.assertEqual('file:///a', resolve_syntactically('file:///a/b/..'))
+	def test_single_dot(self):
+		self.assertEqual('file:///a/b', resolve_syntactically('file:///a/./b'))
+	def test_double_slash(self):
+		self.assertEqual('file:///a/b', resolve_syntactically('file:///a//b'))
