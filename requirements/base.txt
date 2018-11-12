@@ -1,5 +1,5 @@
 fbs==0.3.8
-PyInstaller==3.3
+PyInstaller==3.4
 rollbar==0.13.11
 rsa==3.4.2
 tinycss==0.4
