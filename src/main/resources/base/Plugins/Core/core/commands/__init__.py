@@ -1150,8 +1150,8 @@ class GoToListener(DirectoryPaneListener):
 		# Ensure we're using backslashes \ on Windows:
 		path = as_human_readable(url)
 		visited_paths[path] = visited_paths.get(path, 0) + 1
-		if len(visited_paths) > 250:
-			_shrink_visited_paths(visited_paths, 200)
+		if len(visited_paths) > 500:
+			_shrink_visited_paths(visited_paths, 250)
 
 def _shrink_visited_paths(vps, size):
 	paths_per_count = {}
