@@ -1150,6 +1150,25 @@ class GoToListener(DirectoryPaneListener):
 		# Ensure we're using backslashes \ on Windows:
 		path = as_human_readable(url)
 		visited_paths[path] = visited_paths.get(path, 0) + 1
+		if len(visited_paths) > 250:
+			_shrink_visited_paths(visited_paths, 200)
+
+def _shrink_visited_paths(vps, size):
+	paths_per_count = {}
+	for p, count in vps.items():
+		paths_per_count.setdefault(count, []).append(p)
+	count_paths = sorted(paths_per_count.items())
+	# Remove least frequently visited paths until we reach the desired size:
+	while len(vps) > size:
+		count, paths = count_paths[0]
+		del vps[paths.pop()]
+		if not paths:
+			count_paths = count_paths[1:]
+	# Re-scale those paths that are left. This gives more recent paths a chance
+	# to rise to the top. Eg. {'a': 1000, 'b': 1} -> {'a': 2, 'b': 1}.
+	for i, (count, paths) in enumerate(count_paths):
+		for p in paths:
+			vps[p] = i + 1
 
 def unexpand_user(path, expanduser_=expanduser):
 	home_dir = expanduser_('~')
