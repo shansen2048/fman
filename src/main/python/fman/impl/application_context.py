@@ -455,6 +455,16 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 				os.environ['LD_LIBRARY_PATH'] = lp_orig
 			else:
 				os.environ.pop('LD_LIBRARY_PATH', None)
+		# Similarly to above, PyInstaller sets various QT_... environment
+		# variables. This can confuse Qt-based apps which we launch via
+		# Popen(...) or QDesktopServices.openUrl(...). An example of this is
+		# XnViewMP [1]. Unset the variables here to avoid this. Again, this
+		# assumes that by the time we reach here, all required Qt libraries have
+		# been loaded.
+		# 1: https://github.com/fman-users/fman/issues/570
+		delete = [var for var in os.environ if var.startswith('QT_')]
+		for var in delete:
+			del os.environ[var]
 		super().on_main_window_shown()
 	@cached_property
 	def updater(self):
