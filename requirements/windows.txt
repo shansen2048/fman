@@ -4,3 +4,4 @@ PyQt5==5.9.2
 Send2Trash==1.4.2
 adodbapi==2.6.0.7
 pywinpty==0.5.4
+pywin32==224
