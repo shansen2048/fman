@@ -11,6 +11,9 @@ RUN dnf install -y libstdc++ freetype binutils
 RUN dnf install -y ruby-devel gcc make rpm-build libffi-devel && \
     gem install --no-ri --no-rdoc fpm
 
+# Python 3.6:
+RUN dnf install -y python36
+
 # Required for Python dependency pgi:
 RUN dnf install -y gobject-introspection
 
@@ -37,6 +40,6 @@ WORKDIR /root/dev/fman
 
 ADD requirements/ /tmp/requirements
 
-RUN python3 -m venv venv && \
+RUN python3.6 -m venv venv && \
     venv/bin/python -m pip install -r /tmp/requirements/fedora.txt && \
     rm -rf /tmp/requirements/

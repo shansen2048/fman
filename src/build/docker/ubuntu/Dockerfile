@@ -12,10 +12,11 @@ ADD private.gpg-key public.gpg-key /tmp/
 RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private.gpg-key /tmp/public.gpg-key && \
     rm /tmp/private.gpg-key /tmp/public.gpg-key
 
+# Python 3.6:
 RUN DEBIAN_FRONTEND=noninteractive apt-get install software-properties-common -y && \
     add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get update && \
-    apt-get install python3.5 python3.5-dev python3.5-venv -y
+    apt-get install python3.6 python3.6-dev python3.6-venv -y
 
 WORKDIR /tmp
 
@@ -31,6 +32,7 @@ RUN apt-get install git -y && \
     git config --global user.email "michael@herrmann.io" && \
     git config --global user.name "Michael Herrmann"
 
+# fpm:
 RUN apt-get install ruby ruby-dev build-essential -y && \
     gem install --no-ri --no-rdoc fpm
 
@@ -47,6 +49,6 @@ WORKDIR /root/dev/fman
 
 ADD requirements/ /tmp/requirements
 
-RUN python3.5 -m venv venv && \
+RUN python3.6 -m venv venv && \
     venv/bin/python -m pip install -r /tmp/requirements/ubuntu.txt && \
     rm -rf /tmp/requirements/
