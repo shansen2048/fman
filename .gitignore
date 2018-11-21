@@ -5,6 +5,3 @@ cache/
 venv/
 target/
 .DS_Store
-lib/mac/Qt-5.6.2
-lib/windows/Qt-5.6.2
-lib/linux/Qt-5.6.2
