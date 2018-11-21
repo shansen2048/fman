@@ -840,19 +840,24 @@ class CopyPathsToClipboard(DirectoryPaneCommand):
 		files = '\n'.join(to_copy)
 		clipboard.clear()
 		clipboard.set_text(files)
-		num = len(to_copy)
-		if num == 1:
-			status_msg = 'Copied "%s" to clipboard.' % to_copy[0]
-		else:
-			status_msg = 'Copied "%s" and %d other path%s to clipboard.' \
-						 % (to_copy[0], num - 1, 's' if num > 2 else '')
-		show_status_message(status_msg, timeout_secs=3)
+		_report_clipboard_action('Copied', to_copy, ' to the clipboard', 'path')
+
+def _report_clipboard_action(verb, files, suffix='', ftype='file'):
+	num = len(files)
+	if num == 1:
+		message = '%s "%s"%s.' % (verb, files[0], suffix)
+	else:
+		plural = 's' if num > 2 else ''
+		message = '%s "%s" and %d other %s%s%s.' % \
+				  (verb, files[0], num - 1, ftype, plural, suffix)
+	show_status_message(message, timeout_secs=3)
 
 class CopyToClipboard(DirectoryPaneCommand):
 	def __call__(self):
 		files = self.get_chosen_files()
 		if files:
 			clipboard.copy_files(files)
+			_report_clipboard_action('Copying', files)
 		else:
 			show_alert('No file is selected!')
 	def is_visible(self):
@@ -869,6 +874,7 @@ class Cut(DirectoryPaneCommand):
 		files = self.get_chosen_files()
 		if files:
 			clipboard.cut_files(files)
+			_report_clipboard_action('Cutting', files)
 		else:
 			show_alert('No file is selected!')
 	def is_visible(self):
