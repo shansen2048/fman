@@ -1,7 +1,7 @@
 from fbs import path
 from fbs.resources import copy_with_filtering
-from os import makedirs, listdir
-from os.path import exists, isdir, join
+from os import listdir
+from os.path import exists, join
 from shutil import rmtree, copy, copytree
 from subprocess import DEVNULL
 
@@ -16,12 +16,9 @@ def build_docker_image(
 	build_dir = path('target/%s-docker-image' % name)
 	src_dir = path('src/build/docker/' + name)
 	image_name = 'fman/' + name
-	cache_dir = path('cache/' + name)
 
 	if exists(build_dir):
 		rmtree(build_dir)
-	if isdir(cache_dir):
-		subprocess.run(['sudo', 'rm', '-rf', cache_dir])
 
 	copy_with_filtering(src_dir, build_dir, replacements, files_to_filter)
 	for p in (
@@ -35,24 +32,22 @@ def build_docker_image(
 	subprocess.run(
 		['docker', 'build', '--pull', '-t', image_name, build_dir], check=True
 	)
-	makedirs(cache_dir, exist_ok=True)
 
-def run_docker_image(image_name, cache_dir, extra_args=None):
+def run_docker_image(image_name, extra_args=None):
 	if extra_args is None:
 		extra_args = sys.argv[2:]
 	args = ['docker', 'run', '-it']
-	for item in _get_docker_mounts(image_name, cache_dir).items():
+	for item in _get_docker_mounts(image_name).items():
 		args.append('-v')
 		args.append('%s:%s' % item)
 	args.append(image_name)
 	args.extend(extra_args)
 	subprocess.run(args)
 
-def _get_docker_mounts(image_name, cache_dir):
+def _get_docker_mounts(image_name):
 	target_subdir = path('target/' + image_name.split('/')[1])
 	result = {
-		target_subdir: '/root/dev/fman/target',
-		join(cache_dir, 'cache'): '/root/dev/fman/cache'
+		target_subdir: '/root/dev/fman/target'
 	}
 	for file_name in listdir(path('.')):
 		file_path = path(file_name)
