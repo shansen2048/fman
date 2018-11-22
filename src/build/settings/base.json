@@ -20,7 +20,11 @@
 	"server_user": "fman@fman.io",
 	"ssh_key": "conf/ssh/id_rsa",
 	"resources_to_filter": [
-		"src/main/resources/base/constants.json"
+		"src/main/resources/base/constants.json",
+		"src/build/docker/arch/Dockerfile",
+		"src/build/docker/ubuntu/Dockerfile",
+		"src/build/docker/fedora/Dockerfile",
+		"src/build/docker/fedora/.rpmmacros"
 	],
 	"gpg_key": "B015FE599CFAF7EB",
 	"gpg_name": "Michael Herrmann",
@@ -30,5 +34,30 @@
 	"aws_bucket": "fman",
 	"aws_distribution_id": "E36JGR8Q7NMYHR",
 	"core_plugin_github_url": "git@github.com:fman-users/Core.git",
-	"core_plugin_in_freeze_dir": "${freeze_dir}/Plugins/Core"
+	"core_plugin_in_freeze_dir": "${freeze_dir}/Plugins/Core",
+	"docker_images": {
+		"arch": {
+			"build_files": [
+				"conf/linux/private.gpg-key", "conf/linux/public.gpg-key",
+				"conf/ssh/id_rsa", "conf/ssh/id_rsa.pub",
+				"requirements/base.txt", "requirements/linux.txt",
+				"requirements/arch.txt"
+			]
+		},
+		"ubuntu": {
+			"build_files": [
+				"conf/linux/private.gpg-key", "conf/linux/public.gpg-key",
+				"conf/ssh/id_rsa", "conf/ssh/id_rsa.pub",
+				"requirements/base.txt", "requirements/linux.txt",
+				"requirements/ubuntu.txt"
+			]
+		},
+		"fedora": {
+			"build_files": [
+				"conf/linux/private.gpg-key", "conf/linux/public.gpg-key",
+				"requirements/base.txt", "requirements/linux.txt",
+				"requirements/ubuntu.txt", "requirements/fedora.txt"
+			]
+		}
+	}
 }

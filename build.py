@@ -187,37 +187,15 @@ def _replace_re_group(pattern, string, group_replacement):
 
 @command
 def arch_docker_image():
-	build_docker_image(
-		'arch',
-		extra_files=[
-			path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')
-		],
-		files_to_filter=[
-			path('src/build/docker/arch/Dockerfile')
-		]
-	)
+	build_docker_image('arch')
 
 @command
 def ubuntu_docker_image():
-	build_docker_image(
-		'ubuntu',
-		extra_files=[
-			path('conf/ssh/id_rsa'), path('conf/ssh/id_rsa.pub')
-		],
-		files_to_filter=[
-			path('src/build/docker/ubuntu/Dockerfile')
-		]
-	)
+	build_docker_image('ubuntu')
 
 @command
 def fedora_docker_image():
-	build_docker_image(
-		'fedora',
-		files_to_filter=[
-			path('src/build/docker/fedora/Dockerfile'),
-			path('src/build/docker/fedora/.rpmmacros'),
-		]
-	)
+	build_docker_image('fedora')
 
 @command
 def ubuntu():
@@ -229,7 +207,7 @@ def arch():
 
 @command
 def fedora():
-	run_docker_image('fedora', ['/bin/bash'])
+	run_docker_image('fedora')
 
 if __name__ == '__main__':
 	project_dir = dirname(__file__)

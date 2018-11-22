@@ -42,7 +42,7 @@ ADD .bashrc /root/.bashrc
 
 WORKDIR /root/dev/fman
 
-ADD requirements/ /tmp/requirements
+ADD base.txt linux.txt arch.txt /tmp/requirements/
 
 RUN python -m venv venv && \
     venv/bin/python -m pip install -r /tmp/requirements/arch.txt && \

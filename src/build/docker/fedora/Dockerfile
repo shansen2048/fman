@@ -38,8 +38,10 @@ ADD .bashrc /root
 
 WORKDIR /root/dev/fman
 
-ADD requirements/ /tmp/requirements
+ADD base.txt linux.txt ubuntu.txt fedora.txt /tmp/requirements/
 
 RUN python3.6 -m venv venv && \
     venv/bin/python -m pip install -r /tmp/requirements/fedora.txt && \
     rm -rf /tmp/requirements/
+
+ENTRYPOINT ["/bin/bash"]

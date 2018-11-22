@@ -47,7 +47,7 @@ ADD .bashrc /root/.bashrc
 
 WORKDIR /root/dev/fman
 
-ADD requirements/ /tmp/requirements
+ADD base.txt linux.txt ubuntu.txt /tmp/requirements/
 
 RUN python3.6 -m venv venv && \
     venv/bin/python -m pip install -r /tmp/requirements/ubuntu.txt && \
