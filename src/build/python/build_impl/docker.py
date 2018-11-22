@@ -12,7 +12,7 @@ def build_docker_image(name):
 	if exists(build_dir):
 		rmtree(build_dir)
 	src_dir = path('src/build/docker/' + name)
-	filter_ = [path(f) for f in SETTINGS['resources_to_filter']]
+	filter_ = [path(f) for f in SETTINGS['files_to_filter']]
 	copy_with_filtering(src_dir, build_dir, files_to_filter=filter_)
 	for p in SETTINGS['docker_images'][name].get('build_files', []):
 		copy_with_filtering(path(p), build_dir, files_to_filter=filter_)

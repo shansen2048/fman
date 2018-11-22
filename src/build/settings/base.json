@@ -19,7 +19,7 @@
 	"server_media_dir": "/home/fman/src/media",
 	"server_user": "fman@fman.io",
 	"ssh_key": "conf/ssh/id_rsa",
-	"resources_to_filter": [
+	"files_to_filter": [
 		"src/main/resources/base/constants.json",
 		"src/build/docker/arch/Dockerfile",
 		"src/build/docker/ubuntu/Dockerfile",

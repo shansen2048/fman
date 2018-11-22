@@ -1,6 +1,6 @@
 {
 	"hidden_imports": ["pty"],
-	"resources_to_filter": [
+	"files_to_filter": [
 		"src/installer/linux/usr/bin/fman"
 	],
 	"categories": "FileManager;FileTools;Utility;"

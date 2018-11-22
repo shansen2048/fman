@@ -5,7 +5,7 @@
 	"mac_bundle_identifier": "io.fman.fman",
 	"appcast_url": "${server_url}/updates/Appcast.xml",
 	"info_plist_extra": "<key>NSAppTransportSecurity</key>\n\t<dict>\n\t\t<key>NSAllowsArbitraryLoads</key>\n\t\t<true/>\n\t</dict>",
-	"resources_to_filter": [
+	"files_to_filter": [
 		"src/freeze/mac/Contents/SharedSupport/bin/fman"
 	]
 }
