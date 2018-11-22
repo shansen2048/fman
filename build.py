@@ -221,15 +221,15 @@ def fedora_docker_image():
 
 @command
 def ubuntu():
-	run_docker_image('fman/ubuntu')
+	run_docker_image('ubuntu')
 
 @command
 def arch():
-	run_docker_image('fman/arch')
+	run_docker_image('arch')
 
 @command
 def fedora():
-	run_docker_image('fman/fedora', ['/bin/bash'])
+	run_docker_image('fedora', ['/bin/bash'])
 
 if __name__ == '__main__':
 	project_dir = dirname(__file__)

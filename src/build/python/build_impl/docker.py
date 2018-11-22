@@ -1,4 +1,4 @@
-from fbs import path
+from fbs import path, SETTINGS
 from fbs.resources import copy_with_filtering
 from os import listdir
 from os.path import exists, join
@@ -15,7 +15,6 @@ def build_docker_image(
 		extra_files = []
 	build_dir = path('target/%s-docker-image' % name)
 	src_dir = path('src/build/docker/' + name)
-	image_name = 'fman/' + name
 
 	if exists(build_dir):
 		rmtree(build_dir)
@@ -29,23 +28,30 @@ def build_docker_image(
 	copytree(path('requirements'), join(build_dir, 'requirements'))
 	for f in extra_files:
 		copy(f, build_dir)
+	img_path = _get_docker_path(name)
 	subprocess.run(
-		['docker', 'build', '--pull', '-t', image_name, build_dir], check=True
+		['docker', 'build', '--pull', '-t', img_path, build_dir], check=True
 	)
 
-def run_docker_image(image_name, extra_args=None):
+def run_docker_image(name, extra_args=None):
 	if extra_args is None:
 		extra_args = sys.argv[2:]
 	args = ['docker', 'run', '-it']
-	for item in _get_docker_mounts(image_name).items():
+	img_path = _get_docker_path(name)
+	for item in _get_docker_mounts(img_path).items():
 		args.append('-v')
 		args.append('%s:%s' % item)
-	args.append(image_name)
+	args.append(img_path)
 	args.extend(extra_args)
 	subprocess.run(args)
 
-def _get_docker_mounts(image_name):
-	target_subdir = path('target/' + image_name.split('/')[1])
+def _get_docker_path(image_name):
+	prefix = SETTINGS['app_name'].replace(' ', '_').lower()
+	suffix = image_name.lower()
+	return prefix + '/' + suffix
+
+def _get_docker_mounts(img_path):
+	target_subdir = path('target/' + img_path.split('/')[1])
 	result = {
 		target_subdir: '/root/dev/fman/target'
 	}
