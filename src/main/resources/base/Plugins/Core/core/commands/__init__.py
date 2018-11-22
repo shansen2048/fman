@@ -80,6 +80,7 @@ class MoveCursorPageDown(DirectoryPaneCommand):
 class ToggleSelection(DirectoryPaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
+		self.pane.deselect(file_under_cursor)
 		if file_under_cursor:
 			self.pane.toggle_selection(file_under_cursor)
 
@@ -912,6 +913,15 @@ class SelectAll(DirectoryPaneCommand):
 class Deselect(DirectoryPaneCommand):
 	def __call__(self):
 		self.pane.clear_selection()
+
+class InvertSelection(DirectoryPaneCommand):
+	def __call__(self, *args, **kwargs):
+		url = self.pane.get_path()
+		all_files = (join(url, fname) for fname in iterdir(url))
+		to_deselect = set(self.pane.get_selected_files())
+		to_select = (f for f in all_files if f not in to_deselect)
+		self.pane.deselect(to_deselect)
+		self.pane.select(to_select)
 
 class ToggleHiddenFiles(DirectoryPaneCommand):
 
@@ -2316,17 +2326,12 @@ class CompareDirectories(DirectoryPaneCommand):
 			message = '<br/>'.join(msg_parts)
 		show_alert(message)
 	def _select_nonexistent_in_other(self, this, other):
-		result = 0
 		this.clear_selection()
 		other_files = set(iterdir(other.get_path()))
-		for f in iterdir(this.get_path()):
-			if f not in other_files:
-				try:
-					this.toggle_selection(join(this.get_path(), f))
-					result += 1
-				except ValueError:
-					pass
-		return result
+		url = this.get_path()
+		nonexistent = set(f for f in iterdir(url) if f not in other_files)
+		this.select(join(url, f) for f in nonexistent)
+		return len(nonexistent)
 
 class none(DirectoryPaneCommand):
 	"""

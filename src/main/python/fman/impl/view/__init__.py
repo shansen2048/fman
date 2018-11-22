@@ -91,6 +91,28 @@ class FileListView(
 		finally:
 			if updated_selection:
 				self.clearSelection()
+	def toggle_selection(self, file_url):
+		self._change_selection(file_url, QISM.Toggle)
+	def select(self, file_urls, ignore_errors=False):
+		if isinstance(file_urls, str):
+			raise ValueError('It should be select([file]) not select(file).')
+		for url in file_urls:
+			self._change_selection(url, QISM.Select, ignore_errors)
+	def deselect(self, file_urls, ignore_errors=False):
+		if isinstance(file_urls, str):
+			raise ValueError(
+				'It should be deselect([file]) not deselect(file).'
+			)
+		for url in file_urls:
+			self._change_selection(url, QISM.Deselect, ignore_errors)
+	def _change_selection(self, file_url, action, ignore_errors=False):
+		try:
+			row = self.model().find(file_url)
+		except ValueError:
+			if not ignore_errors:
+				raise
+		else:
+			self.selectionModel().select(row, action | QISM.Rows)
 	def get_selected_files(self):
 		indexes = self.selectionModel().selectedRows(column=0)
 		return [self.model().url(index) for index in indexes]
@@ -100,10 +122,6 @@ class FileListView(
 			return self.model().url(index)
 	def place_cursor_at(self, file_url):
 		self.setCurrentIndex(self.model().find(file_url))
-	def toggle_selection(self, file_url):
-		self.selectionModel().select(
-			self.model().find(file_url), QISM.Toggle | QISM.Rows
-		)
 	def edit_name(self, file_url, selection_start=0, selection_end=None):
 		def on_editor_shown(editor):
 			set_selection(editor, selection_start, selection_end)

@@ -90,9 +90,6 @@ class DirectoryPaneWidget(QWidget):
 	def move_cursor_page_down(self, toggle_selection=False):
 		self._file_view.move_cursor_page_down(toggle_selection)
 	@run_in_main_thread
-	def toggle_selection(self, file_url):
-		self._file_view.toggle_selection(file_url)
-	@run_in_main_thread
 	def focus(self):
 		self.setFocus()
 	@run_in_main_thread
@@ -101,6 +98,15 @@ class DirectoryPaneWidget(QWidget):
 	@run_in_main_thread
 	def clear_selection(self):
 		self._file_view.clearSelection()
+	@run_in_main_thread
+	def toggle_selection(self, file_url):
+		self._file_view.toggle_selection(file_url)
+	@run_in_main_thread
+	def select(self, file_urls, ignore_errors=False):
+		self._file_view.select(file_urls, ignore_errors)
+	@run_in_main_thread
+	def deselect(self, file_urls, ignore_errors=False):
+		self._file_view.deselect(file_urls, ignore_errors)
 	@run_in_main_thread
 	def get_selected_files(self):
 		return self._file_view.get_selected_files()

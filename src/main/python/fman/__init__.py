@@ -138,6 +138,10 @@ class DirectoryPane:
 		self._widget.clear_selection()
 	def toggle_selection(self, file_url):
 		self._widget.toggle_selection(file_url)
+	def select(self, file_urls):
+		self._widget.select(file_urls, ignore_errors=True)
+	def deselect(self, file_urls):
+		self._widget.deselect(file_urls, ignore_errors=True)
 	def focus(self):
 		self._widget.focus()
 	def get_columns(self):
