@@ -21,16 +21,16 @@ ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
 
 RUN chmod -R 600 /root/.gnupg
 
-ADD private.gpg-key public.gpg-key /tmp/
+ADD private-key.gpg public-key.gpg /tmp/
 
 WORKDIR /tmp
 
 RUN dnf install -y createrepo_c
 
 RUN dnf install -y gpg rpm-sign && \
-    gpg -q --batch --yes --passphrase ${gpg_pass} --import private.gpg-key public.gpg-key && \
-    rpm --import public.gpg-key && \
-    rm private.gpg-key public.gpg-key
+    gpg -q --batch --yes --passphrase ${gpg_pass} --import private-key.gpg public-key.gpg && \
+    rpm --import public-key.gpg && \
+    rm private-key.gpg public-key.gpg
 
 ADD .rpmmacros /root
 

@@ -44,6 +44,6 @@ def _create_rpm_repo():
 		path('target/upload/rpm')
 	)
 	copy(
-		path('conf/linux/public.gpg-key'),
+		path('conf/linux/public-key.gpg'),
 		path('target/upload/rpm/public.gpg')
 	)

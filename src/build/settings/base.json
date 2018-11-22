@@ -38,7 +38,7 @@
 	"docker_images": {
 		"arch": {
 			"build_files": [
-				"conf/linux/private.gpg-key", "conf/linux/public.gpg-key",
+				"conf/linux/private-key.gpg", "conf/linux/public-key.gpg",
 				"conf/ssh/id_rsa", "conf/ssh/id_rsa.pub",
 				"requirements/base.txt", "requirements/linux.txt",
 				"requirements/arch.txt"
@@ -46,7 +46,7 @@
 		},
 		"ubuntu": {
 			"build_files": [
-				"conf/linux/private.gpg-key", "conf/linux/public.gpg-key",
+				"conf/linux/private-key.gpg", "conf/linux/public-key.gpg",
 				"conf/ssh/id_rsa", "conf/ssh/id_rsa.pub",
 				"requirements/base.txt", "requirements/linux.txt",
 				"requirements/ubuntu.txt"
@@ -54,7 +54,7 @@
 		},
 		"fedora": {
 			"build_files": [
-				"conf/linux/private.gpg-key", "conf/linux/public.gpg-key",
+				"conf/linux/private-key.gpg", "conf/linux/public-key.gpg",
 				"requirements/base.txt", "requirements/linux.txt",
 				"requirements/ubuntu.txt", "requirements/fedora.txt"
 			]

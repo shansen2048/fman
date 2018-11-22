@@ -8,9 +8,9 @@ ADD gpg-agent.conf gpg.conf /root/.gnupg/
 # Avoid GPG warning "unsafe permissions":
 RUN chmod -R 600 /root/.gnupg/
 RUN apt-get install reprepro gnupg-agent gnupg2 -y
-ADD private.gpg-key public.gpg-key /tmp/
-RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private.gpg-key /tmp/public.gpg-key && \
-    rm /tmp/private.gpg-key /tmp/public.gpg-key
+ADD private-key.gpg public-key.gpg /tmp/
+RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private-key.gpg /tmp/public-key.gpg && \
+    rm /tmp/private-key.gpg /tmp/public-key.gpg
 
 # Python 3.6:
 RUN DEBIAN_FRONTEND=noninteractive apt-get install software-properties-common -y && \

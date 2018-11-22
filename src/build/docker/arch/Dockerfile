@@ -6,9 +6,9 @@ FROM base/devel:2018.04.01
 RUN echo 'Server=https://archive.archlinux.org/repos/2018/04/01/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
     pacman -Syy
 
-ADD private.gpg-key public.gpg-key /tmp/
-RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private.gpg-key /tmp/public.gpg-key && \
-    rm /tmp/private.gpg-key /tmp/public.gpg-key
+ADD private-key.gpg public-key.gpg /tmp/
+RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private-key.gpg /tmp/public-key.gpg && \
+    rm /tmp/private-key.gpg /tmp/public-key.gpg
 
 ADD gpg-agent.conf /root/.gnupg/gpg-agent.conf
 RUN gpgconf --kill gpg-agent
