@@ -1,9 +1,9 @@
 from fbs import path, SETTINGS
 from fbs.resources import copy_with_filtering
+from gitignore_parser import parse_gitignore
 from os import listdir
 from os.path import exists
 from shutil import rmtree
-from subprocess import DEVNULL
 
 import subprocess
 
@@ -35,8 +35,9 @@ def _get_docker_id(name):
 
 def _get_docker_mounts(name):
 	result = {'target/' + name.lower(): 'target'}
+	is_in_gitignore = parse_gitignore(path('.gitignore'))
 	for file_name in listdir(path('.')):
-		if _is_in_gitignore(path(file_name)):
+		if is_in_gitignore(path(file_name)):
 			continue
 		result[file_name] = file_name
 	path_in_docker = lambda p: '/root/%s/%s' % (name, p)
@@ -44,7 +45,3 @@ def _get_docker_mounts(name):
 
 def _get_settings(name):
 	return SETTINGS['docker_images'][name]
-
-def _is_in_gitignore(file_path):
-	process = subprocess.run(['git', 'check-ignore', file_path], stdout=DEVNULL)
-	return not process.returncode

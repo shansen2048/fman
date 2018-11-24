@@ -4,3 +4,4 @@ rollbar==0.13.11
 rsa==3.4.2
 tinycss==0.4
 boto3
+gitignore_parser==0.0.3
