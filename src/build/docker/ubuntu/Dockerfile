@@ -45,7 +45,7 @@ RUN apt-get install libgl1-mesa-glx -y
 RUN locale-gen en_US.UTF-8
 ADD .bashrc /root/.bashrc
 
-WORKDIR /root/dev/fman
+WORKDIR /root/ubuntu
 
 ADD base.txt linux.txt ubuntu.txt /tmp/requirements/
 

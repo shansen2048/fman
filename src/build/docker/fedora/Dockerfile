@@ -36,7 +36,7 @@ ADD .rpmmacros /root
 
 ADD .bashrc /root
 
-WORKDIR /root/dev/fman
+WORKDIR /root/fedora
 
 ADD base.txt linux.txt ubuntu.txt fedora.txt /tmp/requirements/
 
