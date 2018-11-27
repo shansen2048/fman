@@ -80,7 +80,6 @@ class MoveCursorPageDown(DirectoryPaneCommand):
 class ToggleSelection(DirectoryPaneCommand):
 	def __call__(self):
 		file_under_cursor = self.pane.get_file_under_cursor()
-		self.pane.deselect(file_under_cursor)
 		if file_under_cursor:
 			self.pane.toggle_selection(file_under_cursor)
 
