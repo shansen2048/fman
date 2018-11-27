@@ -5,7 +5,6 @@ sys.path.append(join(dirname(__file__), *'src/build/python'.split('/')))
 from build_impl import git, record_release_on_server, upload_core_to_github, \
 	git_has_changes
 from build_impl.aws import create_cloudfront_invalidation
-from build_impl.docker import build_docker_image, run_docker_image
 from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean
 from fbs.cmdline import command
@@ -184,30 +183,6 @@ def _replace_re_group(pattern, string, group_replacement):
 		return string[:match.start(1)] + \
 			   group_replacement + \
 			   string[match.end(1):]
-
-@command
-def arch_docker_image():
-	build_docker_image('arch')
-
-@command
-def ubuntu_docker_image():
-	build_docker_image('ubuntu')
-
-@command
-def fedora_docker_image():
-	build_docker_image('fedora')
-
-@command
-def ubuntu():
-	run_docker_image('ubuntu')
-
-@command
-def arch():
-	run_docker_image('arch')
-
-@command
-def fedora():
-	run_docker_image('fedora')
 
 if __name__ == '__main__':
 	project_dir = dirname(__file__)
