@@ -69,7 +69,7 @@ def _create_autoupdate_files():
 	], check=True)
 	_create_autoupdate_patches()
 
-def _create_autoupdate_patches(num=10):
+def _create_autoupdate_patches(num=5):
 	get_version = lambda version_file: splitext(basename(version_file))[0]
 	get_version_tpl = lambda vf: _version_str_to_tuple(get_version(vf))
 	version_files = sorted(_sync_cache_with_server(), key=get_version_tpl)
