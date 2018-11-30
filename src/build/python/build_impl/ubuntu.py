@@ -1,14 +1,12 @@
 from build_impl import check_output_decode, remove_if_exists, SETTINGS, \
 	upload_installer_to_aws, upload_file, get_path_on_server
-from build_impl.linux import postprocess_exe, preset_gpg_passphrase
+from build_impl.linux import postprocess_exe
 from fbs import path
 from fbs.cmdline import command
 from fbs.freeze.ubuntu import freeze_ubuntu
-from fbs.resources import copy_with_filtering
-from os import makedirs, listdir
-from os.path import join, exists
-from shutil import rmtree
-from subprocess import check_call
+from fbs.repo.ubuntu import create_repo_ubuntu
+from os import listdir
+from os.path import join
 
 import re
 
@@ -49,26 +47,9 @@ def _remove_gtk_dependencies():
 
 @command
 def upload():
-	_generate_repo()
+	create_repo_ubuntu()
 	updates_dir = get_path_on_server('updates/ubuntu')
-	for f in listdir(path('target/upload')):
-		upload_file(join(path('target/upload'), f), updates_dir)
+	for f in listdir(path('target/repo')):
+		upload_file(join(path('target/repo'), f), updates_dir)
 	if SETTINGS['release']:
 		upload_installer_to_aws('fman.deb')
-
-def _generate_repo():
-	if exists(path('target/repo')):
-		rmtree(path('target/repo'))
-	if exists(path('target/upload')):
-		rmtree(path('target/upload'))
-	makedirs(path('target/repo'))
-	distr_file = path('src/repo/ubuntu/distributions')
-	copy_with_filtering(
-		distr_file, path('target/repo'), files_to_filter=[distr_file]
-	)
-	preset_gpg_passphrase()
-	check_call([
-		'reprepro', '-b', path('target/upload'),
-		'--confdir', path('target/repo'),
-		'includedeb', 'stable', path('target/fman.deb')
-	])

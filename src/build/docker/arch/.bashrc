@@ -1,3 +1,4 @@
+# Place fpm on the PATH:
 export PATH=$PATH:$(ruby -e "puts Gem.user_dir")/bin
 
 # This is currently required for ZipFileSystemTest. It uses Python's
@@ -7,3 +8,5 @@ export PATH=$PATH:$(ruby -e "puts Gem.user_dir")/bin
 export LANG=en_US.UTF-8
 
 source bin/desk.sh
+
+PS1='arch:\W$ '

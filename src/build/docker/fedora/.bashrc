@@ -5,3 +5,5 @@
 export LANG=en_US.UTF-8
 
 source bin/desk.sh
+
+PS1='fedora:\W$ '

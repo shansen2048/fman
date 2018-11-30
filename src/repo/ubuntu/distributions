@@ -1,8 +1,0 @@
-Origin: fman
-Label: fman
-Codename: stable
-Architectures: amd64
-Components: main
-Description: ${description}
-SignWith: ${gpg_key}
-

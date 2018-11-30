@@ -1,14 +1,14 @@
 from build_impl import upload_installer_to_aws
 from build_impl.aws import upload_directory_contents, \
 	create_cloudfront_invalidation
-from build_impl.linux import postprocess_exe, preset_gpg_passphrase
+from build_impl.linux import postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.fedora import freeze_fedora
+from fbs.repo.fedora import create_repo_fedora
 from os import makedirs
 from os.path import exists
-from shutil import rmtree, copy
-from subprocess import check_call, DEVNULL
+from shutil import rmtree, copy, copytree
 
 @command
 def freeze():
@@ -16,34 +16,21 @@ def freeze():
 	postprocess_exe()
 
 @command
-def sign_installer():
-	# Prevent GPG from prompting us for the passphrase when signing:
-	preset_gpg_passphrase()
-	check_call(['rpm', '--addsign', path('target/fman.rpm')], stdout=DEVNULL)
-
-@command
 def upload():
 	_create_rpm_repo()
 	if SETTINGS['release']:
 		upload_installer_to_aws('fman.rpm')
-		files = upload_directory_contents(path('target/upload/rpm'), 'rpm')
+		files = upload_directory_contents(path('target/upload'), 'rpm')
 		create_cloudfront_invalidation(files)
 
 def _create_rpm_repo():
 	if exists(path('target/upload')):
 		rmtree(path('target/upload'))
-	makedirs(path('target/upload/${version}'))
-	copy(path('target/fman.rpm'), path('target/upload/${version}/fman.rpm'))
-	makedirs(path('target/upload/rpm'))
-	check_call(
-		['createrepo_c', '-o', 'rpm', '-u', 'https://download.fman.io', '.'],
-		cwd=(path('target/upload'))
-	)
+	create_repo_fedora()
+	# Convert to fman's directory structure:
+	makedirs(path('target/upload'))
+	copytree(path('target/repo/repodata'), path('target/upload/repodata'))
+	copy(path('target/repo/fman.repo'), path('target/upload'))
 	copy(
-		path('src/repo/fedora/fman.repo'),
-		path('target/upload/rpm')
-	)
-	copy(
-		path('src/sign/linux/public-key.gpg'),
-		path('target/upload/rpm/public.gpg')
+		path('src/sign/linux/public-key.gpg'), path('target/upload/public.gpg')
 	)

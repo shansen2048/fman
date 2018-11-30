@@ -1,13 +1,14 @@
 from build_impl import upload_file, get_path_on_server, upload_installer_to_aws
-from build_impl.linux import postprocess_exe, preset_gpg_passphrase
+from build_impl.linux import postprocess_exe
 from fbs import path, SETTINGS
 from fbs.cmdline import command
 from fbs.freeze.arch import freeze_arch
+from fbs.repo.arch import create_repo_arch
 from fbs.resources import copy_with_filtering
 from os import makedirs
-from os.path import exists, join, expanduser
-from shutil import rmtree, copy
-from subprocess import check_call, run, PIPE, DEVNULL
+from os.path import exists, expanduser
+from shutil import rmtree
+from subprocess import check_call, run, PIPE
 
 import hashlib
 import os
@@ -18,38 +19,14 @@ def freeze():
 	postprocess_exe()
 
 @command
-def sign_installer():
-	# Prevent GPG from prompting us for the passphrase when signing:
-	preset_gpg_passphrase()
-	pkg_file = path('target/${installer}')
-	check_call(
-		['gpg', '--batch', '--yes', '-u', '0x%s!' % SETTINGS['gpg_key'],
-		'--output', pkg_file + '.sig', '--detach-sig', pkg_file],
-		stdout=DEVNULL
-	)
-
-@command
 def upload():
-	_generate_repo()
-	upload_file(path('target/arch-repo/arch'), get_path_on_server('updates'))
+	create_repo_arch()
+	upload_file(
+		path('target/repo'), get_path_on_server('updates'), dest_name='arch'
+	)
 	if SETTINGS['release']:
 		upload_installer_to_aws('fman.pkg.tar.xz')
 		_upload_to_AUR()
-
-def _generate_repo():
-	if exists(path('target/arch-repo')):
-		rmtree(path('target/arch-repo'))
-	repo_dir = path('target/arch-repo/arch')
-	makedirs(repo_dir)
-	pkg_file_versioned = 'fman-%s.pkg.tar.xz' % SETTINGS['version']
-	pkg_file = path('target/${installer}')
-	copy(pkg_file, join(repo_dir, pkg_file_versioned))
-	copy(pkg_file + '.sig', join(repo_dir, pkg_file_versioned + '.sig'))
-	check_call([
-		'repo-add', 'fman.db.tar.gz', pkg_file_versioned
-	], cwd=repo_dir)
-	# Ensure the permissions on the server are correct:
-	check_call(['chmod', 'g-w', '-R', repo_dir])
 
 def _upload_to_AUR():
 	if exists(path('target/AUR')):

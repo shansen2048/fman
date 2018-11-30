@@ -1,7 +1,7 @@
-# We use an old Arch image on purpose: Glibc is backward-compatible, but not
-# forward-compatible. If we always built on the most recent Arch image, then
-# older versions may not be able to run fman when Glibc was updated.
+# Build on an old Arch version on purpose, to maximize compatibility:
 FROM base/devel:2018.04.01
+
+ARG requirements
 
 RUN echo 'Server=https://archive.archlinux.org/repos/2018/04/01/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
     pacman -Syy
@@ -15,16 +15,17 @@ RUN pacman -S --noconfirm ruby ruby-rdoc && \
     gem update && \
     gem install --no-ri --no-rdoc fpm
 
-WORKDIR /root/fman
+WORKDIR /root/${app_name}
 
 # Set up virtual environment:
 ADD *.txt /tmp/requirements/
 RUN python -m venv venv && \
-    venv/bin/python -m pip install -r /tmp/requirements/arch.txt
+    venv/bin/python -m pip install -r "/tmp/requirements/${requirements}"
 RUN rm -rf /tmp/requirements/
 
 ADD .bashrc /root/.bashrc
 
+# Import GPG key for code signing the installer:
 ADD private-key.gpg public-key.gpg /tmp/
 RUN gpg -q --batch --yes --passphrase ${gpg_pass} --import /tmp/private-key.gpg /tmp/public-key.gpg && \
     rm /tmp/private-key.gpg /tmp/public-key.gpg

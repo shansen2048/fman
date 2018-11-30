@@ -1,6 +1,8 @@
 # Build on an old Ubuntu version on purpose, to maximize compatibility:
 FROM ubuntu:14.04
 
+ARG requirements
+
 RUN apt-get update && \
     apt-get upgrade -y
 
@@ -17,18 +19,20 @@ RUN apt-get install libgl1-mesa-glx -y
 RUN apt-get install ruby ruby-dev build-essential -y && \
     gem install --no-ri --no-rdoc fpm
 
+WORKDIR /root/${app_name}
+
 # Required for Python dependency pgi:
 RUN apt-get install gobject-introspection libgtk-3-0 -y
-
-WORKDIR /root/fman
 
 # Set up virtual environment:
 ADD *.txt /tmp/requirements/
 RUN python3.6 -m venv venv && \
-    venv/bin/python -m pip install -r /tmp/requirements/ubuntu.txt
+    venv/bin/python -m pip install -r "/tmp/requirements/${requirements}"
 RUN rm -rf /tmp/requirements/
 
-# Required for our use of reprepro:
+ADD .bashrc /root/.bashrc
+
+# Requirements for our use of reprepro:
 ADD gpg-agent.conf gpg.conf /root/.gnupg/
 # Avoid GPG warning "unsafe permissions":
 RUN chmod -R 600 /root/.gnupg/
@@ -50,4 +54,3 @@ RUN apt-get install git -y && \
     git config --global user.name "Michael Herrmann"
 
 RUN locale-gen en_US.UTF-8
-ADD .bashrc /root/.bashrc

@@ -26,7 +26,7 @@
 		"src/build/docker/fedora/Dockerfile",
 		"src/build/docker/fedora/.rpmmacros"
 	],
-	"gpg_key": "B015FE599CFAF7EB",
+	"gpg_key": "45BCC825BC281C06D2A7F912B015FE599CFAF7EB",
 	"gpg_name": "Michael Herrmann",
 	"gpg_pass": "fenst4r",
 	"aws_access_key_id": "AKIAIWTB3R6KKMMTWXEA",

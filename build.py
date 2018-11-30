@@ -26,9 +26,11 @@ elif is_linux():
 	if is_ubuntu():
 		from build_impl.ubuntu import freeze, upload
 	elif is_arch_linux():
-		from build_impl.arch import freeze, sign_installer, upload
+		from build_impl.arch import freeze, upload
+		from fbs.builtin_commands import sign_installer
 	elif is_fedora():
-		from build_impl.fedora import freeze, sign_installer, upload
+		from build_impl.fedora import freeze, upload
+		from fbs.builtin_commands import sign_installer
 	else:
 		raise NotImplementedError()
 
