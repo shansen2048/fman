@@ -1,5 +1,5 @@
 [fman]
 name=fman
-baseurl=https://download.fman.io/rpm
+baseurl=https://download.fman.io
 enabled=1
 gpgcheck=0
