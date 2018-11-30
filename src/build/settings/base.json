@@ -1,6 +1,6 @@
 {
 	"app_name": "fman",
-	"version": "1.5.0",
+	"version": "1.5.1-SNAPSHOT",
 	"author": "Michael Herrmann",
 	"author_email": "michael+removethisifyouarehuman@herrmann.io",
 	"description": "A modern file manager for power users. Beautiful, fast and extensible",
