@@ -67,7 +67,7 @@ class SessionManager:
 			status_message = \
 				'Updated to v%s. <a href="https://fman.io/changelog?s=f">' \
 				'Changelog</a>' % self._fman_version
-		main_window.show_status_message(status_message)
+		main_window.show_status_message(status_message, timeout_secs=5)
 	def _get_startup_message(self):
 		previous_version = self._settings.get('fman_version', None)
 		if not previous_version or previous_version == self._fman_version:
