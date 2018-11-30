@@ -61,10 +61,13 @@ def upload_file(f, dest_dir, dest_name=None):
 	print('Uploading %s...' % basename(f))
 	dest_path = get_path_on_server(dest_dir)
 	if SETTINGS['release']:
-		run([
-			'rsync', '-ravz', '-e', 'ssh -i ' + SETTINGS['ssh_key'],
-			f, SETTINGS['server_user'] + ':' + dest_path
-		], check=True)
+		args = ['rsync', '-ravz', '-e', 'ssh -i ' + SETTINGS['ssh_key']]
+		dest = SETTINGS['server_user'] + ':' + dest_path
+		if dest_name is not None:
+			f += '/'
+			dest += '/' + dest_name
+		args.extend([f, dest])
+		run(args, check=True)
 	else:
 		if isdir(f):
 			copytree(f, join(dest_dir, dest_name or basename(f)))
