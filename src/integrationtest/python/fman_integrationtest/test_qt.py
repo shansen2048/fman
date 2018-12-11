@@ -27,8 +27,11 @@ from PyQt5.QtWidgets import QApplication
 from threading import Event
 from unittest import TestCase, skipIf
 
+def _reason_to_skip():
+	if is_mac():
+		return 'macOS does not allow running Qt in non-main thread'
 
-@skipIf(is_mac(), 'macOS does not allow running Qt in non-main thread')
+@skipIf(_reason_to_skip(), _reason_to_skip())
 class QtIT(TestCase):
 	def run_in_app(self, f, *args, **kwargs):
 		return _QtApp.run(f, *args, **kwargs)
@@ -40,11 +43,11 @@ class RunInThreadIT(RunInThreadAT, QtIT):
 	pass
 
 def setUpModule():
-	if not is_mac():
+	if not _reason_to_skip():
 		_QtApp.start()
 
 def tearDownModule():
-	if not is_mac():
+	if not _reason_to_skip():
 		_QtApp.shutdown()
 
 class _QtApp:
