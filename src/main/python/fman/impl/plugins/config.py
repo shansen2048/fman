@@ -55,11 +55,12 @@ class Config:
 				try:
 					self.save_json(json_name)
 				except ValueError as error_computing_delta:
-					# This can happen for a variety of reasons. One example: When
-					# multiple instances of fman are open and another instance has
-					# already written to the same json file, then the delta
-					# computation may fail with a ValueError. Ignore this so we can
-					# at least save the other files in _save_on_quit:
+					# This can happen for a variety of reasons. One example:
+					# When multiple instances of fman are open and another
+					# instance has already written to the same json file, then
+					# the delta computation may fail with a ValueError. Ignore
+					# this so we can at least save the other files in
+					# _save_on_quit:
 					continue
 				except OSError:
 					# Not much we can do. Try the other JSONs at least:
