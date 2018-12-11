@@ -1,4 +1,4 @@
-fbs==0.5.0
+fbs==0.5.2
 PyInstaller==3.4
 rollbar==0.13.11
 rsa==3.4.2
