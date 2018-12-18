@@ -9,24 +9,16 @@ import threading
 import traceback
 
 class Excepthook:
-	def __init__(self, plugin_error_handler):
-		self._plugin_error_handler = plugin_error_handler
 	def install(self):
 		sys.excepthook = self
 		self._enable_excepthook_for_threads()
-	def set_user(self, user):
-		pass
 	def __call__(self, exc_type, exc_value, exc_tb):
-		is_plugin_error = self._plugin_error_handler.handle(exc_tb)
-		if not is_plugin_error and not isinstance(exc_value, SystemExit):
-			enriched_tb = \
-				self._add_missing_frames(exc_tb) if exc_tb else exc_tb
-			self._handle_nonplugin_error(exc_type, exc_value, enriched_tb)
-	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
-		# Normally, we would like to use sys.__excepthook__ here. But it doesn't
-		# work with our "fake" traceback (see _add_missing_frames(...)). The
-		# following call avoids this yet produces the same result:
-		traceback.print_exception(exc_type, exc_value, exc_tb)
+		if not isinstance(exc_value, SystemExit):
+			enriched_tb = self._add_missing_frames(exc_tb) if exc_tb else exc_tb
+			# Normally, we'd like to use sys.__excepthook__ here. But it doesn't
+			# work with our "fake" traceback (see #_add_missing_frames(...)).
+			# The following call avoids this yet produces the same result:
+			traceback.print_exception(exc_type, exc_value, enriched_tb)
 	def _add_missing_frames(self, tb):
 		"""
 		Let f and h be Python functions and g be a function of Qt. If
@@ -92,7 +84,19 @@ class Excepthook:
 
 		threading.Thread.__init__ = init
 
-class RollbarExcepthook(Excepthook):
+class FmanExcepthook(Excepthook):
+	def __init__(self, plugin_error_handler):
+		self._plugin_error_handler = plugin_error_handler
+	def set_user(self, user):
+		pass
+	def __call__(self, exc_type, exc_value, exc_tb):
+		is_plugin_error = self._plugin_error_handler.handle(exc_tb)
+		if not is_plugin_error:
+			self._handle_nonplugin_error(exc_type, exc_value, exc_tb)
+	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
+			super().__call__(exc_type, exc_value, exc_tb)
+
+class RollbarExcepthook(FmanExcepthook):
 	def __init__(
 		self, rollbar_token, environment, fman_version, plugin_error_handler
 	):

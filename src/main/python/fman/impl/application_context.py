@@ -3,7 +3,7 @@ from fbs_runtime.application_context import cached_property, ApplicationContext
 from fbs_runtime.platform import is_mac
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.controller import Controller
-from fman.impl.excepthook import Excepthook, RollbarExcepthook
+from fman.impl.excepthook import RollbarExcepthook, FmanExcepthook
 from fman.impl.font_database import FontDatabase
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
@@ -150,7 +150,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 				constants[key] = value
 	@cached_property
 	def excepthook(self):
-		return Excepthook(self.plugin_error_handler)
+		return FmanExcepthook(self.plugin_error_handler)
 	@property
 	def main_window(self):
 		if self._main_window is None:
