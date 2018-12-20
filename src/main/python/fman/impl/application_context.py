@@ -56,7 +56,6 @@ class DevelopmentApplicationContext(ApplicationContext):
 		self._main_window = None
 	def run(self):
 		self.init_logging()
-		self.excepthook.install()
 		self._start_metrics()
 		self._load_plugins()
 		self.session_manager.show_main_window(self.window)
