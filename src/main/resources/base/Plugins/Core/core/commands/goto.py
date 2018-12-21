@@ -9,6 +9,8 @@ from fman.url import as_url, splitscheme, as_human_readable
 from itertools import islice, chain
 from os.path import expanduser, islink, isabs, normpath
 from pathlib import Path
+from random import shuffle
+from time import time
 
 import os
 import re
@@ -17,13 +19,17 @@ __all__ = ['GoTo', 'GoToListener']
 
 class GoTo(DirectoryPaneCommand):
 	def __call__(self, query=''):
-		get_items = SuggestLocations(self._get_visited_paths())
+		visited_paths = self._get_visited_paths()
+		get_items = SuggestLocations(visited_paths)
 		result = show_quicksearch(get_items, self._get_tab_completion, query)
 		if result:
 			url = self._get_target_location(*result)
 			if exists(url):
 				# Use OpenDirectory because it handles errors gracefully:
 				self.pane.run_command('open_directory', {'url': url})
+			else:
+				path = as_human_readable(url)
+				_remove_from_visited_paths(visited_paths, path)
 	def _get_target_location(self, query, suggested_dir):
 		if suggested_dir:
 			# The suggested_dir is for instance set when the user clicks on it
@@ -136,6 +142,10 @@ class GoToListener(DirectoryPaneListener):
 		visited_paths[path] = visited_paths.get(path, 0) + 1
 		if len(visited_paths) > 500:
 			_shrink_visited_paths(visited_paths, 250)
+		else:
+			# Spend a little time cleaning up outdated paths. This method is
+			# called asynchronously, so no problem performing some work here.
+			_remove_nonexistent(visited_paths, timeout_secs=0.01)
 
 def _shrink_visited_paths(vps, size):
 	paths_per_count = {}
@@ -153,6 +163,34 @@ def _shrink_visited_paths(vps, size):
 	for i, (count, paths) in enumerate(count_paths):
 		for p in paths:
 			vps[p] = i + 1
+
+def _remove_nonexistent(vps, timeout_secs):
+	# Randomly check visited paths for existence, until the timeout expires.
+	# Choose all elts. with equal probability. It's tempting to be more clever
+	# and use the visit counts somehow. But it's not clear this will be better:
+	# Higher counts may indicate that a directory is "stable" and doesn't change
+	# often. On the other hand, they also appear in search results more often,
+	# hence incur a higher "penalty" when we get it wrong. So keep it simple.
+	end_time = time() + timeout_secs
+	paths = list(vps)
+	shuffle(paths)
+	for path in paths:
+		if time() >= end_time:
+			break
+		try:
+			is_dir = os.path.isdir(path)
+		except OSError:
+			continue
+		if not is_dir:
+			_remove_from_visited_paths(vps, path)
+
+def _remove_from_visited_paths(vps, path):
+	for p in list(vps):
+		if p == path or p.startswith(path + os.sep):
+			try:
+				del vps[p]
+			except KeyError:
+				pass
 
 def unexpand_user(path, expanduser_=expanduser):
 	home_dir = expanduser_('~')
@@ -243,8 +281,7 @@ class SuggestLocations:
 		self.fs = file_system
 	def __call__(self, query):
 		possible_dirs = self._gather_dirs(query)
-		items = self._filter_matching(possible_dirs, query)
-		return self._remove_nonexistent(items)
+		return self._filter_matching(possible_dirs, query)
 	def _gather_dirs(self, query):
 		path = self._normalize_query(query)
 		if isabs(path):
@@ -303,16 +340,6 @@ class SuggestLocations:
 					))
 					break
 		return list(chain.from_iterable(result))
-	def _remove_nonexistent(self, items):
-		for item in items:
-			dir_ = item.value
-			if self.fs.isdir(self.fs.expanduser(dir_)):
-				yield item
-			else:
-				try:
-					del self.visited_paths[dir_]
-				except KeyError:
-					pass
 	def _gather_subdirs(self, dir_):
 		result = []
 		try:
