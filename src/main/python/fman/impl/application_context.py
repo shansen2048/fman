@@ -84,7 +84,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 		self.theme.enable_updates()
 	@property
 	def fman_version(self):
-		return self.public_settings['version']
+		return self.build_settings['version']
 	def on_main_window_shown(self):
 		if self.updater:
 			self.updater.start()
@@ -308,7 +308,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 				return False
 	@cached_property
 	def metrics_backend(self):
-		metrics_url = self.public_settings['server_url'] + '/metrics'
+		metrics_url = self.build_settings['server_url'] + '/metrics'
 		backend = ServerBackend(metrics_url + '/users', metrics_url + '/events')
 		if self.metrics_logging_enabled:
 			backend = LoggingBackend(backend)
@@ -454,8 +454,8 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 	@cached_property
 	def excepthook(self):
 		return RollbarExcepthook(
-			self.public_settings['rollbar_token'],
-			self.public_settings['environment'], self.fman_version,
+			self.build_settings['rollbar_token'],
+			self.build_settings['environment'], self.fman_version,
 			self.plugin_error_handler
 		)
 	def _should_auto_update(self):
