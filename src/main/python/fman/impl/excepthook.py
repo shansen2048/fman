@@ -16,7 +16,7 @@ class FmanExcepthook(Excepthook):
 		if not is_plugin_error:
 			self._handle_nonplugin_error(exc_type, exc_value, exc_tb)
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
-			super().__call__(exc_type, exc_value, exc_tb)
+		super().__call__(exc_type, exc_value, exc_tb)
 
 class RollbarExcepthook(FmanExcepthook):
 	def __init__(
