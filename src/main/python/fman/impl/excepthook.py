@@ -71,7 +71,4 @@ class RateLimiter:
 			return True
 		return False
 
-fake_tb = \
-	namedtuple('fake_tb', ('tb_frame', 'tb_lasti', 'tb_lineno', 'tb_next'))
-
 RollbarRequest = namedtuple('RollbarRequest', ('user_id',))
