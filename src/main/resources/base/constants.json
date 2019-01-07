@@ -1,6 +1,5 @@
 {
 	"environment": "${environment}",
 	"version": "${version}",
-	"server_url": "${server_url}",
-	"rollbar_token": "a51f2ba9f66340ccb75b454655df8fc5"
+	"server_url": "${server_url}"
 }

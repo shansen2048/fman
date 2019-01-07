@@ -3,7 +3,7 @@ from fbs_runtime.application_context import cached_property, ApplicationContext
 from fbs_runtime.platform import is_mac
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.controller import Controller
-from fman.impl.excepthook import RollbarExcepthook, FmanExcepthook
+from fman.impl.excepthook import SentryExcepthook, FmanExcepthook
 from fman.impl.font_database import FontDatabase
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
@@ -34,7 +34,6 @@ from fman.impl.view import Style
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from os import makedirs
 from os.path import dirname, join
-from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import QStyleFactory, QFileIconProvider
@@ -453,8 +452,8 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 			return MacUpdater(self.app)
 	@cached_property
 	def excepthook(self):
-		return RollbarExcepthook(
-			self.build_settings['rollbar_token'],
+		return SentryExcepthook(
+			self.build_settings['sentry_dsn'],
 			self.build_settings['environment'], self.fman_version,
 			self.plugin_error_handler
 		)
