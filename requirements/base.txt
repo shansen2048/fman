@@ -4,3 +4,4 @@ rsa==3.4.2
 tinycss==0.4
 boto3
 sentry-sdk==0.6.6
+requests==2.20.1
