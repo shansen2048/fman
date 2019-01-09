@@ -70,7 +70,8 @@ class DragAndDrop(QTableView):
 		elif is_linux():
 			do_copy = (modifiers & ControlModifier) or (modifiers & AltModifier)
 		else:
-			do_copy = not (modifiers & ShiftModifier)
+			# Windows
+			do_copy = modifiers & ControlModifier
 		action = CopyAction if do_copy else MoveAction
 		event.setDropAction(action)
 		super().dropEvent(event)
