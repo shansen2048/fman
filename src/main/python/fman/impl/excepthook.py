@@ -1,20 +1,20 @@
-from fbs_runtime.excepthook import Excepthook
+from fbs_runtime.excepthook import FbsExcepthook
 from fman.impl.util import os_
 from time import time
 
 import sentry_sdk
 
-class FmanExcepthook(Excepthook):
+class FmanExcepthook(FbsExcepthook):
 	def __init__(self, plugin_error_handler):
 		self._plugin_error_handler = plugin_error_handler
 	def set_user(self, user):
 		pass
-	def __call__(self, exc_type, exc_value, exc_tb):
-		is_plugin_error = self._plugin_error_handler.handle(exc_tb)
+	def handle(self, exc_type, exc_value, enriched_tb):
+		is_plugin_error = self._plugin_error_handler.handle(enriched_tb)
 		if not is_plugin_error:
-			self._handle_nonplugin_error(exc_type, exc_value, exc_tb)
-	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
-		super().__call__(exc_type, exc_value, exc_tb)
+			self._handle_nonplugin_error(exc_type, exc_value, enriched_tb)
+	def _handle_nonplugin_error(self, exc_type, exc_value, enriched_tb):
+		super().handle(exc_type, exc_value, enriched_tb)
 
 class SentryExcepthook(FmanExcepthook):
 	def __init__(
@@ -46,8 +46,7 @@ class SentryExcepthook(FmanExcepthook):
 	def _handle_nonplugin_error(self, exc_type, exc_value, exc_tb):
 		super()._handle_nonplugin_error(exc_type, exc_value, exc_tb)
 		if self._rate_limiter.please():
-			tb = self._add_missing_frames(exc_tb) if exc_tb else exc_tb
-			sentry_sdk.capture_exception((exc_type, exc_value, tb))
+			sentry_sdk.capture_exception((exc_type, exc_value, exc_tb))
 
 class RateLimiter:
 	def __init__(self, interval_secs, allowance, time_fn=time):
