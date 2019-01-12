@@ -1,9 +1,10 @@
 from fbs_runtime import application_context as fbs_appctxt
 from fbs_runtime.application_context import cached_property, ApplicationContext
+from fbs_runtime.excepthook import StderrExceptionHandler
 from fbs_runtime.platform import is_mac
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.controller import Controller
-from fman.impl.excepthook import SentryExcepthook, FmanExcepthook
+from fman.impl.excepthook import SentryExceptionHandler
 from fman.impl.font_database import FontDatabase
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
@@ -62,10 +63,11 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def init_logging(self):
 		logging.basicConfig()
 	def _start_metrics(self):
-		self.metrics.initialize(
-			callback=lambda: self.excepthook.set_user(self.metrics.get_user())
-		)
+		self.metrics.initialize(callback=self._on_metrics_initialised)
 		self.metrics.track('StartedFman')
+	def _on_metrics_initialised(self):
+		# Overwritten by FrozenApplicationContext below.
+		pass
 	def _load_plugins(self):
 		fman.FMAN_VERSION = self.fman_version
 		plugin_dirs = find_plugin_dirs(
@@ -129,8 +131,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 	def command_callback(self):
 		return CommandCallback(self.metrics)
 	@cached_property
-	def excepthook(self):
-		return FmanExcepthook(self.plugin_error_handler)
+	def exception_handlers(self):
+		return [self.plugin_error_handler, StderrExceptionHandler()]
 	@property
 	def main_window(self):
 		if self._main_window is None:
@@ -451,12 +453,19 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 		if self._should_auto_update():
 			return MacUpdater(self.app)
 	@cached_property
-	def excepthook(self):
-		return SentryExcepthook(
+	def exception_handlers(self):
+		result = super().exception_handlers
+		result.append(self.sentry_exception_handler)
+		return result
+	@cached_property
+	def sentry_exception_handler(self):
+		return SentryExceptionHandler(
 			self.build_settings['sentry_dsn'],
-			self.build_settings['environment'], self.fman_version,
-			self.plugin_error_handler
+			self.build_settings['environment'],
+			self.fman_version
 		)
+	def _on_metrics_initialised(self):
+		self.sentry_exception_handler.set_user(self.metrics.get_user())
 	def _should_auto_update(self):
 		if not is_mac():
 			# On Windows and Linux, auto-updates are handled by external
