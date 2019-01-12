@@ -1,4 +1,4 @@
-fbs==0.6.3
+fbs==0.6.4
 PyInstaller==3.4
 rsa==3.4.2
 tinycss==0.4
