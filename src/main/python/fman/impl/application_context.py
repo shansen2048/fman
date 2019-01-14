@@ -1,10 +1,10 @@
 from fbs_runtime import application_context as fbs_appctxt
 from fbs_runtime.application_context import cached_property, ApplicationContext
 from fbs_runtime.excepthook import StderrExceptionHandler
+from fbs_runtime.excepthook.sentry import SentryExceptionHandler
 from fbs_runtime.platform import is_mac
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.controller import Controller
-from fman.impl.excepthook import SentryExceptionHandler
 from fman.impl.font_database import FontDatabase
 from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
@@ -29,6 +29,7 @@ from fman.impl.onboarding.cleanup_guide import CleanupGuide
 from fman.impl.onboarding.tutorial import Tutorial
 from fman.impl.updater import MacUpdater
 from fman.impl.usage_helper import UsageHelper
+from fman.impl.util import os_
 from fman.impl.util.qt import connect_once
 from fman.impl.util.settings import Settings
 from fman.impl.view import Style
@@ -461,11 +462,19 @@ class FrozenApplicationContext(DevelopmentApplicationContext):
 	def sentry_exception_handler(self):
 		return SentryExceptionHandler(
 			self.build_settings['sentry_dsn'],
+			self.fman_version,
 			self.build_settings['environment'],
-			self.fman_version
+			callback=self._on_sentry_init
 		)
+	def _on_sentry_init(self):
+		scope = self.sentry_exception_handler.scope
+		scope.set_extra('os_name', os_.name())
+		scope.set_extra('os_version', os_.version())
+		scope.set_extra('os_distribution', os_.distribution())
 	def _on_metrics_initialised(self):
-		self.sentry_exception_handler.set_user(self.metrics.get_user())
+		self.sentry_exception_handler.scope.user = {
+			'id': self.metrics.get_user()
+		}
 	def _should_auto_update(self):
 		if not is_mac():
 			# On Windows and Linux, auto-updates are handled by external

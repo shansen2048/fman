@@ -1,7 +1,6 @@
-fbs==0.6.4
+fbs[sentry]==0.6.6
 PyInstaller==3.4
 rsa==3.4.2
 tinycss==0.4
 boto3
-sentry-sdk==0.6.6
 requests==2.20.1
