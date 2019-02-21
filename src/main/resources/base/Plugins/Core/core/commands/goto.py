@@ -52,7 +52,9 @@ class GoTo(DirectoryPaneCommand):
 	def _get_visited_paths(self):
 		# TODO: Rename to Visited Locations.json?
 		result = load_json('Visited Paths.json', default={})
-		if not result:
+		# Check for length 2 because the directories in which fman opens are
+		# already in Visited Paths:
+		if len(result) <= 2:
 			result.update({
 				path: 0 for path in self._get_default_paths()
 			})
