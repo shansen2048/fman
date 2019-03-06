@@ -1,5 +1,5 @@
 # Build on an old Ubuntu version on purpose, to maximize compatibility:
-FROM ubuntu:14.04
+FROM fmanbuildsystem/ubuntu:16.04
 
 ARG requirements
 
@@ -53,4 +53,5 @@ RUN apt-get install git -y && \
     git config --global user.email "michael@herrmann.io" && \
     git config --global user.name "Michael Herrmann"
 
-RUN locale-gen en_US.UTF-8
+RUN apt-get install locales -y && \
+    locale-gen en_US.UTF-8
