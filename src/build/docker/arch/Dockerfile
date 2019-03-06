@@ -43,7 +43,7 @@ ADD id_rsa /root/.ssh/id_rsa
 RUN chmod 600 /root/.ssh/id_rsa
 ADD id_rsa.pub /root/.ssh/id_rsa.pub
 RUN pacman -S --noconfirm openssh && \
-    ssh-keyscan -H dev.herrmann.io >> ~/.ssh/known_hosts && \
+    ssh-keyscan -H github.com >> ~/.ssh/known_hosts && \
     ssh-keyscan -H fman.io >> ~/.ssh/known_hosts && \
     chmod 600 ~/.ssh/known_hosts
 
