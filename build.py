@@ -9,7 +9,7 @@ from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean
 from fbs.cmdline import command
 from fbs_runtime.platform import is_windows, is_mac, is_linux, is_ubuntu, \
-	is_fedora, is_arch_linux
+	is_fedora, is_arch_linux, linux_distribution
 from os.path import dirname
 
 import fbs.cmdline
@@ -32,7 +32,7 @@ elif is_linux():
 		from build_impl.fedora import freeze, upload
 		from fbs.builtin_commands import sign_installer
 	else:
-		raise NotImplementedError()
+		raise NotImplementedError(linux_distribution())
 
 @command
 def publish():
