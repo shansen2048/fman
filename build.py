@@ -23,7 +23,7 @@ elif is_mac():
 	from fbs.builtin_commands import installer
 elif is_linux():
 	from fbs.builtin_commands import installer
-	if is_ubuntu():
+	if is_ubuntu() or linux_distribution() == 'Debian GNU/Linux':
 		from build_impl.ubuntu import freeze, upload
 	elif is_arch_linux():
 		from build_impl.arch import freeze, upload
