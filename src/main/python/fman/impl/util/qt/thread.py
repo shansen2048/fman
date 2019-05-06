@@ -112,6 +112,9 @@ class Sender(QObject):
 class Receiver(QObject):
 	def __init__(self, callback, parent=None):
 		super().__init__(parent)
+		# It's tempting to just do `self.slot = callback` here. But it doesn't
+		# work. Apparently there is some special initialisation going on for
+		# methods declared as such in QObject subclasses.
 		self.callback = callback
 	def slot(self):
 		self.callback()
