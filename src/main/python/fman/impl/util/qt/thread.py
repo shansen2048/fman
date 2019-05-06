@@ -1,7 +1,7 @@
 from functools import wraps
 from PyQt5.QtCore import pyqtSignal, QObject, QThread
 from PyQt5.QtWidgets import QApplication
-from threading import Event, get_ident
+from threading import Event, get_ident, Lock
 
 def run_in_thread(thread_fn):
 	def decorator(f):
@@ -44,12 +44,14 @@ def is_in_main_thread():
 class Executor:
 
 	_INSTANCE = None
+	_INSTANCE_LOCK = Lock()
 
 	@classmethod
 	def instance(cls):
-		if cls._INSTANCE is None:
-			cls._INSTANCE = cls(QApplication.instance())
-		return cls._INSTANCE
+		with cls._INSTANCE_LOCK:
+			if cls._INSTANCE is None:
+				cls._INSTANCE = cls(QApplication.instance())
+			return cls._INSTANCE
 	def __init__(self, app):
 		self._pending_tasks = []
 		self._app_is_about_to_quit = False
