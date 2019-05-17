@@ -311,7 +311,7 @@ class Layout(QVBoxLayout):
 		self.setContentsMargins(0, 0, 0, 0)
 		self.setSpacing(0)
 
-class Style(QProxyStyle):
+class ProxyStyle(QProxyStyle):
 	def drawPrimitive(self, element, option, painter, widget):
 		if element == QStyle.PE_FrameFocusRect:
 			# Prevent the ugly dotted border around focused elements on Windows:

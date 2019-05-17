@@ -32,7 +32,7 @@ from fman.impl.usage_helper import UsageHelper
 from fman.impl.util import os_
 from fman.impl.util.qt import connect_once
 from fman.impl.util.settings import Settings
-from fman.impl.view import Style
+from fman.impl.view import ProxyStyle
 from fman.impl.widgets import MainWindow, SplashScreen, Application
 from os import makedirs
 from os.path import dirname, join
@@ -395,7 +395,13 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return Theme(self.app, qss_files)
 	@cached_property
 	def style(self):
-		return Style(QStyleFactory.create('Fusion'))
+		base_style = None
+		base_style_name = os.environ.get('QT_QPA_PLATFORMTHEME')
+		if base_style_name:
+			base_style = QStyleFactory.create(base_style_name)
+		if not base_style:
+			base_style = QStyleFactory.create('Fusion')
+		return ProxyStyle(base_style)
 	@cached_property
 	def updater(self):
 		return None
