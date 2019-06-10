@@ -3,8 +3,17 @@ FROM fmanbuildsystem/archlinux:2018.04.01
 
 ARG requirements
 
-RUN echo 'Server=https://archive.archlinux.org/repos/2018/04/01/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
-    pacman -Syy
+# Use the files from arch-repo/ as our package repository. We previously simply
+# used an online repository. But some of its files disappeared.
+ADD arch-repo /tmp/arch-repo
+RUN cd /tmp/arch-repo && repo-add repo.db.tar.gz *.pkg.tar.xz
+RUN sed -i 's/^\[core\]$/#[core]/g' /etc/pacman.conf && \
+    sed -i 's/^\[extra\]$/#[core]/g' /etc/pacman.conf && \
+    sed -i 's/^\[community\]$/#[core]/g' /etc/pacman.conf && \
+    sed -i 's|^Include = /etc/pacman.d/mirrorlist$|#Include = /etc/pacman.d/mirrorlist|g' /etc/pacman.conf && \
+    sed -i 's/^SigLevel \+=.*/SigLevel = Never/g' /etc/pacman.conf && \
+    echo -e '[repo]\nServer = file:///tmp/arch-repo' >> /etc/pacman.conf && \
+    pacman -Sy
 
 # Python 3.6:
 RUN pacman -S --noconfirm python
