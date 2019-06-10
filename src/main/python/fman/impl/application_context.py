@@ -1,5 +1,6 @@
 from fbs_runtime import application_context as fbs_appctxt
-from fbs_runtime.application_context import cached_property, ApplicationContext
+from fbs_runtime.application_context import cached_property
+from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from fbs_runtime.excepthook import StderrExceptionHandler
 from fbs_runtime.excepthook.sentry import SentryExceptionHandler
 from fbs_runtime.platform import is_mac

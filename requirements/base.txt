@@ -1,5 +1,4 @@
-fbs[sentry]==0.7.2
-PyInstaller==3.4
+fbs[sentry]==0.8.3
 rsa==3.4.2
 tinycss==0.4
 boto3
