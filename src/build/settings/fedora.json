@@ -1,3 +1,4 @@
 {
-	"gpg_preset_passphrase": "/usr/libexec/gpg-preset-passphrase"
+	"gpg_preset_passphrase": "/usr/libexec/gpg-preset-passphrase",
+	"depends": ["compat-openssl10"]
 }
