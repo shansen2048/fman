@@ -1,6 +1,6 @@
 from fbs_runtime.platform import is_mac, is_windows, is_linux
 from fman.impl.util.qt import MoveAction, NoButton, AltModifier, \
-	ShiftModifier, ControlModifier, CopyAction
+	ControlModifier, CopyAction
 from PyQt5.QtCore import QItemSelectionModel as QISM
 from PyQt5.QtWidgets import QTableView, QAbstractItemView
 
