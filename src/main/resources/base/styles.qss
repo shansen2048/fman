@@ -126,7 +126,7 @@ QLineEdit:read-only {
 	color: #9a9a9a;
 }
 
-PathView {
+LocationBar:read-only {
 	padding: 0.25ex;
 	border-bottom: 1px solid #262626;
 }

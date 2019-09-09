@@ -1,4 +1,4 @@
-PathView {
+LocationBar:read-only {
 	padding: 1ex;
 }
 
