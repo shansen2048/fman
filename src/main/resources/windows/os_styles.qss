@@ -1,7 +1,3 @@
-LocationBar:read-only {
-	padding: 1ex;
-}
-
 QHeaderView::section {
 	/*
 	 * Would just like padding-top = padding-bottom = 1ex here but for some
