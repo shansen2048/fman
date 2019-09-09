@@ -9,7 +9,8 @@ class Theme:
 		'th': 'QTableView QHeaderView::section',
 		'.statusbar': 'QStatusBar, QStatusBar QLabel',
 		'.quicksearch-query': 'Quicksearch QLineEdit',
-		'.quicksearch-item': 'Quicksearch QListView::item'
+		'.quicksearch-item': 'Quicksearch QListView::item',
+		'.locationbar': 'LocationBar:read-only'
 	}
 
 	def __init__(self, app, qss_file_paths):
