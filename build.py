@@ -16,8 +16,8 @@ import fbs.cmdline
 import re
 
 if is_windows():
-	from build_impl.windows import freeze, sign, installer, sign_installer, \
-		upload
+	from build_impl.windows import freeze, installer, upload
+	from fbs.builtin_commands import sign, sign_installer
 elif is_mac():
 	from build_impl.mac import freeze, sign, sign_installer, upload
 	from fbs.builtin_commands import installer

@@ -1,4 +1,4 @@
-fbs[sentry]==0.8.3
+fbs[sentry]==0.8.4
 rsa==3.4.2
 tinycss==0.4
 boto3
