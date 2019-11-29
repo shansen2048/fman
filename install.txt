@@ -1,25 +1,10 @@
 Mac:
 ====
-brew update
-brew install openssl
-brew install pyenv
-git clone https://github.com/yyuu/pyenv-virtualenv.git ~/.pyenv/plugins/pyenv-virtualenv
 
-# Add to .bashrc:
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
+Import developer certificate:
 
-PYTHON_CONFIGURE_OPTS="--enable-shared" CFLAGS="-I$(brew --prefix openssl)/include" LDFLAGS="-L$(brew --prefix openssl)/lib" pyenv install 3.5.4
-
-# Then, in ~/dev/fman:
-pyenv virtualenv 3.5.4 venv
-pyenv activate venv
-
-# Import developer certificate:
-security unlock-keychain -p **PASSWORD**
-security import "~/dev/fman/conf/mac/Private key.p12" -k ~/Library/Keychains/login.keychain -P "" -T /usr/bin/codesign
+    security unlock-keychain -p **PASSWORD**
+    security import "~/dev/fman/conf/mac/Private key.p12" -k ~/Library/Keychains/login.keychain -P "" -T /usr/bin/codesign
 
 NSIS:
 =====
