@@ -33,6 +33,7 @@ function build {
 alias run='python build.py run'
 alias clean='python build.py clean'
 alias freeze='python build.py freeze'
+alias sign='python build.py sign'
 alias installer='python build.py installer'
 alias sign_installer='python build.py sign_installer'
 alias publish='python build.py publish'
