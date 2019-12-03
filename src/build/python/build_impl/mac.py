@@ -7,9 +7,12 @@ from fbs.freeze.mac import freeze_mac
 from glob import glob
 from os import makedirs, remove
 from os.path import basename, join, exists, splitext
-from shutil import copy, rmtree
-from subprocess import run
+from shutil import copy, rmtree, make_archive
+from subprocess import run, PIPE, CalledProcessError, SubprocessError
 from tempfile import TemporaryDirectory
+from time import sleep
+
+import plistlib
 
 _UPDATES_DIR = 'updates/mac'
 
@@ -36,19 +39,72 @@ def freeze():
 
 @command
 def sign():
+	app_dir = path('${freeze_dir}')
 	run([
-		'codesign', '--deep', '--verbose',
+		'codesign', '--deep', '--verbose', '--options', 'runtime',
 		'-s', "Developer ID Application: Michael Herrmann",
-		path('${freeze_dir}')
+		app_dir
 	], check=True)
+	zip_path = make_archive(
+		app_dir, 'zip', path('target'), basename(path('${freeze_dir}'))
+	)
+	_notarize(zip_path)
+	_staple(app_dir)
+
+def _staple(file_path):
+	run(['xcrun', 'stapler', 'staple', file_path], check=True)
+
+def _notarize(file_path, query_interval_secs=10):
+	request_uuid = _query_altool([
+		'--notarize-app', '-t', 'osx', '-f', file_path,
+		'--primary-bundle-id', SETTINGS['mac_bundle_identifier']
+	], 'notarization-upload', 'RequestUUID')
+	while True:
+		status = _query_altool(
+			['--notarization-info', request_uuid],
+			'notarization-info', 'Status'
+		)
+		if status != 'in progress':
+			break
+		print('Waiting for notarization to complete...')
+		sleep(query_interval_secs)
+	if status != 'success':
+		raise RuntimeError('Unexpected notarization status: %r' % status)
+
+def _query_altool(args, k1, k2):
+	plist_response = _run_altool(args)
+	try:
+		return plist_response[k1][k2]
+	except KeyError:
+		raise KeyError('Unexpected plist response: ' + repr(plist_response))
+
+def _run_altool(args):
+	all_args = [
+		'xcrun', 'altool', '--output-format', 'xml',
+		'-u', SETTINGS['apple_developer_user'],
+		'-p', SETTINGS['apple_developer_app_pw']
+	] + args
+	try:
+		process = run(all_args, stdout=PIPE, stderr=PIPE, check=True)
+	except CalledProcessError as e:
+		raise SubprocessError(
+			str(e) + '\nStdout: %s\nStderr: %s' % (e.stdout, e.stderr)
+		)
+	try:
+		return plistlib.loads(process.stdout)
+	except plistlib.InvalidFileException:
+		raise plistlib.InvalidFileException('Invalid file: %r' % process.stdout)
 
 @command
 def sign_installer():
+	installer_path = path('target/fman.dmg')
 	run([
 		'codesign', '--verbose',
 		'-s', "Developer ID Application: Michael Herrmann",
-		path('target/fman.dmg')
+		installer_path
 	], check=True)
+	_notarize(installer_path)
+	_staple(installer_path)
 
 @command
 def upload():
