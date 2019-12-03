@@ -58,6 +58,7 @@ def _notarize(file_path, query_interval_secs=10):
 		'--primary-bundle-id', SETTINGS['mac_bundle_identifier']
 	], 'notarization-upload', 'RequestUUID')
 	while True:
+		sleep(query_interval_secs)
 		status = _query_altool(
 			['--notarization-info', request_uuid],
 			'notarization-info', 'Status'
@@ -65,7 +66,6 @@ def _notarize(file_path, query_interval_secs=10):
 		if status != 'in progress':
 			break
 		print('Waiting for notarization to complete...')
-		sleep(query_interval_secs)
 	if status != 'success':
 		raise RuntimeError('Unexpected notarization status: %r' % status)
 
