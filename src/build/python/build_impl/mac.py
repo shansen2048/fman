@@ -38,16 +38,22 @@ def freeze():
 @command
 def sign():
 	app_dir = path('${freeze_dir}')
-	run([
-		'codesign', '--deep', '--verbose', '--options', 'runtime',
-		'-s', "Developer ID Application: Michael Herrmann",
+	_run_codesign(
+		'--deep', '--options', 'runtime',
+		'--entitlements', path('src/sign/mac/entitlements.plist'),
 		app_dir
-	], check=True)
+	)
 	zip_path = make_archive(
 		app_dir, 'zip', path('target'), basename(path('${freeze_dir}'))
 	)
 	_notarize(zip_path)
 	_staple(app_dir)
+
+def _run_codesign(*args):
+	run([
+		'codesign', '--verbose',
+		'-s', 'Developer ID Application: Michael Herrmann',
+	] + list(args), check=True)
 
 def _staple(file_path):
 	run(['xcrun', 'stapler', 'staple', file_path], check=True)
@@ -95,14 +101,7 @@ def _run_altool(args):
 
 @command
 def sign_installer():
-	installer_path = path('target/fman.dmg')
-	run([
-		'codesign', '--verbose',
-		'-s', "Developer ID Application: Michael Herrmann",
-		installer_path
-	], check=True)
-	_notarize(installer_path)
-	_staple(installer_path)
+	_run_codesign(path('target/fman.dmg'))
 
 @command
 def upload():
