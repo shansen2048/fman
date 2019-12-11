@@ -5,12 +5,14 @@ from fbs.cmdline import command
 from fbs.freeze.mac import freeze_mac
 from glob import glob
 from os import remove
-from os.path import basename
-from shutil import rmtree, make_archive
+from os.path import basename, join
+from shutil import rmtree, make_archive, move
 from subprocess import run, PIPE, CalledProcessError, SubprocessError
 from time import sleep
 
+import json
 import plistlib
+import requests
 
 _UPDATES_DIR = 'updates/mac'
 
@@ -30,19 +32,37 @@ def freeze():
 	# Similarly for Roboto Bold.ttf. It is only used on Windows:
 	remove(path('${core_plugin_in_freeze_dir}/Roboto Bold.ttf'))
 	copy_framework(
-		path('lib/mac/Sparkle-1.18.1/Sparkle.framework'),
+		path('lib/mac/Sparkle-1.22.0/Sparkle.framework'),
 		path('${freeze_dir}/Contents/Frameworks/Sparkle.framework')
 	)
 	copy_python_library('osxtrash', path('${core_plugin_in_freeze_dir}'))
+	# Move the .so file to the correct location according to macOS's app bundle
+	# structure, so it is codesigned:
+	move(
+		path('${core_plugin_in_freeze_dir}/osxtrash.cpython-36m-darwin.so'),
+		path('${freeze_dir}/Contents/MacOS')
+	)
+	move(
+		path('${core_plugin_in_freeze_dir}/bin/mac/7za'),
+		path('${freeze_dir}/Contents/MacOS')
+	)
 
 @command
 def sign():
 	app_dir = path('${freeze_dir}')
-	_run_codesign(
-		'--deep', '--options', 'runtime',
-		'--entitlements', path('src/sign/mac/entitlements.plist'),
+	sparkle_dir = join(app_dir, 'Contents/Frameworks/Sparkle.framework')
+	# Avoid some Notarization warnings by signing not just the app_dir, but some
+	# sub-directories as well:
+	for binary_path in (
+		join(sparkle_dir, 'Versions/A/Resources/Autoupdate.app'),
+		sparkle_dir,
 		app_dir
-	)
+	):
+		_run_codesign(
+			'--deep', '--force', '--options', 'runtime',
+			'--entitlements', path('src/sign/mac/entitlements.plist'),
+			binary_path
+		)
 	zip_path = make_archive(
 		app_dir, 'zip', path('target'), basename(path('${freeze_dir}'))
 	)
@@ -59,28 +79,34 @@ def _staple(file_path):
 	run(['xcrun', 'stapler', 'staple', file_path], check=True)
 
 def _notarize(file_path, query_interval_secs=10):
-	request_uuid = _query_altool([
+	response = _run_altool([
 		'--notarize-app', '-t', 'osx', '-f', file_path,
 		'--primary-bundle-id', SETTINGS['mac_bundle_identifier']
-	], 'notarization-upload', 'RequestUUID')
+	])
+	request_uuid = response['notarization-upload']['RequestUUID']
 	while True:
 		sleep(query_interval_secs)
-		status = _query_altool(
-			['--notarization-info', request_uuid],
-			'notarization-info', 'Status'
-		)
-		if status != 'in progress':
-			break
+		try:
+			response = _run_altool(['--notarization-info', request_uuid])
+		except CalledProcessError as e:
+			stdout = e.stdout.decode('utf-8')
+			if 'Could not find the RequestUUID' not in stdout:
+				raise
+		else:
+			status = response['notarization-info']['Status']
+			if status != 'in progress':
+				break
 		print('Waiting for notarization to complete...')
 	if status != 'success':
 		raise RuntimeError('Unexpected notarization status: %r' % status)
-
-def _query_altool(args, k1, k2):
-	plist_response = _run_altool(args)
-	try:
-		return plist_response[k1][k2]
-	except KeyError:
-		raise KeyError('Unexpected plist response: ' + repr(plist_response))
+	log_url = response['notarization-info']['LogFileURL']
+	log_response = requests.get(log_url)
+	log_response.raise_for_status()
+	log_json = log_response.json()
+	issues = log_json.get('issues', [])
+	if issues:
+		print('Notarization encountered some issues:')
+		print(json.dumps(issues, indent=4, sort_keys=True))
 
 def _run_altool(args):
 	all_args = [
@@ -88,20 +114,15 @@ def _run_altool(args):
 		'-u', SETTINGS['apple_developer_user'],
 		'-p', SETTINGS['apple_developer_app_pw']
 	] + args
-	try:
-		process = run(all_args, stdout=PIPE, stderr=PIPE, check=True)
-	except CalledProcessError as e:
-		raise SubprocessError(
-			str(e) + '\nStdout: %s\nStderr: %s' % (e.stdout, e.stderr)
-		)
-	try:
-		return plistlib.loads(process.stdout)
-	except plistlib.InvalidFileException:
-		raise plistlib.InvalidFileException('Invalid file: %r' % process.stdout)
+	process = run(all_args, stdout=PIPE, stderr=PIPE, check=True)
+	return plistlib.loads(process.stdout)
 
 @command
 def sign_installer():
-	_run_codesign(path('target/fman.dmg'))
+	dmg_path = path('target/fman.dmg')
+	_run_codesign(dmg_path)
+	_notarize(dmg_path)
+	_staple(dmg_path)
 
 @command
 def upload():
