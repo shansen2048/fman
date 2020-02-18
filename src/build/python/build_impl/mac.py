@@ -97,8 +97,6 @@ def _notarize(file_path, query_interval_secs=10):
 			if status != 'in progress':
 				break
 		print('Waiting for notarization to complete...')
-	if status != 'success':
-		raise RuntimeError('Unexpected notarization status: %r' % status)
 	log_url = response['notarization-info']['LogFileURL']
 	log_response = requests.get(log_url)
 	log_response.raise_for_status()
@@ -107,6 +105,8 @@ def _notarize(file_path, query_interval_secs=10):
 	if issues:
 		print('Notarization encountered some issues:')
 		print(json.dumps(issues, indent=4, sort_keys=True))
+	if status != 'success':
+		raise RuntimeError('Unexpected notarization status: %r' % status)
 
 def _run_altool(args):
 	all_args = [
