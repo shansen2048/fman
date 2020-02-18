@@ -1,5 +1,5 @@
 from fbs_runtime.platform import is_mac, is_windows
-from fman import load_json
+from fman import load_json, show_alert, CANCEL, OK
 from fman.impl.onboarding import Tour, TourStep
 from fman.impl.util import is_below_dir
 from fman.impl.util.qt import connect_once
@@ -8,15 +8,17 @@ from fman.url import as_url, splitscheme, as_human_readable
 from os.path import expanduser, relpath, realpath, splitdrive, basename, \
 	normpath, dirname
 from pathlib import PurePath
+from platform import mac_ver
 from PyQt5.QtCore import QFileInfo
 from PyQt5.QtWidgets import QFileDialog
 from time import time, sleep
 
 import fman.url
 import os.path
+import webbrowser
 
 class Tutorial(Tour):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, is_first_run, *args, **kwargs):
 		if is_mac():
 			self._cmd_p = 'Cmd+P'
 			self._native_fm = 'Finder'
@@ -31,6 +33,7 @@ class Tutorial(Tour):
 			self._delete_key = 'Delete'
 			self._cmd_shift_p = 'Ctrl+Shift+P'
 		super().__init__('Tutorial', *args, **kwargs)
+		self._is_first_run = is_first_run
 		self._dst_url = self._src_url = self._start_time = self._time_taken \
 			= None
 		self._encouragements = [
@@ -38,6 +41,15 @@ class Tutorial(Tour):
 		]
 		self._encouragement_index = 0
 		self._last_step = ''
+	def on_close(self):
+		if self._is_first_run and _is_macos_catalina_or_later():
+			response = show_alert(
+				"On macOS, fman requires extra configuration.<br/>"
+				"I'll show you the relevant documentation now.",
+				OK | CANCEL, OK
+			)
+			if response == OK:
+				webbrowser.open('https://fman.io/docs/macos?s=f')
 	def _get_steps(self):
 		return [
 			TourStep(
@@ -458,6 +470,16 @@ def _is_hidden(url):
 		return False
 	# Copied from core.commands:
 	return QFileInfo(as_human_readable(url)).isHidden()
+
+def _is_macos_catalina_or_later():
+	if not is_mac():
+		return False
+	try:
+		macos_ver = tuple(map(int, mac_ver()[0].split('.')))
+	except ValueError:
+		return False
+	else:
+		return macos_ver >= (10, 15, 0)
 
 def _get_navigation_steps(
 	dst_url, src_url, is_hidden=lambda url: False, showing_hidden_files=True

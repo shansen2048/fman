@@ -227,8 +227,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 	@cached_property
 	def tutorial_factory(self):
 		return lambda pane: Tutorial(
-			self.main_window, pane, self.app, self.command_callback,
-			self.metrics
+			self.session_manager.is_first_run, self.main_window, pane, self.app,
+			self.command_callback, self.metrics
 		)
 	@cached_property
 	def cleanupguide_factory(self):

@@ -10,7 +10,7 @@ class TourController:
 		self._tour = None
 	def start(self, tour, step=0):
 		if self._tour:
-			self._tour.close()
+			self._tour.close_current_step()
 		self._tour = tour
 		self._tour.start(step)
 
@@ -35,11 +35,16 @@ class Tour:
 		self._next_step()
 	def reject(self):
 		self._track('AbortedTour', step=self._curr_step_index)
-		self.close()
+		self.close_current_step()
+		self.on_close()
 	def complete(self):
 		self._track('CompletedTour', step=self._curr_step_index)
-		self.close()
-	def close(self):
+		self.close_current_step()
+		self.on_close()
+	def on_close(self):
+		# Can be implemented by subclasses.
+		pass
+	def close_current_step(self):
 		if not self._curr_step:
 			return
 		self._curr_step.close()
@@ -60,7 +65,7 @@ class Tour:
 		self._track('StartedTourStep', step=self._curr_step_index)
 	def _show_current_screen(self):
 		if self._curr_step:
-			self.close()
+			self.close_current_step()
 		self._curr_step = self._steps[self._curr_step_index]
 		self._command_callback.add_listener(self._curr_step)
 		self._connect_location_changed()
