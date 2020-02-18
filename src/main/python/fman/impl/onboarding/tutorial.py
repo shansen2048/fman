@@ -215,7 +215,6 @@ class Tutorial(Tour):
 					"* *%s* lets you go to any _P_ath." % self._cmd_p,
 					"* *F10* opens %s" % self._native_fm,
 					"* *%s* opens the Command _P_alette." % self._cmd_shift_p,
-					"The Command Palette lets you find all other features.",
 					"Have fun with fman! :-)"
 				],
 				buttons=[('Close', self.complete)]
