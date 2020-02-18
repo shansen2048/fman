@@ -6,7 +6,7 @@ from fbs.freeze.mac import freeze_mac
 from glob import glob
 from os import remove
 from os.path import basename, join
-from shutil import rmtree, make_archive, move
+from shutil import rmtree, move
 from subprocess import run, PIPE, CalledProcessError, SubprocessError
 from time import sleep
 
@@ -63,9 +63,8 @@ def sign():
 			'--entitlements', path('src/sign/mac/entitlements.plist'),
 			binary_path
 		)
-	zip_path = make_archive(
-		app_dir, 'zip', path('target'), basename(path('${freeze_dir}'))
-	)
+	zip_path = path('${freeze_dir}') + '.zip'
+	_zip_mac(app_dir, zip_path)
 	_notarize(zip_path)
 	_staple(app_dir)
 
@@ -126,7 +125,10 @@ def sign_installer():
 
 @command
 def upload():
-	_create_autoupdate_files()
+	_zip_mac(
+		path('${freeze_dir}'),
+		path('target/autoupdate/%s.zip' % SETTINGS['version'])
+	)
 	upload_file(
 		path('target/autoupdate/%s.zip' % SETTINGS['version']), _UPDATES_DIR
 	)
@@ -135,9 +137,9 @@ def upload():
 	if SETTINGS['release']:
 		upload_installer_to_aws('fman.dmg')
 
-def _create_autoupdate_files():
+def _zip_mac(src_dir, dest_zip):
 	run([
 		'ditto', '-c', '-k', '--sequesterRsrc', '--keepParent',
-		path('${freeze_dir}'),
-		path('target/autoupdate/%s.zip' % SETTINGS['version'])
+		src_dir,
+		dest_zip
 	], check=True)

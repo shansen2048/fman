@@ -2,8 +2,8 @@ from build_impl.aws import upload_to_s3
 from fbs import SETTINGS, path
 from fbs_runtime.platform import is_windows, is_mac, is_linux
 from importlib import import_module
-from os import makedirs, readlink, symlink, remove, getcwd, chdir, listdir
-from os.path import dirname, join, islink, isdir, basename
+from os import remove, getcwd, chdir, listdir
+from os.path import dirname, join, isdir, basename
 from shutil import copy, copytree, rmtree
 from subprocess import run, check_output, PIPE
 from tempfile import TemporaryDirectory
@@ -12,26 +12,9 @@ import re
 import sys
 
 def copy_framework(src_dir, dest_dir):
+	assert is_mac()
 	assert basename(src_dir).endswith('.framework')
-	name = basename(src_dir)[:-len('.framework')]
-	version = basename(readlink(join(src_dir, 'Versions', 'Current')))
-	files = [
-		name, 'Resources', 'Versions/Current',
-		'Versions/%s/%s' % (version, name), 'Versions/%s/Resources' % version
-	]
-	_copy_files(src_dir, dest_dir, files)
-
-def _copy_files(src_dir, dest_dir, files):
-	for file_ in files:
-		src = join(src_dir, file_)
-		dst = join(dest_dir, file_)
-		makedirs(dirname(dst), exist_ok=True)
-		if islink(src):
-			symlink(readlink(src), dst)
-		elif isdir(src):
-			copytree(src, dst, symlinks=True)
-		else:
-			copy(src, dst, follow_symlinks=False)
+	run(['cp', '-a', '-p', src_dir, dest_dir], check=True)
 
 def remove_if_exists(file_path):
 	try:
