@@ -9,6 +9,7 @@ from subprocess import run, check_output, PIPE
 from tempfile import TemporaryDirectory
 
 import re
+import os
 import sys
 
 def copy_framework(src_dir, dest_dir):
@@ -87,9 +88,12 @@ def upload_installer_to_aws(installer_name):
 	version_dest_path = '%s/%s' % (SETTINGS['version'], installer_name)
 	upload_to_s3(src_path, version_dest_path)
 
-def git(cmd, *args):
+def git(cmd, *args, ssh_key=None):
+	env = dict(os.environ)
+	if ssh_key is not None:
+		env['GIT_SSH_COMMAND'] = 'ssh -i ' + ssh_key
 	completed_process = run(
-		['git', cmd] + list(args), check=True, stdout=PIPE,
+		['git', cmd] + list(args), env=env, check=True, stdout=PIPE,
 		universal_newlines=True
 	)
 	return completed_process.stdout
@@ -98,11 +102,13 @@ def git_has_changes():
 	return 'nothing to commit' not in git('status')
 
 def upload_core_to_github():
+	ssh_key = path('${core_plugin_ssh_key}')
 	with TemporaryDirectory() as tmp_dir:
 		cwd_before = getcwd()
 		chdir(tmp_dir)
 		try:
-			git('clone', SETTINGS['core_plugin_github_url'], '.')
+			core_url = SETTINGS['core_plugin_github_url']
+			git('clone', core_url, '.', ssh_key=ssh_key)
 			with open('.extrafiles', 'r') as f:
 				extra_files = {
 					line.rstrip() for line in f
@@ -128,10 +134,10 @@ def upload_core_to_github():
 					'commit', '-m',
 					'Source code of the Core plugin in fman ' + version
 				)
-				git('push', '-u', 'origin', 'master')
+				git('push', '-u', 'origin', 'master', ssh_key=ssh_key)
 			tag = 'v' + version
 			git('tag', tag)
-			git('push', 'origin', tag)
+			git('push', 'origin', tag, ssh_key=ssh_key)
 		finally:
 			chdir(cwd_before)
 
