@@ -11,7 +11,11 @@
 # Find the directory this script lies in, even when the script is called via a
 # symlink, as per the installation instructions above. Copied from
 # http://stackoverflow.com/a/246128/1839209:
-SOURCE="$0"
+if [[ $SHELL == */zsh ]]; then
+	SOURCE="$0"
+else
+	SOURCE="${BASH_SOURCE[0]}"
+fi
 while [ -h "$SOURCE" ]; do
   DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
   SOURCE="$(readlink "$SOURCE")"
