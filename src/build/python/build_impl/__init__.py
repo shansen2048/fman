@@ -103,6 +103,9 @@ def git_has_changes():
 
 def upload_core_to_github():
 	ssh_key = path('${core_plugin_ssh_key}')
+	if not is_windows():
+		# Prevent clone failing due to lacking access restrictions:
+		run(['chmod', '600', ssh_key])
 	with TemporaryDirectory() as tmp_dir:
 		cwd_before = getcwd()
 		chdir(tmp_dir)
