@@ -10,7 +10,7 @@ from core.quicksearch_matchers import contains_chars, \
 from fman import *
 from fman.fs import exists, touch, mkdir, is_dir, delete, samefile, copy, \
 	iterdir, resolve, prepare_copy, prepare_move, prepare_delete, \
-	FileSystem, prepare_trash, query, makedirs
+	FileSystem, prepare_trash, query, makedirs, notify_file_added
 from fman.impl.util import get_user
 from fman.url import splitscheme, as_url, join, basename, as_human_readable, \
 	dirname, relpath, normalize
@@ -778,6 +778,8 @@ class Symlink(_TreeCommand):
 					show_alert(
 						"%s exists and cannot be symlinked." % basename(f_url)
 					)
+			else:
+				notify_file_added(dest_url)
 
 	def _refuse(self):
 		show_alert('Sorry, can only create symlinks between local files.')
