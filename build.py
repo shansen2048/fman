@@ -138,11 +138,14 @@ def post_release():
 	version = SETTINGS['version']
 	assert not version.endswith(snapshot_suffix)
 	cloudfront_items_to_invalidate = []
-	for item in (
-		'fmanSetup.exe', 'fman.dmg', 'fman.deb', 'fman.pkg.tar.xz', 'fman.rpm'
-	):
+	for item in ('fman.dmg', 'fman.deb', 'fman.pkg.tar.xz', 'fman.rpm'):
 		cloudfront_items_to_invalidate.append(item)
 		cloudfront_items_to_invalidate.append('%s/%s' % (version, item))
+	# We also used to have top-level fmanSetup.exe, which was the online
+	# installer. However, due to incompatibilities with later Windows 10
+	# versions, the Windows online installer was discontinued in October 2020.
+	# For this reason, we now only have {version}/fmanSetup.exe.
+	cloudfront_items_to_invalidate.append('%s/fmanSetup.exe' % version)
 	create_cloudfront_invalidation(cloudfront_items_to_invalidate)
 	record_release_on_server()
 	upload_core_to_github()
