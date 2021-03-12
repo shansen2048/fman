@@ -492,8 +492,8 @@ class Popen7Zip:
 
 class Popen7ZipWindows(Popen7Zip):
 	def __init__(self, args, cwd):
-		args, env = _get_7zip_args_env_windows(args)
-		super().__init__(args, cwd, env, startupinfo=self._get_startupinfo())
+		args = _get_7zip_args_windows(args)
+		super().__init__(args, cwd, env=None, startupinfo=self._get_startupinfo())
 	def _get_startupinfo(self):
 		from subprocess import STARTF_USESHOWWINDOW, SW_HIDE, STARTUPINFO
 		result = STARTUPINFO()
@@ -501,12 +501,9 @@ class Popen7ZipWindows(Popen7Zip):
 		result.wShowWindow = SW_HIDE
 		return result
 
-def _get_7zip_args_env_windows(args):
+def _get_7zip_args_windows(args):
 	# Force an output encoding that works with TextIOWrapper(...):
-	args = ['-sccWIN'] + args
-	# Prevent potential interferences with existing env. variables:
-	env = {}
-	return args, env
+	return ['-sccWIN'] + args
 
 class Popen7ZipUnix(Popen7Zip):
 	def __init__(self, args, cwd):
@@ -616,8 +613,8 @@ class Run7ZipViaWinpty:
 			self._process.close()
 
 	def __init__(self, args, cwd):
-		args, env = _get_7zip_args_env_windows(args)
-		self._process = self._spawn([_7ZIP_BINARY] + args, cwd, env)
+		args = _get_7zip_args_windows(args)
+		self._process = self._spawn([_7ZIP_BINARY] + args, cwd)
 		self.stdout = self.Stdout(self._process)
 	def kill(self):
 		self._process.sendcontrol('c')

@@ -1,5 +1,8 @@
-SET ROOT=c:\Users\Michael\dev\fman
+set PATH=C:\Windows\SysWOW64\downlevel;C:\Program Files (x86)\NSIS;C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x86;%PATH%
+
+SET ROOT=c:\Users\micha\dev\fman
 CD %ROOT%
+
 CALL venv\scripts\activate.bat
 DOSKEY run=python build.py run $*
 DOSKEY clean=python build.py clean
