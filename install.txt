@@ -11,13 +11,6 @@ NSIS:
 Install version 2.51 on Windows.
 Add to PATH.
 
-Windows extra
-=============
-Add c:\Program Files (x86)\Windows Kits\10\bin\x86 to your PATH. This contains
-signtool, which is used for codesigning.
-
-Install Go 1.6.3 *32 bit*.
-
 Linux (Ubuntu) extra
 ====================
 sudo apt-get install bsdtar
