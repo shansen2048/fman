@@ -1,5 +1,5 @@
 {
-	"hidden_imports": ["pty"],
+	"hidden_imports": ["pty", "PyQt5.sip"],
 	"files_to_filter": [
 		"src/installer/linux/usr/bin/fman"
 	],
