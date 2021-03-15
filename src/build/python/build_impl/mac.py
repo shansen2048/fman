@@ -36,10 +36,12 @@ def freeze():
 		path('${freeze_dir}/Contents/Frameworks/Sparkle.framework')
 	)
 	copy_python_library('osxtrash', path('${core_plugin_in_freeze_dir}'))
+	import osxtrash
+	so_name = basename(osxtrash.__file__)
 	# Move the .so file to the correct location according to macOS's app bundle
 	# structure, so it is codesigned:
 	move(
-		path('${core_plugin_in_freeze_dir}/osxtrash.cpython-36m-darwin.so'),
+		path('${core_plugin_in_freeze_dir}/' + so_name),
 		path('${freeze_dir}/Contents/MacOS')
 	)
 	move(

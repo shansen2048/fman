@@ -6,6 +6,12 @@ Import developer certificate:
     security unlock-keychain -p **PASSWORD**
     security import "~/dev/fman/conf/mac/Private key.p12" -k ~/Library/Keychains/login.keychain -P "" -T /usr/bin/codesign
 
+Install a version of XCode that is compatible with your macOS version from
+https://developer.apple.com/download/more/?q=xcode.
+
+Code signing usually does not work when invoked via SSH. It prompts for a pw
+with the GUI.
+
 NSIS:
 =====
 Install version 2.51 on Windows.
@@ -19,10 +25,6 @@ This is required for creating the packages for pacman via fpm.
 If the above fails, build https://www.libarchive.org/ from source and place its `bsdtar` on the PATH.
 
 To be able to upload fman to the Arch User Repository during release, add ~/.ssh/id_rsa.pub to your account there.
-
-Mac extra
-=========
-Import conf/mac/Developer Certificate.cer and .../Private key.p12 into KeyChain
 
 fmanSetup.exe (Google Omaha installer)
 ======================================
