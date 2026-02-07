@@ -8,10 +8,25 @@ class MacUpdater:
 		self._objc_namespace = dict()
 		self._sparkle = None
 	def start(self):
+		if sys.platform == 'darwin':
+			try:
+				import platform
+				if platform.machine().startswith('arm'):
+					print("Sparkle disabled: x86_64-only framework on arm64")
+					return
+			except Exception:
+				# If detection fails, try loading and fall back to the try/except below.
+				pass
 		from objc import pathForFramework, loadBundle
 		frameworks_dir = join(dirname(sys.executable), pardir, 'Frameworks')
 		fmwk_path = pathForFramework(join(frameworks_dir, 'Sparkle.framework'))
-		loadBundle('Sparkle', self._objc_namespace, bundle_path=fmwk_path)
+		try:
+			loadBundle('Sparkle', self._objc_namespace, bundle_path=fmwk_path)
+		except Exception as exc:
+			# Sparkle might not be available or might be for a different arch.
+			# In that case, disable auto-updates instead of crashing at startup.
+			print(f"Sparkle disabled: {exc}")
+			return
 		self.app.aboutToQuit.connect(self._about_to_quit)
 		SUUpdater = self._objc_namespace['SUUpdater']
 		self._sparkle = SUUpdater.sharedUpdater()

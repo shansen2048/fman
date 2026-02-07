@@ -3,5 +3,8 @@ __pycache__/
 *.py[cod]
 cache/
 venv/
+.venv/
+.venv-py314/
+.venv-py39-brew/
 target/
 .DS_Store
