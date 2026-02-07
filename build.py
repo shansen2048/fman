@@ -8,65 +8,25 @@ from build_impl.aws import create_cloudfront_invalidation
 from fbs import path, activate_profile, SETTINGS
 from fbs.builtin_commands import clean
 from fbs.cmdline import command
-from fbs_runtime.platform import is_windows, is_mac, is_linux, is_ubuntu, \
-	is_fedora, is_arch_linux, linux_distribution
+from fbs_runtime.platform import is_mac
 from os.path import dirname
 
 import fbs.cmdline
 import re
 
-if is_windows():
-	from build_impl.windows import freeze, upload
-	from fbs.builtin_commands import sign, installer, sign_installer
-elif is_mac():
+if is_mac():
 	from build_impl.mac import freeze, sign, sign_installer, upload
 	from fbs.builtin_commands import installer
-elif is_linux():
-	from fbs.builtin_commands import installer
-	if is_ubuntu() or linux_distribution() == 'Debian GNU/Linux':
-		from build_impl.ubuntu import freeze, upload
-	elif is_arch_linux():
-		from build_impl.arch import freeze, upload
-		from fbs.builtin_commands import sign_installer
-	elif is_fedora():
-		from build_impl.fedora import freeze, upload
-		from fbs.builtin_commands import sign_installer
-	else:
-		raise NotImplementedError(linux_distribution())
+else:
+	raise NotImplementedError('Only macOS builds are supported.')
 
 @command
 def publish():
-	if is_windows():
-		freeze()
-		sign()
-		installer()
-		sign_installer()
-		upload()
-	elif is_mac():
-		freeze()
-		sign()
-		installer()
-		sign_installer()
-		upload()
-	elif is_linux():
-		if is_ubuntu():
-			freeze()
-			installer()
-			upload()
-		elif is_arch_linux():
-			freeze()
-			installer()
-			sign_installer()
-			upload()
-		elif is_fedora():
-			freeze()
-			installer()
-			sign_installer()
-			upload()
-		else:
-			raise NotImplementedError()
-	else:
-		raise ValueError('Unknown operating system.')
+	freeze()
+	sign()
+	installer()
+	sign_installer()
+	upload()
 
 @command
 def release():
@@ -105,10 +65,6 @@ def release():
 							'\nDone. Run\n\n'
 							'    git pull\n'
 							'    git checkout %s\n'
-							'    python build.py release\n'
-							'    git checkout master\n\n'
-							'on the other OSs now, then come back here and do:'
-							'\n\n'
 							'    python build.py post_release\n'
 							% release_tag
 						)

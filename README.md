@@ -1,6 +1,6 @@
 # fman
 
-Cross-platform, dual-pane file manager implemented in Python and PyQt5 with a
+macOS-only, dual-pane file manager implemented in Python and PyQt5 with a
 plugin-first architecture and an fbs-based build/release pipeline.
 
 ## Highlights
@@ -8,7 +8,7 @@ plugin-first architecture and an fbs-based build/release pipeline.
 - Dual-pane UI with a Qt-based frontend and a model/view backend.
 - Plugin system with built-in and user/third-party plugins.
 - Themed UI and configurable key bindings.
-- Cross-platform packaging for macOS, Windows, and multiple Linux distros.
+- Packaging for macOS.
 
 ## Architecture at a Glance
 
@@ -50,10 +50,10 @@ Build and packaging:
 Prerequisites:
 - Python 3.9.
 
-Install dependencies for your OS (examples):
+Install dependencies for macOS (example):
 
 ```bash
-pip install -Ur requirements/ubuntu.txt
+pip install -Ur requirements/mac.txt
 ```
 
 Run in development mode:

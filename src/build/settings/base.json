@@ -19,12 +19,7 @@
 	"server_media_dir": "/home/fman/src/media",
 	"server_user": "fman@fman.io",
 	"ssh_key": "conf/ssh/id_rsa",
-	"files_to_filter": [
-		"src/build/docker/arch/Dockerfile",
-		"src/build/docker/ubuntu/Dockerfile",
-		"src/build/docker/fedora/Dockerfile",
-		"src/build/docker/fedora/.rpmmacros"
-	],
+	"files_to_filter": [],
 	"public_settings": ["environment", "server_url", "sentry_dsn"],
 	"gpg_key": "45BCC825BC281C06D2A7F912B015FE599CFAF7EB",
 	"gpg_name": "Michael Herrmann",
@@ -37,22 +32,6 @@
 	"core_plugin_github_url": "git@github.com:fman-users/Core.git",
 	"core_plugin_ssh_key": "conf/ssh/id_rsa-Core",
 	"core_plugin_in_freeze_dir": "${freeze_dir}/Plugins/Core",
-	"docker_images": {
-		"arch": {
-			"build_files": [
-				"src/sign/linux/", "conf/ssh/", "requirements/"
-			]
-		},
-		"ubuntu": {
-			"build_files": [
-				"src/sign/linux/", "conf/ssh/", "requirements/"
-			]
-		},
-		"fedora": {
-			"build_files": [
-				"src/sign/linux/", "requirements/"
-			]
-		}
-	},
+	"docker_images": {},
 	"hidden_imports": ["requests", "PyQt5.sip"]
 }
