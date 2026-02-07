@@ -7,7 +7,6 @@ from fbs_runtime.platform import is_mac
 from fman import PLATFORM, DATA_DIRECTORY, Window
 from fman.impl.controller import Controller
 from fman.impl.font_database import FontDatabase
-from fman.impl.licensing import User
 from fman.impl.metrics import Metrics, ServerBackend, AsynchronousMetrics, \
 	LoggingBackend
 from fman.impl.model.icon_provider import GnomeFileIconProvider, \
@@ -87,20 +86,6 @@ class DevelopmentApplicationContext(ApplicationContext):
 	@property
 	def fman_version(self):
 		return self.build_settings['version']
-	def on_main_window_shown(self):
-		if self.is_licensed:
-			if not self.session_manager.was_licensed_on_last_run:
-				self.metrics.track('InstalledLicenseKey')
-				self.metrics.update_user(
-					is_licensed=True, email=self.user.email
-				)
-		else:
-			if self.session_manager.is_first_run:
-				pane = self.plugin_support.get_panes()[0]
-				tutorial = self.tutorial_factory(pane)
-				self.tour_controller.start(tutorial)
-			else:
-				self.splash_screen.exec()
 	def on_main_window_close(self):
 		self.session_manager.on_close(self.main_window)
 	def on_quit(self):
@@ -154,7 +139,7 @@ class DevelopmentApplicationContext(ApplicationContext):
 			self.app.set_main_window(self._main_window)
 		return self._main_window
 	def _get_main_window_title(self):
-		return 'fman' if self.is_licensed else 'fman – NOT REGISTERED'
+		return 'fman'
 	@cached_property
 	def help_menu_actions(self):
 		if is_mac():
@@ -357,7 +342,8 @@ class DevelopmentApplicationContext(ApplicationContext):
 		return User(email, key)
 	@cached_property
 	def is_licensed(self):
-		return self.user.is_licensed(self.fman_version)
+#		return self.user.is_licensed(self.fman_version)
+		return True
 	@cached_property
 	def main_window_palette(self):
 		result = QPalette(self.palette)
